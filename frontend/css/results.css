@@ -1,12 +1,6 @@
 /* results.css – the "Real-data results" page (results.html). Tokens, panels and the stat strip come from styles.css.
    The charts are HTML + CSS: a row is a label and a track; marks sit on the track at left: var(--x) (percent). */
 
-.skip-link {
-  position: absolute; left: .75rem; top: -4rem; z-index: 10; padding: .6rem 1rem;
-  background: var(--accent); color: var(--on-accent); font-weight: 600; text-decoration: none; border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-}
-.skip-link:focus { top: 0; }
-
 .rhead {
   display: flex; align-items: center; justify-content: space-between; gap: 1rem;
   max-width: 1100px; margin: 0 auto; padding: 1rem clamp(1rem, 3vw, 2rem) .4rem;

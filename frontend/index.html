@@ -12,9 +12,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Oswald:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 
   <script>if (/[?&]embed=1(&|$)/.test(location.search)) document.documentElement.classList.add("embed");</script>   <!-- ?embed=1: workspace only, for an <iframe> -->
-  <link rel="stylesheet" href="css/styles.css?v=12">
+  <link rel="stylesheet" href="css/styles.css?v=13">
 </head>
 <body>
+  <a class="skip-link" href="#workspace">Skip to the workspace</a>
   <!-- Decorative animated starfield behind everything (pure CSS, aria-hidden) -->
   <div class="sky-bg" aria-hidden="true"></div>
 
@@ -44,7 +45,7 @@
   <!-- Only visible with ?embed=1 (the banner, which holds the data badge, is hidden then): say what the data is -->
   <p class="embed-note" id="embed-note"></p>
 
-  <main class="layout" id="workspace">
+  <main class="layout" id="workspace" tabindex="-1">
     <!-- ============ LEFT: search controls ============ -->
     <section class="panel controls" aria-labelledby="controls-title">
       <h2 id="controls-title">1. Choose a patch of sky</h2>
