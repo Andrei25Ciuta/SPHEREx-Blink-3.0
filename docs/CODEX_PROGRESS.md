@@ -30,3 +30,9 @@ Remaining work includes an independent real-data replication of the saved recove
 The requested deployment repository is now `origin` at SPHEREx-Blink-3.0. Its main branch contained a single reset commit and one-line README when fetched. `blink2` and `upstream` remain reference remotes. README and AGENTS.md now point to this destination and the current entry points. Added backend tests for a valid SIA2 product and footprint, an unexpected table schema, and an unapproved collection. The backend suite passed with 116 tests.
 
 This session continues the remaining phases incrementally. The archive test uses a controlled response. Live IRSA availability, broader real-field injection recovery, full interface accessibility, and production deployment still need verification.
+
+### Follow-up verification after push
+
+Pushed commit `ffc7d8b` to SPHEREx-Blink-3.0 `main` by a fast-forward update that preserved its reset commit. GitHub Actions run 42468696891 passed its Node and backend jobs. The Pages workflow stopped at `actions/configure-pages@v5` because GitHub Pages has not been enabled for this repository. Enabling public Pages remains an explicit deployment step.
+
+Started the local backend against the ignored FITS archive. `/api/health` indexed 17 files and reported no unreadable files. `/api/photometry` returned nine D2 measurements at the Barnard field. Headless Edge loaded the same field with `data=api`, displayed nine frames, and measured nine points after a canvas click, with no page exceptions. The local archive is an input dependency and is not part of Git. This verifies one real-data entry path, not the entire scientific pipeline.
