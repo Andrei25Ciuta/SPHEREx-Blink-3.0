@@ -79,7 +79,8 @@ const PLOT_CONFIG = {
 
 // Real files are in MJy/sr, so the backend also sends Jansky; the mock and old files only have image units.
 const fluxOf = (p, col) => p[col];
-const errOf = (p, col) => (col === "fluxJy" ? p.fluxJyErr : p.fluxErr) ?? 0;
+// The error bar: the calibrated error the backend gives for real cutouts (fluxErrCal: robust ring scatter x the measured noise factor), else the plain one (the mock).
+export const errOf = (p, col) => (col === "fluxJy" ? (p.fluxJyErrCal ?? p.fluxJyErr) : (p.fluxErrCal ?? p.fluxErr)) ?? 0;
 const fluxLabel = (col) => (col === "fluxJy" ? "Flux (Jy)" : "Flux (image units)");
 const hoverFormat = (col) => (col === "fluxJy" ? ".3g" : ".1f");
 const showFlux = (v, col) => (v === null || v === undefined ? "—" : col === "fluxJy" ? v.toPrecision(3) : v.toFixed(1));

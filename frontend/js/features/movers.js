@@ -59,8 +59,17 @@ const PHASE_FLOOR_PX = [[0.356, 0.036], [0.4, 0.024], [0.457, 0.014]];       // 
 export const DEFAULT_PSF_SIGMA_PX = 0.356;                                   // D2 (the narrowest, so the largest floor B): the cautious default
 export const MASKED_FIT_SIGMA_PX = 0.15;                                     // a star positioned by the masked Gaussian fit (a saturated core): not covered by the model above
 
-export function centroidSigmaPx(snr, psfSigmaPx = DEFAULT_PSF_SIGMA_PX) {
+/**
+ * The same for a position refined by fitPsfCentroid (a PSF of the true width fitted by least squares): measured on the same injections as above
+ * (scratch/compare_centroids.mjs): A = 0.715-0.729 px and B = 0.001 px, so there is no pixel-phase floor and the coefficient is 0.73. A small floor stays
+ * for what a Gaussian does not know about the real PSF.
+ */
+export const PSF_FIT_NOISE_COEFF = 0.73;
+export const PSF_FIT_FLOOR_PX = 0.005;
+
+export function centroidSigmaPx(snr, psfSigmaPx = DEFAULT_PSF_SIGMA_PX, { psfFit = false } = {}) {
   if (!(snr > 0) || !Number.isFinite(snr)) return 0.3;                       // no usable S/N: say so with a large error
+  if (psfFit) return Math.hypot(PSF_FIT_NOISE_COEFF / snr, PSF_FIT_FLOOR_PX);
   const t = PHASE_FLOOR_PX;
   let B = t[0][1];
   if (psfSigmaPx >= t.at(-1)[0]) B = t.at(-1)[1];
@@ -228,6 +237,59 @@ function solveSmall(A, b) {
   return M.map((row, i) => row[m] / row[i]);
 }
 
+/** The standard normal distribution function (error function of Abramowitz & Stegun 7.1.26, absolute error below 1.5e-7). */
+function normalCdf(z) {
+  const x = Math.abs(z) / Math.SQRT2, t = 1 / (1 + 0.3275911 * x);
+  const erfAbs = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+  return 0.5 * (1 + Math.sign(z) * erfAbs);
+}
+const normalPdf = (z) => Math.exp(-0.5 * z * z) / Math.sqrt(2 * Math.PI);
+
+/**
+ * The position of a star by least squares with the PSF the instrument has: a Gaussian of width `sigma` px INTEGRATED over each pixel (the PSF of SPHEREx is
+ * smaller than a pixel, so a pixel holds the integral of the star over it, not its value at the middle), with the centre and the total flux free and the
+ * background fixed at `background`. Fitted to the (2 half + 1)^2 pixels around the integer pixel (px, py); pixels that are flagged (mask) or not finite are left out.
+ * Unlike the windowed centroid it has no pixel-phase bias and, on injected stars, reaches the Cramer-Rao limit (scratch/compare_centroids.mjs, VALIDATION 15.7).
+ * Returns { x, y, flux } in edge coordinates (centre of pixel 0 = 0.5), or null: too few good pixels, no flux, a fit that does not converge or runs away from
+ * its start. `start` = { x, y } is the first guess (default: the middle of the pixel).
+ */
+export function fitPsfCentroid(image, n, px, py, { sigma = DEFAULT_PSF_SIGMA_PX, half = 3, mask = null, start = null, background = 0 } = {}) {
+  const pix = [];
+  for (let dy = -half; dy <= half; dy++) {
+    for (let dx = -half; dx <= half; dx++) {
+      const x = px + dx, y = py + dy;
+      if (x < 0 || y < 0 || x >= n || y >= n) continue;
+      const v = image[y * n + x];
+      if (!Number.isFinite(v) || (mask && mask[y * n + x])) continue;
+      pix.push({ x, y, v: v - background });
+    }
+  }
+  const nWindow = (2 * half + 1) ** 2;
+  if (pix.length < 0.7 * nWindow) return null;                                      // a good part of the window is missing: the fit would lean on too few pixels
+  let cx = start?.x ?? px + 0.5, cy = start?.y ?? py + 0.5;
+  const x0 = cx, y0 = cy;
+  let flux = pix.reduce((s, p) => s + p.v, 0);
+  if (!(flux > 0)) return null;
+  for (let it = 0; it < 30; it++) {
+    const A = [[0, 0, 0], [0, 0, 0], [0, 0, 0]], b = [0, 0, 0];
+    for (const p of pix) {
+      const ux0 = (p.x - cx) / sigma, ux1 = (p.x + 1 - cx) / sigma, uy0 = (p.y - cy) / sigma, uy1 = (p.y + 1 - cy) / sigma;
+      const ix = normalCdf(ux1) - normalCdf(ux0), iy = normalCdf(uy1) - normalCdf(uy0);
+      const dix = (normalPdf(ux0) - normalPdf(ux1)) / sigma, diy = (normalPdf(uy0) - normalPdf(uy1)) / sigma;       // derivative of the pixel's share with the centre
+      const row = [flux * dix * iy, flux * ix * diy, ix * iy];
+      const r = p.v - flux * ix * iy;
+      for (let i = 0; i < 3; i++) { b[i] += row[i] * r; for (let j = 0; j < 3; j++) A[i][j] += row[i] * row[j]; }
+    }
+    const step = solveSmall(A, b);
+    if (!step || !step.every(Number.isFinite)) return null;
+    const move = Math.hypot(step[0], step[1]), damp = move > 0.7 ? 0.7 / move : 1;                  // never move the centre more than 0.7 px at once
+    cx += step[0] * damp; cy += step[1] * damp; flux += step[2] * damp;
+    if (Math.hypot(cx - x0, cy - y0) > 1.5 || !(flux > 0)) return null;
+    if (Math.hypot(step[0], step[1]) < 1e-5 && Math.abs(step[2]) < 1e-5 * flux) return { x: cx, y: cy, flux };
+  }
+  return null;
+}
+
 const MIN_BAD_CORE = 6;       // bad (or empty) pixels among the 25 of the 5 x 5 core before the masked fit is used
 
 /**
@@ -290,7 +352,7 @@ function fitMaskedGaussian(grey, image, mask, n, px, py, background) {
  * options.mask (optional, Uint8Array n*n, 1 = bad pixel, from the backend's `maskUrl`): a star whose 5 x 5 core has at least
  * MIN_BAD_CORE flagged pixels (a saturated star) is positioned by fitting a Gaussian on the good pixels only (see fitMaskedGaussian).
  */
-export function detectSources(image, n, { detectSigma = DEFAULTS.detectSigma, edgeMargin = DEFAULTS.edgeMargin, sigmaFloor = DEFAULTS.sigmaFloor, mask = null, psfSigmaPx = DEFAULT_PSF_SIGMA_PX } = {}) {
+export function detectSources(image, n, { detectSigma = DEFAULTS.detectSigma, edgeMargin = DEFAULTS.edgeMargin, sigmaFloor = DEFAULTS.sigmaFloor, mask = null, psfSigmaPx = DEFAULT_PSF_SIGMA_PX, psfFit = false } = {}) {
   if (!image || image.length !== n * n || n < 2 * edgeMargin + 3) return [];
   const useMask = mask && mask.length === n * n;
   const grey = fillMissing(image);          // `image` may be 8-bit grey values or real (float) pixel values
@@ -308,9 +370,15 @@ export function detectSources(image, n, { detectSigma = DEFAULTS.detectSigma, ed
         const fit = fitMaskedGaussian(grey, image, mask, n, x, y, median);
         if (fit) { c = fit; masked = true; }
       }
+      // psfFit: refine a star whose core is intact with a pixel-integrated Gaussian of the true width (fitPsfCentroid); a masked star keeps the masked fit, a failed fit keeps the centroid
+      let fitted = false;
+      if (psfFit && c && !masked) {
+        const f = fitPsfCentroid(image, n, x, y, { sigma: psfSigmaPx, background: median, mask: useMask ? mask : null, start: c });
+        if (f) { c = f; fitted = true; }
+      }
       const snr = (v - median) / sigma;
       // sigmaPx: the error of this position per axis (centroidSigmaPx); a star positioned by the masked fit is outside that model and gets the cautious MASKED_FIT_SIGMA_PX
-      if (c) found.push({ x: c.x, y: c.y, snr, sigmaPx: masked ? Math.max(MASKED_FIT_SIGMA_PX, centroidSigmaPx(snr, psfSigmaPx)) : centroidSigmaPx(snr, psfSigmaPx) });
+      if (c) found.push({ x: c.x, y: c.y, snr, sigmaPx: masked ? Math.max(MASKED_FIT_SIGMA_PX, centroidSigmaPx(snr, psfSigmaPx)) : centroidSigmaPx(snr, psfSigmaPx, { psfFit: fitted }) });
     }
   }
   return found;

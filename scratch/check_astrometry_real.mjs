@@ -20,6 +20,8 @@ const FIELDS = [
 ];
 const FOV = 5;
 const args = parseArgs();
+// px, the PSF sigma of the detector (median PSF_FWHM of the headers / 2.3548 / 6.14"), used only with --psf; --s2 and --s6 try another width
+const PSF_SIGMA = { D2: Number(args.s2 ?? 0.356), D6: Number(args.s6 ?? 0.457) };
 const api = args.api ?? "http://localhost:8003";
 const sd = (v) => { const m = v.reduce((a, b) => a + b, 0) / v.length; return Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / Math.max(1, v.length - 1)); };
 // a robust scale (1.4826 x the median absolute deviation): faint sources below the detection threshold and the wings of bright stars put real flux into some "empty" apertures, which the plain sd counts as noise
@@ -32,7 +34,8 @@ for (const fld of FIELDS) {
   const f = await loadField(api, fld.ra, fld.dec, FOV, fld.det);
   const { n } = f, N = f.frames.length;
   // ---------------------------------------------------------------- 1. positions of fixed stars
-  const dots = f.arrays.map((a, k) => detectSources(a, n, { sigmaFloor: 1e-9, mask: f.masks[k] }));
+  // --psf: refine the dots with fitPsfCentroid (the PSF width of the detector: median of the headers, FWHM 5.15" D2, 6.61" D6) and use its error model
+  const dots = f.arrays.map((a, k) => detectSources(a, n, { sigmaFloor: 1e-9, mask: f.masks[k], ...(args.psf ? { psfFit: true, psfSigmaPx: PSF_SIGMA[fld.det] } : {}) }));
   const reg = registerShifts(dots.map((s, k) => ({ mjd: f.frames[k].mjd, sources: s })));
   const shifts = reg.map((s) => (Math.abs(s.dx) > 0.05 || Math.abs(s.dy) > 0.05 ? s : { dx: 0, dy: 0 }));
   const corrected = dots.map((list, k) => list.map((d) => ({ ...d, x: d.x - shifts[k].dx, y: d.y - shifts[k].dy })));

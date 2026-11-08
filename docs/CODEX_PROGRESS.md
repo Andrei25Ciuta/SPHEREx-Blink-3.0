@@ -82,8 +82,9 @@ Changed: `index.html` (the search panel has a head with a button and a body; a n
 
 ## Remaining in Phase 4
 
-- A **PSF-fit centroid** (the windowed centroid stops at 0.04 px for bright stars; the best possible is 5-16 times smaller on injected stars) and a PSF width per image instead of the cautious default.
-- The **parallax search** still uses its 0.15 px floor; Epsilon Indi B's 0.5″/yr offset from the catalogue is unexplained (a systematic); the flux errors of the backend's spectrum chart (`photometry.py`) are not recalibrated.
+- A **PSF-fit centroid is built and measured, and is off by default** (VALIDATION 15.7): 1.0-1.2 times the Cramer-Rao limit on injected stars, but on the real images it scatters more than the windowed centroid (0.061 against 0.046 px at S/N 20-60). The next step would be the real PSF (the file's PSF extension) instead of a Gaussian, and a PSF width per image instead of the cautious default.
+- The **parallax search** still uses its 0.15 px floor (to be calibrated with injections in the Planet X Lab, Phase 5); Epsilon Indi B's 0.5″/yr offset from the catalogue is unexplained (a possible cause from memory, not tested: the unresolved binary).
+- The backend's photometry has a calibrated error (`fluxErrCal`); the old `fluxErr` is kept, so `stack_wise0855.py` and the numbers of VALIDATION 7 are unchanged.
 
 ## Remaining in Phase 3
 

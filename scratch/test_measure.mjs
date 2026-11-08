@@ -1,5 +1,5 @@
 // Tests for measure.js pure helpers + mock photometry. Run: node scratch/test_measure.mjs
-import { groupIntoPasses } from "../frontend/js/features/measure.js";
+import { groupIntoPasses, errOf } from "../frontend/js/features/measure.js";
 import { canvasToSky, skyToCanvas, mjdToYear } from "../frontend/js/geometry.js";
 import { TARGETS, positionAtEpoch, targetsInField } from "../frontend/js/targets.js";
 import { aperturePhotometry } from "../frontend/js/data/mockSource.js";
@@ -50,5 +50,10 @@ const pa = skyToCanvas(a.ra, a.dec, geo), pb = skyToCanvas(b.ra, b.dec, geo);
 const dxPx = (pb.fx - pa.fx) * geo.n, dyPx = (pb.fy - pa.fy) * geo.n;
 ok(Math.abs(Math.hypot(dxPx, dyPx) - 8.151 / 6.2) < 0.01, `WISE 0855 moves ${Math.hypot(dxPx, dyPx).toFixed(3)} px/yr (expected 1.315)`);
 ok(dxPx > 1.2 && dyPx < 0, "…towards the right (west, pmra < 0) and slightly up (north, pmdec > 0)");
+
+// ---- the error bar of the spectrum: the calibrated error of the backend when there is one
+ok(errOf({ fluxErr: 4, fluxErrCal: 1.5 }, "flux") === 1.5 && errOf({ fluxJyErr: 8e-6, fluxJyErrCal: 3e-6 }, "fluxJy") === 3e-6, "errOf: takes the calibrated error (fluxErrCal, fluxJyErrCal) when the backend gives it");
+ok(errOf({ fluxErr: 4 }, "flux") === 4 && errOf({ fluxJyErr: 8e-6 }, "fluxJy") === 8e-6, "errOf: the mock and old answers have only the plain error, which is used");
+ok(errOf({}, "flux") === 0 && errOf({ fluxErr: null, fluxErrCal: null }, "flux") === 0 && errOf({ fluxErrCal: 0, fluxErr: 5 }, "flux") === 0, "errOf: no error is 0 (no bar), and a calibrated error of 0 is respected, not replaced");
 
 process.exit(fails ? 1 : 0);

@@ -1,7 +1,7 @@
 // Phase 4: are the positions, the velocities and the fluxes right, and are the ERRORS reported with them right?  Repeated injections of point sources with a
 // pixel-integrated Gaussian PSF on white noise (the real PSF is not Gaussian and the real noise is not white: scratch/check_astrometry_real.mjs, VALIDATION §15,
 // checks the same errors on the real images). Run: node scratch/test_astrometry.mjs
-import { detectSources, findMoversInImages, apertureSnr, centroidSigmaPx, lineUncertainty, calibratedFluxErr, POSITION_NOISE_COEFF, SYSTEMATIC_SIGMA_PX, REAL_APERTURE_NOISE_FACTOR, MASKED_FIT_SIGMA_PX, DEFAULT_PSF_SIGMA_PX } from "../frontend/js/features/movers.js";
+import { detectSources, findMoversInImages, apertureSnr, centroidSigmaPx, lineUncertainty, calibratedFluxErr, POSITION_NOISE_COEFF, SYSTEMATIC_SIGMA_PX, REAL_APERTURE_NOISE_FACTOR, MASKED_FIT_SIGMA_PX, DEFAULT_PSF_SIGMA_PX, fitPsfCentroid } from "../frontend/js/features/movers.js";
 import { mulberry32, renderStar, crlbX, gaussianNoise, mean, sd, rms, within } from "./lib_inject.mjs";
 
 let failed = 0;
@@ -148,6 +148,44 @@ function measure({ trials, flux, sigma, seed, psfSigmaPx }) {
   const ap = apertureSnr(renderStar(n, 24, 24, 100, 0.4, mulberry32(3)), n, 24, 24, 2);
   check("the S/N the searches use is still flux / err (their thresholds were tuned with it); the error to REPORT is errTotal for synthetic data and 1.7 x err for real cutouts",
     ap.snr === ap.flux / ap.err && ap.errTotal > ap.err && ap.errTotal < 1.2 * ap.err && calibratedFluxErr(ap, false) === ap.errTotal && calibratedFluxErr(ap, true) === ap.err * REAL_APERTURE_NOISE_FACTOR && REAL_APERTURE_NOISE_FACTOR === 1.7 && ap.nInside >= 9 && ap.nRing >= 10);
+}
+
+// ================================================================= 6. the PSF fit (opt-in: detectSources(..., { psfFit: true })), measured on ideal injected stars
+// On the REAL images it is not better than the windowed centroid (scratch/check_astrometry_real.mjs --psf 1, VALIDATION 15.7): so it is off by default and these checks
+// are about the estimator on the ideal case it was built for, and about the default staying as it was.
+{
+  const mk = (flux, sigma, seed, opts) => {
+    const rng = mulberry32(seed), win = [], fit = [], cr = [];
+    for (let t = 0; t < 400; t++) {
+      const x0 = 12 + rng() * 25, y0 = 12 + rng() * 25;
+      const img = renderStar(n, x0, y0, flux, sigma, rng);
+      const base = detectSources(img, n, { sigmaFloor: 1e-9, psfSigmaPx: sigma }).filter((d) => Math.hypot(d.x - x0, d.y - y0) < 2)[0];
+      const fitted = detectSources(img, n, { sigmaFloor: 1e-9, psfSigmaPx: sigma, psfFit: true, ...opts }).filter((d) => Math.hypot(d.x - x0, d.y - y0) < 2)[0];
+      if (!base || !fitted) continue;
+      win.push({ ex: base.x - x0, ey: base.y - y0, snr: base.snr, sigmaPx: base.sigmaPx }); fit.push({ ex: fitted.x - x0, ey: fitted.y - y0, snr: fitted.snr, sigmaPx: fitted.sigmaPx });
+      cr.push(crlbX(n, x0, y0, flux, sigma));
+    }
+    return { win, fit, cr: Math.sqrt(mean(cr.map((c) => c * c))) };
+  };
+  const a = mk(160, 0.356, 61), b = mk(60, 0.457, 62);
+  const r = (rows) => rms([...rows.map((q) => q.ex), ...rows.map((q) => q.ey)]);
+  check("PSF fit: on bright injected stars it is several times more accurate than the windowed centroid", r(a.fit) < r(a.win) / 3, `${r(a.fit).toFixed(4)} against ${r(a.win).toFixed(4)} px`);
+  check("PSF fit: it reaches the Cramer-Rao limit (within 1.3 times, averaged over the pixel phases) at flux 160 and 60", r(a.fit) < 1.3 * a.cr && r(b.fit) < 1.3 * b.cr, `${(r(a.fit) / a.cr).toFixed(2)}, ${(r(b.fit) / b.cr).toFixed(2)}`);
+  check("PSF fit: no mean error (no bias), the windowed centroid's pixel-phase bias is gone", Math.abs(mean(a.fit.map((q) => q.ex))) < 0.003 && Math.abs(mean(a.fit.map((q) => q.ey))) < 0.003);
+  const z = [...a.fit.flatMap((q) => [q.ex / q.sigmaPx, q.ey / q.sigmaPx]), ...b.fit.flatMap((q) => [q.ex / q.sigmaPx, q.ey / q.sigmaPx])];
+  check("PSF fit: the error it reports (0.73 / S/N, floor 0.005 px) is not too small: the spread of z is at most 1.15 (a little cautious is fine)", sd(z) < 1.15 && sd(z) > 0.5, `sd(z) = ${sd(z).toFixed(2)}`);
+  check("PSF fit: the reported error of a fitted dot is the PSF-fit model, and the windowed one is unchanged", near(centroidSigmaPx(50, 0.356, { psfFit: true }), Math.hypot(0.73 / 50, 0.005), 1e-12) && centroidSigmaPx(50, 0.356) === centroidSigmaPx(50, 0.356, { psfFit: false })
+    && a.fit.every((q) => q.sigmaPx < 0.06) && a.win.every((q) => q.sigmaPx >= 0.036));
+  const img = renderStar(n, 20.3, 22.7, 100, 0.4, mulberry32(5));
+  const off = detectSources(img, n, { sigmaFloor: 1e-9 }), explicitOff = detectSources(img, n, { sigmaFloor: 1e-9, psfFit: false });
+  check("PSF fit: off by default: detectSources gives exactly the same dots as before without the option", JSON.stringify(off) === JSON.stringify(explicitOff) && off.length >= 1);
+  const win = 3, mid = renderStar(n, 24.5, 24.5, 120, 0.4, mulberry32(6));
+  const mask = new Uint8Array(n * n); for (let j = 22; j < 27; j++) for (let i = 22; i < 27; i++) mask[j * n + i] = 1;          // a flagged core of 25 pixels
+  check("PSF fit: with too many flagged pixels in its window it gives up (null) instead of fitting what is left", fitPsfCentroid(mid, n, 24, 24, { sigma: 0.4, half: win, mask, background: 0 }) === null);
+  check("PSF fit: a window with no flux, or one that is mostly outside the image, gives null; a normal star gives a fit",
+    fitPsfCentroid(new Float32Array(n * n), n, 20, 20, { sigma: 0.4 }) === null && fitPsfCentroid(mid, n, 0, 0, { sigma: 0.4 }) === null && fitPsfCentroid(mid, n, 24, 24, { sigma: 0.4, start: { x: 24.4, y: 24.6 } }) !== null);
+  const far = fitPsfCentroid(mid, n, 24, 24, { sigma: 0.4, start: { x: 24.5, y: 24.5 } });
+  check("PSF fit: the answer is the injected position to a few thousandths of a pixel and the flux is the injected one (noise 1, flux 120)", near(far.x, 24.5, 0.03) && near(far.y, 24.5, 0.03) && near(far.flux, 120, 8), `${far.x.toFixed(3)}, ${far.y.toFixed(3)}, ${far.flux.toFixed(1)}`);
 }
 
 console.log(failed ? `\n${failed} FAILED` : "\nall passed");

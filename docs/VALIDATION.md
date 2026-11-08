@@ -815,3 +815,53 @@ the thresholds of §10-§14 were tuned with it. The error to **report** is `cali
 - The astrometric floor of 1″ (`ASTROMETRIC_FLOOR_ARCSEC`, from the Arosa test) still dominates the position error that is reported for a candidate.
 - The **parallax search** (Planet X mode) still uses the old floor of 0.15 px for its fits: not changed, and not re-validated.
 - Versions: `movers-2` and `discovery-3` (the numbers of the errors changed; the classes and thresholds did not).
+
+### 15.7 A PSF-fit centroid, and the error of the backend's photometry (9 Nov 2026, the remainder of Phase 4)
+
+**A PSF fit.** `fitPsfCentroid` (movers.js) fits, by least squares, a Gaussian of the true PSF width **integrated over each pixel** (centre and total flux free, background fixed at the
+measured median) in a 7 x 7 window; `detectSources(..., { psfFit: true })` uses it to refine every dot whose core is intact (a saturated, masked star keeps the masked fit; a fit that does
+not converge keeps the windowed centroid). `node scratch/compare_centroids.mjs` (800 injected stars per row, white noise, PSF integrated over pixels, the star at a random place inside its pixel):
+
+| PSF sigma (px) | total flux / pixel noise | windowed centroid, rms per axis (px) | PSF fit, rms (px) | Cramér-Rao limit (px) | fit / limit | pixel-phase bias, windowed / fit (px) |
+|---|---|---|---|---|---|---|
+| 0.356 | 20 | 0.110 | 0.074 | 0.063 | 1.17 | 0.073 / 0.014 |
+| 0.356 | 80 | 0.044 | 0.018 | 0.016 | 1.11 | 0.049 / 0.001 |
+| 0.356 | 320 | 0.037 | 0.004 | 0.004 | 1.08 | 0.048 / 0.001 |
+| 0.457 | 20 | 0.119 | 0.085 | 0.079 | 1.08 | 0.026 / 0.013 |
+| 0.457 | 80 | 0.032 | 0.020 | 0.020 | 1.01 | 0.023 / 0.004 |
+| 0.457 | 320 | 0.015 | 0.005 | 0.005 | 1.04 | 0.017 / 0.000 |
+
+On ideal stars the fit reaches the best any estimator can do (1.01-1.17 times the limit) and has no pixel-phase bias. Its error model, fitted with the **same method** as §15.2 (the windowed rows of the
+script reproduce the A and B written in movers.js: A 1.00-1.02, B 0.036 / 0.024 / 0.014): sigma^2 = (0.73 / S/N)^2 + 0.005^2 per axis (A 0.715-0.729, B 0.001; `PSF_FIT_NOISE_COEFF`, `PSF_FIT_FLOOR_PX`).
+
+**On the real images it is NOT better, so it is off by default.** `node scratch/check_astrometry_real.mjs [--psf 1] [--s2 W --s6 W]`: the same fixed stars as §15.5, the rms of each dot about the
+mean position of its star (a measure of repeatability from one image to another):
+
+| dot S/N | windowed centroid (183 dots) | PSF fit, the header's PSF width (223 dots) | PSF fit, a wider model (D2 0.9 px, D6 1.0 px; 215 dots) |
+|---|---|---|---|
+| 3-8 | 0.087 px | 0.111 | 0.089 |
+| 8-20 | 0.060 | 0.090 | 0.069 |
+| 20-60 | 0.046 | 0.061 | 0.056 |
+| above 60 | 0.055 | 0.102 | 0.072 |
+
+The fit with the PSF of the headers scatters MORE than the windowed centroid (0.061 against 0.046 px at S/N 20-60, 0.102 against 0.055 above 60) and the error it reports (0.027 px in the S/N 20-60 bin, 0.009 px above 60)
+is far too small there (sd(z) 3.45 pooled, 11.8 above S/N 60): the real PSF of the resampled cutouts is not a Gaussian of the header width, and a fit that trusts the model moves with the pixel phase of each
+image. A wider model gets closer and is still not better. **The windowed centroid stays the default**; the PSF fit is available (`psfFit`) for ideal or better-modelled data, with its tests
+(`test_astrometry.mjs`, +9). A real PSF (the file's PSF extension) was not tried: that is the next step if a better position is needed. Not changed: the systematic floor of 0.04 px.
+
+**The error of the backend's photometry (`photometry.py`).** `backend/.venv/Scripts/python.exe -I scratch/check_photometry_noise.py`: 7 950 apertures of radius 2 px at random places of the real cutouts of
+the six fields, z = flux / error, robust spread (1.4826 x MAD):
+
+| error taken from | pooled robust spread of z | by field (D2 / D6 of Barnard, Epsilon Indi B, WISE 0855) |
+|---|---|---|
+| the scatter of the ring, as `photometry.py` always did (`fluxErr`) | **0.44**: too LARGE by 2.3 times | 0.28, 0.27, 0.53, 0.66, 0.63, 0.82 |
+| the robust scatter of the ring (1.4826 x MAD) | 2.11: too small by 2.1 times | 2.19, 2.25, 2.02, 1.89, 2.23, 1.67 |
+
+The plain scatter of the ring is inflated by the faint stars and the wings in it; the robust one is the noise, and a sum over a circle of resampled (correlated) pixels scatters 2.1 times more than that
+noise says. The backend now also sends `fluxErrCal` / `fluxJyErrCal`: robust ring scatter x sqrt(pixels inside) x `REAL_NOISE_FACTOR` = 2.1 for real cutouts (BUNIT MJy/sr), 1 for synthetic ones. By
+construction the pooled robust spread of z is 1; by field it is 0.8-1.1 (1.67-2.25 divided by 2.1), so a single factor is right to about 20 %, not better. The spectrum and light-curve error bars use
+`fluxErrCal`. The old `fluxErr` is unchanged (nothing that consumed it broke): `scratch/stack_wise0855.py`'s "nominal" error still comes from it, so the WISE 0855 numbers of §7 are as they were.
+
+**Epsilon Indi B, 0.5″/yr from the catalogue** (§15.5, still unexplained). A possible cause, **from memory and not checked here**: Epsilon Indi B is a close pair of brown dwarfs (Ba and Bb, about 0.6″ apart,
+orbit of about 11 years), unresolved in a 6.14″ pixel, so what is measured is the motion of their light centre, which has the orbital motion on top of the proper motion that SIMBAD lists. A test would
+need the orbit; none was made.
