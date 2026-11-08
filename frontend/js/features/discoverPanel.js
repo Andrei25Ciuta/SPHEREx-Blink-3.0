@@ -47,6 +47,15 @@ export function explorerRow(c) {
   };
 }
 
+/**
+ * The points of the spectrum sketch in the table: wavelength (µm) against flux (mJy), over the images where the source was measured and not flagged.
+ * undefined when there are fewer than 3 (a shape needs three points). Only the live app has them: the published results page has no spectra.
+ */
+export function spectrumPoints(c) {
+  const pts = (c.photometry ?? []).filter((p) => p.measured && !p.flagged && Number.isFinite(p.wavelengthUm) && Number.isFinite(p.fluxMilliJy)).map((p) => ({ x: p.wavelengthUm, y: p.fluxMilliJy }));
+  return pts.length >= 3 ? pts : undefined;
+}
+
 /** The second line of a list item. */
 export function subline(c) {
   const parts = [`RA ${degToHms(c.ra)}  Dec ${degToDms(c.dec)}`, `seen in ${c.nDet} of ${c.nFrames} images`, `S/N ${Number.isFinite(c.medianSnr) ? c.medianSnr.toFixed(0) : "–"}`, `support ${c.support}/100`];
@@ -237,7 +246,7 @@ export function setupDiscoverPanel(deps) {
     els.provenance.hidden = false;
     els.views.hidden = false;
     explorer.reset();
-    explorer.setRows(result.candidates.map(explorerRow));
+    explorer.setRows(result.candidates.map((c) => ({ ...explorerRow(c), spec: spectrumPoints(c) })));
     els.exports.hidden = false;
     setView(view);
     els.notes.replaceChildren(...run.notes.map((t) => el("li", { textContent: t })));

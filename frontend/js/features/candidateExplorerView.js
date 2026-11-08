@@ -10,7 +10,7 @@
 // same rows, hidden from assistive technology on purpose, and clicking a point selects it like clicking its row.
 
 import { FILTERS, COLUMNS, exploreRows, cellText, scatterLayout } from "./candidateExplorer.js";
-import { stateHtml } from "./ui.js";
+import { stateHtml, sparklineSvg } from "./ui.js";
 
 const el = (tag, props = {}, ...kids) => {
   const e = Object.assign(document.createElement(tag), props);
@@ -53,6 +53,11 @@ export function createExplorer({ root, onSelect = () => {}, threshold = null, sh
     sortButtons.set(col.key, btn);
     headRow.append(el("th", { scope: "col", className: col.numeric ? "num" : "" }, btn));
   }
+  // A small picture of each source's spectrum, for the rows that have one (the live app measures every source in every image; the published results page has no
+  // spectra and no pixels, so there the column stays hidden). Not sortable: the numbers are in the dossier a row opens.
+  const specTh = el("th", { scope: "col", className: "ex-spec", textContent: "Spectrum", title: "Flux against wavelength over the images where the source was measured and not flagged: a sketch of the shape, the numbers are in its dossier" });
+  specTh.hidden = true;
+  headRow.append(specTh);
   const tbody = el("tbody");
   const table = el("table", { className: "ex-table" }, el("caption", { className: "sr-only", textContent: "Sources, one row each. Sort with the column buttons." }), el("thead", {}, headRow), tbody);
   const tableWrap = el("div", { className: "table-scroll" }, table);
@@ -99,6 +104,8 @@ export function createExplorer({ root, onSelect = () => {}, threshold = null, sh
   function render() {
     const view = exploreRows(rows, state);
     state.page = view.page;
+    const showSpec = rows.some((r) => r.spec);
+    specTh.hidden = !showSpec;
     // header: which column is sorted, and which way
     for (const [key, btn] of sortButtons) {
       const th = btn.parentElement, on = state.sortKey === key;
@@ -119,11 +126,15 @@ export function createExplorer({ root, onSelect = () => {}, threshold = null, sh
         } else td.textContent = text;
         tr.append(td);
       });
+      const spec = el("td", { className: "ex-spec" });
+      spec.hidden = !showSpec;
+      if (r.spec) spec.innerHTML = sparklineSvg(r.spec);
+      tr.append(spec);
       tr.addEventListener("click", (e) => { if (!e.target.closest("button")) select(r.id); });
       return tr;
     }));
     if (!view.rows.length) {
-      const cell = el("td", { colSpan: columns.length, className: "ex-empty" });
+      const cell = el("td", { colSpan: columns.length + (showSpec ? 1 : 0), className: "ex-empty" });
       cell.innerHTML = rows.length
         ? stateHtml({ kind: "empty", title: "No source passes this filter and search", text: "Change the filter or clear the search to see the others." })
         : stateHtml({ kind: "empty", title: "Nothing to show yet", text: "Run Find everything on a field to fill the table." });

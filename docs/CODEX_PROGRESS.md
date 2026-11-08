@@ -87,8 +87,8 @@ Changed: `index.html` (the search panel has a head with a button and a body; a n
 
 ## Remaining in Phase 3
 
-- Sections 1-10 of the results page: the numbers are typed into `real_results.json` from the reports of the commands (`origins` names the command and the VALIDATION.md section of each section, the page shows it, `test_results.mjs` checks that the scripts and the sections exist and that the headline numbers stand in VALIDATION.md). Making the file with the scripts (a `--json` output for `validate_real.mjs`, `calibrate_real.mjs`, `real_parallax.mjs` and the Python ones, then one `make_results_data.mjs`) is not done; it needs the real backend and would change numbers measured with older code.
-- The table has no pictures (stamps) or spectra in its rows: they are in the dossier a row opens. A comparison of candidates across fields in the live app does not exist.
+- Sections 1-10 of the results page: the numbers are typed into `real_results.json` from the reports of the commands (`origins` names the command and the VALIDATION.md section of each, the page shows it, `test_results.mjs` checks that the scripts and the sections exist and that the headline numbers stand in VALIDATION.md). Making the file with the scripts (a `--json` output for `validate_real.mjs`, `calibrate_real.mjs`, `real_parallax.mjs` and the Python ones, then one `make_results_data.mjs`) is **not done on purpose**: it needs the real backend, takes a long time, and would replace numbers measured on 7 Nov with the older code by numbers measured with the code of today (`movers-2`), so VALIDATION.md would have to change too. That is the author's call.
+- The table has a spectrum sketch per row (live app only) but no pictures (stamps): they are in the dossier a row opens. A comparison of candidates across fields in the live app does not exist (one field at a time).
 
 ## Remaining in Phase 2
 

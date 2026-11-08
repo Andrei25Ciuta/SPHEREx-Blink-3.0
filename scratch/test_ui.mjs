@@ -2,7 +2,7 @@
 // (features/dialog.js). The DOM parts run against a small fake DOM.  Run: node scratch/test_ui.mjs
 import { readFileSync } from "node:fs";
 import { placeTip, tipText, setupTooltips } from "../frontend/js/features/tooltip.js";
-import { ICONS, iconSvg, stateHtml, STATE_KINDS } from "../frontend/js/features/ui.js";
+import { ICONS, iconSvg, stateHtml, STATE_KINDS, sparklinePoints, sparklineSvg } from "../frontend/js/features/ui.js";
 import { SHORTCUTS, shortcutsHtml, openDialog } from "../frontend/js/features/dialog.js";
 
 let failed = 0;
@@ -180,6 +180,22 @@ function tipPage() {
   dlg.open = true; opener.focused = false; dlg.removed = false;
   closeBtn.fire("click");
   check("dialog: the Close button closes it, and close() is returned for the caller", dlg.open === false && dlg.removed === true && opener.focused === true && typeof handle.close === "function");
+}
+
+// ---------------------------------------------------------------- sparklines
+{
+  const pts = [{ x: 1, y: 0 }, { x: 2, y: 10 }, { x: 4, y: 5 }];
+  const s = sparklinePoints(pts, { w: 100, h: 20, pad: 2 });
+  check("sparkline: x from the smallest to the largest x, y from the smallest (bottom) to the largest (top), inside the margin",
+    s.length === 3 && s[0].x === 2 && s[2].x === 98 && Math.abs(s[1].x - (2 + (1 / 3) * 96)) < 1e-9 && s[0].y === 18 && s[1].y === 2 && Math.abs(s[2].y - 10) < 1e-9);
+  check("sparkline: points given out of order are sorted by x", sparklinePoints([pts[2], pts[0], pts[1]]).map((p) => p.x).join() === sparklinePoints(pts).map((p) => p.x).join());
+  check("sparkline: fewer than three usable points, all at one x, or no list give null (nothing to draw)", sparklinePoints(pts.slice(0, 2)) === null && sparklinePoints([{ x: 1, y: 1 }, { x: 1, y: 2 }, { x: 1, y: 3 }]) === null && sparklinePoints(null) === null && sparklineSvg(undefined) === "");
+  check("sparkline: points that are not finite numbers are dropped before counting", sparklinePoints([...pts.slice(0, 2), { x: NaN, y: 1 }, { x: 3, y: Infinity }, null]) === null && sparklinePoints([...pts, { x: NaN, y: 1 }]).length === 3);
+  check("sparkline: all the same flux is a flat line in the middle", sparklinePoints([{ x: 1, y: 3 }, { x: 2, y: 3 }, { x: 3, y: 3 }], { w: 50, h: 20 }).every((p) => p.y === 10));
+  const svg = sparklineSvg(pts);
+  check("sparkline: an inline SVG, one polyline and a dot per point, in the text colour, hidden from assistive technology", svg.startsWith("<svg") && svg.includes('aria-hidden="true"') && svg.includes("<polyline") && svg.includes('stroke="currentColor"') && (svg.match(/<circle/g) || []).length === 3);
+  check("sparkline: the explorer shows the column only for rows that have a spectrum (a hidden header and cells otherwise), and the CSS sizes it",
+    readFileSync(new URL("../frontend/js/features/candidateExplorerView.js", import.meta.url), "utf8").includes("const showSpec = rows.some((r) => r.spec)") && CSS.includes(".ex-spec {") && CSS.includes(".spark {"));
 }
 
 console.log(failed ? `\n${failed} check(s) FAILED` : "\nAll checks passed");

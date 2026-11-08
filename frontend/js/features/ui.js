@@ -38,6 +38,31 @@ export function applyIcons(root = document) {
   for (const el of root.querySelectorAll("[data-icon]")) el.innerHTML = iconSvg(el.dataset.icon, { size: Number(el.dataset.iconSize) || 18 });
 }
 
+/**
+ * The points of a small line plot of y against x (a "sparkline"), in a box w x h with a margin: x from the smallest to the largest x, y from the smallest to
+ * the largest y, y up. points = [{ x, y }] (anything that is not a finite pair is dropped). Fewer than 3 usable points, or all at one x, give null: three
+ * points are the least that say anything about a shape. All y equal gives a flat line in the middle.
+ */
+export function sparklinePoints(points, { w = 96, h = 26, pad = 2 } = {}) {
+  const ok = (Array.isArray(points) ? points : []).filter((p) => p && Number.isFinite(p.x) && Number.isFinite(p.y)).sort((a, b) => a.x - b.x);
+  if (ok.length < 3 || ok[0].x === ok.at(-1).x) return null;
+  const x0 = ok[0].x, x1 = ok.at(-1).x;
+  const ys = ok.map((p) => p.y), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  return ok.map((p) => ({
+    x: pad + ((p.x - x0) / (x1 - x0)) * (w - 2 * pad),
+    y: y1 === y0 ? h / 2 : pad + (1 - (p.y - y0) / (y1 - y0)) * (h - 2 * pad),
+  }));
+}
+
+/** A sparkline as an inline SVG (decoration: hidden from assistive technology, the numbers are in the dossier), or "" when there is too little to draw. */
+export function sparklineSvg(points, { w = 96, h = 26 } = {}) {
+  const pts = sparklinePoints(points, { w, h });
+  if (!pts) return "";
+  const list = pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+  const dots = pts.map((p) => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="1.6"/>`).join("");
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true" focusable="false"><polyline points="${list}" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><g fill="currentColor">${dots}</g></svg>`;
+}
+
 /** The kinds of state box, the icon of each, and how a screen reader hears it. */
 export const STATE_KINDS = {
   empty: { icon: "inbox", role: "status" },

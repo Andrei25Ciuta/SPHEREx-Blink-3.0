@@ -1,6 +1,6 @@
 // Tests for the pure helpers of frontend/js/features/discoverPanel.js (texts, filters, sorting, stamps). The page part is checked in the browser.
 // Run: node scratch/test_discover_panel.mjs
-import { headline, subline, leadSentence, FILTERS, SORTS, pointsFor, pickStamps, stampPixels, medianFlux, explorerRow } from "../frontend/js/features/discoverPanel.js";
+import { headline, subline, leadSentence, FILTERS, SORTS, pointsFor, pickStamps, stampPixels, medianFlux, explorerRow, spectrumPoints } from "../frontend/js/features/discoverPanel.js";
 import { NEEDS_CHECKING_SCORE, CLASSES } from "../frontend/js/features/discovery.js";
 
 let failed = 0;
@@ -122,6 +122,16 @@ const make = (over) => ({ ...base, ...over });
     explorerRow(make({ class: "solar-system", body: { name: "Ceres", cls: "MB>Inner", hits: 2 } })).match === "Ceres"
     && explorerRow(make({ medianSnr: NaN, frames: [0], photometry: [{ frame: 0, fluxMilliJy: NaN, flagged: false }] })).snr === null
     && explorerRow(make({ frames: [0], photometry: [{ frame: 0, fluxMilliJy: NaN, flagged: false }] })).fluxMilliJy === null);
+}
+
+// ---- the spectrum sketch of a row (Phase 3 remainder)
+{
+  const ph = (wl, flux, extra = {}) => ({ measured: true, flagged: false, wavelengthUm: wl, fluxMilliJy: flux, ...extra });
+  const c = { photometry: [ph(1.1, 2), ph(1.5, 3), ph(2.0, 5), ph(2.5, 4, { flagged: true }), ph(3.0, null), { measured: false, wavelengthUm: 3.5, fluxMilliJy: 9 }, ph(NaN, 1), ph(4.0, 6)] };
+  const pts = spectrumPoints(c);
+  check("spectrum sketch: wavelength against flux of the images where the source was measured and not flagged, nothing else", JSON.stringify(pts) === JSON.stringify([{ x: 1.1, y: 2 }, { x: 1.5, y: 3 }, { x: 2.0, y: 5 }, { x: 4.0, y: 6 }]));
+  check("spectrum sketch: fewer than three usable points, or no photometry, give undefined (no cell in the column)", spectrumPoints({ photometry: [ph(1, 1), ph(2, 2)] }) === undefined && spectrumPoints({}) === undefined && spectrumPoints({ photometry: [] }) === undefined);
+  check("spectrum sketch: the row of explorerRow itself carries no spectrum, so the published results file stays free of it", !("spec" in explorerRow({ id: "a", class: "unknown", tags: [], catalogue: null, ra: 1, dec: 2, nDet: 1, nFrames: 2, passes: 1, support: 10, medianSnr: 5, frames: [], photometry: c.photometry })));
 }
 
 console.log(failed ? `\n${failed} FAILED` : "\nall passed");
