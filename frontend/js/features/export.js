@@ -12,9 +12,13 @@ export const COLUMNS = [
 ];
 
 /** What the data behind a file is: the sentence that must travel with it. */
-export const dataLabel = (isReal) => (isReal
-  ? "real SPHEREx data (served by the project's backend)"
-  : "SYNTHETIC demo data (invented in the browser, NOT SPHEREx observations)");
+export const dataLabel = (source) => source === "synthetic"
+  ? "SYNTHETIC FITS data (served by the backend, NOT SPHEREx observations)"
+  : source === "unverified" || source === "mixed"
+    ? "FITS data with unverified or mixed provenance (served by the backend)"
+    : source === true || source === "spherex_header"
+      ? "SPHEREx-format FITS data (served by the backend; verify archive provenance)"
+      : "SYNTHETIC demo data (invented in the browser, NOT SPHEREx observations)";
 
 /** One CSV cell. Text starting with = + - @ would be run as a formula by a spreadsheet: it gets a leading apostrophe. */
 function cell(value) {
@@ -56,7 +60,7 @@ export function candidateRecords(candidates, ctx) {
       asteroid_match: top ? top.name : (m.asteroids ? "none within 20 arcsec" : "not checked"),
       asteroid_dates: top ? top.hits : null,
       detector: ctx.detector, field_ra_deg: round(ctx.query.ra, 5), field_dec_deg: round(ctx.query.dec, 5), field_fov_arcmin: ctx.query.fov,
-      data: dataLabel(ctx.isReal), permalink: ctx.permalink,
+      data: dataLabel(ctx.provenance ?? ctx.isReal), permalink: ctx.permalink,
     };
   });
 }
@@ -83,7 +87,7 @@ export function candidatesToJson(candidates, ctx, { generated = new Date().toISO
     tool: "SPHEREx Blink (NASA Space Apps 2026)",
     schema_version: 2,
     generated,
-    data: dataLabel(ctx.isReal),
+    data: dataLabel(ctx.provenance ?? ctx.isReal),
     field: { ra_deg: ctx.query.ra, dec_deg: ctx.query.dec, fov_arcmin: ctx.query.fov, detector: ctx.detector },
     permalink: ctx.permalink,
     note: "Candidates are not discoveries: each needs checking against the other detectors and the catalogues.",
@@ -93,5 +97,7 @@ export function candidatesToJson(candidates, ctx, { generated = new Date().toISO
 
 /** A file name that says what is inside: spherex-blink_candidates_<ra>_<dec>_<detector>[_synthetic].csv */
 export function exportFileName(ctx, extension) {
-  return `spherex-blink_candidates_${ctx.query.ra.toFixed(4)}_${ctx.query.dec.toFixed(4)}_${ctx.detector}${ctx.isReal ? "" : "_synthetic"}.${extension}`;
+  const suffix = ctx.provenance === "synthetic" || ctx.isReal === false ? "_synthetic"
+    : ctx.provenance === "unverified" || ctx.provenance === "mixed" ? "_unverified" : "";
+  return `spherex-blink_candidates_${ctx.query.ra.toFixed(4)}_${ctx.query.dec.toFixed(4)}_${ctx.detector}${suffix}.${extension}`;
 }

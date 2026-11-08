@@ -40,3 +40,9 @@ Found and fixed an export bug in `frontend/js/features/export.js`: `candidatesTo
 Pushed commit `ffc7d8b` to SPHEREx-Blink-3.0 `main` by a fast-forward update that preserved its reset commit. GitHub Actions run 42468696891 passed its Node and backend jobs. The Pages workflow stopped at `actions/configure-pages@v5` because GitHub Pages has not been enabled for this repository. Enabling public Pages remains an explicit deployment step.
 
 Started the local backend against the ignored FITS archive. `/api/health` indexed 17 files and reported no unreadable files. `/api/photometry` returned nine D2 measurements at the Barnard field. Headless Edge loaded the same field with `data=api`, displayed nine frames, and measured nine points after a canvas click, with no page exceptions. The local archive is an input dependency and is not part of Git. This verifies one real-data entry path, not the entire scientific pipeline.
+
+## 2026-11-08 — FITS provenance labels
+
+The backend can serve synthetic test FITS as well as archive files. Added a header-derived provenance field to indexed frames, cutout responses and photometry points. The workspace badge and candidate and measurement exports now reflect the field. A new cache-key component regenerates old cutout responses. The parser accepts explicit synthetic test comments, recognises the observed SPHEREx product header pattern, and otherwise labels files unverified. Mixed fields receive a mixed label. Header classification does not authenticate where a file was downloaded.
+
+Verification: backend pytest passed 117 tests, including synthetic, SPHEREx header pattern and unverified cases. The candidate and export module checks passed. The local backend returned nine Barnard-field D2 frames with SPHEREx header markers. Headless Edge loaded them and displayed "SPHEREx-format FITS" in the badge. Independent archive-source verification and broader field checks remain open.

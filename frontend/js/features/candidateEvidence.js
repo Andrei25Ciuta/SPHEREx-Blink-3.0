@@ -71,13 +71,15 @@ function centroidSamples(record) {
 }
 
 export function importDataset(document, filename) {
-  if (!document || !Array.isArray(document.candidates) || ![dataLabel(true), dataLabel(false)].includes(document.data)
+  if (!document || !Array.isArray(document.candidates)
+      || ![dataLabel(true), dataLabel(false), dataLabel("synthetic"), dataLabel("unverified"),
+        "real SPHEREx data (served by the project's backend)"].includes(document.data)
       || !isText(document.generated) || !Number.isFinite(Date.parse(document.generated))
       || !document.tool?.startsWith?.("SPHEREx Blink")) throw Error("Choose a SPHEREx Blink candidate JSON export.");
   const field = document.field;
   if (!field || !inRange(field.ra_deg, 0, 360) || !inRange(field.dec_deg, -90, 90)
       || !inRange(field.fov_arcmin, 1, 30) || !isDetector(field.detector)) throw Error("The export has invalid field coordinates or detector.");
-  const real = document.data === dataLabel(true);
+  const real = document.data !== dataLabel(false);
   const rows = document.candidates.map((r, i) => {
     if (!r || !isText(r.candidate) || !isText(r.kind) || !isDetector(r.detector) || r.data !== document.data
         || !count(r.detections) || !count(r.images)

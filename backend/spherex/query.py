@@ -59,6 +59,7 @@ class FrameFile:
     image_hdu: int
     flags_hdu: int | None
     bunit: str | None = None  # e.g. "MJy / sr" (real SPHEREx): lets photometry give Jansky
+    provenance: str = "unverified"
 
 
 def _first(header, keys):
@@ -144,12 +145,21 @@ def read_frame_file(path: Path) -> FrameFile:
         scale = float(np.mean(proj_plane_pixel_scales(wcs)) * 3600)
         bunit = _first(merged, ("BUNIT",))
         bunit = str(bunit) if bunit is not None else None
+        comments = " ".join(str(c) for c in merged.get("COMMENT", []))
+        if "SYNTHETIC TEST FILE" in comments or any(
+            "FAKE" in str(merged.comments[key]) for key in ("MJD-OBS", "DETECTOR", "WAVEMIN", "WAVEMAX") if key in merged
+        ):
+            provenance = "synthetic"
+        elif "OBSID" in merged and "SPS_TARGET" in merged and "EXTTYPE" in merged:
+            provenance = "spherex_header"
+        else:
+            provenance = "unverified"
 
     return FrameFile(path=path, mtime=path.stat().st_mtime, mjd=float(t.mjd),
                      date_iso=t.utc.isot[:19] + "Z", detector=det,
                      wave_min_um=float(wmin), wave_max_um=float(wmax), wcs=wcs,
                      shape=(ny, nx), pixel_scale_arcsec=scale,
-                     image_hdu=img_i, flags_hdu=flg_i, bunit=bunit)
+                     image_hdu=img_i, flags_hdu=flg_i, bunit=bunit, provenance=provenance)
 
 
 class LocalArchive:

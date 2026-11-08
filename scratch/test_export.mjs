@@ -20,7 +20,7 @@ check("CSV: a header and one line per candidate", lines.length === 3 && lines[0]
 check("CSV: ends with a line break (spreadsheets expect it)", csv.endsWith("\r\n"));
 check("CSV: every data line has as many cells as the header (commas inside quotes do not count)", lines.slice(1).every((l) => l.match(/("(?:[^"]|"")*"|[^,]*)(,|$)/g).length - 1 === COLUMNS.length), lines.slice(1).map((l) => l.length).join("/"));
 check("CSV: each row says the data is SYNTHETIC and carries the permalink", lines.slice(1).every((l) => l.includes("SYNTHETIC demo data") && l.includes("https://mateibut.github.io/SPHEREx/?ra=136.5")));
-check("CSV: a real-data export says so instead", candidatesToCsv([linear], { ...ctx, isReal: true }).includes("real SPHEREx data") && !candidatesToCsv([linear], { ...ctx, isReal: true }).includes("SYNTHETIC"));
+check("CSV: a real-data export says so instead", candidatesToCsv([linear], { ...ctx, isReal: true }).includes("SPHEREx-format FITS data") && !candidatesToCsv([linear], { ...ctx, isReal: true }).includes("SYNTHETIC"));
 check("CSV: text that a spreadsheet would run as a formula gets an apostrophe", lines[1].includes("'=cmd") && !/,=cmd/.test(lines[1]));
 check("CSV: text with a comma is quoted as ONE cell (the data label has a comma), and a quote inside would be doubled",
   lines[1].includes('"SYNTHETIC demo data (invented in the browser, NOT SPHEREx observations)"')

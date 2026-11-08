@@ -74,6 +74,7 @@ def measure(frames: list[FrameFile], ra: float, dec: float, radius_px: float = 2
             "mjd": round(f.mjd, 6),
             "dateISO": f.date_iso,
             "detector": f.detector,
+            "provenance": f.provenance,
             "wavelengthUm": round((f.wave_min_um + f.wave_max_um) / 2, 4),
             "wavelengthMinUm": round(f.wave_min_um, 4),
             "wavelengthMaxUm": round(f.wave_max_um, 4),

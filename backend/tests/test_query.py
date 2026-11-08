@@ -29,6 +29,14 @@ def test_reads_time_detector_wavelength_and_pixel_scale(write_frame):
     assert (frame.wave_min_um, frame.wave_max_um) == (1.2, 1.3)
     assert frame.pixel_scale_arcsec == pytest.approx(6.2, rel=0.01)
     assert frame.shape == (64, 64)
+    assert frame.provenance == "unverified"
+
+
+def test_provenance_uses_header_evidence(write_frame):
+    synthetic, _ = write_frame(header_extra={"COMMENT": "SYNTHETIC TEST FILE - NOT SPHEREx DATA"})
+    assert read_frame_file(synthetic).provenance == "synthetic"
+    archive, _ = write_frame(header_extra={"OBSID": "2025W34_2B_0090_4", "SPS_TARGET": "SURVEY", "EXTTYPE": "IMAGE"})
+    assert read_frame_file(archive).provenance == "spherex_header"
 
 
 def test_missing_wavelength_keywords_fall_back_to_the_nominal_band(write_frame):

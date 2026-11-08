@@ -189,7 +189,10 @@ export async function measureAndPlot({ query, sky, els, isCurrent, motion = null
     els.detector.replaceChildren(new Option("All detectors", ""), ...detectors.map(d => new Option(d, d)));
     els.detector.onchange = () => renderTable(els.table, visible(), col);
     els.download.onclick = () => {
-      const report = { data: DATA_SOURCE === "api" ? "real SPHEREx" : "synthetic demo",
+      const sources = new Set(points.map(p => p.provenance ?? "unverified"));
+      const provenance = DATA_SOURCE === "api"
+        ? sources.size === 1 ? [...sources][0] : "mixed" : "synthetic demo";
+      const report = { data: provenance,
         center: query, position: sky, motion, apertureRadiusPx: APERTURE_RADIUS_PX,
         detector: els.detector.value || "all", displayedFluxColumn: col, generated: new Date().toISOString(),
         measurements: visible() };

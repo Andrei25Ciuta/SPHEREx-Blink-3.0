@@ -665,7 +665,7 @@ const catalogueKey = () => `${currentQuery.ra.toFixed(4)},${currentQuery.dec.toF
 
 /** SIMBAD objects for the field on screen, or null (synthetic data, offline, SIMBAD error). Never throws. */
 async function ensureCatalogue() {
-  if (DATA_SOURCE !== "api" || !currentQuery) return null;
+  if (dataProvenance() !== "spherex_header" || !currentQuery) return null;
   const key = catalogueKey();
   if (catalogueCache?.key === key) return catalogueCache.objects;
   try {
@@ -723,7 +723,7 @@ const asteroidKey = () => `${catalogueKey()}|${currentDetector}|${currentFrames.
 
 /** SkyBoT answers for the images on screen, or null (synthetic data, offline, blocked). Never throws. */
 async function ensureAsteroids(onProgress = () => {}) {
-  if (DATA_SOURCE !== "api" || !currentQuery || !currentFrames.length) return null;
+  if (dataProvenance() !== "spherex_header" || !currentQuery || !currentFrames.length) return null;
   const key = asteroidKey();
   if (asteroidState?.key === key) return asteroidState;
   const token = loadToken;
@@ -1066,7 +1066,29 @@ function exportContext() {
   link.searchParams.set("data", DATA_SOURCE);                // a link must not carry the address of a backend on this computer
   link.searchParams.delete("api");
   link.hash = "";
-  return { isReal: DATA_SOURCE === "api", detector: currentDetector, query: currentQuery, permalink: link.href };
+  return { isReal: DATA_SOURCE === "api", provenance: dataProvenance(), detector: currentDetector, query: currentQuery, permalink: link.href };
+}
+
+function dataProvenance() {
+  if (DATA_SOURCE !== "api") return false;
+  const sources = new Set(allFrames.map(f => f.provenance ?? "unverified"));
+  return sources.size === 1 ? [...sources][0] : "mixed";
+}
+
+function updateSourceLabels() {
+  const source = dataProvenance();
+  const label = source === false ? "Synthetic demo data" : source === "synthetic"
+    ? "Synthetic FITS test data" : source === "spherex_header"
+      ? "SPHEREx-format FITS" : "FITS provenance unverified";
+  badge.textContent = label;
+  badge.title = source === "spherex_header" ? "SPHEREx product headers present; confirm input archive provenance" : label;
+  badge.classList.toggle("real", source === "spherex_header");
+  $("embed-note").textContent = `SPHEREx Blink · ${label}`;
+  for (const id of ["show-catalogue", "show-asteroids"]) {
+    const box = $(id);
+    box.disabled = source !== "spherex_header";
+    if (box.disabled && box.checked) { box.checked = false; box.dispatchEvent(new Event("change")); }
+  }
 }
 $("export-csv-btn").addEventListener("click", () => {
   if (!movers.length || !currentQuery) return;
@@ -1263,6 +1285,7 @@ async function loadData(query) {
   const token = ++loadToken;
   setComparisonFrames([]);
   allFrames = [];
+  updateSourceLabels();
   currentFrames = [];
   currentDetector = null;
   currentQuery = null;
@@ -1287,6 +1310,7 @@ async function loadData(query) {
     if (token !== loadToken) return;                   // a newer request started meanwhile – ignore this one
 
     allFrames = frames;
+    updateSourceLabels();
     setComparisonFrames(frames);
     currentQuery = query;
     if (sky.isOpen) sky.update(query);
@@ -1361,15 +1385,9 @@ function applyUrlState() {
 
 // Show which data source is active in the header badge.
 const badge = $("data-source-badge");
-badge.textContent = DATA_SOURCE === "api" ? "Live data" : "Synthetic demo data";
-badge.title = DATA_SOURCE === "api" ? "Images come from the backend"
-  : "The images are generated in your browser for testing. They are not SPHEREx observations.";
-badge.classList.toggle("real", DATA_SOURCE === "api");
+updateSourceLabels();
 
 // With ?embed=1 the banner (and its badge) is hidden: keep saying what the data is.
-$("embed-note").textContent = DATA_SOURCE === "api"
-  ? "SPHEREx Blink · images served by the project's backend"
-  : "SPHEREx Blink · synthetic demo data: the images are invented for testing, not SPHEREx observations";
 
 // The SIMBAD overlay needs real data: SIMBAD's stars do not match the invented sky of the demo.
 $("show-catalogue").disabled = DATA_SOURCE !== "api";

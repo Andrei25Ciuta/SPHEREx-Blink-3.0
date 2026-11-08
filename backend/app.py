@@ -76,7 +76,7 @@ def cutouts(
 
     # One common pixel scale for every frame -> identical grids -> stars stay put in the blink.
     scale = float(np.median([f.pixel_scale_arcsec for f in frames]))
-    key = cache.make_key(round(ra, 6), round(dec, 6), round(fov, 3), det, STRETCH_VERSION,
+    key = cache.make_key(round(ra, 6), round(dec, 6), round(fov, 3), det, STRETCH_VERSION, "provenance-v1",
                          [(str(f.path), f.mtime) for f in frames])
 
     result = cache.load(key)
@@ -132,6 +132,7 @@ def _build(frames, ra, dec, fov, scale, key):
                 "mjd": round(f.mjd, 6),
                 "dateISO": f.date_iso,
                 "detector": f.detector,
+                "provenance": f.provenance,
                 "wavelengthMinUm": round(f.wave_min_um, 4),
                 "wavelengthMaxUm": round(f.wave_max_um, 4),
                 "imageUrl": cache.save_png(key, i, to_png(arr8)),
