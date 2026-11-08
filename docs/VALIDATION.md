@@ -905,3 +905,34 @@ parallax search gives every dot: for ideal (Gaussian) bodies the floor is 4 time
 spectrum would be brighter in some images than in others); one field at a time; 20 tries give wide intervals (the Wilson 95 % intervals are in the table); the flux is a total flux in mJy from the image's own unit and
 the pixel's solid angle. Detection is judged against the images' own noise, so the same map on another field differs. Not done: a map on a 30′ real field of the same patch (the author's 30′ Makemake cutouts lie on
 different bits of sky: §12), a body with a spectrum, the real PSF.
+
+## 17. The Solar System simulator: are the planets where JPL Horizons puts them? (Phase 8, 9 Nov 2026)
+
+Section 7 of the page (`solarSystem.js`, `solarSystemView.js`): a top-down view of the ecliptic with the planets on a date, and a distant body in the direction of the field with the lines of
+sight from the Earth on the dates of the survey passes. **Scientific mode** is to scale (linear in AU); **educational mode** compresses the distances (square root), enlarges the planets and says it
+is NOT TO SCALE. The planets come from the six Keplerian elements and their rates of JPL's table of approximate positions (Standish; valid 1800-2050), **written from memory and therefore checked**;
+the Earth is not taken from that table but is the Earth of `parallax.js` (`earthPositionAU`, the Sun formula of Meeus), turned into ecliptic axes, so the simulator and the parallax of the Planet X
+search can never disagree (`test_solarsystem.mjs`: the two Earths are the same to 1e-12 AU).
+
+`node scratch/check_planets.mjs` asks JPL Horizons (an ephemeris query: heliocentric vectors, ecliptic J2000, one request per planet, no file downloaded) for the same positions on five dates (MJD 60909, 61114,
+61271, 61306 = the survey passes of the Barnard D2 field, and 61041 = 1 Jan 2026) and prints the largest difference:
+
+| planet | distance from the Sun (AU) | largest difference (AU) | largest difference seen from the Sun (arcsec) |
+|---|---|---|---|
+| Mercury | 0.32 | 0.00002 | 11 |
+| Venus | 0.72 | 0.00003 | 8 |
+| Earth (Meeus) | 1.01 | 0.00015 | 29 |
+| Mars | 1.59 | 0.00042 | 58 |
+| Jupiter | 5.16 | 0.00310 | 74 |
+| Saturn | 9.56 | 0.01278 | 267 |
+| Uranus | 19.51 | 0.00741 | 21 |
+| Neptune | 29.89 | 0.00591 | 34 |
+
+So the elements recalled from memory are right (a wrong constant would put a planet whole AU away, not hundredths), and the differences are those of an approximate table, largest for Saturn (4.5 arcmin, 0.013 AU).
+They are far too small to be seen at any range of the simulator. `test_solarsystem.mjs` keeps the Horizons numbers (fetched on 9 Nov 2026) and checks every planet against a bound about 1.5 times the difference
+measured, so a change that worsens a position fails without a network. The swing of a body that does not move (the angle between the lines of sight from two Earths) equals the parallax the search uses
+(`parallaxOffsetArcsec`) to 0.3 % on the dates of the Barnard passes (angles of several hundred arcsec). Found by the tests: a Kepler solver that started at pi for high eccentricities ran away for negative mean
+anomalies (residuals of 3e5); it is now confined to [M - e, M + e]. Found while writing the check: Horizons does not return the dates in the order they are asked, so the rows are matched by their Julian date.
+
+**What it does not show.** Only the eight planets (no moons, asteroids, comets or dwarf planets; Pluto is not in the table), 1800-2050 (the table's range), an ecliptic top view (not 3D), and no orbit of a
+hypothetical Planet X (only a body that does not move, to show the geometry of the swing). The periods are derived from the semi-major axis by Kepler's third law, not looked up.

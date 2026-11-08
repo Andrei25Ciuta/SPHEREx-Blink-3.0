@@ -45,6 +45,8 @@ checked by `validateFrame` in `getCutouts.js`.
 | `readout.js` | what is shown under the pointer: pixel, RA/Dec (the same conversion as a click), offset, value text |
 | `layers.js` | the overlay layers: names, colours (used for drawing and for the colour key), counts |
 | `viewerControls.js` | the DOM side of the viewer (not pure): buttons, drag, pinch, wheel, keys, the readout line, the layer list |
+| `solarSystem.js` | the planets on a date (Keplerian elements, checked against Horizons), the Earth of the parallax search in ecliptic axes, a body that does not move and the angle it swings through, the two radial scales |
+| `solarSystemView.js` | the DOM side of the simulator (not pure): the SVG view, the date and the range, the table of positions |
 | `skyExplorer.js` | the sky explorer (pure): the Hammer map and its inverse, the ecliptic and the galactic plane, great circles cut at the map's edge, images grouped into fields, a field's images as arcminute offsets |
 | `skyExplorerView.js` | the DOM side of the explorer (not pure): the SVG map, the list of fields, a field at true scale, open a field |
 | `spectral.js` | the six detectors and what each field has of them (and what is missing), the spectrum's uncertainty as a band that breaks at gaps, the summary of what is missing at a position |

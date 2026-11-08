@@ -460,6 +460,31 @@
       </div>
       <div class="sky-detail" id="sky-detail" hidden></div>
     </section>
+
+    <!-- ============ 7. The Solar System, seen from above (features/solarSystem.js, solarSystemView.js) ============ -->
+    <section class="panel ss" id="solar-system" aria-labelledby="ss-title">
+      <h2 id="ss-title">7. The Solar System, seen from above</h2>
+      <p class="muted">Why would a distant body seem to swing? Because the Earth goes round the Sun: from two places of its orbit the same body is seen in two directions. Move the date, add a body in the direction of the field on screen and see the lines of sight from the Earth on the dates of the survey passes. Two modes, each named for what it is.</p>
+      <fieldset class="ss-modes">
+        <legend>Mode</legend>
+        <label class="check"><input type="radio" name="ss-mode" value="true" checked> <span><strong>Scientific</strong>: to scale; the planets from JPL's table of approximate positions, checked against JPL Horizons; the Earth the one the Planet X search uses</span></label>
+        <label class="check"><input type="radio" name="ss-mode" value="educational"> <span><strong>Educational</strong>: distances compressed and planets enlarged so that all can be seen: <strong>not to scale</strong></span></label>
+      </fieldset>
+      <div class="ss-controls">
+        <label>Range <select id="ss-range"><option value="inner">Inner Solar System (2 AU)</option><option value="giants" selected>To Jupiter (6 AU)</option><option value="all">To Neptune (35 AU)</option><option value="far">Far away (1000 AU)</option></select></label>
+        <label class="ss-date">Date <input type="range" id="ss-date" min="60800" max="61500" step="1" value="61000" aria-label="Date"> <output id="ss-date-label" for="ss-date"></output></label>
+        <label>Speed <select id="ss-speed"><option value="1">1 day per step</option><option value="3">3 days</option><option value="10" selected>10 days</option><option value="30">30 days</option></select></label>
+        <button type="button" class="btn btn-small" id="ss-play" aria-pressed="false">Play</button>
+      </div>
+      <div class="ss-body-controls">
+        <label class="check"><input type="checkbox" id="ss-body"> A distant body in the direction of the field on screen</label>
+        <label>at <input type="number" id="ss-distance" value="500" min="50" max="20000" step="50"> AU</label>
+      </div>
+      <p class="muted small" id="ss-swing" aria-live="polite"></p>
+      <div class="chart ss-map" id="ss-map"></div>
+      <p class="muted small" id="ss-mode-note"></p>
+      <details class="table-view"><summary>Show the positions as a table</summary><div class="table-scroll"><table class="ss-table" id="ss-table"></table></div></details>
+    </section>
   </main>
 
   <!-- ============ ABOUT THE PROJECT ============ -->

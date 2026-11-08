@@ -18,6 +18,7 @@ import { setupViewer } from "./features/viewerControls.js";
 import { setupWorkspace } from "./features/workspaceView.js";
 import { setupPlanetLab } from "./features/planetLabView.js";
 import { setupSkyExplorer } from "./features/skyExplorerView.js";
+import { setupSolarSystem } from "./features/solarSystemView.js";
 import { MARK_IDLE, markText } from "./features/workspace.js";
 import { detectorCoverage, coverageText } from "./features/spectral.js";
 import { setupTooltips } from "./features/tooltip.js";
@@ -574,6 +575,7 @@ async function showDetector(detector) {
   }
   const n = currentFrames.length;
   // Preload all images; the bar shows how many are ready.
+  solarSystem?.refresh();                                  // the dates of the survey passes and the direction of the field
   await player.setFrames(currentFrames, (done) => {
     if (token === loadToken) showOverlay("Preparing frames…", `${done} / ${n} ${detector} images ready`, { progress: done / n });
   });
@@ -1454,6 +1456,17 @@ setupSkyExplorer({
     $("search-form").requestSubmit();
     $("workspace").scrollIntoView({ block: "start", behavior: prefersReducedMotion ? "auto" : "smooth" });
   },
+});
+
+// ---------------------------------------------------------------
+// Solar System simulator (features/solarSystem.js, solarSystemView.js): the planets, and why a distant body seems to swing
+// ---------------------------------------------------------------
+const solarSystem = setupSolarSystem({
+  els: {
+    modes: [...document.querySelectorAll('input[name="ss-mode"]')], range: $("ss-range"), date: $("ss-date"), dateLabel: $("ss-date-label"), speed: $("ss-speed"), playBtn: $("ss-play"),
+    body: $("ss-body"), distance: $("ss-distance"), swing: $("ss-swing"), map: $("ss-map"), table: $("ss-table"), modeNote: $("ss-mode-note"),
+  },
+  getField: () => (currentQuery && currentFrames.length ? { ra: currentQuery.ra, dec: currentQuery.dec, mjds: currentFrames.map((f) => f.mjd) } : null),
 });
 
 // ---------------------------------------------------------------
