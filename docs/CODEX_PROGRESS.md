@@ -31,6 +31,10 @@ The requested deployment repository is now `origin` at SPHEREx-Blink-3.0. Its ma
 
 This session continues the remaining phases incrementally. The archive test uses a controlled response. Live IRSA availability, broader real-field injection recovery, full interface accessibility, and production deployment still need verification.
 
+## 2026-11-08 — candidate evidence round trip
+
+Found and fixed an export bug in `frontend/js/features/export.js`: `candidatesToJson` built enriched records with fit centroids and detector/time frame keys but serialized a fresh unenriched record list. JSON exports now retain the enriched records. Added `scratch/test_candidate_roundtrip.mjs` and `scratch/browser_candidate_roundtrip.cjs`. The Node test passed an exported candidate through `importDataset` and confirmed all three supporting positions and the viewer URL. Headless Edge imported a candidate file into Results, displayed its three centroid rows, generated an evidence report, and linked to the workspace without page errors. Existing export checks also passed. This verifies the data path with a representative controlled candidate; scientific validation of real associations remains open.
+
 ### Follow-up verification after push
 
 Pushed commit `ffc7d8b` to SPHEREx-Blink-3.0 `main` by a fast-forward update that preserved its reset commit. GitHub Actions run 42468696891 passed its Node and backend jobs. The Pages workflow stopped at `actions/configure-pages@v5` because GitHub Pages has not been enabled for this repository. Enabling public Pages remains an explicit deployment step.

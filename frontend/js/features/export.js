@@ -87,7 +87,7 @@ export function candidatesToJson(candidates, ctx, { generated = new Date().toISO
     field: { ra_deg: ctx.query.ra, dec_deg: ctx.query.dec, fov_arcmin: ctx.query.fov, detector: ctx.detector },
     permalink: ctx.permalink,
     note: "Candidates are not discoveries: each needs checking against the other detectors and the catalogues.",
-    candidates: candidateRecords(candidates, ctx),
+    candidates: records,
   }, null, 2) + "\n";
 }
 
