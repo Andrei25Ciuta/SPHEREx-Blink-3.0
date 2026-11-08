@@ -69,6 +69,12 @@ export function startTour(steps, { onClose = () => {} } = {}) {
       <button type="button" class="btn btn-primary btn-small tour-next">Next</button>
     </div>`;
   document.body.append(spot, card);
+  // A modal must remove the rest of the page from pointer, keyboard and accessibility navigation.
+  // Save existing inert states so closing the tour does not enable an unrelated hidden region.
+  const background = [...document.body.children]
+    .filter((el) => el !== spot && el !== card)
+    .map((el) => [el, el.inert]);
+  for (const [el] of background) el.inert = true;
 
   const q = (s) => card.querySelector(s);
   const [skip, back, next] = [q(".tour-skip"), q(".tour-back"), q(".tour-next")];
@@ -116,6 +122,7 @@ export function startTour(steps, { onClose = () => {} } = {}) {
     document.removeEventListener("keydown", onKey, true);
     spot.remove();
     card.remove();
+    for (const [el, wasInert] of background) el.inert = wasInert;
     if (opener && typeof opener.focus === "function") opener.focus({ preventScroll: true });
     onClose({ finished });
   }
