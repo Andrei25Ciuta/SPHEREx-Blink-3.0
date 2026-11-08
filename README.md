@@ -1,4 +1,6 @@
-# SPHEREx Blink
+# SPHEREx Blink 3.0
+
+The research workspace is in [the frontend](frontend/index.html). Additional entry points include [real-data results](frontend/results.html), [Sky Explorer](frontend/sky.html), [Planet X Lab](frontend/planet-x.html) and the [Solar System Simulator](frontend/simulator.html). [Feature status](docs/FEATURE_STATUS.md) and [scientific limitations](docs/SCIENTIFIC_LIMITATIONS.md) describe what has been verified.
 
 > **Notice:** this repository is a **personal practice / mock project** (built with AI assistance, Claude Code), started on 2026-11-05, **before** the NASA Space Apps 2026 hackathon (14-15 Nov 2026). It is not a competition submission.
 

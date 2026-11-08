@@ -24,3 +24,9 @@ Scientific changes include a profile distance fit that refits position and motio
 Verification during integration: Python 3.12 with temporary backend dependencies, `python -m pytest backend -q`, 113 passed. All `scratch/test_*.mjs` scripts exited zero. The independent parallax profile script passed. Headless Edge loaded the workspace, results, Sky Explorer, simulator and Planet X Lab without page exceptions. The saved Sky Explorer field listed 100 products. The simulator drew its scene. The Planet X Lab read its recovery record. A synthetic Planet X demo loaded four observations, zoom worked, Find Distant found one candidate, and the selected Light Research theme persisted on results. Existing navigation smoke passed at 320, 720, 721 and 1280 px.
 
 Remaining work includes an independent real-data replication of the saved recovery counts, broader fields and trials, full keyboard and contrast audit, live archive and cross-service failure testing, and deployment review. The browser checks cover representative paths. No release or scientific discovery claim is justified by this increment.
+
+## 2026-11-08 — SPHEREx Blink 3.0 destination and archive validation
+
+The requested deployment repository is now `origin` at SPHEREx-Blink-3.0. Its main branch contained a single reset commit and one-line README when fetched. `blink2` and `upstream` remain reference remotes. README and AGENTS.md now point to this destination and the current entry points. Added backend tests for a valid SIA2 product and footprint, an unexpected table schema, and an unapproved collection. The backend suite passed with 116 tests.
+
+This session continues the remaining phases incrementally. The archive test uses a controlled response. Live IRSA availability, broader real-field injection recovery, full interface accessibility, and production deployment still need verification.
