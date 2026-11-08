@@ -61,7 +61,7 @@ Checked with `scratch/audit_page.js` in the app's built-in browser (Chromium), p
 
 The guided tour modal check runs `scratch/browser_tour_modal.cjs` against the same local server. It verifies that background controls cannot receive pointer input while the tour is open, focus remains within the dialog, Escape restores focus, and an existing inert state survives closing. This is a browser automation check, not a screen reader session.
 
-The Blink 3.0 layout check runs `scratch/browser_layout_audit.cjs` against a local server. It checks all five entry pages at 320, 375, 768 and 1280 CSS pixels in all three themes. It asserts no document-level horizontal overflow, a keyboard-focusable first skip link, and at least 4.5:1 contrast for body, panel and muted text against their solid design-token surfaces. The Planet X recovery table and the detector reference table now scroll within their own containers on small screens. This automated check does not measure text drawn over imagery or canvas plots and does not replace a screen reader audit.
+The Blink 2.0 layout check runs `scratch/browser_layout_audit.cjs` against a local server. It checks all five entry pages at 320, 375, 768 and 1280 CSS pixels in all three themes. It asserts no document-level horizontal overflow, a keyboard-focusable first skip link, and at least 4.5:1 contrast for body, panel and muted text against their solid design-token surfaces. The Planet X recovery table and the detector reference table now scroll within their own containers on small screens. This automated check does not measure text drawn over imagery or canvas plots and does not replace a screen reader audit.
 
 ```js
 // in the console of the loaded page (resize the window first):

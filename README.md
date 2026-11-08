@@ -1,4 +1,4 @@
-# SPHEREx Blink 3.0
+# SPHEREx Blink 2.0
 
 The research workspace is in [the frontend](frontend/index.html). Additional entry points include [real-data results](frontend/results.html), [Sky Explorer](frontend/sky.html), [Planet X Lab](frontend/planet-x.html) and the [Solar System Simulator](frontend/simulator.html). [Feature status](docs/FEATURE_STATUS.md) and [scientific limitations](docs/SCIENTIFIC_LIMITATIONS.md) describe what has been verified.
 
@@ -83,7 +83,7 @@ The frontend alone is a static site, so it can be published as a demo that runs 
 `.github/workflows/pages.yml` publishes only the `frontend/` folder. One-time setup after you push the repository to GitHub:
 **Settings → Pages → Build and deployment → Source: GitHub Actions**; the next push to `main` deploys it.
 The page labels itself "Synthetic demo data"; keep it that way until real SPHEREx data is wired in.
-**Public demo (synthetic data):** https://mateibut.github.io/SPHEREx/ (live only after the repository is pushed and Pages is switched on as above; check it from a private window and on a phone before relying on it). Results on real data, numbers only: `results.html` on the same site.
+**Planned public demo (synthetic data):** https://mateibut.github.io/SPHEREx-Blink-2.0/ (available only after this repository's Pages source is enabled and a deployment succeeds; check it from a private window and on a phone before relying on it). Results on real data, numbers only: `results.html` on the same site.
 
 **Sky map (section 4 of the page):** its survey pictures (2MASS, AllWISE, DSS2) come from the first of these that answers: ESA's public mirror of the CDS surveys (`skies.esac.esa.int`, no setup), our backend's relay of IRSA's copies (when the backend runs), CDS (Strasbourg) directly. Some networks block CDS; then only the first two give a picture (the catalogue circles show either way). The text under the map says which source is in use; "Re-centre sky map" checks again. Set `SKY_TILES` in `frontend/js/config.js` to force one source.
 

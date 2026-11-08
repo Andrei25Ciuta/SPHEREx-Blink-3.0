@@ -60,3 +60,7 @@ Verification: all 15 `scratch/test_*.mjs` scripts exited zero; `python -m pytest
 ## 2026-11-08 — Pages deployment check
 
 The latest pushed commit passed the backend and Node GitHub Actions jobs but failed the separate Pages job at `actions/configure-pages@v5`. The repository API reports `has_pages: false`; the failure is not a test failure. The workflow now checks the repository setting and skips deployment with an explanatory job summary until Pages is enabled. When the setting is enabled, the existing `configure-pages`, artifact upload and deploy steps still run on pushes to `main` or manual dispatch. This change does not enable public hosting; historical failed runs remain in GitHub Actions history. A successful Pages deployment remains unverified.
+
+## 2026-11-08 — return to SPHEREx-Blink-2.0 repository
+
+The user changed the requested destination from SPHEREx-Blink-3.0 to SPHEREx-Blink-2.0. A fetch and `git ls-remote --heads` found no advertised branches in the Blink 2.0 repository, so the complete local history can be published as its first `main` branch without replacing remote work. Repository instructions and the README title and planned Pages URL now refer to Blink 2.0. The prior Blink 3.0 progress entries remain as historical facts. This repository handoff changes no scientific algorithms or FITS fixtures. The Pages source and live demo status must be checked independently in the new repository after pushing.
