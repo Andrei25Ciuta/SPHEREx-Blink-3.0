@@ -1,4 +1,5 @@
 import { archiveDataset, importDataset, selectRows, speedHistogram, evidenceReport, assistedReport } from "./candidateEvidence.js";
+import { CAN_USE_LOCAL_BACKEND } from "../config.js";
 
 const PAGE_SIZE = 20;
 const MAX_FILE_BYTES = 16 * 1024 * 1024;
@@ -75,8 +76,13 @@ export function setupExplorer() {
     detail.hidden = !row.samples?.length;
     detail.open = false;
     el("centroid-rows").replaceChildren();
-    el("candidate-viewer").href = row.link;
-    el("candidate-viewer").textContent = row.link.includes("data=api") ? "Open field in workspace (requires real-data backend)" : "Open synthetic field in workspace";
+    const needsLocalBackend = row.link.includes("data=api");
+    const viewer = el("candidate-viewer");
+    viewer.hidden = needsLocalBackend && !CAN_USE_LOCAL_BACKEND;
+    el("candidate-viewer-help").hidden = !viewer.hidden;
+    if (viewer.hidden) viewer.removeAttribute("href");
+    else viewer.href = row.link;
+    viewer.textContent = needsLocalBackend ? "Open field in workspace (requires real-data backend)" : "Open synthetic field in workspace";
   }
 
   function render() {

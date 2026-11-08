@@ -57,6 +57,23 @@ async function check() {
     assert.equal(await page.locator("#workspace-help").isVisible(), true);
     assert.match(await page.locator("#workspace-help").textContent(), /local backend/i);
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+    await page.goto(base + "results.html");
+    await page.locator("#candidate-rows button").first().waitFor();
+    assert.equal(await page.locator("#candidate-viewer").isVisible(), false,
+      "public Results must not link a real-data record to unavailable local FITS");
+    assert.match(await page.locator("#candidate-viewer-help").textContent(), /local backend/i);
+    const synthetic = "SYNTHETIC demo data (invented in the browser, NOT SPHEREx observations)";
+    const exportData = { tool: "SPHEREx Blink", generated: "2026-11-08T00:00:00Z", data: synthetic,
+      field: { ra_deg: 269.4462, dec_deg: 4.769, fov_arcmin: 5, detector: "D2" },
+      candidates: [{ candidate: "Test mover", kind: "mover (straight line)", detector: "D2",
+        detections: 3, images: 3, data: synthetic }] };
+    await page.locator("#candidate-file").setInputFiles({ name: "synthetic.json", mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify(exportData)) });
+    await page.getByText("Candidate export loaded.").waitFor();
+    assert.equal(await page.locator("#candidate-viewer").isVisible(), true,
+      "synthetic candidate links remain available on the public site");
+    assert.doesNotMatch(await page.locator("#candidate-viewer").getAttribute("href"), /data=api/);
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
     await page.close();
 
     const local = await browser.newPage();
@@ -72,6 +89,10 @@ async function check() {
     await local.locator("#summary:not(:empty)").waitFor();
     assert.equal(await local.locator("#workspace").isVisible(), true,
       "locally served Planet X Lab keeps the observed-field link");
+    await local.goto(localOrigin + "/results.html");
+    await local.locator("#candidate-rows button").first().waitFor();
+    assert.equal(await local.locator("#candidate-viewer").isVisible(), true,
+      "locally served Results keeps the real-data workspace link");
     await local.close();
 
     console.log("Public static backend guard passed");
