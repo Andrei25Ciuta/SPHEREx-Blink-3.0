@@ -7,6 +7,7 @@ Endpoints
     GET /api/cutouts?ra=&dec=&fov=&det=   -> { "frames": Frame[] }   (same contract as the mock)
     GET /api/photometry?ra=&dec=&det=     -> { "points": Point[] }  (spectrum / light curve)
     GET /api/hips/<survey>/<file>         -> IRSA HiPS tiles relayed with CORS (sky map; allowlist)
+    GET /api/catalogue?cat=&ra=&dec=&radius=[&minpm=] -> { rows: [...], truncated } known sources (2mass | allwise | gaia) for the cross-match
     GET /api/health                       -> indexed files + files that failed to read
     GET /cutouts/<file>.png               -> the cached PNGs referenced by imageUrl
     GET /                                 -> the frontend itself (optional, same origin)
@@ -23,7 +24,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from spherex import cache, hips_proxy
+from spherex import cache, catalogues, hips_proxy
 from spherex.cutout import cutout, flag_summary, target_wcs
 from spherex.floatdata import float_cutout_bytes, mask_cutout_bytes
 from spherex.photometry import measure
@@ -147,6 +148,23 @@ def hips(path: str):
     except OSError as exc:
         return JSONResponse(status_code=502, content={"detail": f"IRSA HiPS unreachable: {exc}"})
     return Response(content=data, media_type=ctype, headers={"Cache-Control": "public, max-age=86400"})
+
+
+@app.get("/api/catalogue")
+def catalogue(
+    cat: str = Query(..., description='"2mass", "allwise" or "gaia" (SIMBAD is asked by the browser itself)'),
+    ra: float = Query(..., ge=0, lt=360, description="degrees, ICRS"),
+    dec: float = Query(..., ge=-90, le=90, description="degrees, ICRS"),
+    radius: float = Query(5, gt=0, le=catalogues.RADIUS_MAX_ARCMIN, description="arcmin"),
+    minpm: float = Query(0, ge=0, le=catalogues.MIN_PM_MAX_MAS, description="gaia only: keep stars moving faster than this, mas/yr"),
+):
+    """Known sources around a position, for the cross-match of "Find everything"."""
+    try:
+        return catalogues.cone_search(cat, ra, dec, radius, minpm)
+    except catalogues.NotAllowed as exc:
+        return JSONResponse(status_code=403, content={"detail": str(exc)})
+    except catalogues.CatalogueError as exc:
+        return JSONResponse(status_code=502, content={"detail": str(exc)})
 
 
 @app.exception_handler(ValueError)

@@ -580,3 +580,124 @@ epochs 1997-2001) and AllWISE (`allwise_p3as_psd`, 2010) within 8″ (1.3 pixel)
 - So **"not in 2MASS or AllWISE" is not a useful definition of "unknown"** on its own: it needs at least a check of the quality flags
   and of bright-star halos, the proper motion from SIMBAD carried to the image date, and a detection in three or more images.
   The same dots could be seen in the other bands, too: a "see anything" mode is a larger piece of work than a new button.
+  (That work is §14.)
+
+## 14. "Find everything": every source, checked against four catalogues (added 8 Nov 2026)
+
+The §13 conclusion was that "not in 2MASS or AllWISE" is not a useful definition of "unknown". **Find everything** (the button under *Find movers*)
+is the larger piece of work that §13 called for. For the images on screen it (1) finds the dots in every image and links them into
+**sources** (the same dot in 3 or more images: fixed; a straight line: mover), (2) measures each source in **every** image, with that
+image's wavelength, (3) **vets** it (edge, flagged core, halo of a much brighter star, blend, scatter, too few detections), (4) **cross-matches**
+it with SIMBAD, **Gaia DR3**, 2MASS and AllWISE, each **at the catalogue's own epoch** (Gaia and SIMBAD objects are moved to the image date
+with their proper motion; a candidate with a real motion is carried back to 1999 and 2010 for 2MASS and AllWISE), and with SkyBoT, (5) gives it
+a **support score** (0-100, a sum of documented terms, not a probability) and a **class**: known, known and moving, Solar System body, possible
+artefact, **unknown: needs checking** (support at least 65 and present in at least 30 % of the images of its passes), unknown but weakly
+supported, or *not checked* when no deep catalogue could be asked (synthetic data; backend down). Every source is listed; the filter only
+chooses what to look at. Code: `frontend/js/features/{discovery,vetting,crossmatch,dossier,catalogueRelay,discoverPanel}.js` and
+`backend/spherex/catalogues.py` (`GET /api/catalogue`, a relay for 2MASS, AllWISE and Gaia, which send no CORS headers; SIMBAD and SkyBoT are
+asked by the browser itself). `node scratch/validate_discovery.mjs --mode real|control|inject --field "Barnard D2"` re-runs everything below; it
+needs the real-only backend (`SPHEREX_DATA_DIR=backend/data/real`, port 8003) and internet.
+
+Tests that run without any of that: `scratch/test_discovery.mjs` (60 checks on a synthetic field with a known answer: 12 catalogued stars, a
+bright star, a catalogued fast star, an uncatalogued faint star, an uncatalogued mover, a halo ghost, an edge artefact, a one-pass transient and
+a SkyBoT asteroid; exactly three sources come out "needs checking"), `test_catalogue_relay.mjs` (26), `test_discover_panel.mjs` (31) and
+`backend/tests/test_catalogues.py` (31, network replaced). **They show that the code does what it says; they do not show that it finds new
+objects.** The three measurements below are the real-data part.
+
+### Test 1: the six real fields (`--mode real`, each detector alone)
+
+| field | images | dots per image | sources | in a catalogue (moving ones) | **unexplained** |
+|---|---|---|---|---|---|
+| Barnard's Star D2 | 18 | 3-9 | 8 | 8 (1) | **0** |
+| Barnard's Star D6 | 6 | 6-9 | 6 | 6 (1) | **0** |
+| Epsilon Indi B D2 | 11 | 4-8 | 7 | 7 (1) | **0** |
+| Epsilon Indi B D6 | 6 | 7-10 | 3 | 3 (1) | **0** |
+| WISE 0855 D2 | 6 | 14-15 | 14 | 14 (0) | **0** |
+| WISE 0855 D6 | 6 | 5-9 | 4 | 4 (1) | **0** |
+| total | | | 42 | 42 | **0** |
+
+- **All 42 sources are explained**, every one of them by **Gaia DR3** (G down to about 21), most also by 2MASS and AllWISE. Barnard's Star is
+  found as a mover at 10.1″/yr and matched to its Gaia entry with a consistent proper motion. No source was classed as an artefact and none as
+  unknown.
+- **The honest reading: in these six small (5′) fields the detector shows only stars that the catalogues already hold.** It says nothing about
+  how many *new* objects the tool would find, because there were none to find. The test does show that the cross-match, with proper motion and
+  epochs, does not leave real stars unexplained (§13 had 21 of 60 dots "in neither 2MASS nor AllWISE").
+
+### Test 2: empty-sky control for the threshold (`--mode control`)
+
+Every image of a real field is rotated/mirrored at random and moved by a random whole number of pixels, independently, which destroys every
+correspondence between images; the catalogues are passed as "checked, and empty". Every source that survives is false by construction.
+200 such copies of each of the six fields (1200 in all). False "needs checking" sources for several thresholds of the support score (a source
+must also be present in 30 % of the images of its passes):
+
+| support threshold | 40 | 50 | 60 | **65** (used) | 70 | 80 |
+|---|---|---|---|---|---|---|
+| false leads per empty field, all six fields | 0.24 | 0.17 | 0.084 | **0.047** | 0.011 | 0 |
+
+- **At the chosen 65 about 1 empty field in 21 shows a false lead, and it varies a lot with the field**: 0.005 (Barnard D6, 6 images) to 0.16
+  (WISE 0855 D2, 14 dots per image: one empty copy in 6). Crowded fields and fields with many images give more.
+- Almost all false leads are the **minimum case**: 3 detections (a chance alignment of 3 dots of different images) in 2-3 survey passes. A
+  person dismisses them in seconds from the small pictures, which show nothing at that place in the other images.
+- The first control (before the persistence term of the score, 60 copies per field) gave 0.083 per field at 60; with it, 0.084. **The
+  persistence term did not make the control cleaner**: in a field with structured background (the halo of a bright star) a chance position is
+  3 sigma in many images too. It stays because injected real sources score high with it (below). **The threshold is what controls the false
+  rate.**
+- Not covered: real variable stars, real clustering of faint sources, and everything the scrambling keeps in common between images.
+
+### Test 3: injected sources (`--mode inject`, catalogues "checked, and empty")
+
+Fake point sources (the PSF of the FITS headers, integrated over the pixels) are added to the real images at a known place; the flux is in
+units of the detector's own noise (5 sigma per image is the detection limit, as in §10). **Fixed sources**, 60 trials per cell, how many are
+listed as a source:
+
+| field | flux 16 | 22 | **32** | 50 | 80 | 32 in mJy | classed "possible artefact" (at 50) |
+|---|---|---|---|---|---|---|---|
+| Barnard D2 | 0 | 6 | 55 | 60 | 60 | 19 | 25 of 60 (halo of the saturated star) |
+| Barnard D6 | 0 | 0 | 43 | 59 | 59 | 5.5 | 38 of 60 |
+| Epsilon Indi B D2 | 1 | 4 | 55 | 60 | 60 | 1.5 | 0 |
+| Epsilon Indi B D6 | 0 | 0 | 33 | 60 | 60 | 0.69 | 5 |
+| WISE 0855 D2 | 1 | 1 | 50 | 60 | 60 | 0.67 | 0 |
+| WISE 0855 D6 | 0 | 0 | 40 | 60 | 60 | 0.81 | 12 |
+
+- **The cliff is steep: nothing below 22 times the noise, almost everything from 32.** In a clean field that is **0.7-1.5 mJy** for a fixed
+  source; around the saturated star of Barnard's field 5-19 mJy. Fixed sources need 3 individual detections, so this is about **1.5 times worse
+  than the single-image limit of §10** (0.6-0.9 mJy). Stacking all images would go deeper; it is not done.
+- In the clean fields most listed sources score 80 or more (e.g. Epsilon Indi B D2: all 60 at 50 times the noise).
+- **In Barnard's fields 35-65 % of the injected sources are classed "possible artefact"** (the halo flag: a 20-times brighter source within 14
+  pixels). The rule is conservative there on purpose; they are still listed, with the reason.
+- **Moving sources** (12 trials per cell, 6-image D6 fields): at 22 times the noise none is listed; at 32 times 1-10 of 12 (the slower, 4″/yr,
+  are found more often than 30″/yr); at **50 times (1.1-1.3 mJy in the clean fields, 8.6 mJy in Barnard's) 11-12 of 12**; most of the listed
+  ones come out "needs checking" (their scores are 60-79: the chance-line term is the main part, and a 5′ field gives it little room).
+
+### What real data taught (defects found and fixed during this work)
+
+1. **`apertureSnr` rejected one pixel grid in fifty**: its "no holes" test compared the pixel count with 0.8 x pi x r^2 = 10.05, but a circle of
+   radius 2 pixels centred at some positions holds only 10 pixel centres. Fixed in `movers.js` (it now compares with the number of geometric
+   centres); `scratch/test_movers.mjs` holds the regression check, shown to fail on the old rule.
+2. **A "mover" that was a bright star** near the picture edge: four of its dots formed a line of 12″/yr (6 sigma), while the same star was also
+   linked as a fixed source in all 12 images; its Gaia entry says 0.02″/yr. Two rules came out of it: a mover whose dots are within 1.5 pixels
+   of a fixed source with at least as many detections is dropped (`isShadowOf`), and a catalogue match whose own proper motion disagrees with
+   the measured one is not "known": the source becomes a *possible artefact* with the flag `motion-disagrees`.
+3. **Cutouts of `det=all` and of one detector are not the same pixels** (about 2100 of 2401 pixels differ: the backend resamples all detectors
+   onto a common grid for the first). The mover finder is sensitive to that for marginal lines: the line of item 2 appeared with `det=all` and
+   not with a single detector. All numbers above use single-detector cutouts, so **they do not describe the page's default "Use all detectors"
+   exactly**; the page runs the same code and showed the same classes on Barnard's and WISE 0855's fields.
+4. A fixed source seen in only 3 of 18 images scored 57-66 in the first version of the score; the persistence term and the minimum
+   persistence for "unknown" came from that.
+5. The answers of IRSA and Gaia can be cut short in a dense field (limit 20 000 rows): such a list is marked `truncated`, counts for the sources
+   it matched, and **does not count as "not in the catalogue"**. Without a deep catalogue (Gaia, 2MASS, AllWISE) nothing is called unknown.
+
+### Limits, in one list
+
+- **Nothing new was found, and nothing here says the tool would find it**: Test 1 has no unexplained source; Test 3 measures sensitivity with
+  artificial sources of a flat spectrum (the variable filter changes a real source's brightness from image to image).
+- Depth: fixed sources 1.5 times worse than a single image, movers need about 50 times the noise; around a saturated star 20-30 times worse
+  still. A brown dwarf like WISE 0855 (about 0.4 mJy in a stack, §7) is **below** the limit of this button.
+- The score is a sum, not a probability; the threshold (65) comes from six small real fields; the false rate depends strongly on the field.
+- 2MASS and AllWISE dates are approximations (2MASS: a date per source from the catalogue; AllWISE: the mean epoch of the W1 exposures);
+  the carry-back of a moving candidate adds at most 12″ of search radius.
+- Gaia was reachable for all six fields in the last run; from this network a plain GET to the ESA service hangs, so the relay uses POST (some
+  answers still took over a minute). The page waits up to 130 s per catalogue and says what failed.
+- The positions CSV of a source is **not** an MPC/ADES report: the observatory code and the spacecraft position were not verified, so it is
+  not called that.
+- Not checked by a person on a phone; script checks only (see docs/ACCESSIBILITY.md).

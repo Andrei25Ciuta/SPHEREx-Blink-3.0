@@ -522,9 +522,66 @@ html.fs-locked { overflow: hidden; }
 .mover-export { margin-top: .6rem; display: flex; flex-wrap: wrap; gap: .5rem; }
 summary { padding-block: .4rem; cursor: pointer; }          /* a 21 px tall summary is a small target */
 
+/* Find everything: every source in the images, its class, and the dossier of the one you open (js/features/discoverPanel.js) */
+.discover { margin-top: .9rem; padding-top: .8rem; border-top: 1px solid var(--border); }
+.discover-head { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem .9rem; }
+.discover-head .btn-primary { width: auto; padding: .55rem 1.1rem; }
+.discover-status { flex: 1 1 14rem; margin: 0; font-size: .85rem; color: var(--text-muted); }
+.discover-notes { margin: .6rem 0 0; padding: .5rem .8rem .5rem 1.6rem; font-size: .82rem; color: var(--warn); border-left: 3px solid var(--warn); background: rgb(242 176 123 / .07); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+.discover-chips { list-style: none; margin: .7rem 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: .4rem .5rem; }
+.discover-chips li { padding: .2rem .65rem; font-size: .82rem; color: var(--text-muted); background: var(--field); border: 1px solid var(--border); border-radius: 99px; }
+.discover-chips strong { color: var(--text); font-family: var(--display); font-size: 1rem; }
+.discover-controls { display: flex; flex-wrap: wrap; gap: .5rem 1rem; margin-top: .7rem; font-size: .85rem; }
+.discover-controls label { flex: 1 1 13rem; min-width: 0; display: flex; align-items: center; gap: .45rem; color: var(--text-muted); }
+.discover-controls select { flex: 1 1 auto; width: 100%; min-width: 0; padding-block: .3rem; text-overflow: ellipsis; }
+.discover-list { list-style: none; margin: .7rem 0 0; padding: 0; display: grid; gap: .4rem; }
+.discover-li { border-left: 3px solid var(--text-muted); border-radius: var(--radius-sm); background: var(--raised); }
+.discover-li.cls-unknown { border-left-color: var(--accent); }
+.discover-li.cls-unknown-weak { border-left-color: var(--warn); }
+.discover-li.cls-artefact { border-left-style: dashed; }
+.discover-li.cls-catalogued, .discover-li.cls-catalogued-moving, .discover-li.cls-solar-system { border-left-color: var(--success); }
+.discover-item {
+  display: grid; gap: .1rem; width: 100%; text-align: left; font: inherit; cursor: pointer;
+  padding: .55rem .8rem; border-radius: var(--radius-sm); color: var(--text); background: transparent; border: 1px solid transparent;
+  transition: border-color .2s, background .2s;
+}
+.discover-item:hover, .discover-item[aria-expanded="true"] { border-color: var(--accent); background: rgb(var(--accent-rgb) / .12); }
+.discover-badge { font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+.cls-unknown .discover-badge { color: var(--accent-hi); font-weight: 700; }
+.cls-unknown-weak .discover-badge { color: var(--warn); }
+.discover-main { font-weight: 600; overflow-wrap: anywhere; }
+.discover-sub { font-size: .8rem; color: var(--text-muted); overflow-wrap: anywhere; }
+.discover-more { padding: .4rem .8rem; font-size: .82rem; color: var(--text-muted); }
+.discover-export { margin-top: .6rem; display: flex; flex-wrap: wrap; gap: .5rem; }
+.discover-list > li { min-width: 0; }                      /* a grid item would otherwise grow to fit a long catalogue name */
+.discover-detail { margin: 0 .5rem .6rem; padding: .7rem .8rem; font-size: .85rem; border-radius: var(--radius-sm); background: rgb(var(--accent-rgb) / .08); overflow-wrap: anywhere; }
+.discover-detail h3 { font-size: 1rem; margin-bottom: .4rem; overflow-wrap: anywhere; }
+.discover-detail h4 { margin: .8rem 0 .3rem; font-size: .85rem; letter-spacing: .04em; color: var(--text-muted); }
+.discover-lead { margin: 0 0 .6rem; }
+.discover-stamps { display: flex; flex-wrap: wrap; gap: .5rem; margin: .2rem 0 .3rem; }
+.discover-stampnote { margin: 0 0 .8rem; font-size: .74rem; color: var(--text-muted); }
+.stamp { margin: 0; width: 76px; text-align: center; }
+.stamp-pic { position: relative; width: 76px; height: 76px; border: 1px solid var(--border); background: #000; }
+.stamp.seen .stamp-pic { border-color: var(--accent); }
+.stamp canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+.stamp-ring { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border: 1px dashed var(--accent-hi); border-radius: 50%; pointer-events: none; }
+.stamp figcaption { margin-top: .15rem; font-size: .68rem; line-height: 1.2; color: var(--text-muted); }
+.discover-facts { margin: 0; display: grid; gap: .35rem; }
+.discover-facts div { display: grid; grid-template-columns: 6.5rem 1fr; gap: .6rem; }
+.discover-facts dt { color: var(--text-muted); }
+.discover-facts dd { margin: 0; overflow-wrap: anywhere; }
+.discover-spectrum { margin-top: .6rem; }
+.discover-spectrum table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+.discover-spectrum th, .discover-spectrum td { padding: .15rem .4rem; text-align: right; border-bottom: 1px solid var(--border); }
+.discover-flags, .discover-todo { margin: 0; padding-left: 1.2rem; }
+.discover-flags li, .discover-todo li { margin-bottom: .25rem; }
+.discover-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .7rem; }
+.discover-honest { margin: .7rem 0 0; font-size: .78rem; color: var(--text-muted); }
+@media (max-width: 480px) { .discover-facts div { grid-template-columns: 1fr; gap: 0; } .discover-detail { margin-inline: 0; } }
+
 /* Phones, tablets and projectors with a touch screen: every control at least 44 px high (the usual comfortable touch size) */
 @media (pointer: coarse) {
-  .btn, .btn-small, .chip, .mover-item, .hero-nav a, summary { min-height: 44px; }
+  .btn, .btn-small, .chip, .mover-item, .discover-item, .hero-nav a, summary { min-height: 44px; }
   .check { min-height: 44px; }
   .check input { width: 22px; height: 22px; }
   input[type="range"] { padding: 18px 0; }                  /* 6 px track inside a 42 px band */

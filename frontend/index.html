@@ -216,6 +216,26 @@
         </div>
       </div>
 
+      <!-- Find everything: every source in the images, vetted, checked against catalogues and ranked (js/features/discovery.js, discoverPanel.js) -->
+      <div class="discover" id="discover">
+        <div class="discover-head">
+          <button type="button" class="btn btn-primary btn-small" id="discover-btn" disabled>Find everything</button>
+          <p class="discover-status" id="discover-status" role="status" aria-live="polite"></p>
+        </div>
+        <ul class="discover-notes" id="discover-notes" aria-label="Problems and limits of this search" hidden></ul>
+        <ul class="discover-chips" id="discover-chips" aria-label="Summary" hidden></ul>
+        <div class="discover-controls" id="discover-controls" hidden>
+          <label>Show <select id="discover-filter"></select></label>
+          <label>Sort by <select id="discover-sort"></select></label>
+        </div>
+        <ol class="discover-list" id="discover-list" aria-label="Sources found" hidden></ol>
+        <div class="discover-export" id="discover-export" hidden>
+          <button type="button" class="btn btn-small" id="discover-csv-btn" title="One line per source: position, motion, class, support score, best catalogue match, flags, colour, flux">Save table (CSV)</button>
+          <button type="button" class="btn btn-small" id="discover-json-btn" title="The same, as full dossiers in JSON, with the field, the date and a reminder that candidates are not discoveries">Save dossiers (JSON)</button>
+        </div>
+        <article class="discover-detail" id="discover-detail" hidden></article>
+      </div>
+
       <div class="tools" role="group" aria-label="Save and share">
         <button type="button" class="btn btn-small" id="save-png-btn" disabled>Save image</button>
         <button type="button" class="btn btn-small" id="record-btn" disabled>Record video</button>

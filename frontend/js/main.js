@@ -11,7 +11,7 @@ import { TARGETS, positionAtEpoch, SPHEREX_REF_EPOCH, targetsInField, totalPrope
 import { skyToCanvas, mjdToYear } from "./geometry.js";
 import { readUrlState, writeUrlState } from "./urlState.js";
 import { getCutouts, listDetectors } from "./data/getCutouts.js";
-import { DATA_SOURCE } from "./config.js";
+import { DATA_SOURCE, API_BASE } from "./config.js";
 import { BlinkPlayer, MODES, loadImage, meanImageData } from "./player.js";
 import { canvasToSky, measureAndPlot, clearMeasurement, APERTURE_RADIUS_PX } from "./features/measure.js";
 import { SkyContext } from "./features/skyContext.js";
@@ -26,6 +26,7 @@ import { compareChoices, membersFor, defaultChoice, shortLabel, OPERATIONS } fro
 import { fetchCatalogue, catalogueTracks } from "./features/catalogue.js";
 import { fetchSkybotForFrames, asteroidPoints, matchAsteroids } from "./features/skybot.js";
 import { savePng, recordBlink, canRecord, copyLink } from "./features/exporters.js";
+import { setupDiscoverPanel } from "./features/discoverPanel.js";
 
 // Small helper: document.getElementById is long, so we alias it.
 const $ = (id) => document.getElementById(id);
@@ -56,6 +57,7 @@ let currentDetector = null;
 let currentQuery = null;  // { ra, dec, fov } of the loaded data
 let loadToken = 0;        // increases on every load; protects against out-of-order responses
 let lastQuery = null;     // remembered so "Try again" can repeat the failed request
+let discoverPanel = null; // the "Find everything" panel (set up further down)
 
 // ---------------------------------------------------------------
 // Slider labels
@@ -308,6 +310,7 @@ function setPlayerEnabled(enabled) {
   $("show-flags").disabled = !enabled || !player.hasFlagMasks;
   $("find-movers-btn").disabled = !enabled || !canFindMovers();
   $("find-distant-btn").disabled = !enabled || !canFindMovers();
+  if (discoverPanel) { if (enabled) discoverPanel.refresh(); else $("discover-btn").disabled = true; }
 }
 
 playBtn.addEventListener("click", () => player.toggle());
@@ -472,6 +475,7 @@ async function showDetector(detector) {
   currentFrames = frames;
   player.setTracks([]);                  // old track has the wrong number of points
   clearMovers();                         // so do the movers found in the old frames
+  discoverPanel?.clear();                // and the sources listed by "Find everything"
   compareState = null;                   // and the A / B choices of the Compare mode
   player.pause();
   setPlayerEnabled(false);
@@ -503,6 +507,7 @@ async function showDetector(detector) {
   $("movers-status").textContent = moversHint();
   $("find-movers-btn").disabled = !canFindMovers();
   $("find-distant-btn").disabled = !canFindMovers();
+  discoverPanel?.refresh();
 
   if (currentFrames.length === 1) {
     setStatus(`Only one ${detector} image here – nothing to blink. Try another detector.`);
@@ -756,9 +761,11 @@ function moversHint() {
 }
 $("movers-all-det").addEventListener("change", () => {
   clearMovers();
+  discoverPanel?.clear();
   $("movers-status").textContent = moversHint();
   $("find-movers-btn").disabled = !player.length || !canFindMovers();
   $("find-distant-btn").disabled = !player.length || !canFindMovers();
+  discoverPanel?.refresh();
 });
 
 function clearMovers() {
@@ -1149,6 +1156,37 @@ $("mover-spectrum-btn").addEventListener("click", async () => {
 });
 
 // ---------------------------------------------------------------
+// Find everything: every source in the images, checked against the catalogues (features/discoverPanel.js)
+// ---------------------------------------------------------------
+discoverPanel = setupDiscoverPanel({
+  $, player, isReal: DATA_SOURCE === "api", apiBase: DATA_SOURCE === "api" ? API_BASE : "", skybotCache, prefersReducedMotion,
+  getField: () => {
+    if (!player.length || !currentQuery || !currentFrames.length) return null;
+    return { token: loadToken, query: currentQuery, geo: currentGeo(), detector: useAllDetectors() ? "all" : currentDetector, frames: searchFrames(), n: player.naturalSize, playerFrames: player.frames };
+  },
+  isCurrent: (token) => token === loadToken,
+  loadPixels: detectionPixels, frameId,
+  plotSpectrum: async (c) => {
+    player.setMarker(null);
+    const token = ++measureToken;
+    try {
+      await measureAndPlot({ query: currentQuery, els: measureEls, isCurrent: () => token === measureToken, sky: { ra: c.ra, dec: c.dec, eastArcsec: 0, northArcsec: 0 },
+        motion: { epochMjd: c.epochMjd, pmEast: c.motionIsReal ? c.pmEast : 0, pmNorth: c.motionIsReal ? c.pmNorth : 0 }, title: c.id });
+      if (token === measureToken) $("measure-title").scrollIntoView({ block: "start", behavior: prefersReducedMotion ? "auto" : "smooth" });
+    } catch (err) {
+      if (token === measureToken) measureEls.pos.textContent = `Could not measure: ${err.message}`;
+      throw err;
+    }
+  },
+  openMap: async (c) => {
+    await openSkyMap({ ra: c.ra, dec: c.dec, fov: currentQuery.fov });
+    $("sky-frame").scrollIntoView({ block: "center", behavior: prefersReducedMotion ? "auto" : "smooth" });
+  },
+  download: downloadText, exportContext,
+});
+discoverPanel.refresh();
+
+// ---------------------------------------------------------------
 // Save / record / share
 // ---------------------------------------------------------------
 const fileBase = () => {
@@ -1222,6 +1260,7 @@ async function loadData(query) {
   clearMarker();
   player.setTracks([]);
   clearMovers();
+  discoverPanel?.clear();
   $("track-info").textContent = "";
   if (!$("show-catalogue").checked) $("catalogue-info").textContent = "";
   $("overview").hidden = true;

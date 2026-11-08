@@ -578,18 +578,22 @@ export function findMoversAcrossDetectors(frames, n, options = {}) {
 export function apertureSnr(img, n, x, y, r = 2) {
   if (x < r || y < r || x > n - r || y > n - r) return null;       // a partly cut-off aperture would give a flux that is too low: not measurable
   const inside = [], ring = [];
+  let geometric = 0;                                                  // pixel centres inside the circle, with or without data
   const rOut = r + 5;
   for (let py = Math.floor(y - rOut); py <= Math.ceil(y + rOut); py++) {
     if (py < 0 || py >= n) continue;
     for (let px = Math.floor(x - rOut); px <= Math.ceil(x + rOut); px++) {
       if (px < 0 || px >= n) continue;
       const v = img[py * n + px];
-      if (!Number.isFinite(v)) continue;
       const d = Math.hypot(px + 0.5 - x, py + 0.5 - y);
-      if (d <= r) inside.push(v); else if (d >= r + 2 && d <= rOut) ring.push(v);
+      const finite = Number.isFinite(v);
+      if (d <= r) { geometric++; if (finite) inside.push(v); } else if (finite && d >= r + 2 && d <= rOut) ring.push(v);
     }
   }
-  if (inside.length < 0.8 * Math.PI * r * r || ring.length < 10) return null;           // holes (no data) in the aperture: not measurable
+  // Holes (no data) in the aperture: not measurable. The yardstick is the number of pixel centres that fall in THIS circle (9 to 13
+  // for r = 2, depending on where the circle sits on the pixel grid), not a constant: the old limit of 0.8 pi r^2 = 10.05 rejected
+  // a full aperture whenever only 10 centres happened to fall inside (7 Nov 2026: seen on a synthetic star 0.0 px from a pixel centre).
+  if (geometric === 0 || inside.length < 0.8 * geometric || ring.length < 10) return null;
   const sorted = [...ring].sort((a, b) => a - b);
   const bg = sorted[Math.floor(sorted.length / 2)];
   const mad = [...ring].map((v) => Math.abs(v - bg)).sort((a, b) => a - b)[Math.floor(ring.length / 2)];
