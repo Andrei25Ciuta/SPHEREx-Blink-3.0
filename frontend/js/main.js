@@ -11,7 +11,7 @@ import { TARGETS, positionAtEpoch, SPHEREX_REF_EPOCH, targetsInField, totalPrope
 import { skyToCanvas, tanCanvasToSky, mjdToYear } from "./geometry.js";
 import { readUrlState, writeUrlState } from "./urlState.js";
 import { getCutouts, listDetectors } from "./data/getCutouts.js";
-import { DATA_SOURCE } from "./config.js";
+import { DATA_SOURCE, CAN_USE_LOCAL_BACKEND } from "./config.js";
 import { BlinkPlayer, MODES, loadImage, meanImageData } from "./player.js";
 import { canvasToSky, measureAndPlot, clearMeasurement, APERTURE_RADIUS_PX } from "./features/measure.js";
 import { SkyContext } from "./features/skyContext.js";
@@ -40,6 +40,8 @@ const detSelect = $("det-select");
 const canvas = $("blink-canvas");
 const observations = $("observation-select");
 $("data-source").value = DATA_SOURCE;
+$("data-source").querySelector('option[value="api"]').disabled = !CAN_USE_LOCAL_BACKEND;
+$("data-source-help").hidden = CAN_USE_LOCAL_BACKEND;
 $("data-source").addEventListener("change", event => {
   const url = new URL(location.href);
   url.searchParams.set("data", event.target.value);

@@ -83,6 +83,7 @@ The frontend alone is a static site, so it can be published as a demo that runs 
 `.github/workflows/pages.yml` publishes only the `frontend/` folder. One-time setup after you push the repository to GitHub:
 **Settings → Pages → Build and deployment → Source: GitHub Actions**; the next push to `main` deploys it.
 The page labels itself "Synthetic demo data"; keep it that way until real SPHEREx data is wired in.
+The local FITS option is disabled on the public site. Serve the frontend on your own machine with the Python backend to use local FITS files.
 **Public demo (synthetic data):** https://mateibut.github.io/SPHEREx-Blink-2.0/ (the Pages deployment workflow succeeded; check it from a private window and on a phone before relying on it). Results on real data, numbers only: `results.html` on the same site.
 
 **Sky map (section 4 of the page):** its survey pictures (2MASS, AllWISE, DSS2) come from the first of these that answers: ESA's public mirror of the CDS surveys (`skies.esac.esa.int`, no setup), our backend's relay of IRSA's copies (when the backend runs), CDS (Strasbourg) directly. Some networks block CDS; then only the first two give a picture (the catalogue circles show either way). The text under the map says which source is in use; "Re-centre sky map" checks again. Set `SKY_TILES` in `frontend/js/config.js` to force one source.
@@ -120,8 +121,7 @@ Start the backend:
 backend/.venv/Scripts/python.exe -m uvicorn app:app --app-dir backend --port 8001
 ```
 
-Then set `DATA_SOURCE = "api"` in `frontend/js/config.js` (`API_BASE = "http://localhost:8001"`).
-Nothing else changes. http://localhost:8001/ also serves the frontend itself.
+Open `http://localhost:8001/?data=api` or choose **Local FITS backend** under Settings while serving the page locally. The backend also serves the frontend at `http://localhost:8001/`; no source edit is needed.
 
 ### API
 

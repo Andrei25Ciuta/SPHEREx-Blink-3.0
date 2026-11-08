@@ -2,7 +2,7 @@
 // The endpoint /api/cutouts is defined by us, so it is not an external/guessed URL.
 // The backend must return JSON: { frames: Frame[] } (see getCutouts.js for Frame).
 
-import { API_BASE } from "../config.js";
+import { API_BASE, CAN_USE_LOCAL_BACKEND } from "../config.js";
 
 const REQUEST_TIMEOUT_MS = 60_000;
 
@@ -36,6 +36,9 @@ export async function getPhotometryApi({ ra, dec, detector = "all", radiusPx, mo
 
 /** GET a JSON document from our backend with a timeout and readable errors. */
 async function getJson(url) {
+  if (!CAN_USE_LOCAL_BACKEND) {
+    throw new Error("This public demo cannot reach your local backend. Serve the workspace with the backend to use FITS data, or open Settings and choose Synthetic demo.");
+  }
   let response;
   try {
     // Real cutouts can be slow (archive query + FITS download), but never wait forever.

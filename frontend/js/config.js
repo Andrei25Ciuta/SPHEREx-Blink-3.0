@@ -12,6 +12,9 @@ export const DATA_SOURCE = params.get("data") === "api" ? "api" : "mock";
 // Empty string = same origin as the page (e.g. FastAPI also serves the frontend).
 const apiParam = params.get("api") || "";
 export const API_BASE = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(apiParam) ? apiParam : "http://localhost:8001";
+// A public static page must not request a visitor's loopback server. The backend is local-only.
+export const CAN_USE_LOCAL_BACKEND = typeof location === "undefined" ||
+  ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
 
 // Where the sky map (Aladin) gets its survey pictures:
 //   "auto"    -> the first of these that answers within 2.5 s: "esa", then "backend", then "cds"
