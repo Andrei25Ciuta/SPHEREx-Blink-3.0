@@ -2,6 +2,7 @@
 # The demo runs on synthetic mock data (the page says so in its header badge); no backend, no data files.
 #
 # One-time setup on GitHub: Settings -> Pages -> Build and deployment -> Source: "GitHub Actions".
+# Until then the configuration check passes and the deploy job is skipped.
 name: Deploy demo to GitHub Pages
 
 on:
@@ -19,7 +20,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  pages-configuration:
+    name: Check Pages configuration
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.pages.outputs.enabled }}
+    steps:
+      - id: pages
+        name: Check whether Pages is enabled
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          enabled=$(curl --fail --silent --show-error --retry 3 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY" | jq -r '.has_pages')
+          if [[ "$enabled" != "true" && "$enabled" != "false" ]]; then
+            echo "Could not determine GitHub Pages state" >&2
+            exit 1
+          fi
+          echo "enabled=$enabled" >> "$GITHUB_OUTPUT"
+          if [[ "$enabled" == "false" ]]; then
+            echo "Pages is disabled. Enable GitHub Actions as the Pages source in repository Settings to publish the demo." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
   deploy:
+    needs: pages-configuration
+    if: needs.pages-configuration.outputs.enabled == 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
