@@ -4,10 +4,10 @@
 import { readFileSync } from "node:fs";
 import {
   MIN_ZOOM, MAX_ZOOM, ZOOM_STEP, createView, clampView, fracToCanvas, canvasToFrac, sourceRect,
-  zoomAt, zoomTo, panBy, panStep, centreOn, centreAndZoom, pathCentre, pixelOf, scaleBar, zoomLabel,
+  zoomAt, zoomTo, panBy, panStep, centreOn, centreAndZoom, pathCentre, pixelOf, scaleBar, zoomLabel, followView,
 } from "../frontend/js/features/view.js";
-import { OVERLAY_COLORS, LAYERS, layerCounts } from "../frontend/js/features/layers.js";
-import { describePoint, cleanUnit, formatValue, readoutParts } from "../frontend/js/features/readout.js";
+import { OVERLAY_COLORS, LAYERS, layerCounts, DRAW_ORDER, clampOpacity, isDrawOrder, normaliseOrder, moveLayer, opacityLabel } from "../frontend/js/features/layers.js";
+import { describePoint, cleanUnit, formatValue, readoutParts, levelsText } from "../frontend/js/features/readout.js";
 import { canvasToSky, skyToCanvas } from "../frontend/js/geometry.js";
 
 let failed = 0;
@@ -201,6 +201,52 @@ const randomView = () => clampView({ zoom: 1 + rnd() * 31, cx: rnd(), cy: rnd() 
   check("formatValue: very large and very small numbers use a power of ten", formatValue(12345, "MJy/sr") === "1.23e+4 MJy/sr" && formatValue(0.001234, "") === "1.23e-3");
   check("formatValue: no data (NaN, undefined) is said, never shown as a number", formatValue(NaN) === "no data" && formatValue(undefined) === "no data" && formatValue(Infinity) === "no data");
   check("formatValue: zero is zero", formatValue(0, "MJy/sr") === "0.00 MJy/sr");
+}
+
+// ---------------------------------------------------------------- opacity and order of the layers, values in every mode (Phase 2 remainder)
+{
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  check("layer order: the default is every layer once, in the order player.js drew them before this was adjustable (flags at the back, scale bar in front)",
+    isDrawOrder(DRAW_ORDER) && DRAW_ORDER[0] === "flags" && DRAW_ORDER.at(-1) === "scalebar" && same(DRAW_ORDER, ["flags", "grid", "tracks", "catalogue", "asteroids", "candidates", "marker", "scalebar"]));
+  check("layer order: a list with a layer missing, doubled, unknown or not a list is not an order", !isDrawOrder(DRAW_ORDER.slice(1)) && !isDrawOrder(["flags", "flags", ...DRAW_ORDER.slice(2)]) && !isDrawOrder([...DRAW_ORDER.slice(1), "nope"]) && !isDrawOrder(null) && !isDrawOrder("flags"));
+  check("layer order: normaliseOrder keeps a good order (as a copy) and falls back to the default", same(normaliseOrder(["scalebar", ...DRAW_ORDER.slice(0, 7)]), ["scalebar", ...DRAW_ORDER.slice(0, 7)])
+    && same(normaliseOrder([1, 2]), DRAW_ORDER) && normaliseOrder(DRAW_ORDER) !== DRAW_ORDER);
+  const toFront = moveLayer(DRAW_ORDER, "flags", "front"), toBack = moveLayer(DRAW_ORDER, "marker", "back");
+  check("layer order: one place toward the front or the back swaps with the neighbour and keeps every layer once",
+    toFront[0] === "grid" && toFront[1] === "flags" && isDrawOrder(toFront) && toBack.indexOf("marker") === DRAW_ORDER.indexOf("marker") - 1 && isDrawOrder(toBack) && DRAW_ORDER[0] === "flags");
+  check("layer order: the ends stay, an unknown layer or direction changes nothing",
+    same(moveLayer(DRAW_ORDER, "scalebar", "front"), DRAW_ORDER) && same(moveLayer(DRAW_ORDER, "flags", "back"), DRAW_ORDER) && same(moveLayer(DRAW_ORDER, "nope", "front"), DRAW_ORDER) && same(moveLayer(DRAW_ORDER, "grid", "sideways"), DRAW_ORDER));
+  let walk = [...DRAW_ORDER];
+  for (let i = 0; i < 20; i++) walk = moveLayer(walk, "flags", "front");
+  check("layer order: moving a layer many times ends with it in front and every layer once", walk.at(-1) === "flags" && isDrawOrder(walk));
+  check("opacity: 0 to 1 as it is, outside is clamped, nonsense (NaN, text, empty, missing) is fully opaque", clampOpacity(0.4) === 0.4 && clampOpacity(-3) === 0 && clampOpacity(7) === 1 && clampOpacity("0.25") === 0.25
+    && clampOpacity(NaN) === 1 && clampOpacity("abc") === 1 && clampOpacity("") === 1 && clampOpacity(undefined) === 1 && clampOpacity(null) === 0);
+  check("opacity: the label is a whole percent", opacityLabel(0.7) === "70 %" && opacityLabel(1) === "100 %" && opacityLabel(0) === "0 %" && opacityLabel(0.333) === "33 %" && opacityLabel("x") === "100 %");
+
+  // the co-moving view
+  {
+    const path = [0, 1, 2, 3].map((i) => ({ fx: 0.3 + 0.1 * i, fy: 0.5 - 0.05 * i }));
+    const v0 = { zoom: 8, cx: 0.5, cy: 0.5 };
+    const at = (i) => followView(v0, path, i, true);
+    check("follow: in an animated mode the view is centred on where the candidate is on the image shown, with the zoom unchanged",
+      [0, 1, 2, 3].every((i) => near(at(i).cx, path[i].fx, 1e-12) && near(at(i).cy, path[i].fy, 1e-12) && at(i).zoom === 8));
+    const w = followView(v0, path, 1, false), w2 = followView(v0, path, 3, false);
+    check("follow: in a combined mode (Stack, Trail) the view stays on the middle of the whole path, whatever image is shown", near(w.cx, 0.45, 1e-12) && near(w.cy, 0.425, 1e-12) && w.cx === w2.cx && w.cy === w2.cy);
+    const edge = followView({ zoom: 8, cx: 0.5, cy: 0.5 }, [{ fx: 0.01, fy: 0.99 }], 0, true);
+    check("follow: a candidate near the edge cannot be in the middle: the view stops at the edge of the picture, as for any pan", edge.cx >= 1 / 16 - 1e-12 && edge.cy <= 1 - 1 / 16 + 1e-12 && edge.zoom === 8, JSON.stringify(edge));
+    check("follow: no points, or points that are not numbers, leave the view exactly as it was",
+      followView(v0, [], 0, true) === v0 && followView(v0, undefined, 0, true) === v0 && followView(v0, [{ fx: NaN, fy: 0.2 }], 0, true) === v0);
+    check("follow: an image the candidate has no point for falls back to its first point (never undefined)", near(followView(v0, path, 9, true).cx, path[0].fx, 1e-12));
+    check("follow: the page has the button, and main.js stops following when another candidate is selected", readFileSync(new URL("../frontend/index.html", import.meta.url), "utf8").includes('id="mover-follow-btn"')
+      && /function selectMover\(k\) \{\s*player\.stopFollow\(\)/.test(readFileSync(new URL("../frontend/js/main.js", import.meta.url), "utf8")));
+  }
+  check("levels: Stack and Trail say which picture the level belongs to, rounded, out of 255", levelsText("mean", { level: 127.6 }) === "Stack: display level 128/255" && levelsText("max", { level: 3.2 }) === "Trail: display level 3/255");
+  check("levels: Difference gives the signed change in display levels with both numbers", levelsText("diff", { current: 90, reference: 60 }) === "Difference: +30 display levels (now 90, reference 60)"
+    && levelsText("diff", { current: 10, reference: 25.4 }) === "Difference: −15 display levels (now 10, reference 25)");
+  check("levels: Compare gives both sets, and nothing is written for Blink (it has the file's real values) or for no data", levelsText("compare", { a: 100.4, b: 20 }) === "A 100 · B 20 (display levels)"
+    && levelsText("blink", { level: 1 }) === "" && levelsText("mean", null) === "");
+  const html = readFileSync(new URL("../frontend/index.html", import.meta.url), "utf8");
+  check("page: the layer settings (opacity and order) have their list in the layers box", /<details class="layer-settings" id="layer-settings">[\s\S]*?<ol class="layer-order" id="layer-order"><\/ol>[\s\S]*?<\/details>/.test(html) && html.indexOf('id="layer-settings"') > html.indexOf('id="layers"'));
 }
 
 console.log(failed ? `\n${failed} FAILED` : "\nall passed");

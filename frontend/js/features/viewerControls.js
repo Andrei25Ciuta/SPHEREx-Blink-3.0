@@ -8,9 +8,9 @@
 // Move:  drag the picture (only when zoomed in), Shift + arrow keys. A click that was really a drag does NOT measure.
 // Readout: pixel, RA/Dec, offset from the centre of the field and the pixel value, under the pointer.
 
-import { LAYERS, layerCounts } from "./layers.js";
+import { LAYERS, layerCounts, clampOpacity, moveLayer, opacityLabel } from "./layers.js";
 import { MAX_ZOOM, MIN_ZOOM, ZOOM_STEP, zoomLabel, fracToCanvas } from "./view.js";
-import { describePoint, formatValue, readoutParts } from "./readout.js";
+import { describePoint, formatValue, readoutParts, levelsText } from "./readout.js";
 
 const DRAG_PIXELS = 4;                           // a pointer must move this far (screen pixels) before it counts as a drag
 const OWN_LAYERS = ["candidates", "marker", "grid", "scalebar"];   // layers whose switch the viewer wires (the others are wired in main.js: they fetch data)
@@ -143,7 +143,10 @@ export function setupViewer({ player, canvas, crosshair, zoomEls, readoutEls, la
 
   /** The pixel value under the pointer: real numbers where the backend served them, the 8-bit display level otherwise. null = none to show. */
   function valueAt(d, geo) {
-    if (player.mode !== "blink") return null;                       // the other modes show a combination of images, not one image's value
+    if (player.mode !== "blink") {                                  // the other modes show a combination of images: its display levels, said to be such
+      const v = player.levelsAt(d.ix, d.iy);
+      return v ? { text: levelsText(player.mode, v) } : null;
+    }
     const frame = player.frames[player.index];
     if (frame?.dataUrl && loadFloat) {
       const hit = floats.get(frame.dataUrl);
@@ -198,6 +201,50 @@ export function setupViewer({ player, canvas, crosshair, zoomEls, readoutEls, la
       if (el && shown[l.id] !== text) { el.textContent = text; shown[l.id] = text; }
     }
   }
+  // ------------------------------------------------------------------ opacity and order of the layers
+  // A second list under the switches: one row per layer, the front-most first, with an opacity slider and two buttons that move the layer one place.
+  const orderRoot = layersRoot.querySelector("#layer-order");
+  function renderLayerOrder(focus = null) {
+    if (!orderRoot) return;
+    orderRoot.textContent = "";
+    const frontToBack = [...player.layerOrder].reverse();
+    frontToBack.forEach((id, row) => {
+      const layer = LAYERS.find((l) => l.id === id);
+      const li = document.createElement("li");
+      li.className = "layer-row";
+      li.dataset.layer = id;
+      const opacity = clampOpacity(player.layerOpacity[id] ?? 1);
+      const key = Object.assign(document.createElement("span"), { className: "layer-key" });
+      key.dataset.shape = layer.swatch; key.style.setProperty("--key", layer.color); key.setAttribute("aria-hidden", "true");
+      const name = Object.assign(document.createElement("span"), { className: "layer-name", textContent: layer.label });
+      const slider = Object.assign(document.createElement("input"), { type: "range", className: "layer-opacity", min: "0", max: "100", step: "5", value: String(Math.round(opacity * 100)) });
+      slider.setAttribute("aria-label", `Opacity of ${layer.label}`);
+      slider.setAttribute("aria-valuetext", opacityLabel(opacity));
+      const pct = Object.assign(document.createElement("span"), { className: "layer-pct", textContent: opacityLabel(opacity) });
+      slider.addEventListener("input", () => {
+        const v = clampOpacity(Number(slider.value) / 100);
+        player.setLayerOpacity(id, v);
+        pct.textContent = opacityLabel(v);
+        slider.setAttribute("aria-valuetext", opacityLabel(v));
+      });
+      const move = (toward, glyph, disabled) => {
+        const b = Object.assign(document.createElement("button"), { type: "button", className: "layer-move", textContent: glyph, disabled });
+        b.dataset.toward = toward;
+        b.setAttribute("aria-label", `Move ${layer.label} toward the ${toward}`);
+        b.addEventListener("click", () => { player.setLayerOrder(moveLayer(player.layerOrder, id, toward)); renderLayerOrder({ id, toward }); });
+        return b;
+      };
+      li.append(key, name, slider, pct, move("front", "↑", row === 0), move("back", "↓", row === frontToBack.length - 1));
+      orderRoot.append(li);
+    });
+    if (focus) {                                                  // the layer that was moved keeps the keyboard focus on the same button (or its twin at an end)
+      const row = orderRoot.querySelector(`[data-layer="${focus.id}"]`);
+      const b = row?.querySelector(`[data-toward="${focus.toward}"]:not(:disabled)`) ?? row?.querySelector(".layer-move:not(:disabled)");
+      b?.focus();
+    }
+  }
+  renderLayerOrder();
+
   player.onDraw = () => {
     updateCounts();
     if (lastPointer && gesture === null) showReadout(lastPointer.x, lastPointer.y);   // another frame under a resting pointer

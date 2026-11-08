@@ -1144,6 +1144,7 @@ $("export-json-btn").addEventListener("click", () => {
 
 /** Highlight one candidate on the image (ring + path) and describe it; -1 = none. */
 function selectMover(k) {
+  player.stopFollow();                              // the view followed the one selected before
   selectedMover = k;
   document.querySelectorAll("#mover-list .mover-item").forEach((b) =>
     b.setAttribute("aria-pressed", String(Number(b.dataset.index) === k)));
@@ -1227,6 +1228,17 @@ function centrePictureOn(candidateIndex) {
 $("mover-centre-btn").addEventListener("click", () => {
   if (!centrePictureOn(selectedMover)) $("mover-detail-text").textContent += " (It has no position on these images to centre on.)";
 });
+
+// The co-moving view: the candidate stays in the middle of the picture while the images change (player.setFollow). Moving the picture by hand, or Fit, stops it.
+$("mover-follow-btn").addEventListener("click", () => {
+  if (player.following !== null) { player.stopFollow(); return; }
+  if (!player.setFollow(selectedMover)) $("mover-detail-text").textContent += " (It has no position on these images to follow.)";
+});
+player.onFollowChange = (i) => {
+  const b = $("mover-follow-btn");
+  b.setAttribute("aria-pressed", String(i !== null));
+  b.textContent = i !== null ? "Stop following" : "Follow it";
+};
 
 $("mover-map-btn").addEventListener("click", async () => {
   const m = movers[selectedMover];

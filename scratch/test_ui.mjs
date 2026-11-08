@@ -126,6 +126,9 @@ function tipPage() {
   const asked = [...HTML.matchAll(/data-icon="([^"]+)"/g)].map((m) => m[1]);
   check("icons: every icon index.html asks for exists", asked.length >= 2 && asked.every((n) => n in ICONS), asked.filter((n) => !(n in ICONS)).join(", "));
   check("icons: every kind of state box uses an icon that exists", Object.values(STATE_KINDS).every((k) => k.icon in ICONS));
+  // found in the browser: the wrapper first had the class btn-icon, which already styles the round Play button (a blue circle appeared over the Shortcuts button)
+  check("icons: the wrapper class of an icon is not one that already styles something else (btn-icon is the round Play button, defined once)",
+    [...HTML.matchAll(/<span class="([^"]+)" data-icon=/g)].every((m) => m[1] === "btn-ico") && (CSS.match(/^\.btn-icon\s*\{/gm) || []).length === 1 && !/class="[^"]*btn-icon[^"]*" data-icon=/.test(HTML));
 }
 
 // ---------------------------------------------------------------- state boxes

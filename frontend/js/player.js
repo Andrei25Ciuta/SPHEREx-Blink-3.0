@@ -23,8 +23,8 @@
 // only drawing goes through the view (`_px`), so the sky <-> image mapping of geometry.js is untouched by zoom and pan.
 
 import { combine } from "./features/compare.js";
-import { createView, clampView, fracToCanvas, canvasToFrac, sourceRect, zoomAt, panBy, panStep, scaleBar, centreAndZoom, pathCentre } from "./features/view.js";
-import { OVERLAY_COLORS } from "./features/layers.js";
+import { createView, clampView, fracToCanvas, canvasToFrac, sourceRect, zoomAt, panBy, panStep, scaleBar, centreAndZoom, pathCentre, followView } from "./features/view.js";
+import { OVERLAY_COLORS, DRAW_ORDER, clampOpacity, normaliseOrder } from "./features/layers.js";
 import { gridLines } from "./features/grid.js";
 import { stepActive } from "./features/timeline.js";
 
@@ -42,6 +42,10 @@ export class BlinkPlayer {
     this.onMarkerChange = () => {};               // called with the new marker ({ fx, fy, rPx } or null) when the measuring circle is set or cleared
     this.view = createView();                     // which part of the image the canvas shows (features/view.js)
     this.hidden = new Set(["grid"]);              // layers switched off: "candidates", "marker", "grid", "scalebar" (flags and tracks have their own switch); the grid starts off
+    this.following = null;                        // index of the candidate the view follows (the co-moving view), or null
+    this.onFollowChange = () => {};               // called with the index followed, or null when it stops
+    this.layerOrder = [...DRAW_ORDER];            // the order the layers are drawn in, back to front (the layer list changes it)
+    this.layerOpacity = {};                       // layer id -> 0..1 (missing = fully opaque)
     this.pixelScaleArcsec = null;                 // arcsec per image pixel, for the scale bar and the grid
     this.field = null;                            // { ra, dec } of the middle of the cutout, for the grid
     this.active = null;                           // the timeline filter: sorted indices of the images the blink visits and Stack / Trail / Difference use; null = all
@@ -139,6 +143,7 @@ export class BlinkPlayer {
   setCandidates(candidates, selected = -1) {
     this.candidates = candidates || [];
     this.selectedCandidate = selected;
+    if (this.following !== null && !this.candidates[this.following]) this.stopFollow();       // the list was replaced: the one followed is gone
     this.draw();
   }
   /** Grey pixels (0..255) of every frame, or null if the browser will not let us read them. */
@@ -154,6 +159,10 @@ export class BlinkPlayer {
   goTo(i) {
     if (!this.length) return;
     this.index = ((i % this.length) + this.length) % this.length;
+    if (this.following !== null) {                  // the co-moving view: the followed candidate stays in the middle as the images change
+      this.view = followView(this.view, this.candidates[this.following]?.points, this.index, this.isAnimated);
+      this.onViewChange(this.view);
+    }
     this.draw();
     this.onFrameChange(this.index, this.frames[this.index]);
   }
@@ -176,22 +185,67 @@ export class BlinkPlayer {
       else this._blit(img);                       // fallback (e.g. tainted image)
     }
 
-    if (this.showFlags) {
-      const masks = this.isAnimated ? [this.flagImages[this.index]] : this.flagImages;
-      ctx.globalAlpha = this.isAnimated ? 0.85 : 0.35;
-      for (const m of masks) if (m) this._blit(m);
-      ctx.globalAlpha = 1;
-    }
-
-    if (!this.hidden.has("grid")) this._drawGrid();
-    if (this.showTracks && this.tracks.length) this._drawTracks();
-    if (this.catalogue.length) this._drawCatalogue();
-    if (this.asteroids.length) this._drawAsteroids();
-    if (this.candidates.length && !this.hidden.has("candidates")) this._drawCandidates();
-    if (this.marker && !this.hidden.has("marker")) this._drawMarker();
-    if (!this.hidden.has("scalebar")) this._drawScaleBar();
+    for (const id of this.layerOrder) this._drawLayer(id);          // back to front (features/layers.js DRAW_ORDER, changed from the layer list)
     this.onDraw();
   }
+
+  /** Is this layer on screen now (its switch is on and it has something to draw)? */
+  _layerShown(id) {
+    switch (id) {
+      case "flags": return this.showFlags;
+      case "grid": return !this.hidden.has("grid");
+      case "tracks": return this.showTracks && this.tracks.length > 0;
+      case "catalogue": return this.catalogue.length > 0;
+      case "asteroids": return this.asteroids.length > 0;
+      case "candidates": return this.candidates.length > 0 && !this.hidden.has("candidates");
+      case "marker": return Boolean(this.marker) && !this.hidden.has("marker");
+      case "scalebar": return !this.hidden.has("scalebar");
+      default: return false;
+    }
+  }
+
+  /** Draw one layer. Below full opacity it is drawn on a canvas of its own first (the layers set their own transparency inside), then laid over the picture. */
+  _drawLayer(id) {
+    if (!this._layerShown(id)) return;
+    const a = this.layerOpacity[id] ?? 1;
+    if (a <= 0) return;
+    if (a >= 1) { this._drawLayerBody(id); return; }
+    const off = (this._layerCanvas ??= document.createElement("canvas"));
+    off.width = this.canvas.width; off.height = this.canvas.height;         // resizing also clears it
+    const main = this.ctx;
+    this.ctx = off.getContext("2d");
+    this.ctx.imageSmoothingEnabled = false;                                 // keep SPHEREx pixels sharp here too (a mask is blitted)
+    try { this._drawLayerBody(id); } finally { this.ctx = main; }
+    main.globalAlpha = a;
+    main.drawImage(off, 0, 0);
+    main.globalAlpha = 1;
+  }
+
+  _drawLayerBody(id) {
+    const { ctx } = this;
+    switch (id) {
+      case "flags": {
+        const masks = this.isAnimated ? [this.flagImages[this.index]] : this.flagImages;
+        ctx.globalAlpha = this.isAnimated ? 0.85 : 0.35;
+        for (const m of masks) if (m) this._blit(m);
+        ctx.globalAlpha = 1;
+        break;
+      }
+      case "grid": this._drawGrid(); break;
+      case "tracks": this._drawTracks(); break;
+      case "catalogue": this._drawCatalogue(); break;
+      case "asteroids": this._drawAsteroids(); break;
+      case "candidates": this._drawCandidates(); break;
+      case "marker": this._drawMarker(); break;
+      case "scalebar": this._drawScaleBar(); break;
+      default: break;
+    }
+  }
+
+  /** Opacity of one layer, 0 (invisible) to 1 (as drawn). */
+  setLayerOpacity(id, value) { this.layerOpacity[id] = clampOpacity(value); this.draw(); }
+  /** The order the layers are drawn in, back to front (a complete list of layer ids; anything else restores the default). */
+  setLayerOrder(order) { this.layerOrder = normaliseOrder(order); this.draw(); }
 
   // ------------------------------------------------------------------ zoom and pan (features/view.js)
 
@@ -216,15 +270,33 @@ export class BlinkPlayer {
     this.draw();
     this.onViewChange(this.view);
   }
-  resetView() { this.setView(createView()); }
+  resetView() { this.stopFollow(); this.setView(createView()); }
+
+  /**
+   * Follow a candidate (index into `candidates`): from now on every image that is shown puts it in the middle of the picture (same zoom, at least x6 to start),
+   * the "co-moving view". Panning by hand stops it. Returns false when the candidate has no position to follow.
+   */
+  setFollow(i, minZoom = 6) {
+    const c = this.candidates[i];
+    if (!c || !pathCentre(c.points, this.index, this.isAnimated)) { this.stopFollow(); return false; }
+    this.following = i;
+    this.setView(followView(centreAndZoom(this.view, 0.5, 0.5, minZoom), c.points, this.index, this.isAnimated));
+    this.onFollowChange(i);
+    return true;
+  }
+  stopFollow() {
+    if (this.following === null) return;
+    this.following = null;
+    this.onFollowChange(null);
+  }
   /** Zoom by `factor` keeping the canvas pixel (x, y) in place (default: the middle). */
   zoomBy(factor, x = this.canvas.width / 2, y = this.canvas.height / 2) {
     this.setView(zoomAt(this.view, factor, x, y, this.canvas.width, this.canvas.height));
   }
   /** The picture follows a drag of (dx, dy) canvas pixels. */
-  panByCanvas(dx, dy) { this.setView(panBy(this.view, dx, dy, this.canvas.width, this.canvas.height)); }
+  panByCanvas(dx, dy) { this.stopFollow(); this.setView(panBy(this.view, dx, dy, this.canvas.width, this.canvas.height)); }
   /** Keyboard pan: dirX, dirY in {-1, 0, 1}. */
-  panByStep(dirX, dirY) { this.setView(panStep(this.view, dirX, dirY)); }
+  panByStep(dirX, dirY) { this.stopFollow(); this.setView(panStep(this.view, dirX, dirY)); }
 
   /** A mouse or touch position on the page -> { fx, fy } image fractions under the current view (what a click measures). */
   pointToFrac(clientX, clientY) {
@@ -261,6 +333,26 @@ export class BlinkPlayer {
     if (!n || ix < 0 || iy < 0 || ix >= n || iy >= n) return null;
     const g = this._greys();
     return g ? g[this.index][iy * n + ix] : null;
+  }
+
+  /**
+   * The display levels (0..255) behind one pixel of the picture on screen in the modes that combine images (Stack, Trail, Difference, Compare), or null.
+   * Blink mode has greyLevelAt (and the real values of the file). Uses the cached statistics, so it is cheap enough to follow the pointer.
+   */
+  levelsAt(ix, iy) {
+    const n = this.naturalSize;
+    if (!n || ix < 0 || iy < 0 || ix >= n || iy >= n) return null;
+    const g = this._greys();
+    if (!g) return null;
+    const k = iy * n + ix;
+    if (this.mode === "mean" || this.mode === "max") { const s = this._stat(this.mode); return s ? { level: s[k] } : null; }
+    if (this.mode === "diff") { const ref = this._referenceFor(this.index); return ref ? { current: g[this.index][k], reference: ref[k] } : null; }
+    if (this.mode === "compare") {
+      const c = this.compare;
+      if (!c || !c.a.length || !c.b.length) return null;
+      return { a: this._stat("mean", c.a)[k], b: this._stat("mean", c.b)[k] };
+    }
+    return null;
   }
 
   /** The image currently on screen, as a PNG data: URL (for "save frame"). */

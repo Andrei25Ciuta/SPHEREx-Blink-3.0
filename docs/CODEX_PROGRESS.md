@@ -92,9 +92,8 @@ Changed: `index.html` (the search panel has a head with a button and a body; a n
 
 ## Remaining in Phase 2
 
-- A tour step for the inspector (the tour test allows 8 steps and there are 8: one would have to go).
-- A view that follows a moving candidate from image to image (co-moving view); layer order and opacity.
-- The pixel value is shown in Blink mode only.
+- The real pixel value (the file's unit) is shown in Blink mode only; in Stack, Trail, Difference and Compare the readout gives display levels (0-255 of the stretched picture), said to be such.
+- The layer settings (opacity, order) are not remembered between visits; the follow-it view stops when the picture is moved by hand.
 
 ## Remaining in Phase 1
 

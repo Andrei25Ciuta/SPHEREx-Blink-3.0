@@ -29,6 +29,22 @@ export function formatValue(value, unit = "") {
   return `${Math.abs(value) >= 1000 || (value !== 0 && Math.abs(value) < 0.01) ? value.toExponential(2) : value.toPrecision(3)}${u ? ` ${u}` : ""}`;
 }
 
+const signedLevel = (v) => `${v < 0 ? "−" : "+"}${Math.abs(Math.round(v))}`;
+
+/**
+ * What the picture holds at a pixel in the modes that combine images, in DISPLAY levels (0-255, the stretched 8-bit picture), never in the file's unit:
+ * the real values exist for the single image of Blink mode only.
+ * mode = "mean" (Stack) | "max" (Trail) | "diff" (Difference) | "compare"; v = { level } | { current, reference } | { a, b }.
+ */
+export function levelsText(mode, v) {
+  if (!v) return "";
+  if (mode === "mean") return `Stack: display level ${Math.round(v.level)}/255`;
+  if (mode === "max") return `Trail: display level ${Math.round(v.level)}/255`;
+  if (mode === "diff") return `Difference: ${signedLevel(v.current - v.reference)} display levels (now ${Math.round(v.current)}, reference ${Math.round(v.reference)})`;
+  if (mode === "compare") return `A ${Math.round(v.a)} · B ${Math.round(v.b)} (display levels)`;
+  return "";
+}
+
 /**
  * The strings of the readout. value = { text } to show a value, or null to show none.
  * -> { pixel, sky, offset, value }  (value is "" when there is none)

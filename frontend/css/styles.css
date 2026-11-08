@@ -1027,8 +1027,8 @@ body::before {
 
 /* ---------- Shared interface pieces: icons, tooltips, dialog, state boxes (features/ui.js, tooltip.js, dialog.js) ---------- */
 .icon { display: block; flex: none; }
-.btn-icon { display: inline-flex; vertical-align: -3px; margin-right: .4rem; }
-.btn-icon:empty { display: none; }
+.btn-ico { display: inline-flex; vertical-align: -3px; margin-right: .4rem; }
+.btn-ico:empty { display: none; }
 
 .tooltip {
   position: fixed; z-index: 1100; max-width: min(22rem, calc(100vw - 16px)); padding: .45rem .65rem; border-radius: var(--radius-sm);
@@ -1062,3 +1062,24 @@ body::before {
 @keyframes state-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .state-loading .icon { animation: none; } }
 .ex-empty { padding: 1rem; }
+
+/* Opacity and order of the layers (viewerControls.js renderLayerOrder) */
+.layer-settings { margin-top: .6rem; padding-top: .5rem; border-top: 1px solid var(--border); }
+.layer-settings summary { cursor: pointer; font-size: .82rem; font-weight: 600; color: var(--text-muted); min-height: 1.6rem; }
+.layer-settings p { margin: .4rem 0 .6rem; }
+.layer-order { list-style: none; margin: 0; padding: 0; display: grid; gap: .35rem; }
+.layer-row { display: grid; grid-template-columns: 20px minmax(7rem, 1fr) minmax(5rem, 11rem) 3.2rem auto auto; align-items: center; gap: .5rem; font-size: .85rem; }
+.layer-opacity { width: 100%; min-width: 0; }
+.layer-pct { font: .75rem/1 var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; color: var(--text-muted); }
+.layer-move {
+  width: 1.9rem; height: 1.9rem; padding: 0; display: inline-grid; place-items: center; cursor: pointer;
+  border: 1px solid var(--control-border); border-radius: var(--radius-sm); background: transparent; color: var(--text);
+}
+.layer-move:hover:not(:disabled) { border-color: var(--accent); }
+.layer-move:disabled { opacity: .35; cursor: default; }
+@media (hover: none) and (pointer: coarse) { .layer-move { width: 2.75rem; height: 2.75rem; } }
+@media (max-width: 560px) {
+  .layer-row { grid-template-columns: 20px 1fr auto auto; }
+  .layer-opacity { grid-column: 2 / 4; grid-row: 2; }
+  .layer-pct { grid-column: 4; grid-row: 2; }
+}

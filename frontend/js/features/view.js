@@ -89,6 +89,16 @@ export function pathCentre(points, index, animated) {
   return Number.isFinite(fx) && Number.isFinite(fy) ? { fx, fy } : null;
 }
 
+/**
+ * The view for "follow this candidate": the same zoom, centred on where the candidate is on the image shown (animated modes) or on the middle of its
+ * whole path (combined modes, where it does not move). The view cannot go past the edge of the image (clampView), so a candidate near the edge is not
+ * in the middle. No usable position = the view is returned unchanged.
+ */
+export function followView(view, points, index, animated) {
+  const p = pathCentre(points, index, animated);
+  return p ? clampView({ zoom: view.zoom, cx: p.fx, cy: p.fy }) : view;
+}
+
 /** The pixel of the image that holds an image fraction: { ix, iy, inside }. Pixel ix covers fractions [ix/n, (ix+1)/n). */
 export function pixelOf(fx, fy, n) {
   const inside = fx >= 0 && fx < 1 && fy >= 0 && fy < 1;

@@ -227,7 +227,7 @@
 
       <div class="player-options">
         <label class="check"><input type="checkbox" id="skip-flagged"> Skip frames with &gt; 1&nbsp;% flagged pixels</label>
-        <button type="button" class="btn btn-small" id="shortcuts-btn" aria-haspopup="dialog" title="Every keyboard shortcut of the workspace (?)"><span class="btn-icon" data-icon="keyboard" aria-hidden="true"></span>Keyboard shortcuts</button>
+        <button type="button" class="btn btn-small" id="shortcuts-btn" aria-haspopup="dialog" title="Every keyboard shortcut of the workspace (?)"><span class="btn-ico" data-icon="keyboard" aria-hidden="true"></span>Keyboard shortcuts</button>
       </div>
 
       <!-- Layers: what is drawn on top of the picture. Each one switches on its own; the key matches the colour on the canvas (js/features/layers.js) -->
@@ -243,6 +243,11 @@
           <li class="layer" data-layer="grid"><label class="check" title="Lines of constant right ascension and declination, on round values; they get finer as you zoom in"><input type="checkbox" id="show-grid"><span class="layer-key" aria-hidden="true"></span><span class="layer-name">Coordinate grid (RA, Dec)</span></label><span class="layer-count" data-count="grid"></span></li>
           <li class="layer" data-layer="scalebar"><label class="check"><input type="checkbox" id="show-scalebar" checked><span class="layer-key" aria-hidden="true"></span><span class="layer-name">Scale bar</span></label><span class="layer-count" data-count="scalebar"></span></li>
         </ul>
+        <details class="layer-settings" id="layer-settings">
+          <summary>Opacity and order</summary>
+          <p class="muted small">The first row is drawn on top of the others. Move a layer with the arrows; a lower opacity lets the picture show through it.</p>
+          <ol class="layer-order" id="layer-order"></ol>
+        </details>
       </fieldset>
       <!-- Filled when a test object is in the field: how far it should move, in pixels -->
       <p class="track-info" id="track-info" aria-live="polite"></p>
@@ -274,6 +279,7 @@
           <p id="mover-detail-text"></p>
           <p id="mover-colour" class="mover-colour" role="status" aria-live="polite" hidden></p>
           <button type="button" class="btn btn-small" id="mover-centre-btn" title="Zoom the picture in on this candidate and put it in the middle (where it is on the image shown; in Stack and Trail, the middle of its path)">Centre the picture on it</button>
+          <button type="button" class="btn btn-small" id="mover-follow-btn" aria-pressed="false" title="Keep the candidate in the middle of the picture while the images change (Blink and Difference). Moving the picture by hand, or Fit, stops it">Follow it</button>
           <button type="button" class="btn btn-small" id="mover-map-btn">Check in sky map</button>
           <button type="button" class="btn btn-small" id="mover-spectrum-btn" title="Measure the candidate in every image, where it is on that image's date, and plot flux against wavelength">Spectrum along its path</button>
         </div>
@@ -309,7 +315,7 @@
       </div>
 
       <div class="tools" role="group" aria-label="Save and share">
-        <button type="button" class="btn btn-small" id="save-png-btn" disabled><span class="btn-icon" data-icon="save" aria-hidden="true"></span>Save image</button>
+        <button type="button" class="btn btn-small" id="save-png-btn" disabled><span class="btn-ico" data-icon="save" aria-hidden="true"></span>Save image</button>
         <button type="button" class="btn btn-small" id="record-btn" disabled>Record video</button>
         <button type="button" class="btn btn-small" id="copy-link-btn">Copy link</button>
         <button type="button" class="btn btn-small" id="copy-embed-btn" title="HTML to put this view on another web page">Embed code</button>

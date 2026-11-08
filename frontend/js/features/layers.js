@@ -30,6 +30,37 @@ export const LAYERS = [
   { id: "scalebar", label: "Scale bar", checkbox: "show-scalebar", color: OVERLAY_COLORS.scalebar, swatch: "bar", needsData: false },
 ];
 
+/** The order the layers are drawn in, back to front: what player.js always did, and where the list of layers starts. */
+export const DRAW_ORDER = ["flags", "grid", "tracks", "catalogue", "asteroids", "candidates", "marker", "scalebar"];
+
+/** An opacity from the slider or from anywhere: a number from 0 to 1; anything else (NaN, text, missing) is 1 = fully opaque. */
+export function clampOpacity(v) {
+  const x = typeof v === "string" && v.trim() === "" ? NaN : Number(v);
+  return Number.isFinite(x) ? Math.min(1, Math.max(0, x)) : 1;
+}
+
+/** True when `order` holds every layer exactly once. */
+export const isDrawOrder = (order) => Array.isArray(order) && order.length === LAYERS.length && LAYERS.every((l) => order.filter((id) => id === l.id).length === 1);
+
+/** A usable order: the one given when it is complete, the default otherwise. */
+export const normaliseOrder = (order) => (isDrawOrder(order) ? [...order] : [...DRAW_ORDER]);
+
+/**
+ * Move one layer one place toward the front ("front") or toward the back ("back") in a back-to-front order. The ends stay where they are.
+ * Returns a new array; an unknown layer changes nothing.
+ */
+export function moveLayer(order, id, toward) {
+  const list = normaliseOrder(order);
+  const i = list.indexOf(id);
+  const j = toward === "front" ? i + 1 : toward === "back" ? i - 1 : i;
+  if (i < 0 || j < 0 || j >= list.length || j === i) return list;
+  [list[i], list[j]] = [list[j], list[i]];
+  return list;
+}
+
+/** The percent for a label: 0.7 -> "70 %". */
+export const opacityLabel = (v) => `${Math.round(clampOpacity(v) * 100)} %`;
+
 /**
  * How many objects each layer holds right now. null = this layer has no count (flags, scale bar).
  * `state` = { tracks, catalogue, asteroids, candidates, marker, isAnimated, index }, as kept by the player.
