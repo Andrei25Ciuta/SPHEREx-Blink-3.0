@@ -8,7 +8,7 @@
 
 import { parseRA, parseDec, formatRA, formatDec } from "./coords.js";
 import { TARGETS, positionAtEpoch, SPHEREX_REF_EPOCH, targetsInField, totalProperMotion } from "./targets.js";
-import { skyToCanvas, mjdToYear } from "./geometry.js";
+import { skyToCanvas, tanCanvasToSky, mjdToYear } from "./geometry.js";
 import { readUrlState, writeUrlState } from "./urlState.js";
 import { getCutouts, listDetectors } from "./data/getCutouts.js";
 import { DATA_SOURCE } from "./config.js";
@@ -25,6 +25,7 @@ import { PLANET_X_DEMO } from "./data/mockSource.js";
 import { compareChoices, membersFor, defaultChoice, shortLabel, OPERATIONS } from "./features/compare.js";
 import { fetchCatalogue, catalogueTracks } from "./features/catalogue.js";
 import { fetchSkybotForFrames, asteroidPoints, matchAsteroids } from "./features/skybot.js";
+import { setComparisonFrames } from "./features/detectorPair.js";
 import { savePng, recordBlink, canRecord, copyLink } from "./features/exporters.js";
 
 // Small helper: document.getElementById is long, so we alias it.
@@ -37,6 +38,13 @@ const fovInput = $("fov-input");
 const speedInput = $("speed-input");
 const detSelect = $("det-select");
 const canvas = $("blink-canvas");
+const observations = $("observation-select");
+$("data-source").value = DATA_SOURCE;
+$("data-source").addEventListener("change", event => {
+  const url = new URL(location.href);
+  url.searchParams.set("data", event.target.value);
+  location.assign(url.href);
+});
 
 // Detector asked for in the URL. The <select> is only filled once data arrives,
 // so we remember the wish here and apply it then.
@@ -252,6 +260,7 @@ const fmtDate = (iso) => iso.slice(0, 16).replace("T", " ") + " UTC";
 
 /** Update counter, date, slider and metadata for the frame being shown. */
 function updateFrameInfo(i, frame) {
+  observations.value = String(i);
   frameSlider.value = String(i);
   frameSlider.setAttribute("aria-valuetext", `Frame ${i + 1} of ${player.length}, ${frame.dateISO.slice(0, 10)}`);
   $("meta-det").textContent = frame.detector;
@@ -297,6 +306,7 @@ function updateFrameInfo(i, frame) {
 /** Enable/disable the player controls according to frames + mode. */
 function setPlayerEnabled(enabled) {
   const animated = enabled && player.isAnimated && player.length > 1;
+  observations.disabled = !enabled || !player.isAnimated;
   playBtn.disabled = !animated;
   frameSlider.disabled = !animated;
   speedInput.disabled = !animated;
@@ -310,6 +320,10 @@ function setPlayerEnabled(enabled) {
   $("find-distant-btn").disabled = !enabled || !canFindMovers();
 }
 
+observations.addEventListener("change", () => {
+  player.pause();
+  player.goTo(Number(observations.value));
+});
 playBtn.addEventListener("click", () => player.toggle());
 
 // Dragging the slider = manual control, so we pause the animation.
@@ -466,10 +480,14 @@ function updateTracks() {
 
 /** Show only the frames of one detector in the player. */
 async function showDetector(detector) {
-  const token = loadToken;               // if a new load starts while we wait, give up
+  const token = loadToken;
+  const current = () => token === loadToken && frames === currentFrames;
   currentDetector = detector;
   const { frames, skipped } = framesFor(detector);
   currentFrames = frames;
+  observations.replaceChildren(...frames.map((f, i) =>
+    new Option(`${fmtDate(f.dateISO)} · ${f.detector} · ${f.wavelengthMinUm.toFixed(2)}–${f.wavelengthMaxUm.toFixed(2)} µm`, i)));
+  $("pixel-readout").value = "";
   player.setTracks([]);                  // old track has the wrong number of points
   clearMovers();                         // so do the movers found in the old frames
   compareState = null;                   // and the A / B choices of the Compare mode
@@ -486,9 +504,9 @@ async function showDetector(detector) {
   const n = currentFrames.length;
   // Preload all images; the bar shows how many are ready.
   await player.setFrames(currentFrames, (done) => {
-    if (token === loadToken) showOverlay("Preparing frames…", `${done} / ${n} ${detector} images ready`, { progress: done / n });
-  });
-  if (token !== loadToken) return;
+    if (current()) showOverlay("Preparing frames…", `${done} / ${n} ${detector} images ready`, { progress: done / n });
+  }, current);
+  if (!current()) return;
 
   setupCompare();
   frameSlider.max = String(currentFrames.length - 1);
@@ -557,12 +575,40 @@ function markOverview(detector) {
 // ---------------------------------------------------------------
 const measureEls = {
   pos: $("measure-pos"), charts: $("charts"), note: $("measure-note"),
+  detector: $("measurement-detector"), download: $("download-measurements"),
   tableWrap: $("measure-table-wrap"), table: $("measure-table"),
   spectrum: $("spectrum-chart"), lightcurve: $("lightcurve-chart"),
   spectrumCaption: $("spectrum-caption"), lightcurveCaption: $("lightcurve-caption"),
 };
 let measureToken = 0;
 
+const inspectionPosition = DATA_SOURCE === "api" ? tanCanvasToSky : canvasToSky;
+const plane = canvas.parentElement;
+const viewport = plane.parentElement;
+function adjustDisplay() {
+  plane.style.setProperty("--zoom", Number($("image-zoom").value) * 100 + "%");
+  plane.style.setProperty("--brightness", Number($("image-brightness").value) / 100);
+  plane.style.setProperty("--contrast", Number($("image-contrast").value) / 100);
+  plane.querySelector(".crosshair").hidden = !$("centre-crosshair").checked;
+}
+for (const id of ["image-zoom", "image-brightness", "image-contrast", "centre-crosshair"])
+  $(id).addEventListener("input", adjustDisplay);
+$("reset-view").addEventListener("click", () => {
+  $("image-zoom").value = "1";
+  $("image-brightness").value = $("image-contrast").value = "100";
+  $("centre-crosshair").checked = true;
+  adjustDisplay();
+  viewport.scrollTo(0, 0);
+});
+canvas.addEventListener("pointermove", e => {
+  if (!currentQuery || !player.length || !overlay.classList.contains("hidden")) return;
+  const rect = canvas.getBoundingClientRect();
+  const fx = (e.clientX - rect.left) / rect.width, fy = (e.clientY - rect.top) / rect.height;
+  const geo = currentGeo();
+  const pos = inspectionPosition(fx, fy, geo);
+  $("pixel-readout").value = `Pixel (${Math.floor(fx * geo.n)}, ${Math.floor(fy * geo.n)}) · RA ${formatRA(pos.ra)} · Dec ${formatDec(pos.dec)}`;
+});
+canvas.addEventListener("pointerleave", () => { $("pixel-readout").value = ""; });
 canvas.addEventListener("click", async (e) => {
   if (!player.length || !currentQuery) return;
   const rect = canvas.getBoundingClientRect();
@@ -570,7 +616,7 @@ canvas.addEventListener("click", async (e) => {
   const fy = (e.clientY - rect.top) / rect.height;
   const n = player.naturalSize;
   const scaleArcsec = currentFrames[0].pixelScaleArcsec ?? (currentQuery.fov * 60) / n;
-  const sky = canvasToSky(fx, fy, { ra: currentQuery.ra, dec: currentQuery.dec, n, scaleArcsec });
+  const sky = inspectionPosition(fx, fy, { ra: currentQuery.ra, dec: currentQuery.dec, n, scaleArcsec });
 
   player.setMarker({ fx, fy, rPx: APERTURE_RADIUS_PX });
   const token = ++measureToken;
@@ -949,6 +995,7 @@ function showMovers({ candidates, stats, reason }, catalogueObjects = null, { di
   const pool = catalogueObjects ? [...TARGETS, ...catalogueObjects] : TARGETS;     // test objects first: their motions are the best
   movers = candidates.map((c, k) => ({
     ...c, ...describeMover(c, geo),
+    fitPoints: c.points,
     label: `#${k + 1}`,
     known: distant ? null : matchKnownObject(c, geo, pool)?.target.label ?? null,
     distant: distant ? describeDistant(c, geo) : null,
@@ -1016,7 +1063,7 @@ function downloadText(text, name, type) {
 }
 function exportContext() {
   const link = new URL(location.href);
-  link.searchParams.delete("data");                // a link must not carry the address of a backend on this computer
+  link.searchParams.set("data", DATA_SOURCE);                // a link must not carry the address of a backend on this computer
   link.searchParams.delete("api");
   link.hash = "";
   return { isReal: DATA_SOURCE === "api", detector: currentDetector, query: currentQuery, permalink: link.href };
@@ -1214,6 +1261,14 @@ $("copy-link-btn").addEventListener("click", async () => {
 /** Fetch frames for a query and show them. */
 async function loadData(query) {
   const token = ++loadToken;
+  setComparisonFrames([]);
+  allFrames = [];
+  currentFrames = [];
+  currentDetector = null;
+  currentQuery = null;
+  detSelect.disabled = true;
+  observations.replaceChildren();
+  $("pixel-readout").value = "";
   lastQuery = query;
   setLoading(true);
   setStatus("");
@@ -1232,6 +1287,7 @@ async function loadData(query) {
     if (token !== loadToken) return;                   // a newer request started meanwhile – ignore this one
 
     allFrames = frames;
+    setComparisonFrames(frames);
     currentQuery = query;
     if (sky.isOpen) sky.update(query);
     if (frames.length === 0) {

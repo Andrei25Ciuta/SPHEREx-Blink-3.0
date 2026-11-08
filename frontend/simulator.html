@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Solar System Simulator · SPHEREx Blink</title>
+<script src="js/theme.js"></script><link rel="stylesheet" href="css/styles.css?v=14"><link rel="stylesheet" href="css/exploration.css">
+</head><body><div class="explore">
+<a class="skip-link" href="#simulation">Skip to simulation</a>
+<header><nav aria-label="Pages"><a href="index.html">SPHEREx Blink</a><a href="sky.html">Sky Explorer</a><a href="results.html">Results</a></nav>
+<label class="theme-picker">Theme <select data-theme-picker></select></label></header>
+<main id="simulation" tabindex="-1"><h1>Solar System Simulator</h1>
+<p>Change the observer date to see how Earth's motion shifts a hypothetical stationary target against the sky.</p>
+<div class="tool-grid">
+<form class="panel sim-inputs" id="controls"><h2>Geometry</h2>
+<label>View <select id="mode"><option value="educational">Educational visualization</option><option value="scientific">Scientific geometry</option></select></label>
+<label>Reference date (UTC) <input type="date" id="date" min="2000-01-01" max="2099-12-31" value="2025-01-01" required></label>
+<label>Target RA (degrees) <input type="number" id="ra" min="0" max="359.99999999" step="any" value="70" required></label>
+<label>Target Dec (degrees) <input type="number" id="dec" min="-90" max="90" step="any" value="15" required></label>
+<label>Reference distance from Earth (AU) <input type="number" id="distance" min="10" max="20000" step="any" value="500" required></label>
+<label>Days since reference <output for="day" id="day-label">0</output><input type="range" id="day" min="0" max="365" value="0"></label>
+<button type="button" id="play" class="btn">Play year</button>
+<label>Camera azimuth (degrees) <input type="range" id="az" min="-180" max="180" value="10"></label>
+<label>Camera elevation (degrees) <input type="range" id="el" min="-90" max="90" value="45"></label>
+</form>
+<section class="panel"><h2>Observer and target</h2>
+<figure><svg viewBox="0 0 700 400" class="plot" id="scene" role="img" aria-label="Rotatable orthographic view of Earth's orbit, the Sun and the observer-to-target sightline"></svg><figcaption id="scale"></figcaption></figure>
+<dl class="tool-output"><dt>Observer epoch (UTC)</dt><dd id="epoch"></dd>
+<dt>Earth position (AU, X / Y / Z)</dt><dd id="earth"></dd>
+<dt>Apparent offset east / north</dt><dd id="offset"></dd>
+<dt>Observer–target distance</dt><dd id="range"></dd></dl>
+<p class="muted">Earth-centred observer. The model uses an approximate heliocentric Earth ephemeris on J2000 equatorial axes. Offsets are gnomonic tangent-plane arcseconds relative to the reference date. Spacecraft motion, target orbital motion, aberration and light travel time are omitted.</p>
+<p id="status" role="status"></p></section></div>
+</main></div><script type="module" src="js/simulator.js"></script></body></html>

@@ -80,7 +80,7 @@ check("text is escaped", esc('<b a="1">&\'') === "&lt;b a=&quot;1&quot;&gt;&amp;
   check("the data file is small", statSync(JSON_PATH).size < 12_000, `${statSync(JSON_PATH).size} bytes`);
   const longest = (o) => (Array.isArray(o) ? Math.max(o.length, ...o.map(longest)) : o && typeof o === "object" ? Math.max(0, ...Object.values(o).map(longest)) : 0);
   check("no array longer than 20 numbers (no light-curve or pixel dumps)", longest(data) <= 20, String(longest(data)));
-  check("the page has no <img>, <canvas> or inline image", !/<img|<canvas|<video|data:image/i.test(HTML));
+  check("the page has no observation imagery", !/<img|<video|data:image/i.test(HTML));
 }
 
 // ---- it still says what VALIDATION.md says

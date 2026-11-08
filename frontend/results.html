@@ -3,14 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Real-data results – SPHEREx Blink</title>
+  <title>Results and candidate explorer – SPHEREx Blink</title>
   <meta name="description" content="What the SPHEREx Blink detector did on real SPHEREx images: numbers and charts only, with the failures shown next to the successes.">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Oswald:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=13">
-  <link rel="stylesheet" href="css/results.css?v=2">
+  <script src="js/theme.js"></script>
+  <link rel="stylesheet" href="css/styles.css?v=14">
+  <link rel="stylesheet" href="css/results.css?v=3">
 </head>
 <body>
   <div class="sky-bg" aria-hidden="true"></div>
@@ -19,12 +20,70 @@
   <header class="rhead">
     <a class="rhead-logo" href="index.html"><span class="brand-logo" aria-hidden="true"></span><span>SPHEREx Blink</span></a>
     <nav aria-label="Pages"><a href="index.html">&larr; Back to the app</a></nav>
+    <label class="theme-picker">Theme <select data-theme-picker></select></label>
   </header>
 
   <main id="results" class="rmain" tabindex="-1">
+    <nav class="result-links" aria-label="Results sections">
+      <a href="#candidate-explorer">Candidate Explorer</a><a href="#research-assistant">Research report</a><a href="#results-title">Real-data validation</a>
+    </nav>
+    <section class="panel rsec explorer" id="candidate-explorer" aria-labelledby="explorer-title">
+      <h1 id="explorer-title">Candidate Explorer</h1>
+      <p>Inspect a historical mover fit or open the JSON saved by the workspace candidate export. Imported files stay in this browser tab.</p>
+      <div class="explorer-inputs">
+        <label>Candidate export <input id="candidate-file" type="file" accept="application/json,.json"></label>
+        <button type="button" class="btn btn-small" id="restore-archive" disabled>Show archived runs</button>
+      </div>
+      <p id="import-status" role="status"></p>
+      <h2 id="run-title">Archived mover validation</h2>
+      <p id="run-source"></p>
+      <p id="association-count"></p>
+      <div class="explorer-inputs">
+        <label>Search candidates <input id="candidate-search" type="search" placeholder="Name or identifier"></label>
+        <label>Detector <select id="candidate-detector"><option value="">All detectors</option></select></label>
+        <label>Order <select id="candidate-sort"><option value="original">Source order</option><option value="speed">Fastest first</option><option value="detections">Most detections</option></select></label>
+      </div>
+      <p id="candidate-count" role="status"></p>
+      <details id="distribution"><summary>Motion distribution for the filtered records</summary>
+        <p>Angular speed in arcseconds per year. For parallax fits this is the fitted drift.</p>
+        <ul id="speed-bins"></ul>
+      </details>
+      <div class="rtable explorer-table rtable-scroll">
+        <table><caption class="sr-only">Candidate measurements</caption>
+        <thead><tr><th scope="col">Candidate</th><th scope="col">Detector</th><th scope="col">Speed (″/yr)</th><th scope="col">Detections</th></tr></thead>
+        <tbody id="candidate-rows"></tbody></table>
+      </div>
+      <div id="candidate-pages" class="result-links" hidden>
+        <button id="candidate-prev" type="button" class="btn btn-small">Previous page</button>
+        <button id="candidate-next" type="button" class="btn btn-small">Next page</button>
+      </div>
+      <section id="candidate-detail" hidden aria-labelledby="candidate-title">
+        <h3 id="candidate-title"></h3><p id="candidate-ref"></p>
+        <dl class="evidence-grid" id="candidate-facts"></dl>
+        <details id="candidate-samples" hidden>
+          <summary>Inspect supporting positions</summary>
+          <p>Observed centroids in the registered fit plane, in pixels. Each frame key combines detector and MJD.</p>
+          <canvas id="centroid-plot" width="540" height="260" aria-label="Centroid positions in the registered pixel plane. Exact values follow in the table." role="img"></canvas>
+          <div class="rtable rtable-scroll"><table><caption>Supporting observations</caption><thead><tr><th scope="col">Frame key</th><th scope="col">X (px)</th><th scope="col">Y (px)</th></tr></thead><tbody id="centroid-rows"></tbody></table></div>
+        </details>
+        <a id="candidate-viewer">Open field in workspace</a>
+      </section>
+      <section id="research-assistant" aria-labelledby="report-title">
+        <h3 id="report-title">Research report</h3>
+        <p>Generate a report from the selected fit, with references to the source JSON.</p>
+        <button id="build-report" type="button" class="btn btn-small" disabled>Generate evidence report</button>
+        <div id="local-ai" hidden>
+          <label>Question for the on-device assistant <input id="report-question" type="text" maxlength="500" value="Which evidence supports this fit?"></label>
+          <button id="ask-model" type="button" class="btn btn-small">Select relevant evidence with local AI</button>
+        </div>
+        <p id="report-status" role="status"></p>
+        <pre id="report-output" hidden></pre>
+        <button id="download-report" type="button" class="btn btn-small" hidden>Download report (.txt)</button>
+      </section>
+    </section>
     <section class="info-box rintro" aria-labelledby="results-title">
       <p class="info-kicker">Real SPHEREx data &middot; numbers only</p>
-      <h1 id="results-title">What the detector did on real images</h1>
+      <h2 id="results-title">What the detector did on real images</h2>
       <p class="rlead">On 7 November 2026 the detector of this app was run on <strong><span data-n="data.files"></span> real SPHEREx cutouts</strong>
         (<span data-n="data.megabytes"></span> MB) of <span data-n="data.fields"></span> sky patches. This page shows what came out,
         <strong>the failures next to the successes</strong>.</p>

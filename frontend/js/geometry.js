@@ -33,3 +33,18 @@ export function skyToCanvas(raPt, decPt, { ra, dec, n, scaleArcsec }) {
 
 /** Modified Julian Date -> decimal (Julian) year. J2000.0 = MJD 51544.5. */
 export const mjdToYear = (mjd) => 2000 + (mjd - 51544.5) / 365.25;
+
+/** Inverse gnomonic projection on the real backend north-up TAN grid.
+ * fx/fy are continuous coordinates measured from the displayed pixel edges.
+ * Offsets are tangent-plane coordinates in arcseconds.
+ */
+export function tanCanvasToSky(fx, fy, { ra, dec, n, scaleArcsec }) {
+  const eastArcsec = (.5 - fx) * n * scaleArcsec;
+  const northArcsec = (.5 - fy) * n * scaleArcsec;
+  const x = eastArcsec * DEG / 3600, y = northArcsec * DEG / 3600;
+  const lat = dec * DEG;
+  const base = Math.cos(lat) - y * Math.sin(lat);
+  return { ra: (ra + Math.atan2(x, base) / DEG + 360) % 360,
+    dec: Math.atan2(Math.sin(lat) + y * Math.cos(lat), Math.hypot(base, x)) / DEG,
+    eastArcsec, northArcsec };
+}

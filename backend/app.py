@@ -28,6 +28,7 @@ from spherex.cutout import cutout, flag_summary, target_wcs
 from spherex.floatdata import float_cutout_bytes, mask_cutout_bytes
 from spherex.photometry import measure
 from spherex.query import LocalArchive
+from spherex.observations import observations
 from spherex.stretch import STRETCH_VERSION, flags_to_png, shared_stretch, to_png
 
 FRONTEND_DIR = Path(__file__).resolve().parents[1] / "frontend"
@@ -49,6 +50,16 @@ def health():
     archive.refresh()
     return {"dataDir": str(archive.root), "indexedFiles": len(archive._index),
             "unreadableFiles": {str(k): v for k, v in archive.errors.items()}}
+
+
+@app.get("/api/observations")
+def observation_search(ra: float = Query(..., ge=0, lt=360), dec: float = Query(..., ge=-90, le=90),
+                       fov: float = Query(5, ge=1, le=30), collection: str = "spherex_qr2"):
+    """IRSA SIA2 product metadata and ICRS footprint vertices, without downloading FITS."""
+    try:
+        return observations(ra, dec, fov, collection)
+    except (OSError, UnicodeError):
+        return JSONResponse(status_code=502, content={"detail": "IRSA image metadata is unavailable. Retry the search."})
 
 
 @app.get("/api/cutouts")

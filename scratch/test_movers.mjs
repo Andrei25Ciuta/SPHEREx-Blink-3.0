@@ -370,6 +370,18 @@ for (const id of ["barnard", "wise0855", "epsindb"]) {
   check("binomial tail: P(X >= 2) for 10 trials at 0.5 is 1013/1024", Math.abs(binomialTail(10, 0.5, 2) - 1013 / 1024) < 1e-12);
 }
 
+{
+  const n = 31, image = new Float32Array(n * n), mask = new Uint8Array(n * n);
+  const centre = 15 * n + 15;
+  image[centre] = 1500;
+  check("isolated unflagged peak retains the historical extraction", detectSources(image, n).length === 1);
+  mask[centre] = 1;
+  check("a flagged peak cannot generate an entire source on its own", detectSources(image, n, { mask }).length === 0);
+  image[centre - 1] = 500;
+  image[centre + 1] = 500;
+  check("a saturated peak retains a source supported by unflagged wings", detectSources(image, n, { mask }).length === 1);
+}
+
 // ---------------------------------------------------------------- 6c) a saturated star: fit on the good pixels (real Barnard's Star, detector D2)
 {
   // A star of width 1.3 px whose core is flagged: those pixels hold garbage that differs from date to date (overflow). The plain

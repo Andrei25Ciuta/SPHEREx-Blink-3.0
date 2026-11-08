@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import tempfile
 from pathlib import Path
 
 CACHE_DIR = Path(os.environ.get("SPHEREX_CACHE_DIR", Path(__file__).resolve().parents[1] / "cache"))
@@ -30,20 +31,31 @@ def load(key: str):
         return None
 
 
+def _publish(name: str, payload: bytes) -> None:
+    # A unique staging file per writer also protects concurrent requests for the same field.
+    with tempfile.NamedTemporaryFile(dir=CACHE_DIR, delete=False) as staging:
+        tmp = Path(staging.name)
+        try:
+            staging.write(payload)
+        except OSError:
+            staging.close()
+            tmp.unlink(missing_ok=True)
+            raise
+    try:
+        tmp.replace(CACHE_DIR / name)
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
 def save_png(key: str, i: int | str, png: bytes) -> str:
-    name = f"{key}_{i}.png"
-    (CACHE_DIR / name).write_bytes(png)
-    return f"cutouts/{name}"
+    return save_bytes(key, i, png, "png")
 
 
 def save_bytes(key: str, name: int | str, data: bytes, ext: str) -> str:
-    """Any binary side file of a response (e.g. the float pixels, "f32"); returns its relative URL."""
     file = f"{key}_{name}.{ext}"
-    (CACHE_DIR / file).write_bytes(data)
+    _publish(file, data)
     return f"cutouts/{file}"
 
 
 def save(key: str, frames: list[dict]):
-    tmp = CACHE_DIR / f"{key}.json.tmp"
-    tmp.write_text(json.dumps(frames), encoding="utf-8")
-    tmp.replace(CACHE_DIR / f"{key}.json")      # atomic: never a half-written file
+    _publish(f"{key}.json", json.dumps(frames).encode("utf-8"))

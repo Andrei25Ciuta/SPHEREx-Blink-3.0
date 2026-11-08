@@ -10,6 +10,7 @@
 import { getPhotometry } from "../data/getCutouts.js";
 import { formatRA, formatDec } from "../coords.js";
 import { canvasToSky } from "../geometry.js";
+import { DATA_SOURCE } from "../config.js";
 import { fluxColumn } from "./spectrum.js";
 
 const PLOTLY_URL = "https://cdn.jsdelivr.net/npm/plotly.js-basic-dist-min@2.35.2/plotly-basic.min.js";
@@ -79,7 +80,7 @@ const PLOT_CONFIG = {
 
 // Real files are in MJy/sr, so the backend also sends Jansky; the mock and old files only have image units.
 const fluxOf = (p, col) => p[col];
-const errOf = (p, col) => (col === "fluxJy" ? p.fluxJyErr : p.fluxErr) ?? 0;
+const errOf = (p, col) => (col === "fluxJy" ? p.fluxJyErr : p.fluxErr) ?? null;
 const fluxLabel = (col) => (col === "fluxJy" ? "Flux (Jy)" : "Flux (image units)");
 const hoverFormat = (col) => (col === "fluxJy" ? ".3g" : ".1f");
 const showFlux = (v, col) => (v === null || v === undefined ? "—" : col === "fluxJy" ? v.toPrecision(3) : v.toFixed(1));
@@ -126,10 +127,25 @@ function lightCurveTraces(points, col = "flux") {
 
 function renderTable(table, points, col = "flux") {
   const unit = col === "fluxJy" ? " (Jy)" : "";
-  const rows = points.map((p) => `<tr><td>${p.dateISO.slice(0, 16).replace("T", " ")}</td><td>${p.detector}</td>
-    <td>${p.wavelengthUm.toFixed(3)}</td><td>${showFlux(p.flux === null ? null : fluxOf(p, col), col)}</td>
-    <td>${p.flux === null ? "—" : showFlux(errOf(p, col), col)}</td><td>${p.flagged ? "⚠" : ""}</td></tr>`).join("");
-  table.innerHTML = `<thead><tr><th>Date (UTC)</th><th>Detector</th><th>λ (µm)</th><th>Flux${unit}</th><th>± Error</th><th>Flag</th></tr></thead><tbody>${rows}</tbody>`;
+  table.replaceChildren();
+  const head = table.createTHead();
+  const labels = ["Date (UTC)", "Detector", "λ (µm)", "Flux" + unit, "± Error", "Flux / error", "Flag"];
+  const header = head.insertRow();
+  for (const label of labels) {
+    const th = document.createElement("th");
+    th.scope = "col";
+    th.textContent = label;
+    header.append(th);
+  }
+  const body = table.createTBody();
+  for (const p of points) {
+    const flux = fluxOf(p, col), error = errOf(p, col);
+    const snr = Number.isFinite(flux) && error > 0 ? (flux / error).toFixed(1) : "—";
+    const row = body.insertRow();
+    for (const value of [p.dateISO.slice(0, 16).replace("T", " "), p.detector,
+      showFlux(p.wavelengthUm, "fluxJy"), showFlux(flux, col), showFlux(error, col),
+      snr, p.flagged ? "Flagged" : "—"]) row.insertCell().textContent = value;
+  }
 }
 
 /**
@@ -137,6 +153,7 @@ function renderTable(table, points, col = "flux") {
  * els: { pos, charts, note, tableWrap, table, spectrum, lightcurve }
  */
 export async function measureAndPlot({ query, sky, els, isCurrent, motion = null, title = null }) {
+  clearMeasurement(els);
   // motion = { epochMjd, pmEast, pmNorth } (arcsec/yr): follow a MOVING object, i.e. measure each image
   // where the object is on THAT image's date. Without it: one fixed sky position (a star).
   els.pos.textContent = motion ? `Measuring ${title ?? "the candidate"} along its path …`
@@ -163,15 +180,32 @@ export async function measureAndPlot({ query, sky, els, isCurrent, motion = null
     if (motion) els.note.textContent = `Flux = background-subtracted sum in a ${APERTURE_RADIUS_PX}-pixel aperture placed where the candidate is on each image's date` +
       (col === "fluxJy" ? ", converted from MJy/sr to Jansky with the pixel size. A quick aperture sum, not SPHEREx's own calibrated photometry: treat the absolute values as approximate." : ", in image units (not calibrated).") +
       " The 1–2 µm and 4–5 µm points come from different detectors, so compare the shape of the spectrum, not single points.";
-    else els.note.innerHTML = els.noteHtml;
+    else els.note.textContent = `Flux is the background-subtracted sum in a ${APERTURE_RADIUS_PX}-pixel aperture at a fixed sky position. ${col === "fluxJy" ? "Flux density is in Jy, with approximate aperture calibration." : "Flux is in image units."} Detector visits can fall on different dates. A moving source can leave the aperture.`;
   }
 
+  const visible = () => points.filter(p => !els.detector?.value || p.detector === els.detector.value);
+  if (els.detector) {
+    const detectors = [...new Set(points.map(p => p.detector))].sort();
+    els.detector.replaceChildren(new Option("All detectors", ""), ...detectors.map(d => new Option(d, d)));
+    els.detector.onchange = () => renderTable(els.table, visible(), col);
+    els.download.onclick = () => {
+      const report = { data: DATA_SOURCE === "api" ? "real SPHEREx" : "synthetic demo",
+        center: query, position: sky, motion, apertureRadiusPx: APERTURE_RADIUS_PX,
+        detector: els.detector.value || "all", displayedFluxColumn: col, generated: new Date().toISOString(),
+        measurements: visible() };
+      const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: "application/json" }));
+      const a = Object.assign(document.createElement("a"), { href: url, download: `spherex-${DATA_SOURCE}-photometry.json` });
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    };
+  }
   renderTable(els.table, points, col);
   els.tableWrap.hidden = false;
   els.note.hidden = false;
   els.charts.hidden = false;
 
   if (!valid.length) {
+    els.charts.hidden = true;
     els.pos.textContent += " – too close to the edge, nothing measured.";
     return points;
   }
@@ -179,6 +213,7 @@ export async function measureAndPlot({ query, sky, els, isCurrent, motion = null
   let Plotly;
   try { Plotly = await loadPlotly(); }
   catch (err) {
+    if (!isCurrent()) return;
     els.charts.hidden = true;
     els.pos.textContent += ` (${err.message} The table below has the same numbers.)`;
     els.tableWrap.open = true;
@@ -186,6 +221,7 @@ export async function measureAndPlot({ query, sky, els, isCurrent, motion = null
   }
   if (!isCurrent()) return points;
   await Plotly.react(els.spectrum, spectrumTraces(points, col), baseLayout("Wavelength (µm)", fluxLabel(col), "linear"), PLOT_CONFIG);
+  if (!isCurrent()) return;
   await Plotly.react(els.lightcurve, lightCurveTraces(points, col), baseLayout("Date", fluxLabel(col), "date"), PLOT_CONFIG);
   return points;
 }

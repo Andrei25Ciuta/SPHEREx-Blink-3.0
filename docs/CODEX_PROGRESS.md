@@ -14,3 +14,13 @@ Changed frontend/index.html, frontend/results.html and their two CSS files. The 
 - To repeat the browser check, serve the frontend with python scripts/serve_frontend.py, make Playwright available to Node and install its Chromium browser or select an installed channel with BLINK_BROWSER (e.g. msedge). BLINK_URL overrides the default loopback URL on port 8765.
 
 No scientific algorithms or saved measurements changed. Live catalogue queries and historical real-frame experiments were not rerun. Phase 1 continues with persistent shared themes and contrast verification. See IMPLEMENTATION_ROADMAP.md for subsequent phases.
+
+## 2026-11-08 — integrated development increment
+
+Implemented persisted Deep Space, Observatory and Light Research palettes across the pages. The workspace gained a three-column wide layout, observation selection, pixel coordinate readout, zoom, scroll pan, brightness and contrast controls, and paired detector cutouts with their own dates. The measurement table gained detector filtering and JSON export. Results gained candidate import, search, selection, centroid evidence and local reports. New Sky Explorer and simulator pages use actual IRSA metadata or a saved example, and calculated observer geometry. Planet X Lab reads the recorded injection experiment.
+
+Scientific changes include a profile distance fit that refits position and motion at each trial distance, a case-sensitive FITS surface-brightness unit conversion, and an injection-recovery experiment on nine observed backgrounds. The saved experiment includes input hashes, seed, detected outcomes and four null controls. The cache writes image and float files atomically.
+
+Verification during integration: Python 3.12 with temporary backend dependencies, `python -m pytest backend -q`, 113 passed. All `scratch/test_*.mjs` scripts exited zero. The independent parallax profile script passed. Headless Edge loaded the workspace, results, Sky Explorer, simulator and Planet X Lab without page exceptions. The saved Sky Explorer field listed 100 products. The simulator drew its scene. The Planet X Lab read its recovery record. A synthetic Planet X demo loaded four observations, zoom worked, Find Distant found one candidate, and the selected Light Research theme persisted on results. Existing navigation smoke passed at 320, 720, 721 and 1280 px.
+
+Remaining work includes an independent real-data replication of the saved recovery counts, broader fields and trials, full keyboard and contrast audit, live archive and cross-service failure testing, and deployment review. The browser checks cover representative paths. No release or scientific discovery claim is justified by this increment.

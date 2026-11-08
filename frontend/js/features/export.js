@@ -69,8 +69,19 @@ export function candidatesToCsv(candidates, ctx) {
 
 /** JSON text: the same records plus what produced them and what the data is. */
 export function candidatesToJson(candidates, ctx, { generated = new Date().toISOString() } = {}) {
+  const records = candidateRecords(candidates, ctx);
+  for (const [i, candidate] of candidates.entries()) {
+    if (!Array.isArray(candidate.fitPoints) || !Array.isArray(candidate.frameIds)) continue;
+    records[i].search_frames = candidate.frameIds;
+    if (Number.isFinite(candidate.snr)) records[i].mean_source_snr = candidate.snr;
+    records[i].fit_centroids = candidate.fitPoints.map(({ frame, x, y }) => ({
+      frame_index: frame, x_px: x, y_px: y,
+    }));
+    if (candidate.foundIn) records[i].search_set = candidate.foundIn;
+  }
   return JSON.stringify({
     tool: "SPHEREx Blink (NASA Space Apps 2026)",
+    schema_version: 2,
     generated,
     data: dataLabel(ctx.isReal),
     field: { ra_deg: ctx.query.ra, dec_deg: ctx.query.dec, fov_arcmin: ctx.query.fov, detector: ctx.detector },

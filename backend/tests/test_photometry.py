@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import numpy as np
+import pytest
 
 from conftest import add_star
-from spherex.photometry import aperture, measure
+from spherex.photometry import aperture, jansky_per_image_unit, measure
 from spherex.query import read_frame_file
 
 SIGMA, RADIUS = 0.9, 2.0
@@ -69,3 +72,11 @@ def test_measure_reports_flagged_pixels_next_to_the_target(write_frame):
     dirty, _ = write_frame(mjd=60801.0, flags=flags)
     points = measure([read_frame_file(clean), read_frame_file(dirty)], 150.0, 20.0)
     assert [p["flagged"] for p in points] == [False, True]
+
+def test_surface_brightness_preserves_si_prefix_case(write_frame):
+    path, _ = write_frame()
+    frame = read_frame_file(path)
+    mega = jansky_per_image_unit(replace(frame, bunit="MJy / sr"))
+    milli = jansky_per_image_unit(replace(frame, bunit="mJy / sr"))
+    assert mega / milli == pytest.approx(1e9)
+    assert jansky_per_image_unit(replace(frame, bunit="Jy / beam")) is None

@@ -5,6 +5,8 @@
 // repeated in a real table under each chart for screen readers. The builders below are pure functions (they return
 // strings), so scratch/test_results.mjs tests them without a browser.
 
+import { setupExplorer } from "./features/resultsExplorer.js";
+
 // ---------- small pure helpers ----------
 
 export const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -264,10 +266,13 @@ export function renderPage(data, root = document) {
 
 async function main() {
   const status = document.getElementById("results-status");
+  const loadArchive = setupExplorer();
   try {
     const r = await fetch("data/real_results.json");
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    renderPage(await r.json());
+    const data = await r.json();
+    renderPage(data);
+    loadArchive(data);
     if (status) status.hidden = true;
   } catch (err) {
     if (status) {

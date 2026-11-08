@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Sky Explorer · SPHEREx Blink</title>
+  <script src="js/theme.js"></script>
+  <link rel="stylesheet" href="css/styles.css?v=14"><link rel="stylesheet" href="css/exploration.css">
+</head>
+<body><div class="explore">
+  <a class="skip-link" href="#explorer">Skip to explorer</a>
+  <header><nav aria-label="Pages"><a href="index.html">SPHEREx Blink</a><a href="results.html">Results</a><a href="simulator.html">Solar System Simulator</a></nav>
+    <label class="theme-picker">Theme <select data-theme-picker></select></label></header>
+  <main id="explorer" tabindex="-1">
+    <h1>Sky Explorer</h1>
+    <p>Find spectral image products at IRSA and inspect their detector footprints in ICRS coordinates.</p>
+    <section class="panel" aria-label="Archive search">
+      <form id="search" class="tool-form">
+        <label>Right ascension <input type="text" id="ra" required value="127.69444"></label>
+        <label>Declination <input type="text" id="dec" required value="-39.17760"></label>
+        <label>Diameter (arcmin) <input type="number" id="fov" required min="1" max="30" value="2"></label>
+        <label>Collection <select id="collection">
+          <option value="spherex_qr2">QR2 wide</option><option value="spherex_qr2_deep">QR2 deep</option>
+          <option value="spherex_qr3">QR3 wide</option><option value="spherex_qr3_deep">QR3 deep</option>
+        </select></label>
+        <button class="btn btn-primary" type="submit">Search IRSA</button>
+      </form>
+      <p>Enter degrees or sexagesimal coordinates. The live search uses the Blink backend. <button class="btn btn-small" id="example">Load saved QR2 field</button></p>
+      <p id="status" role="status"></p>
+    </section>
+    <section class="panel" id="products" hidden>
+      <h2>Image footprints</h2>
+      <p id="provenance"></p><div class="tool-actions"><label>Detector <select id="detector"></select></label>
+      <a href="index.html" id="workspace">Analyze field in workspace</a><a id="source">Source table at IRSA</a></div>
+      <div class="tool-grid">
+        <figure><svg id="footprints" class="plot" viewBox="0 0 400 400" role="img" aria-label="Detector footprints on the tangent plane, north up and east left"></svg><figcaption id="scale"></figcaption></figure>
+        <div class="table-scroll"><table><caption>Products in the search region</caption><thead><tr><th>Observation</th><th>Detector</th><th>Start (MJD)</th><th>File</th></tr></thead><tbody id="rows"></tbody></table></div>
+      </div>
+      <p>Each outline uses the archive product’s sky polygon. The cross marks the search centre. The workspace reads downloaded FITS files from the local archive.</p>
+    </section>
+    <section class="panel"><h2>Survey imagery</h2>
+      <div class="tool-actions"><label>Background survey <select id="survey"><option value="2mass">2MASS</option><option value="allwise">AllWISE</option><option value="dss2">DSS2</option></select></label>
+      <button type="button" id="map-start" class="btn">Open map at coordinates</button>
+      <button type="button" id="use-centre" class="btn" disabled>Use map centre in search</button></div>
+      <div class="skymap" id="aladin-box" hidden></div><p id="map-status" role="status"></p>
+    </section>
+  </main></div><script type="module" src="js/skyExplorer.js"></script></body>
+</html>

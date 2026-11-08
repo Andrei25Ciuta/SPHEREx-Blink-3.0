@@ -225,6 +225,19 @@ function fitMaskedGaussian(grey, image, mask, n, px, py, background) {
   return { x: cx, y: cy };
 }
 
+// A flagged peak alone can clear the smoothed detection threshold. Require support on nearby
+// usable pixels before accepting it; a saturated source can still qualify through its wings.
+function hasGoodWing(image, mask, n, x, y, threshold) {
+  let supporting = 0;
+  for (let j = Math.max(0, y - 3); j <= Math.min(n - 1, y + 3); j++) {
+    for (let i = Math.max(0, x - 3); i <= Math.min(n - 1, x + 3); i++) {
+      const k = j * n + i;
+      if (!mask[k] && Number.isFinite(image[k]) && image[k] > threshold && ++supporting >= 2) return true;
+    }
+  }
+  return false;
+}
+
 /**
  * Dots in one grey image (n x n, values 0..255, row 0 = top).
  * Returns [{ x, y, snr }] with x, y in "edge" pixel coordinates (centre of pixel 0 = 0.5).
@@ -243,8 +256,10 @@ export function detectSources(image, n, { detectSigma = DEFAULTS.detectSigma, ed
     for (let x = edgeMargin; x < n - edgeMargin; x++) {
       const v = sm[y * n + x];
       if (v < threshold || !isLocalMax(sm, n, x, y, v)) continue;
+      const compromised = useMask && coreIsCompromised(image, mask, n, x, y);
+      if (useMask && !compromised && mask[y * n + x] && !hasGoodWing(image, mask, n, x, y, threshold)) continue;
       let c = centroid(grey, n, x, y, median);
-      if (c && useMask && coreIsCompromised(image, mask, n, x, y)) c = fitMaskedGaussian(grey, image, mask, n, x, y, median) ?? c;
+      if (c && compromised) c = fitMaskedGaussian(grey, image, mask, n, x, y, median) ?? c;
       if (c) found.push({ x: c.x, y: c.y, snr: (v - median) / sigma });
     }
   }

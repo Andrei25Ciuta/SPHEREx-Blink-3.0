@@ -61,7 +61,7 @@ export class BlinkPlayer {
    * otherwise the first loop would flicker while images arrive one by one.
    * onProgress(done, total) is called as images arrive.
    */
-  async setFrames(frames, onProgress = () => {}) {
+  async setFrames(frames, onProgress = () => {}, isCurrent = () => true) {
     this.pause();
     this.frames = [];
     this.images = [];
@@ -80,6 +80,9 @@ export class BlinkPlayer {
     // Flag masks are optional and must never break the blink -> failures become null.
     const flagImages = await Promise.all(frames.map((f) =>
       f.flagsUrl ? loadImage(f.flagsUrl, f).catch(() => null) : Promise.resolve(null)));
+    if (!isCurrent()) return;
+    if (images.some(im => im.naturalWidth !== im.naturalHeight || im.naturalWidth !== images[0].naturalWidth))
+      throw new Error("These images have different pixel grids. Reproject them to a common square cutout before blinking.");
     this.frames = frames;
     this.images = images;
     this.flagImages = flagImages;

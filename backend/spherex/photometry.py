@@ -14,6 +14,7 @@ from __future__ import annotations
 import math
 
 import numpy as np
+from astropy import units as u
 
 from .cutout import cutout, target_wcs
 from .flags import bad_mask
@@ -50,11 +51,12 @@ def position_at(ra: float, dec: float, motion: dict | None, mjd: float) -> tuple
 
 def jansky_per_image_unit(frame: FrameFile) -> float | None:
     """Factor from 'image unit x pixels' to Jansky, or None if the unit is not a surface brightness in MJy/sr."""
-    unit = (frame.bunit or "").replace(" ", "").lower()
-    if unit != "mjy/sr":
+    try:
+        factor = u.Unit(frame.bunit or "").to(u.Jy / u.sr)
+    except ValueError:
         return None
     pixel_sr = (frame.pixel_scale_arcsec / ARCSEC_PER_RAD) ** 2
-    return 1e6 * pixel_sr
+    return factor * pixel_sr
 
 
 def measure(frames: list[FrameFile], ra: float, dec: float, radius_px: float = 2.0, motion: dict | None = None) -> list[dict]:

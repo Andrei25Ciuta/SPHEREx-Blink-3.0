@@ -12,6 +12,7 @@
 
 import { SKY_TILES, API_BASE } from "../config.js";
 import { WORLD_URL, decodeCountries, overheadAt } from "./skyGeo.js";
+import { fieldCorners } from "./explorerGeometry.js";
 
 const ALADIN_URL = "https://cdn.jsdelivr.net/npm/aladin-lite@3.6.5/dist/aladin.js";
 const SIMBAD_TAP = "https://simbad.harvard.edu/simbad/sim-tap/sync";
@@ -91,13 +92,6 @@ function loadAladin() {
                                             : "Could not load Aladin Lite (offline?).");
     });
   return loadPromise;
-}
-
-/** Corners of a north-up square of side fovArcmin around (ra, dec), in degrees. */
-function squareCorners(ra, dec, fovArcmin) {
-  const h = fovArcmin / 2 / 60;
-  const c = Math.cos((dec * Math.PI) / 180);
-  return [[ra + h / c, dec + h], [ra - h / c, dec + h], [ra - h / c, dec - h], [ra + h / c, dec - h]];
 }
 
 const READOUT_HELP = "The country in brackets is the one this spot of the sky is straight above at this moment (worked out from the coordinates and the Earth's rotation). It is not where SPHEREx is.";
@@ -231,7 +225,7 @@ export class SkyContext {
       this.overlay = A.graphicOverlay({ color: "#22d3ee", lineWidth: 2, lineDash: [6, 4], name: "Blink field" });
       aladin.addOverlay(this.overlay);
     }
-    this.overlay.add(A.polygon(squareCorners(ra, dec, fov)));
+    this.overlay.add(A.polygon(fieldCorners(ra, dec, fov)));
 
     // SIMBAD objects: drop the previous catalogue, load the new circle.
     if (this.simbad) { try { this.simbad.removeAll(); this.simbad.hide(); } catch { /* ignore */ } }

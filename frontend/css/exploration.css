@@ -1,0 +1,40 @@
+.explore { max-width: 75rem; margin: auto; padding: 1rem clamp(.8rem, 3vw, 2rem) 3rem; }
+.explore header, .explore nav, .tool-form, .tool-actions { display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; align-items: center; }
+.explore header { justify-content: space-between; margin-bottom: 2rem; }
+.explore a { color: var(--accent-hi); }
+.explore .panel { padding: clamp(.85rem, 2vw, 1.6rem); margin: 1rem 0; }
+.explore h1 { font-size: clamp(2rem, 5vw, 3.6rem); }
+.explore h2 { margin-bottom: .75rem; }
+.explore p { max-width: 75ch; }
+.tool-form { align-items: end; }
+.tool-form label, .sim-inputs label { display: grid; gap: .25rem; min-width: 0; }
+.tool-form label input, .tool-form label select { width: 100%; }
+.explore input[type=number], .explore input[type=date] { padding: .55rem; background: var(--field); border: 1px solid var(--border); border-radius: .4rem; color: var(--text); font: inherit; }
+.explore button { cursor: pointer; }
+.tool-grid { display: grid; grid-template-columns: minmax(15rem, 1fr) minmax(0, 2fr); gap: 1rem; align-items: start; }
+.sim-inputs { display: grid; gap: .9rem; }
+.sim-inputs output { font-variant-numeric: tabular-nums; }
+.explore figure { margin: 0; }
+.plot { display: block; width: 100%; background: var(--field); border-radius: var(--radius-sm); border: 1px solid var(--border); }
+.plot text { fill: var(--text); font: 14px var(--font-body); }
+.plot .axis { stroke: var(--text-muted); stroke-width: 1; stroke-dasharray: 4 5; opacity: .65; }
+.plot .coverage { fill: none; stroke: var(--accent); stroke-width: 1; opacity: .35; }
+.plot .active { fill: none; stroke: var(--accent-hi); stroke-width: 3; }
+.plot .orbit { fill: none; stroke: var(--text-muted); stroke-width: 1.6; }
+.plot .sight { stroke: var(--accent); stroke-width: 2; }
+.plot .reference { stroke: var(--text-muted); stroke-dasharray: 5 4; stroke-width: 1.5; }
+.plot .model { fill: var(--accent-hi); }
+.plot .sun { fill: var(--warn); }
+.explore table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.explore td, .explore th { padding: .4rem .6rem; text-align: left; border-bottom: 1px solid var(--border); }
+.explore .table-scroll { max-height: 24rem; }
+.explore tr[aria-selected=true] { background: var(--raised); }
+.explore figcaption { padding-top: .5rem; color: var(--text-muted); }
+.tool-output { display: grid; grid-template-columns: max-content 1fr; gap: .4rem 1rem; font-variant-numeric: tabular-nums; }
+.tool-output dd { margin: 0; }
+@media (max-width: 680px) {
+  .tool-grid { grid-template-columns: minmax(0,1fr); }
+  .tool-grid .panel { margin: .5rem 0; }
+  .tool-output { grid-template-columns: 1fr; gap: .1rem; }
+  .tool-output dd { margin-bottom: .5rem; }
+}

@@ -12,7 +12,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Oswald:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 
   <script>if (/[?&]embed=1(&|$)/.test(location.search)) document.documentElement.classList.add("embed");</script>   <!-- ?embed=1: workspace only, for an <iframe> -->
-  <link rel="stylesheet" href="css/styles.css?v=13">
+  <script src="js/theme.js"></script>
+  <link rel="stylesheet" href="css/styles.css?v=14">
 </head>
 <body>
   <a class="skip-link" href="#workspace">Skip to the workspace</a>
@@ -48,7 +49,16 @@
   <main class="layout" id="workspace" tabindex="-1">
     <!-- ============ LEFT: search controls ============ -->
     <section class="panel controls" aria-labelledby="controls-title">
-      <h2 id="controls-title">1. Choose a patch of sky</h2>
+      <h2 id="controls-title">Observation controls</h2>
+      <details class="workspace-settings">
+        <summary>Settings</summary>
+        <label class="theme-picker">Theme <select data-theme-picker></select></label>
+        <label>Data source <select id="data-source"><option value="mock">Synthetic demo</option><option value="api">Real SPHEREx backend</option></select></label>
+      </details>
+      <nav class="research-nav" aria-label="Research tools">
+        <a href="results.html#candidate-explorer">Candidate Explorer</a>
+        <a href="planet-x.html">Planet X Lab</a><a href="sky.html">Sky Explorer</a><a href="simulator.html">Solar System Simulator</a>
+      </nav>
       <p class="tour-launch"><button type="button" class="btn btn-small" id="tour-btn">Take the 1-minute tour</button></p>
 
       <form id="search-form" novalidate>
@@ -115,7 +125,7 @@
 
     <!-- ============ RIGHT: blink player ============ -->
     <section class="panel player" aria-labelledby="player-title">
-      <h2 id="player-title">2. Blink</h2>
+      <h2 id="player-title">Image viewer</h2>
 
       <!-- View modes. Native radio buttons = free keyboard support (arrow keys). -->
       <fieldset class="mode-switch" id="mode-switch">
@@ -141,9 +151,10 @@
 
       <!-- The stage holds the image. aria-live announces status changes to screen readers. -->
       <div class="stage" id="stage">
+        <div class="image-viewport" tabindex="0" aria-label="Image viewport, scroll to pan when zoomed"><div class="image-plane">
         <canvas id="blink-canvas" width="512" height="512" aria-label="Blink image" role="img"
                 title="Click a source to measure its brightness"></canvas>
-        <div class="crosshair" aria-hidden="true"></div>
+        <div class="crosshair" aria-hidden="true"></div></div></div>
         <div class="stage-overlay" id="stage-overlay" aria-live="polite">
           <p class="overlay-title">No images yet</p>
           <p class="overlay-sub">Enter coordinates or pick a test object.</p>
@@ -153,6 +164,15 @@
         </div>
       </div>
 
+      <details class="view-settings"><summary>Image display</summary>
+        <label>Zoom <select id="image-zoom"><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option></select></label>
+        <label>Brightness <input type="range" id="image-brightness" min="50" max="200" value="100"></label>
+        <label>Contrast <input type="range" id="image-contrast" min="50" max="200" value="100"></label>
+        <label><input type="checkbox" id="centre-crosshair" checked> Centre crosshair</label>
+        <button type="button" class="btn btn-small" id="reset-view">Reset display</button>
+        <p class="muted small">Scroll the enlarged image to pan. Display adjustments affect the screen only.</p>
+      </details>
+      <output id="pixel-readout"></output>
       <!-- Short, non-blocking notes (e.g. "D1 has no images here, showing D2") -->
       <p id="status-msg" class="status" role="status" aria-live="polite"></p>
 
@@ -176,6 +196,7 @@
         </div>
       </div>
 
+      <label class="observation-select">Observation <select id="observation-select" disabled></select></label>
       <p class="shortcuts" id="shortcuts-hint">
         Keyboard: <kbd>Space</kbd> play/pause &middot; <kbd>←</kbd> <kbd>→</kbd> step one frame
       </p>
@@ -233,6 +254,14 @@
       </dl>
 
       <!-- "All" detectors: one averaged image per detector. Click one to blink it. -->
+      <details class="detector-pair" id="detector-pair" hidden>
+        <summary>Compare two observations side by side</summary>
+        <p class="muted small">Each cutout is labelled with its own observation time and wavelength range. Use the source inspector for flux measurements.</p>
+        <div class="pair-grid">
+          <figure><label>Observation A <select></select></label><img alt=""><figcaption></figcaption></figure>
+          <figure><label>Observation B <select></select></label><img alt=""><figcaption></figcaption></figure>
+        </div>
+      </details>
       <div class="overview" id="overview" hidden>
         <h3>All detectors <span class="muted">(average of each &middot; click to blink)</span></h3>
         <div class="overview-grid" id="overview-grid"></div>
@@ -241,7 +270,7 @@
 
     <!-- ============ 3. Measure (spectrum + light curve) ============ -->
     <section class="panel measure" aria-labelledby="measure-title">
-      <h2 id="measure-title">3. Measure a source</h2>
+      <h2 id="measure-title">Source inspector</h2>
       <p class="muted" id="measure-hint">
         Click a dot in the image. We measure its brightness in every frame:
         <strong>spectrum</strong> = brightness vs. wavelength (one colour per survey pass),
@@ -264,14 +293,16 @@
         that is expected, not an error.
       </p>
       <details class="table-view" id="measure-table-wrap" hidden>
-        <summary>Show as table</summary>
+        <summary>Measurements by observation</summary>
+        <label>Detector <select id="measurement-detector"></select></label>
+        <button class="btn btn-small" id="download-measurements" type="button">Export visible measurements</button>
         <div class="table-scroll"><table id="measure-table"></table></div>
       </details>
     </section>
 
     <!-- ============ 4. Sky context (Aladin Lite) ============ -->
     <section class="panel context" aria-labelledby="context-title">
-      <h2 id="context-title">4. What is known here?</h2>
+      <h2 id="context-title">Sky context</h2>
       <p class="muted">Other surveys at the same spot, with catalogued objects from SIMBAD.
         The dashed square is the field you are blinking. The box in the corner gives the sky coordinates under the cursor
         and, in brackets, the country that spot of the sky is straight above right now.</p>

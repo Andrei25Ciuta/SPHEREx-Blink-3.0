@@ -1,0 +1,818 @@
+{
+  "experiment": "Synthetic parallax source injections into observed backgrounds",
+  "generated": "2026-11-07T23:43:48.439Z",
+  "provenance": "IRSA SPHEREx QR3 Level 2, Barnard field, 9 D2 exposures selected by date",
+  "ra": 269.4462,
+  "dec": 4.769,
+  "det": "D2",
+  "fov": 12,
+  "scale": 6.1382,
+  "n": 118,
+  "seed": 7301,
+  "trials": 4,
+  "nulls": 4,
+  "psfSigmaPx": 0.6,
+  "muEast": 8,
+  "muNorth": -3,
+  "refMjd": 61107.304975,
+  "originalCandidates": 0,
+  "frames": [
+    {
+      "mjd": 60908.981929,
+      "dateISO": "2025-08-21T23:33:58Z",
+      "detector": "D2",
+      "pixelsSha256": "f092cdd5ab3c6f1e4d08b0d4a718c813934464a69975600a8fa9b12e0b98f894",
+      "maskSha256": "7c010aca627ec3509cd89391019a0436bcb51589e615a1e4cc9fc401f293aa6a"
+    },
+    {
+      "mjd": 60912.718623,
+      "dateISO": "2025-08-25T17:14:49Z",
+      "detector": "D2",
+      "pixelsSha256": "93f4472791bf80665198f8c290a0cc6b46e119dde06fb39a95f0e8604609abf9",
+      "maskSha256": "c3c1560af596fcc8bda37d2534e69c3fb47e0f6c891bbd236c32b1b21940627a"
+    },
+    {
+      "mjd": 60916.659064,
+      "dateISO": "2025-08-29T15:49:03Z",
+      "detector": "D2",
+      "pixelsSha256": "795e6a0e4547f1fffe54c52d3215cb8448f3d2712bd34e6e3c4ea2347618c50d",
+      "maskSha256": "446c6219bd0b588fe1be7b30da363c4c542442b3001e638d813490feb50cfed2"
+    },
+    {
+      "mjd": 61114.099563,
+      "dateISO": "2026-03-15T02:23:22Z",
+      "detector": "D2",
+      "pixelsSha256": "6126f9d936601c401284237a9e8db61bc153a761f7f9dcd17b14cde0cb00cfca",
+      "maskSha256": "9153e691b9a5f9b0c0c920ab3648d46abaf656d8391dfa269a021edf2ea853c8"
+    },
+    {
+      "mjd": 61116.683136,
+      "dateISO": "2026-03-17T16:23:42Z",
+      "detector": "D2",
+      "pixelsSha256": "00a15d1f13fba04549d1d588b83ee21b5a4ba747503fa62f41e1aac56c593f6f",
+      "maskSha256": "8f27bd14d17b579a8db26d5b58e904f832e7ad0cb97ddc287959b8990f81ebf3"
+    },
+    {
+      "mjd": 61270.8701,
+      "dateISO": "2026-08-18T20:52:56Z",
+      "detector": "D2",
+      "pixelsSha256": "84e0af8e540b4cfe6b9627604cc3aa367c172c8e4dfa9e04145786182893d26f",
+      "maskSha256": "8cd89d5b9e389baf5efd6dd540f1f23128c40bd10a31259b57a41cf1144ccef2"
+    },
+    {
+      "mjd": 61273.514855,
+      "dateISO": "2026-08-21T12:21:23Z",
+      "detector": "D2",
+      "pixelsSha256": "500fb940a2b709c644cb13a34179fcd7ff915e75c56695d7c63fa3a7c3dbc899",
+      "maskSha256": "c958d65c553f1c97fc2966d2e12b9d615a242ef849d9d839e9a15283e25f1a6e"
+    },
+    {
+      "mjd": 61273.719685,
+      "dateISO": "2026-08-21T17:16:20Z",
+      "detector": "D2",
+      "pixelsSha256": "be582aaddc0caff8b9c20d80372af3d2929f2a8d2329d691f41ed2ed90613697",
+      "maskSha256": "e44a9b1e805f3183398b2f19e1263c0e2c6ffcd8c3a361d56b341e0a00a43357"
+    },
+    {
+      "mjd": 61305.628021,
+      "dateISO": "2026-09-22T15:04:20Z",
+      "detector": "D2",
+      "pixelsSha256": "4f5fc4ad85c6e623916a94ce26431b9dbb89ef2792a5ed2c93d73b3f75c2c25a",
+      "maskSha256": "b558556b44678397df116177292c3f401527756faec6024d997df942ef22e31b"
+    }
+  ],
+  "cells": [
+    {
+      "distanceAU": 800,
+      "fluxMjy": 0.3,
+      "trials": 4,
+      "recovered": 0,
+      "fraction": 0,
+      "interval95": [
+        0,
+        0.48990002040399916
+      ],
+      "medianInjectedApertureSnr": 1.0296278954378566,
+      "unmatched": 0,
+      "outcomes": [
+        {
+          "origin": {
+            "x": 49.54582048673183,
+            "y": 84.23620857181959
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 86.25219368608668,
+            "y": 84.04677547910251
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 58.12247733422555,
+            "y": 58.977691744687036
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 51.197768598096445,
+            "y": 51.27844882081263
+          },
+          "fittedAU": [],
+          "candidates": 0
+        }
+      ]
+    },
+    {
+      "distanceAU": 800,
+      "fluxMjy": 1,
+      "trials": 4,
+      "recovered": 0,
+      "fraction": 0,
+      "interval95": [
+        0,
+        0.48990002040399916
+      ],
+      "medianInjectedApertureSnr": 3.4320930293280925,
+      "unmatched": 0,
+      "outcomes": [
+        {
+          "origin": {
+            "x": 49.54582048673183,
+            "y": 84.23620857181959
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 86.25219368608668,
+            "y": 84.04677547910251
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 58.12247733422555,
+            "y": 58.977691744687036
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 51.197768598096445,
+            "y": 51.27844882081263
+          },
+          "fittedAU": [],
+          "candidates": 0
+        }
+      ]
+    },
+    {
+      "distanceAU": 800,
+      "fluxMjy": 4,
+      "trials": 4,
+      "recovered": 0,
+      "fraction": 0,
+      "interval95": [
+        0,
+        0.48990002040399916
+      ],
+      "medianInjectedApertureSnr": 13.728371801594601,
+      "unmatched": 0,
+      "outcomes": [
+        {
+          "origin": {
+            "x": 49.54582048673183,
+            "y": 84.23620857181959
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 86.25219368608668,
+            "y": 84.04677547910251
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 58.12247733422555,
+            "y": 58.977691744687036
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 51.197768598096445,
+            "y": 51.27844882081263
+          },
+          "fittedAU": [],
+          "candidates": 0
+        }
+      ]
+    },
+    {
+      "distanceAU": 800,
+      "fluxMjy": 16,
+      "trials": 4,
+      "recovered": 0,
+      "fraction": 0,
+      "interval95": [
+        0,
+        0.48990002040399916
+      ],
+      "medianInjectedApertureSnr": 54.91348747114022,
+      "unmatched": 0,
+      "outcomes": [
+        {
+          "origin": {
+            "x": 49.54582048673183,
+            "y": 84.23620857181959
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 86.25219368608668,
+            "y": 84.04677547910251
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 58.12247733422555,
+            "y": 58.977691744687036
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 51.197768598096445,
+            "y": 51.27844882081263
+          },
+          "fittedAU": [],
+          "candidates": 0
+        }
+      ]
+    },
+    {
+      "distanceAU": 800,
+      "fluxMjy": 64,
+      "trials": 4,
+      "recovered": 0,
+      "fraction": 0,
+      "interval95": [
+        0,
+        0.48990002040399916
+      ],
+      "medianInjectedApertureSnr": 219.653954884323,
+      "unmatched": 0,
+      "outcomes": [
+        {
+          "origin": {
+            "x": 49.54582048673183,
+            "y": 84.23620857181959
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 86.25219368608668,
+            "y": 84.04677547910251
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 58.12247733422555,
+            "y": 58.977691744687036
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 51.197768598096445,
+            "y": 51.27844882081263
+          },
+          "fittedAU": [],
+          "candidates": 0
+        }
+      ]
+    },
+    {
+      "distanceAU": 1600,
+      "fluxMjy": 0.3,
+      "trials": 4,
+      "recovered": 0,
+      "fraction": 0,
+      "interval95": [
+        0,
+        0.48990002040399916
+      ],
+      "medianInjectedApertureSnr": 1.6045587535482002,
+      "unmatched": 0,
+      "outcomes": [
+        {
+          "origin": {
+            "x": 49.54582048673183,
+            "y": 84.23620857181959
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 86.25219368608668,
+            "y": 84.04677547910251
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 58.12247733422555,
+            "y": 58.977691744687036
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 51.197768598096445,
+            "y": 51.27844882081263
+          },
+          "fittedAU": [],
+          "candidates": 0
+        }
+      ]
+    },
+    {
+      "distanceAU": 1600,
+      "fluxMjy": 1,
+      "trials": 4,
+      "recovered": 0,
+      "fraction": 0,
+      "interval95": [
+        0,
+        0.48990002040399916
+      ],
+      "medianInjectedApertureSnr": 5.348529016126049,
+      "unmatched": 0,
+      "outcomes": [
+        {
+          "origin": {
+            "x": 49.54582048673183,
+            "y": 84.23620857181959
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 86.25219368608668,
+            "y": 84.04677547910251
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 58.12247733422555,
+            "y": 58.977691744687036
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 51.197768598096445,
+            "y": 51.27844882081263
+          },
+          "fittedAU": [],
+          "candidates": 0
+        }
+      ]
+    },
+    {
+      "distanceAU": 1600,
+      "fluxMjy": 4,
+      "trials": 4,
+      "recovered": 0,
+      "fraction": 0,
+      "interval95": [
+        0,
+        0.48990002040399916
+      ],
+      "medianInjectedApertureSnr": 21.394115700603813,
+      "unmatched": 0,
+      "outcomes": [
+        {
+          "origin": {
+            "x": 49.54582048673183,
+            "y": 84.23620857181959
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 86.25219368608668,
+            "y": 84.04677547910251
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 58.12247733422555,
+            "y": 58.977691744687036
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 51.197768598096445,
+            "y": 51.27844882081263
+          },
+          "fittedAU": [],
+          "candidates": 0
+        }
+      ]
+    },
+    {
+      "distanceAU": 1600,
+      "fluxMjy": 16,
+      "trials": 4,
+      "recovered": 2,
+      "fraction": 0.5,
+      "interval95": [
+        0.15003570882017148,
+        0.8499642911798285
+      ],
+      "medianInjectedApertureSnr": 85.57646368126902,
+      "unmatched": 0,
+      "outcomes": [
+        {
+          "origin": {
+            "x": 49.54582048673183,
+            "y": 84.23620857181959
+          },
+          "fittedAU": [
+            1600.1934453438175
+          ],
+          "candidates": 1
+        },
+        {
+          "origin": {
+            "x": 86.25219368608668,
+            "y": 84.04677547910251
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 58.12247733422555,
+            "y": 58.977691744687036
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 51.197768598096445,
+            "y": 51.27844882081263
+          },
+          "fittedAU": [
+            1600.4016814844776
+          ],
+          "candidates": 1
+        }
+      ]
+    },
+    {
+      "distanceAU": 1600,
+      "fluxMjy": 64,
+      "trials": 4,
+      "recovered": 2,
+      "fraction": 0.5,
+      "interval95": [
+        0.15003570882017148,
+        0.8499642911798285
+      ],
+      "medianInjectedApertureSnr": 342.30584819644815,
+      "unmatched": 0,
+      "outcomes": [
+        {
+          "origin": {
+            "x": 49.54582048673183,
+            "y": 84.23620857181959
+          },
+          "fittedAU": [
+            1599.5408969737887
+          ],
+          "candidates": 1
+        },
+        {
+          "origin": {
+            "x": 86.25219368608668,
+            "y": 84.04677547910251
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 58.12247733422555,
+            "y": 58.977691744687036
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 51.197768598096445,
+            "y": 51.27844882081263
+          },
+          "fittedAU": [
+            1599.4577854138745
+          ],
+          "candidates": 1
+        }
+      ]
+    },
+    {
+      "distanceAU": 3200,
+      "fluxMjy": 0.3,
+      "trials": 4,
+      "recovered": 0,
+      "fraction": 0,
+      "interval95": [
+        0,
+        0.48990002040399916
+      ],
+      "medianInjectedApertureSnr": 0.843898607384588,
+      "unmatched": 0,
+      "outcomes": [
+        {
+          "origin": {
+            "x": 49.54582048673183,
+            "y": 84.23620857181959
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 86.25219368608668,
+            "y": 84.04677547910251
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 58.12247733422555,
+            "y": 58.977691744687036
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 51.197768598096445,
+            "y": 51.27844882081263
+          },
+          "fittedAU": [],
+          "candidates": 0
+        }
+      ]
+    },
+    {
+      "distanceAU": 3200,
+      "fluxMjy": 1,
+      "trials": 4,
+      "recovered": 0,
+      "fraction": 0,
+      "interval95": [
+        0,
+        0.48990002040399916
+      ],
+      "medianInjectedApertureSnr": 2.812995418404932,
+      "unmatched": 0,
+      "outcomes": [
+        {
+          "origin": {
+            "x": 49.54582048673183,
+            "y": 84.23620857181959
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 86.25219368608668,
+            "y": 84.04677547910251
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 58.12247733422555,
+            "y": 58.977691744687036
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 51.197768598096445,
+            "y": 51.27844882081263
+          },
+          "fittedAU": [],
+          "candidates": 0
+        }
+      ]
+    },
+    {
+      "distanceAU": 3200,
+      "fluxMjy": 4,
+      "trials": 4,
+      "recovered": 0,
+      "fraction": 0,
+      "interval95": [
+        0,
+        0.48990002040399916
+      ],
+      "medianInjectedApertureSnr": 11.25198179500634,
+      "unmatched": 0,
+      "outcomes": [
+        {
+          "origin": {
+            "x": 49.54582048673183,
+            "y": 84.23620857181959
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 86.25219368608668,
+            "y": 84.04677547910251
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 58.12247733422555,
+            "y": 58.977691744687036
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 51.197768598096445,
+            "y": 51.27844882081263
+          },
+          "fittedAU": [],
+          "candidates": 0
+        }
+      ]
+    },
+    {
+      "distanceAU": 3200,
+      "fluxMjy": 16,
+      "trials": 4,
+      "recovered": 3,
+      "fraction": 0.75,
+      "interval95": [
+        0.3006360524426366,
+        0.9544139373553637
+      ],
+      "medianInjectedApertureSnr": 45.0079270797285,
+      "unmatched": 0,
+      "outcomes": [
+        {
+          "origin": {
+            "x": 49.54582048673183,
+            "y": 84.23620857181959
+          },
+          "fittedAU": [
+            3175.3434373806936
+          ],
+          "candidates": 1
+        },
+        {
+          "origin": {
+            "x": 86.25219368608668,
+            "y": 84.04677547910251
+          },
+          "fittedAU": [
+            3195.1904024597293
+          ],
+          "candidates": 1
+        },
+        {
+          "origin": {
+            "x": 58.12247733422555,
+            "y": 58.977691744687036
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 51.197768598096445,
+            "y": 51.27844882081263
+          },
+          "fittedAU": [
+            3213.214566368251
+          ],
+          "candidates": 1
+        }
+      ]
+    },
+    {
+      "distanceAU": 3200,
+      "fluxMjy": 64,
+      "trials": 4,
+      "recovered": 3,
+      "fraction": 0.75,
+      "interval95": [
+        0.3006360524426366,
+        0.9544139373553637
+      ],
+      "medianInjectedApertureSnr": 180.03170778746895,
+      "unmatched": 0,
+      "outcomes": [
+        {
+          "origin": {
+            "x": 49.54582048673183,
+            "y": 84.23620857181959
+          },
+          "fittedAU": [
+            3195.4706178915458
+          ],
+          "candidates": 1
+        },
+        {
+          "origin": {
+            "x": 86.25219368608668,
+            "y": 84.04677547910251
+          },
+          "fittedAU": [
+            3197.131206286172
+          ],
+          "candidates": 1
+        },
+        {
+          "origin": {
+            "x": 58.12247733422555,
+            "y": 58.977691744687036
+          },
+          "fittedAU": [],
+          "candidates": 0
+        },
+        {
+          "origin": {
+            "x": 51.197768598096445,
+            "y": 51.27844882081263
+          },
+          "fittedAU": [
+            3200.623775409006
+          ],
+          "candidates": 1
+        }
+      ]
+    }
+  ],
+  "controlCounts": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "controlFalsePositiveFieldFraction": 0
+}

@@ -101,6 +101,14 @@ function lineFit(t, y, w) {
  */
 export function fitParallax(obs, { ra, dec, mjdRef, distancesAU = logGrid(20, 20000, 240) }) {
   const m = obs.length;
+  if (m < 3 || new Set(obs.map(o => o.mjd)).size < 3 ||
+      !obs.every(o => [o.mjd, o.east, o.north, o.sigma].every(Number.isFinite) && o.sigma > 0)) {
+    throw new RangeError("At least three distinct dates and finite positions with positive uncertainties are required.");
+  }
+  if (![ra, dec, mjdRef].every(Number.isFinite) || Math.abs(dec) > 90 ||
+      distancesAU.length < 2 || !distancesAU.every((d, i) => Number.isFinite(d) && d > 0 && (!i || d > distancesAU[i - 1]))) {
+    throw new RangeError("Supply valid sky coordinates and an increasing positive distance grid.");
+  }
   const t0 = obs.reduce((s, o) => s + o.mjd, 0) / m;
   const t = obs.map((o) => (o.mjd - t0) / 365.25);
   const w = obs.map((o) => 1 / (o.sigma * o.sigma));
@@ -112,12 +120,39 @@ export function fitParallax(obs, { ra, dec, mjdRef, distancesAU = logGrid(20, 20
   };
   const scan = distancesAU.map(trial);
   const linear = trial(Infinity);
-  const best = scan.reduce((b, s) => (s.chi2 < b.chi2 ? s : b), scan[0]);
-  const within = scan.filter((s) => s.chi2 <= best.chi2 + 1);
+  // Refine inside the best grid cell so a high-precision fit can resolve a range narrower than one grid step.
+  const gridBest = scan.reduce((b, s) => s.chi2 < b.chi2 ? s : b);
+  const k = scan.indexOf(gridBest);
+  let left = distancesAU[Math.max(0, k - 1)], right = distancesAU[Math.min(k + 1, scan.length - 1)];
+  let best = gridBest;
+  for (let i = 0; i < 45; i++) {
+    const a = trial((2 * left + right) / 3), b = trial((left + 2 * right) / 3);
+    if (a.chi2 < best.chi2) best = a;
+    if (b.chi2 < best.chi2) best = b;
+    if (a.chi2 < b.chi2) right = b.distanceAU;
+    else left = a.distanceAU;
+  }
+  const threshold = best.chi2 + 1;
+  function profileEdge(limit) {
+    if (trial(limit).chi2 <= threshold) return null;
+    let inside = best.distanceAU, outside = limit;
+    for (let i = 0; i < 48; i++) {
+      const middle = Math.sqrt(inside * outside);
+      if (trial(middle).chi2 < threshold) inside = middle;
+      else outside = middle;
+    }
+    return (inside + outside) / 2;
+  }
+  const profileAU = [profileEdge(distancesAU[0]), profileEdge(distancesAU.at(-1))];
+  const sw = w.reduce((s, v) => s + v);
+  const meanE = obs.reduce((s, o, i) => s + w[i] * o.east, 0) / sw;
+  const meanN = obs.reduce((s, o, i) => s + w[i] * o.north, 0) / sw;
+  const stationary = { chi2: obs.reduce((s, o, i) => s + w[i] * ((o.east - meanE) ** 2 + (o.north - meanN) ** 2), 0) };
   return {
-    best, linear, deltaChi2: linear.chi2 - best.chi2,
-    rangeAU: [Math.min(...within.map((s) => s.distanceAU)), Math.max(...within.map((s) => s.distanceAU))],
-    dof: Math.max(1, 2 * m - 5), muEast: best.muEast, muNorth: best.muNorth, scan,
+    best, stationary, linear, deltaChi2: linear.chi2 - best.chi2, profileAU,
+    // Keep the existing numeric range for scripts. Null profile endpoints explicitly identify scan limits.
+    rangeAU: [profileAU[0] ?? distancesAU[0], profileAU[1] ?? distancesAU.at(-1)],
+    dof: 2 * m - 5, muEast: best.muEast, muNorth: best.muNorth, scan,
   };
 }
 
@@ -377,16 +412,12 @@ export function findDistantMovers(frames, geo, options = {}) {
               const parallaxSigma = Math.sqrt(Math.max(0, ssLin - ss)) / sigmaPos;
               if (parallaxSigma < o.minParallaxSigma) continue;                      // a straight line explains it: an ordinary mover
 
-              // distance range: how far can the distance move before the fit gets worse by 1 (chi-square units)?
-              const chi = (r) => { let c2 = 0; for (const d of list) { const off = offPx(d.k, r); c2 += ((d.x - (th[0] + th[2] * t[d.k] + off.x)) ** 2 + (d.y - (th[1] + th[3] * t[d.k] + off.y)) ** 2) / (sigmaPos * sigmaPos); } return c2; };
-              const chi0 = chi(rho);
-              const edge = (dir) => { let r = rho; for (let step = 0; step < 400; step++) { const nr = r * (dir > 0 ? 1.01 : 1 / 1.01); if (nr > 1e6 || nr < 5) return nr; r = nr; if (chi(r) > chi0 + 1) return r; } return r; };
               const cand = {
                 x: th[0], y: th[1], vx: th[2], vy: th[3], mjdRef,
                 speedPx: Math.hypot(th[2], th[3]), motionPx: Math.hypot(th[2], th[3]) * (Math.max(...list.map((d) => t[d.k])) - Math.min(...list.map((d) => t[d.k]))),
                 nDet: m, nFrames: nTimes, rms, rmsLinear, significance: parallaxSigma, parallaxSigma,
                 snr: list.reduce((s, d) => s + d.snr, 0) / m,
-                distanceAU: rho, distanceRangeAU: [edge(-1), edge(1)],
+                distanceAU: rho,
                 points: list.map((d) => ({ frame: d.k, x: d.x, y: d.y })),
                 shifts: frames.map((_, k) => { const off = offPx(k, rho); return { dx: off.x + reg[k].dx, dy: off.y + reg[k].dy }; }),
                 registration: reg,
@@ -420,6 +451,18 @@ export function findDistantMovers(frames, geo, options = {}) {
     }
   }
   const candidates = found.map((f) => f.c).sort((p, q) => q.parallaxSigma - p.parallaxSigma);
+  // Infer uncertainty once per surviving association. Refit both coordinates and both drifts at each distance.
+  for (const c of candidates) {
+    const sigma = Math.max(c.rms, o.centroidFloorPx) * scale;
+    const measurements = c.points.map(p => ({
+      mjd: frames[p.frame].mjd, east: -p.x * scale, north: -p.y * scale, sigma,
+    }));
+    const fit = fitParallax(measurements, { ra: geo.ra, dec: geo.dec, mjdRef,
+      distancesAU: logGrid(o.minDistanceAU, o.maxDistanceAU, 64) });
+    c.distanceRangeAU = fit.rangeAU;
+    c.distanceProfileAU = fit.profileAU;
+    c.modelChi2 = { stationary: fit.stationary.chi2, linear: fit.linear.chi2, parallax: fit.best.chi2, dof: fit.dof };
+  }
   return { candidates, stats };
 }
 
@@ -437,11 +480,11 @@ export function describeDistant(c, geo) {
   const vCirc = 29.78 / Math.sqrt(c.distanceAU), vEsc = 42.1 / Math.sqrt(c.distanceAU);
   const bound = vKms <= vEsc * 1.2;
   const [lo, hi] = c.distanceRangeAU;
-  const range = `${Math.round(lo)}–${Math.round(hi)} AU`;
+  const range = c.distanceProfileAU?.includes(null) ? "distance range open at search limit" : `${lo.toFixed(1)}–${hi.toFixed(1)} AU`;
   return {
     distanceAU: c.distanceAU, rangeText: range, ownSpeedArcsecPerYear: speed, ownPmEast: east, ownPmNorth: north,
     ownVelocityKms: vKms, circularKms: vCirc, escapeKms: vEsc, bound,
-    text: `Follows Earth parallax: about ${Math.round(c.distanceAU)} AU away (${range}, 1σ). ` +
+    text: `Follows Earth parallax: about ${Math.round(c.distanceAU)} AU away (${range}, profile Δχ² = 1). ` +
       `Its own drift is ${speed.toFixed(0)}″/yr, which at that distance is ${vKms.toFixed(1)} km/s; a body orbiting the Sun there moves at ${vCirc.toFixed(1)} km/s ` +
       (bound ? "and cannot exceed " + vEsc.toFixed(1) + " km/s: consistent with a Solar System object." : "and cannot exceed " + vEsc.toFixed(1) + " km/s: too fast to be bound to the Sun, so treat the distance with suspicion."),
   };
