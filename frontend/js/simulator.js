@@ -60,9 +60,10 @@ function draw() {
   svg.replaceChildren(...nodes);
   $("day-label").value = String(day);
   $("epoch").textContent = new Date((epoch + day - 40587) * 86400000).toISOString().slice(0,10);
-  $("earth").textContent = model.observer.map(v => v.toFixed(5)).join(" / ");
-  $("offset").textContent = [model.offset.east,model.offset.north].map(v => `${v.toFixed(2)}″`).join(" / ");
-  $("range").textContent = model.range.toFixed(4) + " AU";
+  $("earth").textContent = model.observer.map(v => v.toFixed(3)).join(" / ");
+  const offsetDigits = $("distance").valueAsNumber >= 1000 ? 1 : 0;
+  $("offset").textContent = [model.offset.east,model.offset.north].map(v => `${v.toFixed(offsetDigits)}″`).join(" / ");
+  $("range").textContent = model.range.toFixed(3) + " AU";
   $("scale").textContent = educational
     ? "Target distance compressed to 3 AU in the drawing. The readouts use the entered distance. Dashed line shows the reference sightline."
     : `Uniform spatial scale · 100 drawing units = ${(100 / pixelsPerAU).toPrecision(3)} AU. Body markers are enlarged. Dashed line shows the reference sightline.`;
