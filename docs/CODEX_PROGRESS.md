@@ -98,9 +98,8 @@ Changed: `index.html` (the search panel has a head with a button and a body; a n
 
 ## Remaining in Phase 1
 
-- Reusable dialog, tooltip and empty/error-state components (buttons, inputs, selects and cards already come from shared CSS; there is no dialog or tooltip system).
-- An icon system (none; the page uses CSS shapes and text).
-- Contrast check of the Plotly spectrum chart in the light theme (it sits on a fixed dark ground by design; not looked at in the light theme).
+- The icons are on two buttons and in the state boxes; the other buttons still have text only (several of them rewrite their own text for feedback, which would erase an icon).
+- State boxes are used in the explorer table; the other empty and error messages of the page (the overlay on the picture, the status lines) are still written one by one.
 - Classic keeps the original faint input borders (below 3:1): known, kept on purpose.
 
 ## Next recommended steps

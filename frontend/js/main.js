@@ -17,6 +17,9 @@ import { canvasToSky, measureAndPlot, clearMeasurement, APERTURE_RADIUS_PX } fro
 import { setupViewer } from "./features/viewerControls.js";
 import { setupWorkspace } from "./features/workspaceView.js";
 import { MARK_IDLE, markText } from "./features/workspace.js";
+import { setupTooltips } from "./features/tooltip.js";
+import { applyIcons } from "./features/ui.js";
+import { openDialog, shortcutsHtml } from "./features/dialog.js";
 import { setupTimeline } from "./features/timelineView.js";
 import { FLAGGED_LIMIT } from "./features/timeline.js";
 import { SkyContext } from "./features/skyContext.js";
@@ -288,6 +291,19 @@ updateMarkedPosition();
 setupWorkspace({
   root: $("workspace"), leftBtn: $("panel-left-btn"), rightBtn: $("panel-right-btn"),
   slot: $("inspector-slot"), empty: $("inspector-empty"), details: [$("mover-detail"), $("discover-detail")],
+});
+
+// Shared interface pieces (features/tooltip.js, ui.js, dialog.js): tooltips for the keyboard too, the icons, and the list of keyboard shortcuts.
+setupTooltips();
+applyIcons();
+function showShortcuts() { openDialog({ title: "Keyboard shortcuts", html: shortcutsHtml(), opener: $("shortcuts-btn") }); }
+$("shortcuts-btn").addEventListener("click", showShortcuts);
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "?" || e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented) return;
+  if (e.target?.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName ?? "")) return;      // typing a question mark is not a command
+  if (document.querySelector("dialog[open]")) return;
+  e.preventDefault();
+  showShortcuts();
 });
 
 // The timeline (features/timelineView.js): one button per image by time and wavelength, survey-pass switches and a wavelength window. Its filter tells the

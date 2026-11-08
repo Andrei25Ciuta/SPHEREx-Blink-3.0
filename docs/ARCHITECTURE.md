@@ -44,6 +44,9 @@ checked by `validateFrame` in `getCutouts.js`.
 | `readout.js` | what is shown under the pointer: pixel, RA/Dec (the same conversion as a click), offset, value text |
 | `layers.js` | the overlay layers: names, colours (used for drawing and for the colour key), counts |
 | `viewerControls.js` | the DOM side of the viewer (not pure): buttons, drag, pinch, wheel, keys, the readout line, the layer list |
+| `tooltip.js` | tooltips for any element with a title or `data-tip`: where the box goes (pure), the DOM part with the delays, keyboard focus, Escape, `aria-describedby` |
+| `ui.js` | the icons (inline SVG paths) and the box for an empty, error, loading or partial state (pure strings) |
+| `dialog.js` | the modal dialog on the native `<dialog>`, and the list of keyboard shortcuts |
 | `workspace.js` | the layout of the page: three, two or one column by width, which side panels are open (parse, save, toggle), the keys `[` and `]`, the words of the buttons, the text of the empty inspector |
 | `workspaceView.js` | the DOM side of the workspace (not pure): the two side-panel buttons and keys, the saved choice, moves the description of a selected candidate between its list and the inspector; reads the same media queries as `styles.css` |
 | `provenance.js` | the record of how a search was run (input, settings, algorithm version, time of the run); text and CSV columns from it; what the data is |

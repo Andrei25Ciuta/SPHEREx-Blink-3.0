@@ -227,6 +227,7 @@
 
       <div class="player-options">
         <label class="check"><input type="checkbox" id="skip-flagged"> Skip frames with &gt; 1&nbsp;% flagged pixels</label>
+        <button type="button" class="btn btn-small" id="shortcuts-btn" aria-haspopup="dialog" title="Every keyboard shortcut of the workspace (?)"><span class="btn-icon" data-icon="keyboard" aria-hidden="true"></span>Keyboard shortcuts</button>
       </div>
 
       <!-- Layers: what is drawn on top of the picture. Each one switches on its own; the key matches the colour on the canvas (js/features/layers.js) -->
@@ -308,7 +309,7 @@
       </div>
 
       <div class="tools" role="group" aria-label="Save and share">
-        <button type="button" class="btn btn-small" id="save-png-btn" disabled>Save image</button>
+        <button type="button" class="btn btn-small" id="save-png-btn" disabled><span class="btn-icon" data-icon="save" aria-hidden="true"></span>Save image</button>
         <button type="button" class="btn btn-small" id="record-btn" disabled>Record video</button>
         <button type="button" class="btn btn-small" id="copy-link-btn">Copy link</button>
         <button type="button" class="btn btn-small" id="copy-embed-btn" title="HTML to put this view on another web page">Embed code</button>

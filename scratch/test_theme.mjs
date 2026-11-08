@@ -78,6 +78,16 @@ check("light theme: its dark islands (banner, image stage, charts) take the Deep
   check("the island ground colours (stage black, chart #0F2027, banner ink #0E1C22) carry the Deep Space text, link, success and warning colours at 4.5:1", bad.length === 0, bad.join("; "));
   check("the banner button (accent with banner-ink text) reaches 4.5:1 in every theme that fills it with its own accent", ["deep-space", "observatory", "classic"].every((id) => contrast(themes[id]["--accent"], "#0E1C22") >= 4.5));
 }
+{
+  // The Plotly charts (spectrum, light curve) are drawn with the colours written in measure.js, on a box whose ground is --chart-bg. Defined once, overridden by no theme,
+  // so the chart looks the same in the light theme as in the dark ones, and its text has to reach 4.5:1 on that ground.
+  const m = readFileSync(new URL("../frontend/js/features/measure.js", import.meta.url), "utf8");
+  const c = (name) => new RegExp(`${name} = "(#[0-9A-Fa-f]{6})"`).exec(m)?.[1];
+  const [text, muted, ground] = [c("TEXT"), c("TEXT_MUTED"), c("SURFACE")];
+  check("the Plotly charts: one ground (--chart-bg) in every theme, the same colour as measure.js draws on, and their text and axis text reach 4.5:1 on it",
+    (CSS.match(/--chart-bg:/g) || []).length === 1 && Boolean(text && muted && ground) && ground.toLowerCase() === (/--chart-bg:\s*(#[0-9A-Fa-f]{6})/.exec(CSS)?.[1] ?? "").toLowerCase()
+    && contrast(text, ground) >= 4.5 && contrast(muted, ground) >= 4.5, `${text} ${contrast(text ?? "#000", ground ?? "#000").toFixed(2)}, ${muted} ${contrast(muted ?? "#000", ground ?? "#000").toFixed(2)} on ${ground}`);
+}
 
 // the "-rgb" tokens are the same colour as their hex twin (they are used for translucent fills)
 for (const t of THEMES) {

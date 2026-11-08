@@ -1024,3 +1024,41 @@ body::before {
   .layout[data-left="closed"] .stage, .layout[data-right="closed"] .stage { max-width: max(640px, min(780px, calc(100dvh - 9rem))); }
   .layout[data-left="closed"][data-right="closed"] .stage { max-width: max(640px, min(920px, calc(100dvh - 9rem))); }
 }
+
+/* ---------- Shared interface pieces: icons, tooltips, dialog, state boxes (features/ui.js, tooltip.js, dialog.js) ---------- */
+.icon { display: block; flex: none; }
+.btn-icon { display: inline-flex; vertical-align: -3px; margin-right: .4rem; }
+.btn-icon:empty { display: none; }
+
+.tooltip {
+  position: fixed; z-index: 1100; max-width: min(22rem, calc(100vw - 16px)); padding: .45rem .65rem; border-radius: var(--radius-sm);
+  background: var(--raised); color: var(--text); border: 1px solid var(--control-border); box-shadow: var(--shadow);
+  font-size: .8rem; line-height: 1.35; pointer-events: none; overflow-wrap: anywhere;
+}
+
+.dlg {
+  width: min(34rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); padding: 1.2rem 1.4rem; overflow: auto;
+  border: 1px solid var(--control-border); border-radius: var(--radius); background: var(--surface); color: var(--text); box-shadow: var(--shadow);
+}
+.dlg::backdrop { background: rgb(var(--bg-rgb) / .72); }
+.dlg-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .8rem; }
+.dlg-head h2 { margin: 0; font-size: 1.1rem; }
+.keys { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.keys th, .keys td { padding: .45rem .5rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--border); }
+.keys th { width: 1%; white-space: nowrap; font-weight: 400; }
+
+.state {
+  display: flex; align-items: flex-start; gap: .7rem; padding: .8rem .9rem; text-align: left; color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius-sm); background: rgb(var(--accent-rgb) / .06);
+}
+.state-icon { display: inline-flex; margin-top: .1rem; color: var(--text-muted); }
+.state-error { border-color: var(--danger); }
+.state-error .state-icon { color: var(--danger); }
+.state-partial { border-color: var(--warn); }
+.state-partial .state-icon { color: var(--warn); }
+.state-body { min-width: 0; }
+.state-body p { margin: .25rem 0 .5rem; font-size: .85rem; color: var(--text-muted); }
+.state-loading .icon { animation: state-spin 1s linear infinite; }
+@keyframes state-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .state-loading .icon { animation: none; } }
+.ex-empty { padding: 1rem; }

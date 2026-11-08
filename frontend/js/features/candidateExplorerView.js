@@ -10,6 +10,7 @@
 // same rows, hidden from assistive technology on purpose, and clicking a point selects it like clicking its row.
 
 import { FILTERS, COLUMNS, exploreRows, cellText, scatterLayout } from "./candidateExplorer.js";
+import { stateHtml } from "./ui.js";
 
 const el = (tag, props = {}, ...kids) => {
   const e = Object.assign(document.createElement(tag), props);
@@ -121,7 +122,13 @@ export function createExplorer({ root, onSelect = () => {}, threshold = null, sh
       tr.addEventListener("click", (e) => { if (!e.target.closest("button")) select(r.id); });
       return tr;
     }));
-    if (!view.rows.length) tbody.append(el("tr", {}, el("td", { colSpan: columns.length, className: "ex-empty", textContent: rows.length ? "No source passes this filter and search." : "Nothing to show yet." })));
+    if (!view.rows.length) {
+      const cell = el("td", { colSpan: columns.length, className: "ex-empty" });
+      cell.innerHTML = rows.length
+        ? stateHtml({ kind: "empty", title: "No source passes this filter and search", text: "Change the filter or clear the search to see the others." })
+        : stateHtml({ kind: "empty", title: "Nothing to show yet", text: "Run Find everything on a field to fill the table." });
+      tbody.append(el("tr", {}, cell));
+    }
     count.textContent = view.matched === 0 ? `0 of ${view.all} sources match.`
       : `Showing ${view.from}–${view.to} of ${view.matched}${view.matched !== view.all ? ` matching (${view.all} sources in all)` : " sources"}.`;
     pageText.textContent = `Page ${view.page} of ${view.pages}`;
