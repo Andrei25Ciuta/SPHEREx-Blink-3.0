@@ -27,6 +27,7 @@ from fastapi.staticfiles import StaticFiles
 from spherex import cache, catalogues, hips_proxy
 from spherex.cutout import cutout, flag_summary, target_wcs
 from spherex.floatdata import float_cutout_bytes, mask_cutout_bytes
+from spherex.footprints import footprints
 from spherex.photometry import measure
 from spherex.query import LocalArchive
 from spherex.stretch import STRETCH_VERSION, flags_to_png, shared_stretch, to_png
@@ -50,6 +51,14 @@ def health():
     archive.refresh()
     return {"dataDir": str(archive.root), "indexedFiles": len(archive._index),
             "unreadableFiles": {str(k): v for k, v in archive.errors.items()}}
+
+
+@app.get("/api/footprints")
+def footprints_endpoint(det: str = Query("all", description='"all" or a detector name like "D3"')):
+    """Where the images on this machine are on the sky (the four corners of each, from its own WCS). No file names, no paths: see spherex/footprints.py."""
+    archive.refresh()
+    return {"footprints": footprints(list(archive._index.values()), det),
+            "note": "The footprints of the image files this backend has, not of the SPHEREx survey."}
 
 
 @app.get("/api/cutouts")

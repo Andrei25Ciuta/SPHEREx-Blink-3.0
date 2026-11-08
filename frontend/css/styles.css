@@ -1063,6 +1063,36 @@ body::before {
 @media (prefers-reduced-motion: reduce) { .state-loading .icon { animation: none; } }
 .ex-empty { padding: 1rem; }
 
+/* The sky explorer (features/skyExplorerView.js): the maps sit in .chart boxes, which keep a dark ground and the Deep Space tokens in every theme */
+.sky { grid-column: 1 / -1; }
+.sky p { margin: .4rem 0; }
+.sky-map { max-width: 920px; margin: .6rem auto; }
+.sky-svg { display: block; width: 100%; height: auto; cursor: crosshair; }
+.sky-outline { fill: none; stroke: var(--text-muted); stroke-width: .012; }
+.sky-grid { fill: none; stroke: var(--text-muted); stroke-opacity: .3; stroke-width: .006; }
+.sky-ecliptic { fill: none; stroke: var(--warn); stroke-width: .016; stroke-dasharray: .07 .05; }
+.sky-galactic { fill: none; stroke: var(--accent-2); stroke-width: .024; stroke-dasharray: .012 .04; stroke-linecap: round; }
+.sky-label, .sky-field-label { font-size: .12px; font-family: var(--font-body); }
+.sky-label { fill: var(--text-muted); }
+.sky-field-label { fill: var(--text); font-weight: 600; }
+.sky-field circle { fill: rgb(var(--accent-rgb) / .35); stroke: var(--accent-hi); stroke-width: .014; }
+.sky-field.is-selected circle { fill: rgb(var(--accent-rgb) / .85); stroke: var(--text); }
+.sky-list { list-style: none; margin: .6rem 0; padding: 0; display: grid; gap: .4rem; grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr)); }
+.sky-item { display: grid; grid-template-columns: auto 1fr; column-gap: .7rem; width: 100%; padding: .5rem .7rem; text-align: left; cursor: pointer;
+  border: 1px solid var(--control-border); border-radius: var(--radius-sm); background: transparent; color: var(--text); }
+.sky-item:hover { border-color: var(--accent); }
+.sky-item[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.sky-item-id { grid-row: 1 / 3; align-self: center; font-weight: 700; color: var(--accent-text); }
+.sky-item-main { font-family: var(--font-mono); font-size: .85rem; }
+.sky-item-sub { grid-column: 2; font-size: .78rem; color: var(--text-muted); }
+.sky-detail h3 { margin-top: 1rem; }
+.sky-detail .chart { max-width: 460px; }
+.sky-detail .btn, .sky .btn { width: auto; }
+.sky-field-svg { display: block; width: 100%; height: auto; }
+.fp-poly { fill: rgb(var(--accent-rgb) / .1); stroke: var(--accent-hi); stroke-width: 1.5px; vector-effect: non-scaling-stroke; }
+.fp-poly.fp-dash { stroke: var(--accent-2); stroke-dasharray: 6 4; }
+.fp-centre { fill: var(--text); }
+
 /* Detectors with no images of the field are shown as missing (main.js renderOverview, features/spectral.js), and the style of the spectrum's uncertainty */
 .overview-item.is-missing { cursor: default; border-style: dashed; opacity: 1; }
 .overview-item.is-missing:hover { border-color: var(--border); transform: none; }

@@ -12,6 +12,7 @@ browser (frontend/, ES modules, no build step)            backend/ (FastAPI + as
      └ apiSource.js           real data (?data=api)  ──────►  spherex/photometry.py  aperture photometry, moving objects
   js/features/*.js         ── analysis, pure functions        spherex/hips_proxy.py  IRSA sky tiles with CORS (allowlist)
   results.html             ── static numbers and charts       spherex/catalogues.py  2MASS / AllWISE / Gaia cone searches (allowlist)
+                                                    spherex/footprints.py  corners of every indexed image on the sky (no paths)
 ```
 
 Third parties asked **by the browser**: SIMBAD (Harvard mirror), SkyBoT (IMCCE), Aladin Lite and its survey tiles (ESA mirror, or the backend's
@@ -44,6 +45,8 @@ checked by `validateFrame` in `getCutouts.js`.
 | `readout.js` | what is shown under the pointer: pixel, RA/Dec (the same conversion as a click), offset, value text |
 | `layers.js` | the overlay layers: names, colours (used for drawing and for the colour key), counts |
 | `viewerControls.js` | the DOM side of the viewer (not pure): buttons, drag, pinch, wheel, keys, the readout line, the layer list |
+| `skyExplorer.js` | the sky explorer (pure): the Hammer map and its inverse, the ecliptic and the galactic plane, great circles cut at the map's edge, images grouped into fields, a field's images as arcminute offsets |
+| `skyExplorerView.js` | the DOM side of the explorer (not pure): the SVG map, the list of fields, a field at true scale, open a field |
 | `spectral.js` | the six detectors and what each field has of them (and what is missing), the spectrum's uncertainty as a band that breaks at gaps, the summary of what is missing at a position |
 | `planetLab.js` | the Planet X Lab (pure): the three motions compared by BIC and the distance only when constrained, injecting a synthetic body into real images, the trial of the app's own search, the completeness map and its Wilson intervals, CSV |
 | `planetLabView.js` | the DOM side of the lab (not pure): the comparison table, the form, the map; starts the worker |

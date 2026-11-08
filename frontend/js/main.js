@@ -17,6 +17,7 @@ import { canvasToSky, measureAndPlot, clearMeasurement, setSpectrumStyle, APERTU
 import { setupViewer } from "./features/viewerControls.js";
 import { setupWorkspace } from "./features/workspaceView.js";
 import { setupPlanetLab } from "./features/planetLabView.js";
+import { setupSkyExplorer } from "./features/skyExplorerView.js";
 import { MARK_IDLE, markText } from "./features/workspace.js";
 import { detectorCoverage, coverageText } from "./features/spectral.js";
 import { setupTooltips } from "./features/tooltip.js";
@@ -1431,6 +1432,28 @@ planetLab = setupPlanetLab({
     return { candidate: m, dots: usable.map((p, i) => ({ frame: i, x: p.x, y: p.y })), mjds: usable.map((p) => p.mjd), geo: currentGeo() };
   },
   download: downloadText,
+});
+
+// ---------------------------------------------------------------
+// Sky explorer (features/skyExplorer.js, skyExplorerView.js; the backend's /api/footprints): where the image files are on the sky
+// ---------------------------------------------------------------
+setupSkyExplorer({
+  els: { refreshBtn: $("sky-refresh-btn"), status: $("sky-status"), mapWrap: $("sky-map-wrap"), map: $("sky-map"), list: $("sky-list"), detail: $("sky-detail") },
+  fetchFootprints: async () => {
+    if (DATA_SOURCE !== "api") throw new Error("these images are synthetic: there are no files, so no footprints.");
+    const response = await fetch(`${API_BASE}/api/footprints`);
+    if (!response.ok) throw new Error(`the backend answered HTTP ${response.status}.`);
+    return response.json();
+  },
+  // open a field: the form is filled in and sent, as if the author had typed it (so the address, the history and the checks are the usual ones)
+  openField: ({ ra, dec, fov }) => {
+    $("ra-input").value = ra.toFixed(4);
+    $("dec-input").value = dec.toFixed(4);
+    $("fov-input").value = String(fov);
+    $("fov-input").dispatchEvent(new Event("input", { bubbles: true }));
+    $("search-form").requestSubmit();
+    $("workspace").scrollIntoView({ block: "start", behavior: prefersReducedMotion ? "auto" : "smooth" });
+  },
 });
 
 // ---------------------------------------------------------------

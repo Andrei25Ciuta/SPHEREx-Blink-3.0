@@ -447,6 +447,19 @@
         <details class="provenance"><summary>How this map was made</summary><p id="lab-provenance"></p></details>
       </div>
     </section>
+
+    <!-- ============ 6. Where the image files are on the sky (features/skyExplorer.js, skyExplorerView.js, backend /api/footprints) ============ -->
+    <section class="panel sky" id="sky-explorer" aria-labelledby="sky-title">
+      <h2 id="sky-title">6. Where the image files are on the sky</h2>
+      <p class="muted">An all-sky map of the <strong>image files this backend has</strong> (with real data: the author's SPHEREx cutouts). These are the footprints of files, <strong>not of the SPHEREx survey</strong>, which maps the whole sky: each circle is a <em>field</em>, the images of nearly the same place, read from the files themselves; nothing is drawn that was not read. The dashed line is the ecliptic (the path a distant planet of the Solar System follows), the dotted one the plane of the Milky Way. Right ascension grows to the left, as on a sky chart.</p>
+      <p><button type="button" class="btn btn-small" id="sky-refresh-btn">Read the footprints</button></p>
+      <p class="muted small" id="sky-status" role="status" aria-live="polite">Needs the backend with real files (<code>?data=api</code>). The synthetic demo has no files, so it has no footprints, and none are invented.</p>
+      <div id="sky-map-wrap" hidden>
+        <div class="chart sky-map" id="sky-map"></div>
+        <ol class="sky-list" id="sky-list" aria-label="Fields of image files, the same as the circles on the map"></ol>
+      </div>
+      <div class="sky-detail" id="sky-detail" hidden></div>
+    </section>
   </main>
 
   <!-- ============ ABOUT THE PROJECT ============ -->
