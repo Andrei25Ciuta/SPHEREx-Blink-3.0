@@ -367,6 +367,14 @@
         <strong>light curve</strong> = brightness vs. date (one colour per detector).
       </p>
       <p class="measure-pos" id="measure-pos" aria-live="polite"></p>
+      <div class="measure-tools" id="measure-tools" hidden>
+        <fieldset class="chart-style" id="measure-style">
+          <legend>Uncertainty of the spectrum</legend>
+          <label class="check"><input type="radio" name="measure-style" value="bars" checked> Error bars</label>
+          <label class="check"><input type="radio" name="measure-style" value="band"> Band (breaks where no image covers a wavelength)</label>
+        </fieldset>
+        <p class="muted small" id="measure-missing" aria-live="polite"></p>
+      </div>
       <div class="charts" id="charts" hidden>
         <figure class="chart">
           <figcaption id="spectrum-caption">Spectrum at the marked position</figcaption>

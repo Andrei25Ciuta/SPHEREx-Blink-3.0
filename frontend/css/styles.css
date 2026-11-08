@@ -1063,6 +1063,14 @@ body::before {
 @media (prefers-reduced-motion: reduce) { .state-loading .icon { animation: none; } }
 .ex-empty { padding: 1rem; }
 
+/* Detectors with no images of the field are shown as missing (main.js renderOverview, features/spectral.js), and the style of the spectrum's uncertainty */
+.overview-item.is-missing { cursor: default; border-style: dashed; opacity: 1; }
+.overview-item.is-missing:hover { border-color: var(--border); transform: none; }
+.overview-item .ov-blank { display: block; width: 100%; aspect-ratio: 1; border-radius: 6px; background: repeating-linear-gradient(45deg, transparent 0 6px, rgb(var(--text-rgb) / .08) 6px 7px); border: 1px dashed var(--border); }
+.measure-tools { display: grid; gap: .3rem; margin: .4rem 0; }
+.chart-style { display: flex; flex-wrap: wrap; align-items: center; gap: .2rem 1.2rem; margin: 0; padding: .3rem .6rem; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.chart-style legend { padding: 0 .3rem; font-size: .78rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); }
+
 /* The Planet X Lab (features/planetLabView.js) */
 .lab { grid-column: 1 / -1; }
 .lab p { margin: .4rem 0; }

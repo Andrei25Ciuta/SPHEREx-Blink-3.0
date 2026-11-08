@@ -13,11 +13,12 @@ import { readUrlState, writeUrlState } from "./urlState.js";
 import { getCutouts, listDetectors } from "./data/getCutouts.js";
 import { DATA_SOURCE, API_BASE } from "./config.js";
 import { BlinkPlayer, MODES, loadImage, meanImageData } from "./player.js";
-import { canvasToSky, measureAndPlot, clearMeasurement, APERTURE_RADIUS_PX } from "./features/measure.js";
+import { canvasToSky, measureAndPlot, clearMeasurement, setSpectrumStyle, APERTURE_RADIUS_PX } from "./features/measure.js";
 import { setupViewer } from "./features/viewerControls.js";
 import { setupWorkspace } from "./features/workspaceView.js";
 import { setupPlanetLab } from "./features/planetLabView.js";
 import { MARK_IDLE, markText } from "./features/workspace.js";
+import { detectorCoverage, coverageText } from "./features/spectral.js";
 import { setupTooltips } from "./features/tooltip.js";
 import { applyIcons } from "./features/ui.js";
 import { openDialog, shortcutsHtml } from "./features/dialog.js";
@@ -609,20 +610,32 @@ async function showDetector(detector) {
 async function renderOverview(frames, token) {
   const box = $("overview"), grid = $("overview-grid");
   grid.innerHTML = "";
-  const detectors = listDetectors(frames);
-  if (detectors.length < 2) { box.hidden = true; return; }
+  if (!frames.length) { box.hidden = true; return; }
   box.hidden = false;
 
-  for (const d of detectors) {
+  // All six detectors side by side (features/spectral.js): the ones that have images here show their average; the others are shown as MISSING, with the band they would cover.
+  for (const row of detectorCoverage(frames)) {
+    const words = coverageText(row);
+    if (row.status === "none") {
+      const tile = document.createElement("div");
+      tile.className = "overview-item is-missing";
+      tile.dataset.det = row.id;
+      tile.setAttribute("role", "group");
+      tile.setAttribute("aria-label", `${row.id}: no images of this field. ${words.line2}.`);
+      tile.innerHTML = `<span class="ov-blank" aria-hidden="true"></span><span class="ov-name">${row.id}</span><span class="ov-sub">${words.line1}</span><span class="ov-sub">${words.line2}</span>`;
+      grid.appendChild(tile);
+      continue;
+    }
+    const d = { detector: row.id };
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "overview-item";
     btn.dataset.det = d.detector;
     btn.setAttribute("aria-pressed", String(d.detector === currentDetector));
-    btn.setAttribute("aria-label", `${d.detector}, ${d.wlMin.toFixed(2)} to ${d.wlMax.toFixed(2)} micrometres, ${d.count} frames. Show in the player.`);
+    btn.setAttribute("aria-label", `${row.id}, ${row.wlMin.toFixed(2)} to ${row.wlMax.toFixed(2)} micrometres, ${row.count} images, ${words.line2}. Show in the player.`);
     btn.innerHTML = `<canvas width="1" height="1" aria-hidden="true"></canvas>
-      <span class="ov-name">${d.detector}</span>
-      <span class="ov-sub">${d.wlMin.toFixed(2)}–${d.wlMax.toFixed(2)} µm · ${d.count}×</span>`;
+      <span class="ov-name">${row.id}</span>
+      <span class="ov-sub">${words.line1}</span><span class="ov-sub">${words.line2}</span>`;
     btn.addEventListener("click", () => selectDetector(d.detector));
     grid.appendChild(btn);
 
@@ -651,7 +664,10 @@ const measureEls = {
   tableWrap: $("measure-table-wrap"), table: $("measure-table"),
   spectrum: $("spectrum-chart"), lightcurve: $("lightcurve-chart"),
   spectrumCaption: $("spectrum-caption"), lightcurveCaption: $("lightcurve-caption"),
+  tools: $("measure-tools"), missing: $("measure-missing"),
 };
+// how the uncertainty of the spectrum is drawn (features/measure.js, spectral.js): error bars, or a band that breaks where no image covers a wavelength
+document.querySelectorAll('input[name="measure-style"]').forEach((r) => r.addEventListener("change", () => { if (r.checked) setSpectrumStyle(r.value); }));
 let measureToken = 0;
 
 canvas.addEventListener("click", async (e) => {

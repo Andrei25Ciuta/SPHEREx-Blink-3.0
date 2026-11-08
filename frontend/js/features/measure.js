@@ -11,6 +11,7 @@ import { getPhotometry } from "../data/getCutouts.js";
 import { formatRA, formatDec } from "../coords.js";
 import { canvasToSky } from "../geometry.js";
 import { fluxColumn } from "./spectrum.js";
+import { bandSeries, missingSummary, withAlpha } from "./spectral.js";
 
 const PLOTLY_URL = "https://cdn.jsdelivr.net/npm/plotly.js-basic-dist-min@2.35.2/plotly-basic.min.js";
 
@@ -85,22 +86,45 @@ const fluxLabel = (col) => (col === "fluxJy" ? "Flux (Jy)" : "Flux (image units)
 const hoverFormat = (col) => (col === "fluxJy" ? ".3g" : ".1f");
 const showFlux = (v, col) => (v === null || v === undefined ? "—" : col === "fluxJy" ? v.toPrecision(3) : v.toFixed(1));
 
-function spectrumTraces(points, col = "flux") {
+/**
+ * The traces of the spectrum. style = "bars" (an error bar on every point, as always) or "band": for every survey pass a shaded band between flux - error and flux + error,
+ * which BREAKS where no image covers a stretch of wavelength (a gap is drawn as a gap, never bridged), and the points on top.
+ */
+export function spectrumTraces(points, col = "flux", style = "bars") {
   const passes = groupIntoPasses(points.filter((p) => p.flux !== null));
   // Keep the passes with the most points if there are more than we can colour safely.
   const shown = passes.length > MAX_PASSES
     ? [...passes].sort((a, b) => b.points.length - a.points.length).slice(0, MAX_PASSES).sort((a, b) => a.startMjd - b.startMjd)
     : passes;
-  return shown.map((pass, i) => ({
-    type: "scatter", mode: "markers", name: pass.label,
-    x: pass.points.map((p) => p.wavelengthUm),
-    y: pass.points.map((p) => fluxOf(p, col)),
-    error_y: { type: "data", array: pass.points.map((p) => errOf(p, col)), color: SERIES[i], thickness: 1.5, width: 0 },
-    error_x: { type: "data", array: pass.points.map((p) => (p.wavelengthMaxUm - p.wavelengthMinUm) / 2), color: SERIES[i], thickness: 1, width: 0 },
-    marker: { color: SERIES[i], size: 9, symbol: PASS_SYMBOLS[i], line: { color: SURFACE, width: 2 } },
-    customdata: pass.points.map((p) => [p.detector, p.dateISO.slice(0, 10), p.flagged ? " ⚠ flagged" : ""]),
-    hovertemplate: `%{x:.3f} µm · %{customdata[0]}<br>%{customdata[1]}<br>flux %{y:${hoverFormat(col)}}${col === "fluxJy" ? " Jy" : ""}%{customdata[2]}<extra>%{fullData.name}</extra>`,
-  }));
+  const band = style === "band";
+  return shown.flatMap((pass, i) => {
+    const markers = {
+      type: "scatter", mode: "markers", name: pass.label,
+      x: pass.points.map((p) => p.wavelengthUm),
+      y: pass.points.map((p) => fluxOf(p, col)),
+      ...(band ? {} : { error_y: { type: "data", array: pass.points.map((p) => errOf(p, col)), color: SERIES[i], thickness: 1.5, width: 0 } }),
+      error_x: { type: "data", array: pass.points.map((p) => (p.wavelengthMaxUm - p.wavelengthMinUm) / 2), color: SERIES[i], thickness: 1, width: 0 },
+      marker: { color: SERIES[i], size: 9, symbol: PASS_SYMBOLS[i], line: { color: SURFACE, width: 2 } },
+      customdata: pass.points.map((p) => [p.detector, p.dateISO.slice(0, 10), p.flagged ? " ⚠ flagged" : ""]),
+      hovertemplate: `%{x:.3f} µm · %{customdata[0]}<br>%{customdata[1]}<br>flux %{y:${hoverFormat(col)}}${col === "fluxJy" ? " Jy" : ""}%{customdata[2]}<extra>%{fullData.name}</extra>`,
+    };
+    if (!band) return [markers];
+    const s = bandSeries(pass.points.map((p) => ({ wavelengthUm: p.wavelengthUm, y: fluxOf(p, col), err: errOf(p, col) })));
+    const edge = { type: "scatter", mode: "lines", x: s.x, connectgaps: false, hoverinfo: "skip", showlegend: false, legendgroup: pass.label, line: { width: 0, color: SERIES[i] } };
+    return [{ ...edge, y: s.upper, name: `${pass.label} upper edge` },
+      { ...edge, y: s.lower, name: `${pass.label} ± error`, fill: "tonexty", fillcolor: withAlpha(SERIES[i], 0.28) }, markers];
+  });
+}
+
+// How the uncertainty of the spectrum is drawn, and what was drawn last (so that switching the style redraws the same measurement).
+let spectrumStyle = "bars", lastSpectrum = null;
+/** "bars" | "band": redraws the spectrum on screen, if there is one. */
+export async function setSpectrumStyle(style) {
+  spectrumStyle = style === "band" ? "band" : "bars";
+  if (lastSpectrum && window.Plotly) {
+    const { points, col, els } = lastSpectrum;
+    await window.Plotly.react(els.spectrum, spectrumTraces(points, col, spectrumStyle), baseLayout("Wavelength (µm)", fluxLabel(col), "linear"), PLOT_CONFIG);
+  }
 }
 
 function lightCurveTraces(points, col = "flux") {
@@ -168,6 +192,8 @@ export async function measureAndPlot({ query, sky, els, isCurrent, motion = null
   }
 
   renderTable(els.table, points, col);
+  if (els.missing) els.missing.textContent = missingSummary(points).text;          // what is there and what is missing, said in words
+  if (els.tools) els.tools.hidden = false;
   els.tableWrap.hidden = false;
   els.note.hidden = false;
   els.charts.hidden = false;
@@ -186,7 +212,8 @@ export async function measureAndPlot({ query, sky, els, isCurrent, motion = null
     return points;
   }
   if (!isCurrent()) return points;
-  await Plotly.react(els.spectrum, spectrumTraces(points, col), baseLayout("Wavelength (µm)", fluxLabel(col), "linear"), PLOT_CONFIG);
+  lastSpectrum = { points, col, els };
+  await Plotly.react(els.spectrum, spectrumTraces(points, col, spectrumStyle), baseLayout("Wavelength (µm)", fluxLabel(col), "linear"), PLOT_CONFIG);
   await Plotly.react(els.lightcurve, lightCurveTraces(points, col), baseLayout("Date", fluxLabel(col), "date"), PLOT_CONFIG);
   return points;
 }
@@ -194,6 +221,9 @@ export async function measureAndPlot({ query, sky, els, isCurrent, motion = null
 /** Remove charts (e.g. new position loaded). */
 export function clearMeasurement(els) {
   els.pos.textContent = "";
+  lastSpectrum = null;
+  if (els.missing) els.missing.textContent = "";
+  if (els.tools) els.tools.hidden = true;
   els.charts.hidden = true;
   els.note.hidden = true;
   els.tableWrap.hidden = true;
