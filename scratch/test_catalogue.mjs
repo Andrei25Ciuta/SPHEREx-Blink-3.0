@@ -42,10 +42,14 @@ check("total motion in arcsec per year", Math.abs(totalMotion(barnard) - 10.393)
 // ---------------------------------------------------------------- fetching (fake network)
 const fakeFetch = (body, init = {}) => async () => ({ ok: init.ok ?? true, status: init.status ?? 200, text: async () => body });
 check("fetchCatalogue parses a good answer", (await fetchCatalogue(269.4462, 4.769, 3, { fetchFn: fakeFetch(CSV) })).length === 3);
+check("fetchCatalogue accepts an empty table with the expected schema", (await fetchCatalogue(1, 2, 3, { fetchFn: fakeFetch("main_id,ra,dec,pmra,pmdec,otype,sp_type\n") })).length === 0);
+check("fetchCatalogue handles a UTF-8 BOM on the header", (await fetchCatalogue(1, 2, 3, { fetchFn: fakeFetch("\uFEFF" + CSV) })).length === 3);
 for (const [name, fetchFn, expected] of [
   ["a TAP error comes back as a readable message", fakeFetch('<?xml version="1.0"?><VOTABLE><INFO name="QUERY_STATUS" value="ERROR">Incorrect ADQL query</INFO></VOTABLE>'), /Incorrect ADQL query/],
   ["an HTTP error comes back as a readable message", fakeFetch("", { ok: false, status: 503 }), /HTTP 503/],
   ["a network failure comes back as a readable message", async () => { throw new TypeError("Failed to fetch"); }, /did not answer/],
+  ["a successful response with the wrong CSV columns is a service error", fakeFetch("error,message\n0,invalid query\n"), /unrecognised CSV|invalid CSV/i],
+  ["a successful HTML response is a service error", fakeFetch("<html>maintenance</html>"), /SIMBAD reported an error/],
 ]) {
   let message = "";
   try { await fetchCatalogue(1, 2, 3, { fetchFn }); } catch (e) { message = e.message; }

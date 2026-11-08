@@ -40,6 +40,7 @@ const response = (status, body) => ({ status, ok: status >= 200 && status < 300,
 {
   check("fetch: a normal answer is parsed", (await fetchSkybot(1, 2, 0.1, 60908, { fetchFn: async () => response(200, REAL) }))[0].name === "2015 RW209");
   check("fetch: HTTP 204 = no body in the circle = empty list", (await fetchSkybot(1, 2, 0.1, 60908, { fetchFn: async () => response(204, "") })).length === 0);
+  check("fetch: an empty JSON array is also a valid empty field", (await fetchSkybot(1, 2, 0.1, 60908, { fetchFn: async () => response(200, []) })).length === 0);
   const fails = async (fetchFn) => { try { await fetchSkybot(1, 2, 0.1, 60908, { fetchFn }); return null; } catch (e) { return e.message; } };
   check("fetch: HTTP 400 shows the service's own message", /HTTP 400.*epoch cannot be empty/.test(await fails(async () => response(400, { flag: -1, status: 400, message: "Skybot.conesearch -> Bad request: epoch cannot be empty or null" }))));
   check("fetch: HTTP 403 (the old address) says so", /HTTP 403/.test(await fails(async () => response(403, "<html>403 Forbidden</html>"))));
@@ -47,6 +48,8 @@ const response = (status, body) => ({ status, ok: status >= 200 && status < 300,
   check("fetch: a timeout says 'too slow'", /too slow/.test(await fails(async () => { throw Object.assign(new Error("t"), { name: "TimeoutError" }); })));
   check("fetch: not JSON", /not JSON/.test(await fails(async () => response(200, "<html>oops</html>"))));
   check("fetch: an error object inside HTTP 200", /reported: boom/.test(await fails(async () => response(200, { status: 500, message: "boom" }))));
+  check("fetch: an unexpected success object is a service error", /unexpected|invalid/i.test(await fails(async () => response(200, { message: "changed schema" }))));
+  check("fetch: nonempty rows with no usable coordinates are a service error", /unusable|invalid/i.test(await fails(async () => response(200, [{ Name: "x", ra: 10, dec: 2 }]))));
 }
 
 // ---------------------------------------------------------------- many dates

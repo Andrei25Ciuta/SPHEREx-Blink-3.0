@@ -81,9 +81,11 @@ export async function fetchSkybot(ra, dec, radiusDeg, mjd, { fetchFn = fetch, ti
   try { json = JSON.parse(text); } catch { throw new Error("SkyBoT sent something that is not JSON."); }
   if (!Array.isArray(json)) {
     if (json && typeof json === "object" && Number(json.status) >= 400) throw new Error(`SkyBoT reported: ${json.message ?? json.status}.`);
-    return [];
+    throw new Error("SkyBoT returned an unexpected JSON response.");
   }
-  return parseSkybot(json);
+  const objects = parseSkybot(json);
+  if (json.length && !objects.length) throw new Error("SkyBoT returned rows with unusable positions.");
+  return objects;
 }
 
 /** Search circle (degrees) that covers a square field: a bit more than half the diagonal. */

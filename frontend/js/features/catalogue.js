@@ -57,7 +57,7 @@ const num = (s) => (s === undefined || s === "" || !Number.isFinite(Number(s)) ?
 export function parseCatalogueCsv(text) {
   const lines = text.split(/\r?\n/).filter((l) => l.trim());
   if (lines.length < 2) return [];
-  const header = splitCsvLine(lines[0]);
+  const header = splitCsvLine(lines[0].replace(/^\uFEFF/, "")).map((name) => name.trim());
   const col = (name) => header.indexOf(name);
   const [iId, iRa, iDec, iPmra, iPmdec, iType, iSp] = ["main_id", "ra", "dec", "pmra", "pmdec", "otype", "sp_type"].map(col);
   const seen = new Set(), objects = [];
@@ -91,6 +91,9 @@ export async function fetchCatalogue(ra, dec, fovArcmin, { fetchFn = fetch, time
     const message = /value="ERROR"[^>]*>([^<]*)/.exec(text);
     throw new Error("SIMBAD reported an error: " + (message ? message[1].trim() : text.slice(0, 120)));
   }
+  const columns = splitCsvLine(text.replace(/^\uFEFF/, "").split(/\r?\n/, 1)[0]).map((name) => name.trim());
+  if (!["main_id", "ra", "dec", "pmra", "pmdec", "otype", "sp_type"].every((name) => columns.includes(name)))
+    throw new Error("SIMBAD returned an unrecognised CSV table.");
   return parseCatalogueCsv(text);
 }
 

@@ -768,7 +768,9 @@ async function updateAsteroids() {
   info.textContent = names.size
     ? `SkyBoT: ${names.size} known asteroid${names.size === 1 ? "" : "s"} or comet${names.size === 1 ? "" : "s"} cross${names.size === 1 ? "es" : ""} this field on these dates (amber diamonds). ` +
       `A body moves hundreds of arcsec per day, so it is a different dot in every image.${note}`
-    : `SkyBoT lists no known asteroid or comet inside this field on any of these dates.${note}`;
+    : state.failures
+      ? `SkyBoT lists no known asteroid or comet inside this field on the checked dates.${note}`
+      : "SkyBoT lists no known asteroid or comet inside this field on any of these dates.";
 }
 $("show-asteroids").addEventListener("change", updateAsteroids);
 
@@ -1011,7 +1013,10 @@ function showMovers({ candidates, stats, reason }, catalogueObjects = null, { di
   // Known asteroids (SkyBoT) on the image dates, when they were asked for: is a candidate sitting on one?
   if (asteroidState?.key === asteroidKey()) {
     const pts = asteroidPoints(asteroidState.perFrame, geo);
-    for (const m of movers) m.asteroids = matchAsteroids(m.points, pts, geo);
+    for (const m of movers) {
+      m.asteroids = matchAsteroids(m.points, pts, geo);
+      m.asteroidUncheckedDates = asteroidState.failures;
+    }
   }
 
   const dots = Math.round(stats.dotsPerFrame.reduce((a, b) => a + b, 0) / stats.frames);
@@ -1159,7 +1164,9 @@ function chanceText(expected) {
 /** What the SkyBoT check says about a candidate (empty when it was not run). */
 function asteroidSentence(m) {
   if (!m.asteroids) return "";
-  if (!m.asteroids.length) return " SkyBoT: no known asteroid or comet within 20″ of it on any date (it lists known bodies only: that does not make this one new).";
+  if (!m.asteroids.length) return m.asteroidUncheckedDates
+    ? ` SkyBoT: no known asteroid or comet within 20″ of it on the checked dates; ${m.asteroidUncheckedDates} date${m.asteroidUncheckedDates === 1 ? "" : "s"} could not be checked. This does not make it new.`
+    : " SkyBoT: no known asteroid or comet within 20″ of it on any date (it lists known bodies only: that does not make this one new).";
   const a = m.asteroids[0];
   return ` SkyBoT: ${a.name}${a.vmag !== null ? ` (V ${a.vmag})` : ""}, a known ${a.cls ? a.cls : "Solar System body"}, lies within 20″ of it on ${a.hits} of ${m.nFrames} dates (closest ${a.nearestArcsec.toFixed(0)}″): ` +
     (a.hits >= 2 ? "very likely this object." : "a single date can be chance: look at the other dates.");

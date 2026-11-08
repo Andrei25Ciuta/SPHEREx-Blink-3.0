@@ -17,6 +17,15 @@ async function check() {
       page.on("pageerror", error => errors.push(error.message));
       await page.route("**/*", route => new URL(route.request().url()).origin === new URL(base).origin
         ? route.continue() : route.abort());
+      if (width === 1280) {
+        let skybotReplies = 0;
+        await page.route("**/webservices/skybot/api/conesearch.php**", route => {
+          skybotReplies++;
+          return route.fulfill(skybotReplies === 1
+            ? { status: 200, contentType: "application/json", body: "[]" }
+            : { status: 503, body: "service unavailable" });
+        });
+      }
       const url = new URL("index.html", base);
       url.search = new URLSearchParams({ data: "api", api: base.slice(0, -1), ra: field.ra,
         dec: field.dec, fov: "3", det: field.det }).toString();
@@ -44,6 +53,9 @@ async function check() {
       assert.match(await page.locator("#measure-note").textContent(), /resampling.*S\/N is nominal/);
       assert.match(await page.locator("#measure-table thead").textContent(), /Sky scatter.*Nominal S\/N/);
       if (width === 1280) {
+        await page.locator("#show-asteroids").check();
+        await page.waitForFunction(() => /checked dates/.test(document.querySelector("#asteroid-info")?.textContent || ""));
+        assert.match(await page.locator("#asteroid-info").textContent(), /could not be checked/);
         const table = page.locator("#measure-table-wrap");
         if (!await table.evaluate(details => details.open)) await table.locator("summary").click();
         const [download] = await Promise.all([page.waitForEvent("download"),
