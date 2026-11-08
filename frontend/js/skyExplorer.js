@@ -1,9 +1,11 @@
 import { parseRA, parseDec } from "./coords.js";
-import { API_BASE } from "./config.js";
+import { API_BASE, CAN_USE_LOCAL_BACKEND } from "./config.js";
 import { tangentPoint } from "./features/explorerGeometry.js";
 import { SkyContext } from "./features/skyContext.js";
 
 const $ = id => document.getElementById(id);
+$("workspace").hidden = !CAN_USE_LOCAL_BACKEND;
+$("workspace-help").hidden = CAN_USE_LOCAL_BACKEND;
 const map = new SkyContext($("aladin-box"), $("map-status"));
 const params = new URLSearchParams(location.search);
 const stateKeys = ["ra", "dec", "fov", "collection"];

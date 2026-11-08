@@ -1,4 +1,8 @@
+import { CAN_USE_LOCAL_BACKEND } from "./config.js";
+
 const $ = id => document.getElementById(id);
+$("workspace").hidden = !CAN_USE_LOCAL_BACKEND;
+$("workspace-help").hidden = CAN_USE_LOCAL_BACKEND;
 try {
   const response = await fetch("data/parallax_recovery.json");
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
