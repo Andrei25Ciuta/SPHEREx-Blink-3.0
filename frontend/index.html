@@ -48,10 +48,14 @@
   <!-- Only visible with ?embed=1 (the banner, which holds the data badge, is hidden then): say what the data is -->
   <p class="embed-note" id="embed-note"></p>
 
-  <main class="layout" id="workspace">
-    <!-- ============ LEFT: search controls ============ -->
-    <section class="panel controls" aria-labelledby="controls-title">
-      <h2 id="controls-title">1. Choose a patch of sky</h2>
+  <main class="layout" id="workspace" data-left="open" data-right="open">
+    <!-- ============ LEFT: search controls (can be hidden: button, or the key [) ============ -->
+    <section class="panel controls" id="controls-panel" aria-labelledby="controls-title">
+      <div class="panel-head">
+        <h2 id="controls-title">1. Choose a patch of sky</h2>
+        <button type="button" class="panel-toggle" id="panel-left-btn" aria-expanded="true" aria-controls="controls-body" aria-keyshortcuts="[" title="Hide the search panel ([)"><span class="panel-toggle-icon" aria-hidden="true"></span><span class="sr-only">Hide the search panel</span></button>
+      </div>
+      <div class="panel-body" id="controls-body">
       <p class="tour-launch"><button type="button" class="btn btn-small" id="tour-btn">Take the 1-minute tour</button></p>
 
       <form id="search-form" novalidate>
@@ -114,6 +118,7 @@
           <li>Found something? <strong>Click it</strong> to see its spectrum and light curve, and check the sky map: is it a known object?</li>
         </ol>
       </details>
+      </div>
     </section>
 
     <!-- ============ RIGHT: blink player ============ -->
@@ -217,7 +222,7 @@
 
       <p class="shortcuts" id="shortcuts-hint">
         Keyboard: <kbd>Space</kbd> play/pause &middot; <kbd>←</kbd> <kbd>→</kbd> step one frame &middot; <kbd>+</kbd> <kbd>−</kbd> zoom &middot; <kbd>0</kbd> whole image &middot; <kbd>Shift</kbd>+arrows move when zoomed in.
-        Mouse: <kbd>Ctrl</kbd>+scroll zooms, drag moves.
+        Mouse: <kbd>Ctrl</kbd>+scroll zooms, drag moves. Panels: <kbd>[</kbd> hides or shows the search panel, <kbd>]</kbd> the inspector.
       </p>
 
       <div class="player-options">
@@ -309,20 +314,42 @@
         <button type="button" class="btn btn-small" id="copy-embed-btn" title="HTML to put this view on another web page">Embed code</button>
       </div>
 
-      <!-- Metadata of the current frame -->
-      <dl class="meta" id="frame-meta">
-        <div><dt>Detector</dt><dd id="meta-det">—</dd></div>
-        <div><dt>Wavelength</dt><dd id="meta-wl">—</dd></div>
-        <div><dt>MJD</dt><dd id="meta-mjd">—</dd></div>
-        <div><dt>Flags</dt><dd id="meta-flags">—</dd></div>
-      </dl>
-
       <!-- "All" detectors: one averaged image per detector. Click one to blink it. -->
       <div class="overview" id="overview" hidden>
         <h3>All detectors <span class="muted">(average of each &middot; click to blink)</span></h3>
         <div class="overview-grid" id="overview-grid"></div>
       </div>
     </section>
+
+    <!-- ============ RIGHT: inspector (can be hidden: button, or the key ]) ============ -->
+    <!-- On a wide screen the description of the selected candidate (#mover-detail, #discover-detail) is moved in here by features/workspaceView.js; on a narrower one it stays under its list. -->
+    <aside class="panel inspector" id="inspector" aria-labelledby="inspector-title">
+      <div class="panel-head">
+        <h2 id="inspector-title">Inspector</h2>
+        <button type="button" class="panel-toggle panel-toggle-right" id="panel-right-btn" aria-expanded="true" aria-controls="inspector-body" aria-keyshortcuts="]" title="Hide the inspector (])"><span class="panel-toggle-icon" aria-hidden="true"></span><span class="sr-only">Hide the inspector</span></button>
+      </div>
+      <div class="panel-body" id="inspector-body">
+        <section class="insp-sec" aria-labelledby="insp-image-title">
+          <h3 id="insp-image-title">Image on screen</h3>
+          <!-- Metadata of the current frame -->
+          <dl class="meta" id="frame-meta">
+            <div><dt>Detector</dt><dd id="meta-det">—</dd></div>
+            <div><dt>Wavelength</dt><dd id="meta-wl">—</dd></div>
+            <div><dt>MJD</dt><dd id="meta-mjd">—</dd></div>
+            <div><dt>Flags</dt><dd id="meta-flags">—</dd></div>
+          </dl>
+        </section>
+        <section class="insp-sec" aria-labelledby="insp-mark-title">
+          <h3 id="insp-mark-title">Marked position</h3>
+          <p class="insp-mark" id="insp-mark" aria-live="polite"></p>
+        </section>
+        <section class="insp-sec" aria-labelledby="insp-sel-title">
+          <h3 id="insp-sel-title">Selected candidate</h3>
+          <p class="muted small" id="inspector-empty"></p>
+          <div class="insp-slot" id="inspector-slot"></div>
+        </section>
+      </div>
+    </aside>
 
     <!-- ============ 3. Measure (spectrum + light curve) ============ -->
     <section class="panel measure" aria-labelledby="measure-title">

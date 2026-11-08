@@ -39,6 +39,7 @@ export class BlinkPlayer {
     this.onPlayStateChange = onPlayStateChange;   // called with (isPlaying)
     this.onViewChange = onViewChange;             // called with (view) when zoom or pan changed
     this.onDraw = onDraw;                         // called after every redraw (the layer counts and the readout follow it)
+    this.onMarkerChange = () => {};               // called with the new marker ({ fx, fy, rPx } or null) when the measuring circle is set or cleared
     this.view = createView();                     // which part of the image the canvas shows (features/view.js)
     this.hidden = new Set(["grid"]);              // layers switched off: "candidates", "marker", "grid", "scalebar" (flags and tracks have their own switch); the grid starts off
     this.pixelScaleArcsec = null;                 // arcsec per image pixel, for the scale bar and the grid
@@ -130,7 +131,7 @@ export class BlinkPlayer {
   }
 
   setShowFlags(on) { this.showFlags = !!on; this.draw(); }
-  setMarker(marker) { this.marker = marker; this.draw(); }
+  setMarker(marker) { this.marker = marker; this.onMarkerChange(marker); this.draw(); }
   /** tracks[i].points[k] = predicted position at the date of frame k (same order as frames). */
   setTracks(tracks) { this.tracks = tracks || []; this.draw(); }
   setShowTracks(on) { this.showTracks = !!on; this.draw(); }

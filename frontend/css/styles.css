@@ -978,3 +978,49 @@ body::before {
   .hero-top .hero-logo span:last-child { font-size: .95rem; }
   .theme-switch select { padding-block: .25rem; font-size: .75rem; }
 }
+
+/* ---------- Workspace panels: search | picture | inspector (features/workspace.js, workspaceView.js) ----------
+   From 1180 px three columns; from 861 px the search panel beside the picture and the inspector below them; below that one column.
+   The two side panels close (a button each, or the keys [ and ]): on a wide screen the closed panel is a thin rail with its heading
+   written upright, so the picture takes the room; on a narrow one only its body is hidden. */
+.panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: .6rem; }
+.panel-head h2 { min-width: 0; }
+.panel-toggle {
+  flex: none; display: inline-grid; place-items: center; width: 2rem; height: 2rem; padding: 0;
+  border: 1px solid var(--control-border); border-radius: var(--radius-sm); background: transparent; color: var(--text); cursor: pointer;
+}
+.panel-toggle:hover { border-color: var(--accent); }
+.panel-toggle-icon { width: .5rem; height: .5rem; border-left: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateX(.12rem) rotate(45deg); }   /* a chevron: points left */
+.panel-toggle-right .panel-toggle-icon { transform: translateX(-.12rem) rotate(-135deg); }                                                                       /* points right */
+.layout[data-left="closed"] #panel-left-btn .panel-toggle-icon { transform: translateX(-.12rem) rotate(-135deg); }
+.layout[data-right="closed"] #panel-right-btn .panel-toggle-icon { transform: translateX(.12rem) rotate(45deg); }
+@media (hover: none) and (pointer: coarse) { .panel-toggle { width: 2.75rem; height: 2.75rem; } }
+
+.layout[data-left="closed"] .controls h2, .layout[data-right="closed"] .inspector h2 { margin-bottom: 0; }
+
+.inspector { grid-column: 1 / -1; }
+.inspector .panel-body { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem 1.5rem; }
+.insp-sec { min-width: 0; }
+.insp-sec h3 { margin-bottom: .5rem; }
+.inspector .meta { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: none; margin: 0; }
+.insp-mark { margin: 0; font-size: .85rem; font-variant-numeric: tabular-nums; font-family: var(--font-mono); overflow-wrap: anywhere; color: var(--text-muted); }
+.insp-mark.has-mark { color: var(--text); }
+.insp-slot > * + * { margin-top: .6rem; }
+.insp-slot .mover-detail, .insp-slot .discover-detail { margin-inline: 0; }
+
+@media (min-width: 1180px) {
+  .layout { grid-template-columns: minmax(250px, 320px) minmax(0, 1fr) minmax(280px, 340px); max-width: 1560px; }
+  .layout[data-left="closed"] { grid-template-columns: 3.25rem minmax(0, 1fr) minmax(280px, 340px); }
+  .layout[data-right="closed"] { grid-template-columns: minmax(250px, 320px) minmax(0, 1fr) 3.25rem; }
+  .layout[data-left="closed"][data-right="closed"] { grid-template-columns: 3.25rem minmax(0, 1fr) 3.25rem; }
+  .inspector { grid-column: auto; align-self: start; position: sticky; top: 1rem; max-height: calc(100dvh - 2rem); overflow: auto; }
+  .inspector .panel-body { display: block; }
+  .insp-sec + .insp-sec { margin-top: 1.1rem; }
+  .layout[data-left="closed"] .controls, .layout[data-right="closed"] .inspector { padding: .7rem .4rem; overflow: hidden; }
+  .layout[data-left="closed"] .controls .panel-head, .layout[data-right="closed"] .inspector .panel-head { flex-direction: column; align-items: center; }
+  .layout[data-left="closed"] .controls h2, .layout[data-right="closed"] .inspector h2 { writing-mode: vertical-rl; font-size: .9rem; white-space: nowrap; margin-top: .4rem; }
+  .layout[data-right="closed"] .inspector { position: static; max-height: none; }
+  /* a closed side panel gives its room to the picture, but never more than the window is high (the picture is square) */
+  .layout[data-left="closed"] .stage, .layout[data-right="closed"] .stage { max-width: max(640px, min(780px, calc(100dvh - 9rem))); }
+  .layout[data-left="closed"][data-right="closed"] .stage { max-width: max(640px, min(920px, calc(100dvh - 9rem))); }
+}

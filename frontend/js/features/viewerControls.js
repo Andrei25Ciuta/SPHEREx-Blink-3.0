@@ -203,6 +203,16 @@ export function setupViewer({ player, canvas, crosshair, zoomEls, readoutEls, la
     if (lastPointer && gesture === null) showReadout(lastPointer.x, lastPointer.y);   // another frame under a resting pointer
   };
 
+  /**
+   * The readout strings (pixel, RA/Dec, offset) for an image fraction, the same as under the pointer, for the inspector's marked position.
+   * No pixel value: it belongs to the image that was on screen when the pointer was there, and the picture changes under a mark.
+   */
+  function describeAt(fx, fy) {
+    const geo = getGeo();
+    if (!geo || !player.length) return null;
+    return readoutParts(describePoint(fx, fy, geo));
+  }
+
   refresh();
-  return { refresh, hideReadout };
+  return { refresh, hideReadout, describeAt };
 }

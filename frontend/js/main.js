@@ -15,6 +15,8 @@ import { DATA_SOURCE, API_BASE } from "./config.js";
 import { BlinkPlayer, MODES, loadImage, meanImageData } from "./player.js";
 import { canvasToSky, measureAndPlot, clearMeasurement, APERTURE_RADIUS_PX } from "./features/measure.js";
 import { setupViewer } from "./features/viewerControls.js";
+import { setupWorkspace } from "./features/workspaceView.js";
+import { MARK_IDLE, markText } from "./features/workspace.js";
 import { setupTimeline } from "./features/timelineView.js";
 import { FLAGGED_LIMIT } from "./features/timeline.js";
 import { SkyContext } from "./features/skyContext.js";
@@ -270,6 +272,22 @@ const viewer = setupViewer({
   layersRoot: $("layers"),
   getGeo: () => (currentQuery && currentFrames.length && player.naturalSize ? currentGeo() : null),
   loadFloat: loadFloatFrame,
+});
+
+// The inspector (features/workspaceView.js): the side panels that close, the description of a selected candidate beside its list on a wide screen,
+// and the marked position, which follows the measuring circle wherever it is set or cleared.
+const markEl = $("insp-mark");
+function updateMarkedPosition() {
+  const m = player.marker;
+  const parts = m ? viewer.describeAt(m.fx, m.fy) : null;
+  markEl.textContent = parts ? markText(parts) : MARK_IDLE;
+  markEl.classList.toggle("has-mark", Boolean(parts));
+}
+player.onMarkerChange = updateMarkedPosition;
+updateMarkedPosition();
+setupWorkspace({
+  root: $("workspace"), leftBtn: $("panel-left-btn"), rightBtn: $("panel-right-btn"),
+  slot: $("inspector-slot"), empty: $("inspector-empty"), details: [$("mover-detail"), $("discover-detail")],
 });
 
 // The timeline (features/timelineView.js): one button per image by time and wavelength, survey-pass switches and a wavelength window. Its filter tells the
