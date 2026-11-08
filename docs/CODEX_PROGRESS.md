@@ -64,3 +64,9 @@ The latest pushed commit passed the backend and Node GitHub Actions jobs but fai
 ## 2026-11-08 — return to SPHEREx-Blink-2.0 repository
 
 The user changed the requested destination from SPHEREx-Blink-3.0 to SPHEREx-Blink-2.0. A fetch and `git ls-remote --heads` found no advertised branches in the Blink 2.0 repository, so the complete local history can be published as its first `main` branch without replacing remote work. Repository instructions and the README title and planned Pages URL now refer to Blink 2.0. The prior Blink 3.0 progress entries remain as historical facts. This repository handoff changes no scientific algorithms or FITS fixtures. The Pages source and live demo status must be checked independently in the new repository after pushing.
+
+Pushed `0d7989b` to Blink 2.0 as its first `main` branch. GitHub Actions runs 42471267710 (Node and backend) and 42471267709 (Pages configuration, deployment skipped) both passed. GitHub reports `has_pages: false` for this new repository.
+
+## 2026-11-08 — observed D2 workflow at narrow widths
+
+Added `scratch/browser_real_responsive.cjs` to exercise the actual local FITS backend on a Barnard-field query (RA 269.4462°, Dec +4.769°, 3′). The ignored local archive contained 17 D2 FITS files; the query returned nine frames. In headless Edge at 320, 375 and 1280 CSS pixels, the browser loaded the nine observed frames, showed the SPHEREx-format provenance badge, stepped to frame two, rendered difference mode and two comparison cutouts, and returned nine photometry rows after a canvas click. No page exceptions or document-level horizontal overflow occurred. External requests were blocked. The FITS files and backend cache were not committed. This verifies one detector and field; other detectors and independent fields remain untested in this browser path.
