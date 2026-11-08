@@ -8,4 +8,4 @@
 | 3. Results dashboard | Candidate import, filtering, evidence and local reporting implemented. Exported fit positions now survive JSON serialization, and a browser round trip passed. Next validate diverse real candidate associations. |
 | 4–6. Science pipeline, Planet X and spectra | Profile parallax intervals and one recorded injection experiment added. Unit parsing corrected. Next expand independent fields, source recovery and detector comparisons. |
 | 7–9. Sky Explorer, simulator and research assistant | Initial functional explorer, simulator and evidence report implemented. Continue verification with live archive, more geometry checks and model output review. |
-| 10. Release | Exercise end-to-end data paths, benchmark rendering and verify accessibility. Pages deployment now skips cleanly while repository Pages is disabled; enable the GitHub Actions Pages source and verify a live deployment when ready. |
+| 10. Release | Exercise end-to-end data paths, benchmark rendering and verify accessibility. GitHub Pages is enabled and its workflow deployed the static frontend successfully; verify the public pages in a browser and on a phone. |
