@@ -3,7 +3,7 @@
 One line per feature, from the code and the tests as they are on branch `blink-2.0`. Status words:
 **validated** = measured on real SPHEREx data (numbers in [VALIDATION.md](VALIDATION.md)); **tested** = automatic tests on synthetic inputs only;
 **manual** = checked by hand in a browser, no automatic test; **experimental** = works, but its scientific claim is limited or unproven;
-**missing** = not implemented. Evidence counts are `PASS` lines / pytest tests of 8 Nov 2026.
+**missing** = not implemented. Evidence counts are `PASS` lines / pytest tests of 8 Nov 2026 (after Phase 2: 581 Node `PASS` in 18 files, 146 pytest).
 
 ## Implemented
 
@@ -21,6 +21,7 @@ One line per feature, from the code and the tests as they are on branch `blink-2
 | **Find everything** (all sources, 4 catalogues, vetting, dossier) | `js/features/{discovery,vetting,crossmatch,dossier,catalogueRelay,discoverPanel}.js`, `backend/spherex/catalogues.py` | experimental | 42 of 42 sources on six real fields explained by Gaia; empty-sky control 0.047 false leads per field at the chosen threshold; depth 0.7-1.5 mJy (fixed) in a clean field; **nothing new found** (VALIDATION §14); `test_discovery.mjs` (60), `test_catalogue_relay.mjs` (26), `test_discover_panel.mjs` (31), `test_catalogues.py` (31); panel checked in a browser (manual) |
 | Export (movers CSV/JSON; sources CSV/JSON; dossier Markdown; positions CSV) | `export.js`, `dossier.js` | tested | `test_export.mjs` (21); the positions CSV is **not** an MPC/ADES report |
 | Colour themes (Deep Space default, Observatory, Light research, Classic) and switch | `css/styles.css` section 1, `js/features/theme.js` | tested, manual | `test_theme.mjs` (46): contrast of every text colour on every surface in every theme, token completeness, persistence logic; script audit in a browser at 375 px in all four themes. Not checked: a real phone, other browsers, the Plotly chart in the light theme |
+| **Viewer: zoom, pan, pixel and sky readout, scale bar, layer list** | `js/features/{view,readout,layers,viewerControls}.js`, `js/player.js` | tested (maths), manual (page) | `test_view.mjs` (55): sky -> screen -> sky returns the same RA/Dec to under 1e-10 degrees at any zoom and pan (3000 random views), the point under the cursor stays under it while zooming, drags stop at the edge, the scale bar, the layer registry, the readout text. In the built-in browser with real data (Barnard D2): readout equals the click measurement at the same point, a drag does not measure, pinch (synthetic touch events) and Ctrl + scroll zoom, keys `+ - 0` and Shift + arrows, each layer switches independently, no overflow at 375 px and no text under 4.5:1 in the four themes (fresh load per theme). Not checked: a real touch screen, other browsers, a screen reader. Limits: zoom shows the cutout's pixels enlarged (nearest neighbour), it adds no detail; the readout value is the cutout's (resampled, background-subtracted) pixel, see [SCIENTIFIC_LIMITATIONS.md](SCIENTIFIC_LIMITATIONS.md) |
 | Guided tour | `js/features/tour.js` | tested | `test_tour.mjs` (18) |
 | Sky map (Aladin Lite) and country readout | `skyContext.js`, `skyGeo.js` | tested (readout), manual (map) | `test_skygeo.mjs` (25); the map needs a CDN |
 | Real-data results page | `results.html`, `js/results.js`, `data/real_results.json` | tested | `test_results.mjs` (50) checks the data file against VALIDATION.md; numbers only, no pixels |
@@ -36,8 +37,8 @@ One line per feature, from the code and the tests as they are on branch `blink-2
 |---|---|
 | Reusable dialog and tooltip components, icon system | buttons, inputs, cards and tables share CSS; no dialog, tooltip or icon system; **Phase 1 remainder** |
 | Three-panel workstation (controls / viewer / inspector), collapsible panels | today: one column of panels |
-| Viewer zoom, pan, pixel and coordinate inspection, coordinate grid, scale bar | not present in `player.js` |
-| Layer manager with per-layer visibility | the overlays are separate checkboxes (flags, predicted tracks, SIMBAD, asteroids) |
+| Coordinate grid (lines of constant RA and Dec) in the viewer | zoom, pan, readout and scale bar exist (Phase 2); no grid |
+| Layer manager: order, opacity, "centre on this object" | the list has a switch, a colour key and a count per layer; nothing more |
 | Timeline 2.0 (detector and wavelength labels, filtering) | there is a frame slider with date and frame number |
 | Candidate Explorer with diagnostic plots and cutouts | the movers list and the *Find everything* list with dossiers cover part of it |
 | Side-by-side multi-detector comparison, matched sources across detectors | the "All detectors" overview and Compare A/B exist |

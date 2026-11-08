@@ -132,6 +132,8 @@ def _build(frames, ra, dec, fov, scale, key):
                 "flags": flag_summary(flags),
                 "flagsUrl": cache.save_png(key, f"{i}_flags", mask_png) if mask_png else None,
                 "pixelScaleArcsec": round(scale, 4),
+                # the unit of the float pixels (BUNIT of the file, e.g. "MJy / sr"), or None if the file does not say; the viewer's readout shows it
+                "unit": f.bunit,
             })
     out.sort(key=lambda fr: fr["mjd"])
     return out

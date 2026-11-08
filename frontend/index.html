@@ -15,7 +15,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Oswald:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 
   <script>if (/[?&]embed=1(&|$)/.test(location.search)) document.documentElement.classList.add("embed");</script>   <!-- ?embed=1: workspace only, for an <iframe> -->
-  <link rel="stylesheet" href="css/styles.css?v=13">
+  <link rel="stylesheet" href="css/styles.css?v=14">
 </head>
 <body>
   <!-- Decorative animated starfield behind everything (pure CSS, aria-hidden) -->
@@ -145,8 +145,15 @@
       <!-- The stage holds the image. aria-live announces status changes to screen readers. -->
       <div class="stage" id="stage">
         <canvas id="blink-canvas" width="512" height="512" aria-label="Blink image" role="img"
-                title="Click a source to measure its brightness"></canvas>
-        <div class="crosshair" aria-hidden="true"></div>
+                title="Click a source to measure its brightness. Drag to move when zoomed in."></canvas>
+        <div class="crosshair" id="crosshair" aria-hidden="true"></div>
+        <!-- Zoom: Ctrl + scroll or pinch also work (js/features/viewerControls.js) -->
+        <div class="stage-tools" id="stage-tools" role="group" aria-label="Zoom the image">
+          <button type="button" class="stage-btn" id="zoom-in-btn" aria-label="Zoom in" title="Zoom in (+)" disabled>+</button>
+          <button type="button" class="stage-btn" id="zoom-out-btn" aria-label="Zoom out" title="Zoom out (−)" disabled>−</button>
+          <button type="button" class="stage-btn stage-btn-wide" id="zoom-fit-btn" aria-label="Show the whole image" title="Show the whole image (0)" disabled>Fit</button>
+          <output class="zoom-level" id="zoom-level" for="blink-canvas" aria-label="Zoom level">×1</output>
+        </div>
         <div class="stage-overlay" id="stage-overlay" aria-live="polite">
           <p class="overlay-title">No images yet</p>
           <p class="overlay-sub">Enter coordinates or pick a test object.</p>
@@ -155,6 +162,12 @@
           <button type="button" id="retry-btn" class="btn btn-retry" hidden>Try again</button>
         </div>
       </div>
+
+      <!-- Under the cursor: pixel, sky position, offset from the centre of the field, value (js/features/readout.js). Not a live region: it changes with every mouse move. -->
+      <p class="readout" id="readout">
+        <span class="readout-idle" id="readout-idle">Move the pointer over the image to read the pixel and the sky position.</span>
+        <span class="ro" id="ro-pixel"></span><span class="ro" id="ro-sky"></span><span class="ro" id="ro-offset"></span><span class="ro ro-value" id="ro-value"></span>
+      </p>
 
       <!-- Short, non-blocking notes (e.g. "D1 has no images here, showing D2") -->
       <p id="status-msg" class="status" role="status" aria-live="polite"></p>
@@ -180,16 +193,27 @@
       </div>
 
       <p class="shortcuts" id="shortcuts-hint">
-        Keyboard: <kbd>Space</kbd> play/pause &middot; <kbd>←</kbd> <kbd>→</kbd> step one frame
+        Keyboard: <kbd>Space</kbd> play/pause &middot; <kbd>←</kbd> <kbd>→</kbd> step one frame &middot; <kbd>+</kbd> <kbd>−</kbd> zoom &middot; <kbd>0</kbd> whole image &middot; <kbd>Shift</kbd>+arrows move when zoomed in.
+        Mouse: <kbd>Ctrl</kbd>+scroll zooms, drag moves.
       </p>
 
       <div class="player-options">
-        <label class="check"><input type="checkbox" id="show-flags"> Show flagged pixels</label>
         <label class="check"><input type="checkbox" id="skip-flagged"> Skip frames with &gt; 1&nbsp;% flagged pixels</label>
-        <label class="check"><input type="checkbox" id="show-track" checked disabled> Predicted position of known objects</label>
-        <label class="check"><input type="checkbox" id="show-catalogue" disabled> Catalogue stars (SIMBAD) and their motion</label>
-        <label class="check"><input type="checkbox" id="show-asteroids" disabled> Known asteroids (SkyBoT)</label>
       </div>
+
+      <!-- Layers: what is drawn on top of the picture. Each one switches on its own; the key matches the colour on the canvas (js/features/layers.js) -->
+      <fieldset class="layers" id="layers">
+        <legend>Layers</legend>
+        <ul class="layer-list">
+          <li class="layer" data-layer="flags"><label class="check" title="Red = flagged as bad data in the SPHEREx file"><input type="checkbox" id="show-flags"><span class="layer-key" aria-hidden="true"></span><span class="layer-name">Flagged pixels</span></label><span class="layer-count" data-count="flags"></span></li>
+          <li class="layer" data-layer="tracks"><label class="check" title="Where the test object should be on each date"><input type="checkbox" id="show-track" checked disabled><span class="layer-key" aria-hidden="true"></span><span class="layer-name">Predicted positions</span></label><span class="layer-count" data-count="tracks"></span></li>
+          <li class="layer" data-layer="catalogue"><label class="check"><input type="checkbox" id="show-catalogue" disabled><span class="layer-key" aria-hidden="true"></span><span class="layer-name">Catalogue stars (SIMBAD) and their motion</span></label><span class="layer-count" data-count="catalogue"></span></li>
+          <li class="layer" data-layer="asteroids"><label class="check"><input type="checkbox" id="show-asteroids" disabled><span class="layer-key" aria-hidden="true"></span><span class="layer-name">Known asteroids (SkyBoT)</span></label><span class="layer-count" data-count="asteroids"></span></li>
+          <li class="layer" data-layer="candidates"><label class="check" title="The dots that Find movers reports"><input type="checkbox" id="show-candidates" checked><span class="layer-key" aria-hidden="true"></span><span class="layer-name">Movers found</span></label><span class="layer-count" data-count="candidates"></span></li>
+          <li class="layer" data-layer="marker"><label class="check" title="The circle left by a click on the image"><input type="checkbox" id="show-marker" checked><span class="layer-key" aria-hidden="true"></span><span class="layer-name">Measuring circle</span></label><span class="layer-count" data-count="marker"></span></li>
+          <li class="layer" data-layer="scalebar"><label class="check"><input type="checkbox" id="show-scalebar" checked><span class="layer-key" aria-hidden="true"></span><span class="layer-name">Scale bar</span></label><span class="layer-count" data-count="scalebar"></span></li>
+        </ul>
+      </fieldset>
       <!-- Filled when a test object is in the field: how far it should move, in pixels -->
       <p class="track-info" id="track-info" aria-live="polite"></p>
       <!-- Filled when "Catalogue stars" is ticked: what SIMBAD lists in this field -->

@@ -477,6 +477,63 @@ output { font-weight: 600; color: var(--accent); }
 .check { display: inline-flex; align-items: center; gap: .45rem; cursor: pointer; color: var(--text-muted); }
 .check input { accent-color: var(--accent); width: 16px; height: 16px; }
 .check:has(input:disabled) { opacity: .45; cursor: not-allowed; }
+
+/* Zoom buttons, in the corner of the picture. The stage is a dark island in every theme (it takes the Deep Space tokens in the light theme). */
+.stage-tools {
+  position: absolute; top: .5rem; right: .5rem; z-index: 2;
+  display: flex; align-items: center; gap: .3rem;
+}
+.stage-btn {
+  min-width: 32px; height: 32px; padding: 0 .5rem;
+  font: 600 1rem/1 var(--font-body); color: var(--text); cursor: pointer;
+  background: rgb(var(--bg-rgb) / .78); border: 1px solid var(--control-border); border-radius: 8px;
+}
+.stage-btn-wide { font-size: .78rem; letter-spacing: .02em; }
+.stage-btn:hover:not(:disabled) { border-color: var(--accent); }
+.stage-btn:disabled { opacity: .4; cursor: not-allowed; }
+.zoom-level {
+  min-width: 2.6rem; padding: .2rem .35rem; text-align: center;
+  font: 600 .78rem/1.2 var(--font-mono); font-variant-numeric: tabular-nums;
+  color: var(--text); background: rgb(var(--bg-rgb) / .78); border-radius: 6px;
+}
+/* Dragging moves the picture only when it is zoomed in; a click without a drag still measures. On a phone a finger drag on a zoomed picture
+   moves it, a drag on a whole picture scrolls the page (touch-action). */
+#blink-canvas { touch-action: pan-y; }
+#blink-canvas.zoomed { cursor: grab; touch-action: none; }
+#blink-canvas.dragging { cursor: grabbing; }
+
+/* What is under the pointer: pixel, sky position, offset from the centre of the field, value. A fixed height so the page does not jump. */
+.readout {
+  max-width: 640px; width: 100%; margin: .55rem auto 0; min-height: 2.9em;
+  display: flex; flex-wrap: wrap; gap: .1rem 1rem; align-content: flex-start;
+  font: .78rem/1.45 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--text-muted);
+}
+.readout .ro:empty { display: none; }
+.readout .ro-value { color: var(--text); }
+.readout-idle { font-family: var(--font-body); }
+.readout.active .readout-idle { display: none; }
+
+/* Layers: what is drawn over the picture, each with its own switch. The key is drawn in the colour used on the canvas, on a dark chip
+   (the colours were chosen for the dark picture, not for the page). */
+.layers { max-width: 640px; width: 100%; margin: .8rem auto 0; padding: .5rem .8rem .7rem; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.layers legend { padding: 0 .4rem; font-size: .78rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); }
+.layer-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(15.5rem, 1fr)); gap: .15rem 1.2rem; font-size: .85rem; }
+.layer { display: flex; align-items: center; justify-content: space-between; gap: .5rem; min-width: 0; }
+.layer .check { min-width: 0; }
+.layer-name { min-width: 0; overflow-wrap: anywhere; }
+.layer-count { flex: none; min-width: 1.6em; text-align: right; font: .75rem/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--text-muted); }
+.layer-count:empty { visibility: hidden; }
+.layer-key {
+  --key: var(--text-muted);
+  flex: none; position: relative; width: 20px; height: 20px; border-radius: 5px; background: var(--chart-bg);
+}
+.layer-key::after { content: ""; position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; transform: translate(-50%, -50%); box-sizing: border-box; }
+.layer-key[data-shape="square"]::after  { background: var(--key); border-radius: 2px; }
+.layer-key[data-shape="ring"]::after    { border: 2px solid var(--key); border-radius: 50%; }
+.layer-key[data-shape="diamond"]::after { border: 2px solid var(--key); transform: translate(-50%, -50%) rotate(45deg) scale(.85); }
+.layer-key[data-shape="bar"]::after     { width: 12px; height: 6px; border: 2px solid var(--key); border-top: 0; }
+.layer:has(input:disabled) .layer-key { opacity: .5; }
+@media (hover: none) and (pointer: coarse) { .stage-btn { min-width: 44px; height: 44px; } }
 .tools { gap: .5rem; }
 .btn-small { padding: .45rem .9rem; font-size: .82rem; }
 .btn-small:hover:not(:disabled) { border-color: var(--accent); }

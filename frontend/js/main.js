@@ -14,6 +14,7 @@ import { getCutouts, listDetectors } from "./data/getCutouts.js";
 import { DATA_SOURCE, API_BASE } from "./config.js";
 import { BlinkPlayer, MODES, loadImage, meanImageData } from "./player.js";
 import { canvasToSky, measureAndPlot, clearMeasurement, APERTURE_RADIUS_PX } from "./features/measure.js";
+import { setupViewer } from "./features/viewerControls.js";
 import { SkyContext } from "./features/skyContext.js";
 import { setupFullscreen } from "./features/fullscreen.js";
 import { findMoversAcrossDetectors, detectSources, describeMover, matchKnownObject, moverPositionAtMjd, passIndices, trackSupport, blendWarning } from "./features/movers.js";
@@ -251,6 +252,23 @@ const player = new BlinkPlayer(canvas, {
 });
 player.setFps(speedInput.value);
 
+// Zoom, pan, the readout under the pointer and the layer list (features/viewerControls.js). Set up BEFORE the click handler that measures:
+// a click that ends a drag must stop in the viewer's own handler and never reach the measuring.
+/** The pixel values of one frame as real numbers (backend `dataUrl`, float32), for the readout. Rejects when they cannot be had. */
+async function loadFloatFrame(frame) {
+  const response = await fetch(frame.dataUrl);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return new Float32Array(await response.arrayBuffer());
+}
+const viewer = setupViewer({
+  player, canvas, crosshair: $("crosshair"),
+  zoomEls: { inBtn: $("zoom-in-btn"), outBtn: $("zoom-out-btn"), fitBtn: $("zoom-fit-btn"), level: $("zoom-level") },
+  readoutEls: { root: $("readout"), pixel: $("ro-pixel"), sky: $("ro-sky"), offset: $("ro-offset"), value: $("ro-value") },
+  layersRoot: $("layers"),
+  getGeo: () => (currentQuery && currentFrames.length && player.naturalSize ? currentGeo() : null),
+  loadFloat: loadFloatFrame,
+});
+
 const fmtDate = (iso) => iso.slice(0, 16).replace("T", " ") + " UTC";
 
 /** Update counter, date, slider and metadata for the frame being shown. */
@@ -309,6 +327,7 @@ function setPlayerEnabled(enabled) {
   document.querySelectorAll('#mode-switch input:not([value="blink"])')
     .forEach((r) => { r.disabled = !enabled || player.length < 2; });
   $("show-flags").disabled = !enabled || !player.hasFlagMasks;
+  viewer.refresh();                                  // the zoom buttons follow whether there is a picture
   $("find-movers-btn").disabled = !enabled || !canFindMovers();
   $("find-distant-btn").disabled = !enabled || !canFindMovers();
   if (discoverPanel) { if (enabled) discoverPanel.refresh(); else $("discover-btn").disabled = true; }
@@ -328,6 +347,7 @@ frameSlider.addEventListener("input", () => {
 document.addEventListener("keydown", (e) => {
   if (!(e.target instanceof Element) || e.target.closest("input, select, textarea, summary, .skymap") || !player.length) return;
   if (e.ctrlKey || e.metaKey || e.altKey) return;    // leave browser shortcuts alone
+  if (e.shiftKey && e.key.startsWith("Arrow")) return;   // Shift + arrows move a zoomed picture (viewerControls.js)
   if (e.key === "Escape" && player.marker) { clearMarker(); return; }
   if (!player.isAnimated) return;
   const onButton = !!e.target.closest("button");
@@ -497,6 +517,7 @@ async function showDetector(detector) {
 
   setupCompare();
   frameSlider.max = String(currentFrames.length - 1);
+  player.setPixelScale(currentFrames[0].pixelScaleArcsec ?? (currentQuery.fov * 60) / player.naturalSize);   // for the scale bar
   hideOverlay();
   setPlayerEnabled(true);
   updateTracks();
@@ -571,9 +592,8 @@ let measureToken = 0;
 
 canvas.addEventListener("click", async (e) => {
   if (!player.length || !currentQuery) return;
-  const rect = canvas.getBoundingClientRect();
-  const fx = (e.clientX - rect.left) / rect.width;
-  const fy = (e.clientY - rect.top) / rect.height;
+  const { fx, fy } = player.pointToFrac(e.clientX, e.clientY);       // image fractions, whatever the zoom and pan
+  if (fx < 0 || fx >= 1 || fy < 0 || fy >= 1) return;
   const n = player.naturalSize;
   const scaleArcsec = currentFrames[0].pixelScaleArcsec ?? (currentQuery.fov * 60) / n;
   const sky = canvasToSky(fx, fy, { ra: currentQuery.ra, dec: currentQuery.dec, n, scaleArcsec });

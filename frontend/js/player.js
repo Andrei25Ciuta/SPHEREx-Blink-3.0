@@ -18,18 +18,28 @@
 //   await player.setFrames(frames, onProgress);  // preloads + decodes all images
 //   player.setMode("diff"); player.play(); player.goTo(3); player.setFps(4);
 //   player.setTracks([{ label, points: [{ fx, fy }, ...] }]);  // predicted positions, one per frame
+//
+// Zoom and pan (features/view.js): the player keeps `view = { zoom, cx, cy }`. Positions everywhere else stay image FRACTIONS (fx, fy);
+// only drawing goes through the view (`_px`), so the sky <-> image mapping of geometry.js is untouched by zoom and pan.
 
 import { combine } from "./features/compare.js";
+import { createView, clampView, fracToCanvas, canvasToFrac, sourceRect, zoomAt, panBy, panStep, scaleBar } from "./features/view.js";
+import { OVERLAY_COLORS } from "./features/layers.js";
 
 export const MODES = ["blink", "diff", "mean", "max", "compare"];
 const ANIMATED = new Set(["blink", "diff"]);       // modes that step through time
 
 export class BlinkPlayer {
-  constructor(canvas, { onFrameChange = () => {}, onPlayStateChange = () => {} } = {}) {
+  constructor(canvas, { onFrameChange = () => {}, onPlayStateChange = () => {}, onViewChange = () => {}, onDraw = () => {} } = {}) {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d");
     this.onFrameChange = onFrameChange;           // called with (index, frame)
     this.onPlayStateChange = onPlayStateChange;   // called with (isPlaying)
+    this.onViewChange = onViewChange;             // called with (view) when zoom or pan changed
+    this.onDraw = onDraw;                         // called after every redraw (the layer counts and the readout follow it)
+    this.view = createView();                     // which part of the image the canvas shows (features/view.js)
+    this.hidden = new Set();                      // layers switched off: "candidates", "marker", "scalebar" (flags and tracks have their own switch)
+    this.pixelScaleArcsec = null;                 // arcsec per image pixel, for the scale bar
 
     this.frames = [];       // metadata objects (the Frame contract)
     this.images = [];       // matching, already-decoded HTMLImageElements
@@ -73,6 +83,8 @@ export class BlinkPlayer {
     this.asteroids = [];                            // so are these
     this.candidates = [];                           // they belong to the old frames
     this.selectedCandidate = -1;
+    this.view = createView();                       // a new field: show all of it
+    this.onViewChange(this.view);
     let done = 0;
     onProgress(0, frames.length);
     const images = await Promise.all(frames.map((f) =>
@@ -139,25 +151,80 @@ export class BlinkPlayer {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (this.mode === "blink") {
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      this._blit(img);
     } else {
       const rgba = this._renderDerived();
       if (rgba) this._drawRgba(rgba);
-      else ctx.drawImage(img, 0, 0, canvas.width, canvas.height);   // fallback (e.g. tainted image)
+      else this._blit(img);                       // fallback (e.g. tainted image)
     }
 
     if (this.showFlags) {
       const masks = this.isAnimated ? [this.flagImages[this.index]] : this.flagImages;
       ctx.globalAlpha = this.isAnimated ? 0.85 : 0.35;
-      for (const m of masks) if (m) ctx.drawImage(m, 0, 0, canvas.width, canvas.height);
+      for (const m of masks) if (m) this._blit(m);
       ctx.globalAlpha = 1;
     }
 
     if (this.showTracks && this.tracks.length) this._drawTracks();
     if (this.catalogue.length) this._drawCatalogue();
     if (this.asteroids.length) this._drawAsteroids();
-    if (this.candidates.length) this._drawCandidates();
-    if (this.marker) this._drawMarker();
+    if (this.candidates.length && !this.hidden.has("candidates")) this._drawCandidates();
+    if (this.marker && !this.hidden.has("marker")) this._drawMarker();
+    if (!this.hidden.has("scalebar")) this._drawScaleBar();
+    this.onDraw();
+  }
+
+  // ------------------------------------------------------------------ zoom and pan (features/view.js)
+
+  /** Draw the part of `source` (an image or canvas, square) that the view shows, over the whole canvas. */
+  _blit(source) {
+    const n = source.naturalWidth || source.width;
+    const r = sourceRect(this.view, n);
+    this.ctx.drawImage(source, r.sx, r.sy, r.sw, r.sh, 0, 0, this.canvas.width, this.canvas.height);
+  }
+
+  /** Image fraction -> canvas pixel [x, y] under the current view. Everything that is drawn on top of the picture goes through this. */
+  _px(fx, fy) {
+    const p = fracToCanvas(this.view, fx, fy, this.canvas.width, this.canvas.height);
+    return [p.x, p.y];
+  }
+  _pts(points) { return points.map((p) => this._px(p.fx, p.fy)); }
+
+  get zoom() { return this.view.zoom; }
+
+  setView(view) {
+    this.view = clampView(view);
+    this.draw();
+    this.onViewChange(this.view);
+  }
+  resetView() { this.setView(createView()); }
+  /** Zoom by `factor` keeping the canvas pixel (x, y) in place (default: the middle). */
+  zoomBy(factor, x = this.canvas.width / 2, y = this.canvas.height / 2) {
+    this.setView(zoomAt(this.view, factor, x, y, this.canvas.width, this.canvas.height));
+  }
+  /** The picture follows a drag of (dx, dy) canvas pixels. */
+  panByCanvas(dx, dy) { this.setView(panBy(this.view, dx, dy, this.canvas.width, this.canvas.height)); }
+  /** Keyboard pan: dirX, dirY in {-1, 0, 1}. */
+  panByStep(dirX, dirY) { this.setView(panStep(this.view, dirX, dirY)); }
+
+  /** A mouse or touch position on the page -> { fx, fy } image fractions under the current view (what a click measures). */
+  pointToFrac(clientX, clientY) {
+    const rect = this.canvas.getBoundingClientRect();
+    const x = ((clientX - rect.left) / rect.width) * this.canvas.width;
+    const y = ((clientY - rect.top) / rect.height) * this.canvas.height;
+    return canvasToFrac(this.view, x, y, this.canvas.width, this.canvas.height);
+  }
+
+  /** Layers that have no switch of their own: "candidates", "marker", "scalebar". */
+  setLayerVisible(id, on) { if (on) this.hidden.delete(id); else this.hidden.add(id); this.draw(); }
+  setPixelScale(arcsecPerPixel) { this.pixelScaleArcsec = Number(arcsecPerPixel) > 0 ? Number(arcsecPerPixel) : null; this.draw(); }
+
+  /** The 8-bit display level (0..255) of one pixel of the frame on screen, or null (pixels unreadable, or outside the image). */
+  greyLevelAt(ix, iy) {
+    const n = this.naturalSize;
+    if (!n || ix < 0 || iy < 0 || ix >= n || iy >= n) return null;
+    const g = this._greys();
+    return g ? g[this.index][iy * n + ix] : null;
   }
 
   /** The image currently on screen, as a PNG data: URL (for "save frame"). */
@@ -306,7 +373,7 @@ export class BlinkPlayer {
     c.width = c.height = n;
     const cx = c.getContext("2d", { willReadFrequently: true });
     cx.putImageData(new ImageData(rgba, n, n), 0, 0);
-    this.ctx.drawImage(c, 0, 0, this.canvas.width, this.canvas.height);
+    this._blit(c);
   }
 
   /**
@@ -317,11 +384,11 @@ export class BlinkPlayer {
   _drawTracks() {
     const { ctx, canvas } = this;
     const W = canvas.width, H = canvas.height;
-    const COLOR = "#FBE9D0";
+    const COLOR = OVERLAY_COLORS.tracks;
     ctx.save();
     ctx.shadowColor = "#000"; ctx.shadowBlur = 3;
     for (const t of this.tracks) {
-      const pts = t.points.map((p) => [p.fx * W, p.fy * H]);
+      const pts = this._pts(t.points);
       if (!pts.length) continue;
 
       ctx.strokeStyle = COLOR; ctx.fillStyle = COLOR;
@@ -367,11 +434,12 @@ export class BlinkPlayer {
     ctx.shadowColor = "#000"; ctx.shadowBlur = 3;
     ctx.font = "700 13px Inter, system-ui, sans-serif";
     this.candidates.forEach((c, i) => {
-      const pts = c.points.map((p) => [p.fx * W, p.fy * H]);
+      const pts = this._pts(c.points);
       if (!pts.length) return;
       const selected = i === this.selectedCandidate;
       const [x, y] = this.isAnimated ? (pts[this.index] ?? pts[0]) : pts.at(-1);
-      ctx.strokeStyle = ctx.fillStyle = selected ? "#F4806A" : "#EA4F39";
+      if (x < -20 || x > W + 20 || y < -20 || y > H + 20) { if (!selected) return; }   // off screen after zooming (the selected path still shows)
+      ctx.strokeStyle = ctx.fillStyle = selected ? OVERLAY_COLORS.candidateSelected : OVERLAY_COLORS.candidates;
 
       if (selected) {
         ctx.globalAlpha = 0.85; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]);
@@ -401,10 +469,10 @@ export class BlinkPlayer {
     const W = canvas.width, H = canvas.height;
     ctx.save();
     ctx.shadowColor = "#000"; ctx.shadowBlur = 3;
-    ctx.strokeStyle = ctx.fillStyle = "#90AEAD";
+    ctx.strokeStyle = ctx.fillStyle = OVERLAY_COLORS.catalogue;
     ctx.font = "600 12px Inter, system-ui, sans-serif";
     for (const o of this.catalogue) {
-      const pts = o.points.map((p) => [p.fx * W, p.fy * H]);
+      const pts = this._pts(o.points);
       if (!pts.length) continue;
       if (o.moving) {
         ctx.globalAlpha = 0.6; ctx.lineWidth = 1.2; ctx.setLineDash([3, 4]);
@@ -438,12 +506,12 @@ export class BlinkPlayer {
     const dates = this.isAnimated ? [this.index] : this.asteroids.map((_, k) => k);
     ctx.save();
     ctx.shadowColor = "#000"; ctx.shadowBlur = 3;
-    ctx.strokeStyle = ctx.fillStyle = "#F2A93B";
+    ctx.strokeStyle = ctx.fillStyle = OVERLAY_COLORS.asteroids;
     ctx.lineWidth = 1.6;
     ctx.font = "600 12px Inter, system-ui, sans-serif";
     for (const k of dates) {
       for (const a of this.asteroids[k] ?? []) {
-        const x = a.fx * W, y = a.fy * H;
+        const [x, y] = this._px(a.fx, a.fy);
         if (x < -8 || x > W + 8 || y < -8 || y > H + 8) continue;
         ctx.beginPath();
         ctx.moveTo(x, y - 8); ctx.lineTo(x + 8, y); ctx.lineTo(x, y + 8); ctx.lineTo(x - 8, y); ctx.closePath();
@@ -458,17 +526,39 @@ export class BlinkPlayer {
     ctx.restore();
   }
 
+  /** The measuring aperture. Its radius is in IMAGE pixels, so it grows with the zoom (what the circle covers does not change). */
   _drawMarker() {
     const { fx, fy, rPx } = this.marker;
     const n = this.naturalSize || 1;
-    const x = fx * this.canvas.width, y = fy * this.canvas.height;
-    const r = Math.max(6, (rPx / n) * this.canvas.width);
+    const [x, y] = this._px(fx, fy);
+    const r = Math.max(6, (rPx / n) * this.canvas.width * this.view.zoom);
     const ctx = this.ctx;
     ctx.save();
     ctx.lineWidth = 2;
-    ctx.strokeStyle = "hsl(55 100% 60%)";
+    ctx.strokeStyle = OVERLAY_COLORS.marker;
     ctx.shadowColor = "#000"; ctx.shadowBlur = 4;
     ctx.beginPath(); ctx.arc(x, y, r, 0, 2 * Math.PI); ctx.stroke();
+    ctx.restore();
+  }
+
+  /** A scale bar in the bottom-left corner: a round angle (features/view.js scaleBar) as long as it is on the canvas at this zoom. */
+  _drawScaleBar() {
+    const n = this.naturalSize;
+    const scale = this.frames[this.index]?.pixelScaleArcsec ?? this.pixelScaleArcsec;
+    if (!n || !scale) return;
+    const bar = scaleBar((scale * n) / (this.canvas.width * this.view.zoom), this.canvas.width * 0.3);
+    if (!bar) return;
+    const { ctx, canvas } = this;
+    const x0 = 16, y0 = canvas.height - 16;
+    ctx.save();
+    ctx.shadowColor = "#000"; ctx.shadowBlur = 3;
+    ctx.strokeStyle = ctx.fillStyle = OVERLAY_COLORS.scalebar;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(x0, y0 - 5); ctx.lineTo(x0, y0); ctx.lineTo(x0 + bar.px, y0); ctx.lineTo(x0 + bar.px, y0 - 5);
+    ctx.stroke();
+    ctx.font = "600 12px Inter, system-ui, sans-serif";
+    ctx.fillText(bar.label, x0, y0 - 9);
     ctx.restore();
   }
 }

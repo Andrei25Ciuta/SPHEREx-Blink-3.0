@@ -15,7 +15,7 @@ from PIL import Image
 
 from .flags import bad_mask
 
-STRETCH_VERSION = 4      # bump when the algorithm/output changes -> invalidates the PNG cache (3: bilinear cutouts + float files; 4: + bad-pixel mask files)
+STRETCH_VERSION = 5      # bump when the algorithm/output changes -> invalidates the PNG cache (3: bilinear cutouts + float files; 4: + bad-pixel mask files; 5: + "unit" in each frame)
 LOW_PCT, HIGH_PCT = 1.0, 99.7
 ASINH_A = 0.1            # smaller = stronger boost of faint stuff
 

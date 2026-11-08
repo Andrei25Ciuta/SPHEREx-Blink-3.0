@@ -7,8 +7,8 @@ Branch `blink-2.0` (from `main` at `3f1e538`; `main` is left as the reference an
 
 | Check | Result (8 Nov 2026) |
 |---|---|
-| Node tests (`scratch/test_*.mjs`) | 16 files, all exit 0, 480 `PASS` lines before Phase 1; 17 files and **526** `PASS` after it (`test_theme.mjs`, 46); 0 `FAIL` (`test_coords` and `test_mock` print in another style and are not in that count) |
-| Backend tests (`pytest backend`) | 143 passed (112 before this work) |
+| Node tests (`scratch/test_*.mjs`) | 16 files, all exit 0, 480 `PASS` lines before Phase 1; 17 files and 526 `PASS` after it (`test_theme.mjs`, 46); 18 files and **581** `PASS` after Phase 2 (`test_view.mjs`, 55); 0 `FAIL` (`test_coords` and `test_mock` print in another style and are not in that count) |
+| Backend tests (`pytest backend`) | 146 passed after Phase 2 (143 after Phase 1, 112 before this work) |
 | CI (`.github/workflows/tests.yml`) | runs every `scratch/test_*.mjs` and pytest; **not run on the new branch yet** (nothing pushed); the action versions in it were written from memory |
 | Browser check of the new panel (built-in browser, real data, backend on port 8003) | opens, runs, no console errors; 375 px wide: no horizontal overflow after a fix (see §4) |
 | End-to-end browser tests (Playwright) | **none exist**: every browser check so far was done by hand or with small scripts (`scratch/audit_page.js`) |

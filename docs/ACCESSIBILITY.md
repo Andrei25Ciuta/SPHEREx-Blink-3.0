@@ -70,6 +70,21 @@ Checked with `scratch/audit_page.js` in the app's built-in browser (Chromium), p
   and button were unreadable until the banner, the image stage and the charts were given the dark palette (they stay dark in every theme).
 - Not checked: a screen reader on the new panel, a real phone, other browsers, a high-contrast mode, the Plotly chart in the light theme.
 
+## Viewer: zoom, pan, readout, layers (added 8 Nov 2026, Phase 2)
+
+- **Keyboard**: `+` `-` zoom, `0` shows the whole image, `Shift` + arrows move a zoomed picture, plain arrows still step the frames (the viewer ignores the keys while a field,
+  select or slider has focus). The zoom buttons are real buttons with names and tooltips; the layer list is a `fieldset` with a legend and one labelled checkbox per layer.
+- **Pointer**: Ctrl + scroll or a trackpad pinch zooms (a plain scroll still scrolls the page); a drag moves a zoomed picture; a drag never counts as a click, so it does
+  not start a measurement. Two fingers pinch. On touch screens `touch-action` is `pan-y` (the page still scrolls) and `none` once the picture is zoomed (a finger moves the picture).
+- **Touch targets**: the zoom buttons are 32 px with a mouse and 44 px on a coarse pointer.
+- **Not available without a pointer**: the pixel / sky readout follows the mouse (or a finger); a keyboard user gets the position of a measurement from the click text
+  and the sky map instead. The readout is not a live region on purpose (it changes with every mouse move).
+- Checked with the script audit on a fresh load of each theme at 375 px with real data: no horizontal overflow, 0 low-contrast text nodes (Deep Space, Observatory;
+  Light research and Classic: 0 of 164 on a fresh load); the new text uses the existing pairs (`--text-muted` on the panel, `--text` on the dark stage).
+  *Method note:* changing `data-theme` from a script in a pane that is not visible leaves CSS transitions frozen at the old colours and reports false contrast failures;
+  load the page with `?theme=` instead.
+- Not checked: a real touch screen (the pinch was driven with synthetic pointer events), a screen reader, other browsers.
+
 ## Re-running
 
 ```js

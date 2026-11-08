@@ -15,6 +15,7 @@
 //     dataUrl?: string | null,   // the same pixels as REAL numbers: raw little-endian float32, n*n values, north up,
 //                                //   background-subtracted, NaN = no data (backend only; used by Find movers)
 //     pixelScaleArcsec?: number, // arcsec per image pixel (else derived from the FOV)
+//     unit?: string | null,      // unit of the float pixels (the file's BUNIT, e.g. "MJy / sr"); absent or null = the file does not say
 //   }
 //
 //   getPhotometry({ centerRa, centerDec, fovArcmin, ra, dec, detector, radiusPx, motion }) -> Promise<Point[]>
