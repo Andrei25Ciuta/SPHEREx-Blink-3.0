@@ -44,6 +44,8 @@ checked by `validateFrame` in `getCutouts.js`.
 | `readout.js` | what is shown under the pointer: pixel, RA/Dec (the same conversion as a click), offset, value text |
 | `layers.js` | the overlay layers: names, colours (used for drawing and for the colour key), counts |
 | `viewerControls.js` | the DOM side of the viewer (not pure): buttons, drag, pinch, wheel, keys, the readout line, the layer list |
+| `timeline.js` | survey passes, the time × wavelength layout, the filter (wavelength window, passes off), stepping through the images that pass it, texts |
+| `timelineView.js` | the DOM side of the timeline (not pure): one button per image, pass switches, wavelength sliders; tells the player which images are active |
 
 ## State and flow in `main.js`
 

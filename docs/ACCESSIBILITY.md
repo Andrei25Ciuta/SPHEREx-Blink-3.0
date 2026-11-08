@@ -86,6 +86,11 @@ Checked with `scratch/audit_page.js` in the app's built-in browser (Chromium), p
 - The **coordinate grid** and its labels, the scale bar and every overlay are drawn on the canvas: a screen reader does not read them (the canvas has a text label for the
   image; the positions of candidates are in their lists and dossiers). *Centre the picture on it* is a normal button in the candidate's description and in the dossier, so the same
   zoom is reachable by keyboard.
+- **Timeline** (added 8 Nov 2026): one real button per image with a full-sentence name (number, date, detector, band, flags) and `aria-current` on the one shown; only that one is in the
+  tab order (`tabindex`), the others are reached with the arrow keys and the frame slider, which step the same images, so the timeline is a second way to do what the slider does
+  (WCAG 2.5.8 allows a smaller target when an equivalent control exists; the buttons are 24 px and overlap a little when 18 images share a phone's width). Survey-pass switches are
+  `aria-pressed` buttons; the two wavelength sliders have visible labels and live values; the note under the plot is a polite live region. State is never colour alone: a left-out image is
+  hollow, a badly flagged one is a diamond, a switched-off pass is dashed and struck through. Contrast: no text under 4.5:1 in Light and Classic at 375 px; the dots are 3.7:1 against the panel in Classic.
 - Not checked: a real touch screen (the pinch was driven with synthetic pointer events), a screen reader, other browsers.
 
 ## Re-running

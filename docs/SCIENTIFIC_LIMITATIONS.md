@@ -46,6 +46,11 @@ A candidate is a lead with its evidence, never a discovery. Nothing this applica
   5′ fields the app mostly uses; for a 30′ field far from the equator a position near a corner is good to about a pixel (6″), and the grid and the readout share that error.
 - The **coordinate grid** is drawn on round values (RA in seconds of time, Dec in arcseconds or arcminutes) with the same flat mapping: a line is where the page believes
   that RA or Dec is, to the accuracy above. It is not a WCS from the FITS file. Near a pole the RA lines are left out.
+- The **timeline** puts the images in time order (grouped by survey pass, not to scale inside a pass) and by wavelength; a "survey pass" is a run of images with no gap of 30 days or more
+  (the rule Find movers uses). Its filter (a wavelength window, passes switched off) changes **only** what the blink visits and what Stack, Trail and Difference are made of:
+  Find movers, Find everything, Compare, Measure and the exports always use every image. Difference with a filter takes its reference from the images of *other* passes that
+  also pass the filter (fewer wavelength leftovers of bright stars); if none does, it falls back to all other passes. A Stack or Trail of a wavelength window is a picture made
+  from a few images, deeper than one but not as deep as the whole set; it says "Stack of 3 of 18". Nothing here is calibrated across wavelengths.
 - *Centre the picture on it* puts the candidate's position **on the image shown** in the middle (in Stack, Trail and Compare: the middle of its whole path) and zooms to at
   least ×6. It does not follow the candidate from image to image.
 - The **value** in the readout is the pixel of the *cutout the backend made*: resampled onto a common grid (bilinear) and background-subtracted, in the file's own

@@ -31,8 +31,9 @@ export async function recordBlink(player, baseName, { minSeconds = 3, maxSteps =
   const fps = player.fps;
   const stepMs = 1000 / fps;
   // Whole loops only, at least minSeconds long, but never absurdly long.
-  const loops = Math.max(2, Math.ceil((minSeconds * fps) / player.length));
-  const totalSteps = Math.min(maxSteps, loops * player.length);
+  const visited = Math.max(1, player.activeCount);                 // the images the blink visits (the timeline filter may leave out some)
+  const loops = Math.max(2, Math.ceil((minSeconds * fps) / visited));
+  const totalSteps = Math.min(maxSteps, loops * visited);
 
   // captureStream(0) = no automatic frames: we push one with requestFrame() after every
   // draw. That works even when the browser pauses animations (hidden tab).

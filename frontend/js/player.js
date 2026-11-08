@@ -26,6 +26,7 @@ import { combine } from "./features/compare.js";
 import { createView, clampView, fracToCanvas, canvasToFrac, sourceRect, zoomAt, panBy, panStep, scaleBar, centreAndZoom, pathCentre } from "./features/view.js";
 import { OVERLAY_COLORS } from "./features/layers.js";
 import { gridLines } from "./features/grid.js";
+import { stepActive } from "./features/timeline.js";
 
 export const MODES = ["blink", "diff", "mean", "max", "compare"];
 const ANIMATED = new Set(["blink", "diff"]);       // modes that step through time
@@ -42,6 +43,7 @@ export class BlinkPlayer {
     this.hidden = new Set(["grid"]);              // layers switched off: "candidates", "marker", "grid", "scalebar" (flags and tracks have their own switch); the grid starts off
     this.pixelScaleArcsec = null;                 // arcsec per image pixel, for the scale bar and the grid
     this.field = null;                            // { ra, dec } of the middle of the cutout, for the grid
+    this.active = null;                           // the timeline filter: sorted indices of the images the blink visits and Stack / Trail / Difference use; null = all
 
     this.frames = [];       // metadata objects (the Frame contract)
     this.images = [];       // matching, already-decoded HTMLImageElements
@@ -87,6 +89,7 @@ export class BlinkPlayer {
     this.selectedCandidate = -1;
     this.view = createView();                       // a new field: show all of it
     this.onViewChange(this.view);
+    this.active = null;                             // and all of its images
     let done = 0;
     onProgress(0, frames.length);
     const images = await Promise.all(frames.map((f) =>
@@ -102,6 +105,18 @@ export class BlinkPlayer {
   }
 
   get length() { return this.frames.length; }
+  /** Indices of the images the timeline filter lets through (all of them when there is no filter). */
+  get activeIndices() { return this.active ?? this.frames.map((_, i) => i); }
+  get activeCount() { return this.active ? this.active.length : this.frames.length; }
+  /**
+   * The timeline filter: which images the blink steps through and which ones Stack, Trail and Difference combine. `indices` = sorted frame indices,
+   * or null for all. It does not forbid looking at another image (goTo and the slider still show any), and the searches ignore it.
+   */
+  setActive(indices) {
+    this.active = Array.isArray(indices) && indices.length !== this.frames.length ? [...indices].sort((a, b) => a - b) : null;
+    if (this.playing && this.activeCount < 2) this.pause();
+    this.draw();
+  }
   get isAnimated() { return ANIMATED.has(this.mode); }
   get hasFlagMasks() { return this.flagImages.some(Boolean); }
   /** Natural size of the images (pixels of the cutout). */
@@ -142,8 +157,8 @@ export class BlinkPlayer {
     this.onFrameChange(this.index, this.frames[this.index]);
   }
 
-  next() { this.goTo(this.index + 1); }
-  prev() { this.goTo(this.index - 1); }
+  next() { this.goTo(this.active ? stepActive(this.index, this.active, 1) : this.index + 1); }
+  prev() { this.goTo(this.active ? stepActive(this.index, this.active, -1) : this.index - 1); }
 
   draw() {
     const img = this.images[this.index];
@@ -253,7 +268,7 @@ export class BlinkPlayer {
   setFps(fps) { this.fps = Math.max(0.1, Number(fps) || 1); }
 
   play() {
-    if (this.playing || this.length < 2 || !this.isAnimated) return;
+    if (this.playing || this.activeCount < 2 || !this.isAnimated) return;
     this.playing = true;
     this.lastTick = performance.now();
     this.rafId = requestAnimationFrame(this.tick);
@@ -317,7 +332,8 @@ export class BlinkPlayer {
   _stat(kind, members = null) {
     const greysAll = this._greys();
     if (!greysAll) return null;
-    const idx = members ?? greysAll.map((_, i) => i);
+    const idx = members ?? this.activeIndices;         // default: the images the timeline filter lets through
+    if (!idx.length) return null;
     const key = `${kind}:${idx.join(",")}`;
     if (this._derived[key]) return this._derived[key];
     const greys = idx.map((i) => greysAll[i]);
@@ -350,7 +366,11 @@ export class BlinkPlayer {
     const REF_GAP_DAYS = 30;
     const t = this.frames[i].mjd;
     const far = this.frames.map((f, j) => j).filter((j) => Math.abs(this.frames[j].mjd - t) > REF_GAP_DAYS);
-    const members = far.length ? far : this.frames.map((f, j) => j).filter((j) => j !== i);
+    // With a timeline filter the reference is built from the images it lets through (same wavelength window: fewer leftovers of bright stars);
+    // if that leaves none from another pass, all the other passes are used as before.
+    const kept = this.active ? far.filter((j) => this.active.includes(j)) : far;
+    const pool = kept.length ? kept : far;
+    const members = pool.length ? pool : this.frames.map((f, j) => j).filter((j) => j !== i);
     return this._stat("median", members.length ? members : [i]);
   }
 
@@ -379,6 +399,7 @@ export class BlinkPlayer {
       return combine(this._stat("mean", c.a), this._stat("mean", c.b), c.op);
     } else {
       const s = this._stat(this.mode === "mean" ? "mean" : "max");
+      if (!s) return null;                                   // the filter left no image: the plain picture is shown
       for (let i = 0; i < len; i++) {
         rgba[4 * i] = rgba[4 * i + 1] = rgba[4 * i + 2] = s[i];
         rgba[4 * i + 3] = 255;

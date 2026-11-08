@@ -15,7 +15,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Oswald:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 
   <script>if (/[?&]embed=1(&|$)/.test(location.search)) document.documentElement.classList.add("embed");</script>   <!-- ?embed=1: workspace only, for an <iframe> -->
-  <link rel="stylesheet" href="css/styles.css?v=15">
+  <link rel="stylesheet" href="css/styles.css?v=17">
 </head>
 <body>
   <!-- Decorative animated starfield behind everything (pure CSS, aria-hidden) -->
@@ -191,6 +191,29 @@
           <input id="speed-input" type="range" min="0.5" max="10" step="0.5" value="2">
         </div>
       </div>
+
+      <!-- Timeline: one button per image, time order across and wavelength up; survey-pass switches and a wavelength window (js/features/timelineView.js) -->
+      <section class="timeline" id="timeline" aria-labelledby="timeline-title" hidden>
+        <div class="tl-head">
+          <h3 id="timeline-title">Timeline</h3>
+          <p class="tl-summary" id="tl-summary"></p>
+        </div>
+        <div class="tl-plot">
+          <div class="tl-field">
+            <span class="tl-axis tl-axis-hi" id="tl-axis-hi" aria-hidden="true"></span>
+            <span class="tl-axis tl-axis-lo" id="tl-axis-lo" aria-hidden="true"></span>
+            <div class="tl-band" id="tl-band" aria-hidden="true" hidden></div>
+            <div class="tl-points" id="tl-points" role="group" aria-label="Images in time order, left to right and not to scale; higher means a longer wavelength. Press one to show it. A diamond has more than 1 % of its pixels flagged; a hollow point is left out by the filter."></div>
+          </div>
+          <div class="tl-passes" id="tl-passes" role="group" aria-label="Survey passes: press one to leave its images out"></div>
+        </div>
+        <div class="tl-filter">
+          <label class="tl-range" for="tl-wl-min">Wavelength from <output id="tl-min-out" for="tl-wl-min"></output><input type="range" id="tl-wl-min" min="0" max="1" step="0.01" value="0"></label>
+          <label class="tl-range" for="tl-wl-max">to <output id="tl-max-out" for="tl-wl-max"></output><input type="range" id="tl-wl-max" min="0" max="1" step="0.01" value="1"></label>
+          <button type="button" class="btn btn-small" id="tl-reset" disabled>Show all</button>
+        </div>
+        <p class="tl-note" id="tl-note" aria-live="polite"></p>
+      </section>
 
       <p class="shortcuts" id="shortcuts-hint">
         Keyboard: <kbd>Space</kbd> play/pause &middot; <kbd>←</kbd> <kbd>→</kbd> step one frame &middot; <kbd>+</kbd> <kbd>−</kbd> zoom &middot; <kbd>0</kbd> whole image &middot; <kbd>Shift</kbd>+arrows move when zoomed in.

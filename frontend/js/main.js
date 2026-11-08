@@ -15,6 +15,8 @@ import { DATA_SOURCE, API_BASE } from "./config.js";
 import { BlinkPlayer, MODES, loadImage, meanImageData } from "./player.js";
 import { canvasToSky, measureAndPlot, clearMeasurement, APERTURE_RADIUS_PX } from "./features/measure.js";
 import { setupViewer } from "./features/viewerControls.js";
+import { setupTimeline } from "./features/timelineView.js";
+import { FLAGGED_LIMIT } from "./features/timeline.js";
 import { SkyContext } from "./features/skyContext.js";
 import { setupFullscreen } from "./features/fullscreen.js";
 import { findMoversAcrossDetectors, detectSources, describeMover, matchKnownObject, moverPositionAtMjd, passIndices, trackSupport, blendWarning } from "./features/movers.js";
@@ -48,7 +50,7 @@ let requestedDetector = null;
 // FOV limits – must match min/max of the slider in index.html.
 const FOV_MIN = 1, FOV_MAX = 30;
 // "Skip flagged frames" threshold.
-const MAX_FLAGGED_FRACTION = 0.01;
+const MAX_FLAGGED_FRACTION = FLAGGED_LIMIT;       // "Skip frames with > 1 % flagged pixels": the same limit marks a diamond on the timeline
 
 // ---------------------------------------------------------------
 // Data state
@@ -269,10 +271,22 @@ const viewer = setupViewer({
   loadFloat: loadFloatFrame,
 });
 
+// The timeline (features/timelineView.js): one button per image by time and wavelength, survey-pass switches and a wavelength window. Its filter tells the
+// player which images the blink visits and which ones Stack, Trail and Difference use; the searches always use all of them.
+const timeline = setupTimeline({
+  root: $("timeline"), player,
+  onFilterChange: () => {
+    if (!player.length) return;
+    setPlayerEnabled(true);                                  // Play needs two images that pass the filter
+    updateFrameInfo(player.index, player.frames[player.index]);
+  },
+});
+
 const fmtDate = (iso) => iso.slice(0, 16).replace("T", " ") + " UTC";
 
 /** Update counter, date, slider and metadata for the frame being shown. */
 function updateFrameInfo(i, frame) {
+  timeline.setCurrent(i);
   frameSlider.value = String(i);
   frameSlider.setAttribute("aria-valuetext", `Frame ${i + 1} of ${player.length}, ${frame.dateISO.slice(0, 10)}`);
   $("meta-det").textContent = frame.detector;
@@ -300,25 +314,35 @@ function updateFrameInfo(i, frame) {
     canvas.setAttribute("aria-label",
       `SPHEREx ${frame.detector} ${op === "sub" ? "difference" : "sum"} image: ${shortLabel(a, player.frames)} ${sign} ${shortLabel(b, player.frames)}`);
   } else {
-    // Stack / trail: one image made from all frames.
-    const f0 = player.frames[0], f1 = player.frames.at(-1);
-    const wlMin = Math.min(...player.frames.map((f) => f.wavelengthMinUm));
-    const wlMax = Math.max(...player.frames.map((f) => f.wavelengthMaxUm));
-    $("frame-counter").textContent = `${player.mode === "mean" ? "Stack" : "Trail"} of ${player.length}`;
+    // Stack / trail: one image made from the images the timeline filter lets through (all of them without a filter).
+    const used = player.activeIndices.map((k) => player.frames[k]);
+    const total = player.length, of = used.length === total ? `${total}` : `${used.length} of ${total}`;
+    const name = player.mode === "mean" ? "Stack" : "Trail";
+    if (!used.length) {
+      $("frame-counter").textContent = `${name}: no image passes the timeline filter`;
+      $("frame-date").textContent = "—";
+      canvas.setAttribute("aria-label", `SPHEREx ${frame.detector} ${name.toLowerCase()}: no image passes the timeline filter, showing the plain image`);
+      return;
+    }
+    const f0 = used[0], f1 = used.at(-1);
+    const wlMin = Math.min(...used.map((f) => f.wavelengthMinUm));
+    const wlMax = Math.max(...used.map((f) => f.wavelengthMaxUm));
+    $("frame-counter").textContent = `${name} of ${of}`;
     $("frame-date").textContent = `${f0.dateISO.slice(0, 10)} → ${f1.dateISO.slice(0, 10)}`;
     $("meta-wl").textContent = `${wlMin.toFixed(2)}–${wlMax.toFixed(2)} µm`;
-    const flagged = player.frames.filter((f) => f.flags?.anyFlagged).length;
-    $("meta-flags").textContent = flagged ? `⚠ ${flagged} of ${player.length} frames` : "Clean";
+    const flagged = used.filter((f) => f.flags?.anyFlagged).length;
+    $("meta-flags").textContent = flagged ? `⚠ ${flagged} of ${used.length} frames` : "Clean";
     $("meta-mjd").textContent = `${f0.mjd.toFixed(1)}–${f1.mjd.toFixed(1)}`;
     canvas.setAttribute("aria-label",
-      `SPHEREx ${f0.detector} ${player.mode === "mean" ? "average" : "maximum (trail)"} of ${player.length} images, ${f0.dateISO.slice(0, 10)} to ${f1.dateISO.slice(0, 10)}`);
+      `SPHEREx ${f0.detector} ${player.mode === "mean" ? "average" : "maximum (trail)"} of ${of} images, ${f0.dateISO.slice(0, 10)} to ${f1.dateISO.slice(0, 10)}`);
   }
 }
 
 /** Enable/disable the player controls according to frames + mode. */
 function setPlayerEnabled(enabled) {
   const animated = enabled && player.isAnimated && player.length > 1;
-  playBtn.disabled = !animated;
+  playBtn.disabled = !animated || player.activeCount < 2;     // the timeline filter may leave fewer than two images to step through
+  if (playBtn.disabled && player.playing) player.pause();
   frameSlider.disabled = !animated;
   speedInput.disabled = !animated;
   $("save-png-btn").disabled = !enabled;
@@ -500,6 +524,7 @@ async function showDetector(detector) {
   compareState = null;                   // and the A / B choices of the Compare mode
   player.pause();
   setPlayerEnabled(false);
+  timeline.setFrames([]);                // the old images are gone: hide the timeline until the new ones are in
   markOverview(detector);
   setStatus(skipped ? `${skipped} ${detector} frame(s) hidden because more than 1 % of their pixels are flagged.` : "");
 
@@ -516,6 +541,7 @@ async function showDetector(detector) {
   if (token !== loadToken) return;
 
   setupCompare();
+  timeline.setFrames(currentFrames);     // the timeline of the images now in the player
   frameSlider.max = String(currentFrames.length - 1);
   player.setField({ ra: currentQuery.ra, dec: currentQuery.dec,                                              // for the scale bar and the grid
     scaleArcsec: currentFrames[0].pixelScaleArcsec ?? (currentQuery.fov * 60) / player.naturalSize });
