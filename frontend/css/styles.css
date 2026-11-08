@@ -1063,6 +1063,17 @@ body::before {
 @media (prefers-reduced-motion: reduce) { .state-loading .icon { animation: none; } }
 .ex-empty { padding: 1rem; }
 
+/* The explainer (features/assistantView.js): sentences with the ids of the measured values they are made of */
+.assistant { grid-column: 1 / -1; }
+.assistant p { margin: .4rem 0; }
+.assistant-buttons { display: flex; flex-wrap: wrap; gap: .5rem; margin: .6rem 0; }
+.assistant-out { display: grid; gap: .6rem; max-width: 80ch; margin: .6rem 0; padding-left: 1.2rem; }
+.assistant-out li.is-fixed { color: var(--text-muted); font-style: italic; }
+.cites { display: inline-flex; flex-wrap: wrap; gap: .25rem; margin-left: .4rem; }
+.cite { padding: .2rem .45rem; font: .72rem/1 var(--font-mono); color: var(--accent-text); cursor: pointer; border: 1px solid var(--control-border); border-radius: 999px; background: transparent; }
+.cite:hover { border-color: var(--accent); }
+.ss-table tr.is-cited th, .ss-table tr.is-cited td { background: rgb(var(--accent-rgb) / .14); }
+
 /* The Solar System simulator (features/solarSystemView.js): the map sits in a .chart box, which keeps a dark ground and the Deep Space tokens in every theme */
 .ss { grid-column: 1 / -1; }
 .ss p { margin: .4rem 0; }

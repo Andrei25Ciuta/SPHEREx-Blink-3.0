@@ -43,7 +43,7 @@ export function renderComparison(out, result, { sigmaPx }) {
 }
 
 export function setupPlanetLab({ els, getContext, getSelection, download, canRun = () => true, makeWorker = () => new Worker(new URL("../planetLabWorker.js", import.meta.url), { type: "module" }) }) {
-  let worker = null, lastRun = null;
+  let worker = null, lastRun = null, lastComparison = null;
   const SIGMA_PX = 0.15;
 
   function refresh() {
@@ -57,7 +57,9 @@ export function setupPlanetLab({ els, getContext, getSelection, download, canRun
     const sel = getSelection();
     if (!sel || !sel.dots?.length) return;
     const obs = observationsOf(sel.dots, sel.mjds, sel.geo.scaleArcsec, { sigmaPx: SIGMA_PX });
-    renderComparison(els.modelsOut, modelComparison(obs, { ra: sel.geo.ra, dec: sel.geo.dec }), { sigmaPx: SIGMA_PX });
+    const result = modelComparison(obs, { ra: sel.geo.ra, dec: sel.geo.dec });
+    lastComparison = { label: sel.candidate.label, result };
+    renderComparison(els.modelsOut, result, { sigmaPx: SIGMA_PX });
   });
 
   function drawMap(cells, distancesAU, fluxes, geo, { partial = false, note = "" } = {}) {
@@ -131,7 +133,8 @@ export function setupPlanetLab({ els, getContext, getSelection, download, canRun
   });
 
   refresh();
-  return { refresh };
+  /** The comparison of motions made for the candidate with this label (the explainer quotes it), or null when none was made. */
+  return { refresh, comparisonFor: (label) => (lastComparison?.label === label ? lastComparison.result : null) };
 }
 
 /** What a result was made with, as fields (the CSV header and the text under the map). */

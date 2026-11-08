@@ -485,6 +485,20 @@
       <p class="muted small" id="ss-mode-note"></p>
       <details class="table-view"><summary>Show the positions as a table</summary><div class="table-scroll"><table class="ss-table" id="ss-table"></table></div></details>
     </section>
+
+    <!-- ============ 8. Explain the selected candidate (features/assistant.js, assistantView.js) ============ -->
+    <section class="panel assistant" id="assistant" aria-labelledby="assistant-title">
+      <h2 id="assistant-title">8. Explain the selected candidate</h2>
+      <p class="muted">An explainer that says only what was measured. Every sentence is followed by the ids of the measured values it is made of, and a check refuses any sentence that holds a number that is not one of them. <strong>No language model is used</strong>: the sentences are written by rules from the numbers, so it works without a key or a network and sends nothing anywhere.</p>
+      <div class="assistant-buttons" role="group" aria-label="Questions">
+        <button type="button" class="btn btn-small" data-kind="why" disabled>Why is it a candidate?</button>
+        <button type="button" class="btn btn-small" data-kind="wrong" disabled>What could make it wrong?</button>
+        <button type="button" class="btn btn-small" data-kind="next" disabled>What should I check next?</button>
+      </div>
+      <p class="muted small" id="assistant-status" role="status" aria-live="polite"></p>
+      <ol class="assistant-out" id="assistant-out" aria-live="polite"></ol>
+      <details class="table-view" id="assistant-evidence-wrap" hidden><summary>The measured values it can use (the evidence)</summary><div class="table-scroll"><table class="ss-table" id="assistant-evidence"></table></div></details>
+    </section>
   </main>
 
   <!-- ============ ABOUT THE PROJECT ============ -->

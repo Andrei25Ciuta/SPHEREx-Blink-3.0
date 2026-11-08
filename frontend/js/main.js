@@ -19,6 +19,7 @@ import { setupWorkspace } from "./features/workspaceView.js";
 import { setupPlanetLab } from "./features/planetLabView.js";
 import { setupSkyExplorer } from "./features/skyExplorerView.js";
 import { setupSolarSystem } from "./features/solarSystemView.js";
+import { setupAssistant } from "./features/assistantView.js";
 import { MARK_IDLE, markText } from "./features/workspace.js";
 import { detectorCoverage, coverageText } from "./features/spectral.js";
 import { setupTooltips } from "./features/tooltip.js";
@@ -840,6 +841,7 @@ const MOVERS_HINT = "Compares the dots in all images and lists the ones that mov
 const MIN_PASSES = 3;                      // same rule as in movers.js: a third pass proves a line
 let movers = [];                           // candidates for the detector on screen, best first
 let selectedMover = -1;
+let assistant = null;                      // the explainer (features/assistantView.js), set up further down
 let planetLab = null;                      // the Planet X Lab (features/planetLabView.js), set up further down
 let moversCatalogueChecked = false;        // was SIMBAD consulted for the list on screen?
 let moversRun = null;                      // how the list on screen was made (features/provenance.js): input, settings, algorithm version, time of the run
@@ -1180,6 +1182,7 @@ function selectMover(k) {
   player.stopFollow();                              // the view followed the one selected before
   selectedMover = k;
   planetLab?.refresh();                             // the lab compares the motions of the one selected
+  assistant?.refresh();
   document.querySelectorAll("#mover-list .mover-item").forEach((b) =>
     b.setAttribute("aria-pressed", String(Number(b.dataset.index) === k)));
   player.setCandidates(movers, k);
@@ -1467,6 +1470,23 @@ const solarSystem = setupSolarSystem({
     body: $("ss-body"), distance: $("ss-distance"), swing: $("ss-swing"), map: $("ss-map"), table: $("ss-table"), modeNote: $("ss-mode-note"),
   },
   getField: () => (currentQuery && currentFrames.length ? { ra: currentQuery.ra, dec: currentQuery.dec, mjds: currentFrames.map((f) => f.mjd) } : null),
+});
+
+// ---------------------------------------------------------------
+// Explainer (features/assistant.js, assistantView.js): the selected candidate in words, every sentence citing the measured values it is made of
+// ---------------------------------------------------------------
+assistant = setupAssistant({
+  els: { buttons: [...document.querySelectorAll("#assistant [data-kind]")], status: $("assistant-status"), out: $("assistant-out"), wrap: $("assistant-evidence-wrap"), table: $("assistant-evidence"), details: $("assistant-evidence-wrap") },
+  getContext: () => {
+    const m = movers[selectedMover];
+    if (!m || !currentQuery) return null;
+    const fr = searchFrames();
+    return { candidate: m, ctx: {
+      scaleArcsec: currentGeo().scaleArcsec, fieldRa: currentQuery.ra, fieldDec: currentQuery.dec, fovArcmin: currentQuery.fov, images: fr.length, passes: countPasses(fr),
+      runVersion: moversRun?.algorithm?.version, ranAt: moversRun?.ranAt, realData: DATA_SOURCE === "api",
+      catalogues: moversCatalogueChecked ? "SIMBAD, SkyBoT" : "not consulted", models: planetLab?.comparisonFor(m.label) ?? null,
+    } };
+  },
 });
 
 // ---------------------------------------------------------------
