@@ -44,6 +44,9 @@ checked by `validateFrame` in `getCutouts.js`.
 | `readout.js` | what is shown under the pointer: pixel, RA/Dec (the same conversion as a click), offset, value text |
 | `layers.js` | the overlay layers: names, colours (used for drawing and for the colour key), counts |
 | `viewerControls.js` | the DOM side of the viewer (not pure): buttons, drag, pinch, wheel, keys, the readout line, the layer list |
+| `planetLab.js` | the Planet X Lab (pure): the three motions compared by BIC and the distance only when constrained, injecting a synthetic body into real images, the trial of the app's own search, the completeness map and its Wilson intervals, CSV |
+| `planetLabView.js` | the DOM side of the lab (not pure): the comparison table, the form, the map; starts the worker |
+| `../planetLabWorker.js` | a module worker that runs the injection test off the main thread (messages: run, progress, done, error) |
 | `tooltip.js` | tooltips for any element with a title or `data-tip`: where the box goes (pure), the DOM part with the delays, keyboard focus, Escape, `aria-describedby` |
 | `ui.js` | the icons (inline SVG paths) and the box for an empty, error, loading or partial state (pure strings) |
 | `dialog.js` | the modal dialog on the native `<dialog>`, and the list of keyboard shortcuts |

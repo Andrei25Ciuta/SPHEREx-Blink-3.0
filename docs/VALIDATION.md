@@ -865,3 +865,43 @@ construction the pooled robust spread of z is 1; by field it is 0.8-1.1 (1.67-2.
 **Epsilon Indi B, 0.5″/yr from the catalogue** (§15.5, still unexplained). A possible cause, **from memory and not checked here**: Epsilon Indi B is a close pair of brown dwarfs (Ba and Bb, about 0.6″ apart,
 orbit of about 11 years), unresolved in a 6.14″ pixel, so what is measured is the motion of their light centre, which has the orbital motion on top of the proper motion that SIMBAD lists. A test would
 need the orbit; none was made.
+
+## 16. The Planet X Lab: which motion fits, and how likely is a distant body to be found (Phase 5, 9 Nov 2026)
+
+Section 5 of the page (`planetLab.js`, `planetLabView.js`, `planetLabWorker.js`; version `planetlab-1`) has two parts.
+
+**Which motion fits?** For the dots of one candidate (positions on the dates of their images) three models are fitted by least squares: *stationary* (2 parameters), *straight line* (4) and
+*straight drift + Earth parallax* (5: the same and the distance; the straight line is its limit at an infinite distance, so it can never fit worse: a first version showed it doing so on real
+Barnard's Star, found in the browser, fixed, test added). They are compared with **BIC = χ² + k ln N** (N = 2 numbers per position; the words for ΔBIC are Kass & Raftery's, **from memory**). The
+distance is quoted **only when it is constrained**: the parallax model must beat the straight line by ΔBIC ≥ 10 and its 95 % range (χ² within 4 of the best, one parameter) must be closed on both
+sides inside the 20-20 000 AU that are tried and no wider than a factor of 3; otherwise the answer is "no distance claimed", a lower limit, an upper limit or "not constrained". The ranges come from a
+second, fine scan around the minimum (the coarse grid has steps of 3 %, wider than the 1σ range of good data). `node scratch/test_planetlab.mjs` (57): on 60 simulated bodies at 500 AU
+(positions good to 3″) the 95 % range holds the true distance in **58 of 60** and the 68 % range in **37 of 60**; a stationary object is called stationary in at least 54 of 60 noise realisations
+(noise alone favours a line about 4 % of the time) and never gets a distance. **In the browser on real Barnard's Star** (Barnard D2 + D6, 24 dots, error 0.15 px per axis): stationary χ² 560 (ΔBIC +499),
+straight line χ² 54.0 (χ²/dof 1.23), parallax χ² 54.0 (ΔBIC +3.9): a straight line, no distance claimed. This one is an observation, not a command: the 0.15 px is the floor the parallax search gives a dot and
+was not calibrated on real dots (§15.6), so χ²/dof near 1 here is a coincidence of that choice, not a validation of it.
+
+**How likely is a distant body to be found?** A **synthetic** body (a Gaussian PSF of σ 0.4 px integrated over the pixels, a drift of 0.5-1.0 times the circular speed in a random direction, a random place
+in the middle half of the field, the same flux in every image) is added to the **real** images of the field on screen where a real body would be (the Earth's swing from `parallaxOffsetArcsec`, and the
+pointing shift of each exposure from `registerShifts` of the uninjected images), the dots are detected with `detectSources` and `findDistantMovers` is run with its default options. A try succeeds when a
+candidate lies within 3 px of the body on at least half of the images; "distance right" when it is also within a factor 1.5. The page runs it in a module worker (the page stays usable) and draws the map
+(tries, found, the word, the share as colour, the swing of each distance against the field); `node scratch/planet_lab_map.mjs --trials 20 --distances 2500,3500,5000 --fluxes 50,150,400` is the same from
+the command line (4 s here), against the real-only backend, on the Barnard D2 field (5′, 49 × 49 px, 18 real images, 4 survey passes, 60909-61306 MJD), seed 1:
+
+| flux (mJy) | 2500 AU (swing 2.7′: leaves the 5′ field) | 3500 AU (swing 1.9′) | 5000 AU (swing 1.4′) |
+|---|---|---|---|
+| 400 | 12 / 20 (95 %: 39-78 %) | 17 / 20 (64-95 %) | 6 / 20 (15-52 %) |
+| 150 | 8 / 20 (22-61 %) | 17 / 20 (64-95 %) | 6 / 20 (15-52 %) |
+| 50 | 7 / 20 (18-57 %) | 14 / 20 (48-85 %), distance right in 13 | 4 / 20 (8-42 %) |
+
+Reading it: in this field the search finds a body of 50-400 mJy at 3500 AU in 70-85 % of the tries and at 5000 AU in 20-30 % (a swing of 1.4′ is 14 pixels at most: little lever arm); at 2500 AU the body often
+leaves the 5′ field, which is why a 30′ field is needed for nearer bodies. Above about 150 mJy more light adds nothing at 3500 and 5000 AU (17 / 20 and 6 / 20 for both 400 and 150 mJy): there the limit is not the
+brightness. A fact that is measured here and a cause that is **a hypothesis**: (`planet_lab_map.mjs` also prints it) the swing alone puts a body 0.3-0.5 px apart on pass 1 and pass 3 (362 days: the Earth is back at the same point), 1.9-3.7 px apart on passes 1 and 4,
+2.1-4.2 px on passes 3 and 4, and 13-25 px away only on pass 2 (distances 5000-2500 AU): of the four passes only one carries a large swing; the search wants three well-separated ones. That would be a property of this observing cadence, not of the
+code; it was not tested by changing the cadence. Rms of the dots of the 91 bodies that were found about their model: **median 0.037 px**, 10th-90th percentile 0.030-0.206 px, against the 0.15 px floor the
+parallax search gives every dot: for ideal (Gaussian) bodies the floor is 4 times cautious; for real ones nothing is known (§15.6, and the real PSF is not Gaussian, §15.7).
+
+**What it does not show.** The images are real, the bodies are synthetic: it measures this search on these images, not any real object. The PSF is Gaussian; the flux is the same in every image (a body with a
+spectrum would be brighter in some images than in others); one field at a time; 20 tries give wide intervals (the Wilson 95 % intervals are in the table); the flux is a total flux in mJy from the image's own unit and
+the pixel's solid angle. Detection is judged against the images' own noise, so the same map on another field differs. Not done: a map on a 30′ real field of the same patch (the author's 30′ Makemake cutouts lie on
+different bits of sky: §12), a body with a spectrum, the real PSF.

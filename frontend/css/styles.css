@@ -1063,6 +1063,31 @@ body::before {
 @media (prefers-reduced-motion: reduce) { .state-loading .icon { animation: none; } }
 .ex-empty { padding: 1rem; }
 
+/* The Planet X Lab (features/planetLabView.js) */
+.lab { grid-column: 1 / -1; }
+.lab p { margin: .4rem 0; }
+.lab h3 { margin-top: 1.3rem; }
+.lab-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .6rem 1rem; margin: .6rem 0; }
+.lab-form label { display: grid; gap: .25rem; font-size: .85rem; color: var(--text-muted); }
+.lab-form input[type="text"] { min-width: 12rem; }
+.lab-form .btn { width: auto; }
+.lab-progress { width: min(32rem, 100%); }
+.lab-models, .lab-map { border-collapse: collapse; font-size: .85rem; }
+.lab-models th, .lab-models td, .lab-map th, .lab-map td { padding: .4rem .6rem; border-bottom: 1px solid var(--border); text-align: left; }
+.lab-models .num { text-align: right; font-variant-numeric: tabular-nums; }
+.lab-models .is-best th, .lab-models .is-best td { color: var(--text); font-weight: 600; }
+.lab-verdict { font-weight: 600; }
+.lab-distance { padding: .5rem .7rem; border-left: 3px solid var(--border); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; background: rgb(var(--accent-rgb) / .06); }
+.lab-constrained { border-left-color: var(--accent); }
+.lab-map th { font-weight: 500; color: var(--text-muted); }
+.lab-swing { display: block; font-size: .72rem; font-weight: 400; }
+.lab-map th.leaves { color: var(--warn); }
+.lab-cell { text-align: center; min-width: 6.5rem; background: rgb(var(--accent-rgb) / calc(var(--f, 0) * .4)); }
+.lab-cell.is-empty { background: transparent; }
+.lab-cell-num { display: block; font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--text); }
+.lab-cell-word { display: block; font-size: .72rem; color: var(--text); }
+.lab-cell.is-empty .lab-cell-num, .lab-cell.is-empty .lab-cell-word { color: var(--text-muted); }
+
 /* The spectrum sketch in a row of the candidate table (ui.js sparklineSvg) */
 .ex-spec { width: 7rem; color: var(--text-muted); }
 .spark { display: block; }

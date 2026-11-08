@@ -410,6 +410,35 @@
         <p class="muted small" id="sky-geo-note" hidden></p>
       </div>
     </section>
+
+    <!-- ============ 5. Planet X Lab (features/planetLab.js, planetLabView.js, planetLabWorker.js) ============ -->
+    <section class="panel lab" id="planet-lab" aria-labelledby="lab-title">
+      <h2 id="lab-title">5. Planet X Lab</h2>
+      <p class="muted">Two questions about a distant body. <strong>Which motion fits</strong> the positions of a candidate: standing still, a straight line, or a straight drift plus the swing of the Earth's orbit? And <strong>how likely is this search to find</strong> a body of a given distance and brightness in the images on screen? The second one adds <strong>synthetic</strong> bodies to the real images: it measures the search, it does not find anything.</p>
+
+      <h3 id="lab-models-title">Which motion fits?</h3>
+      <p class="muted small" id="lab-models-hint" aria-live="polite">Select a candidate in the list (Find movers, or Look for a distant body), then compare.</p>
+      <p><button type="button" class="btn btn-small" id="lab-compare-btn" disabled>Compare the motions of the selected candidate</button></p>
+      <div id="lab-models-out" aria-live="polite"></div>
+
+      <h3 id="lab-inject-title">How likely is a distant body to be found?</h3>
+      <form id="lab-form" class="lab-form" novalidate aria-labelledby="lab-inject-title">
+        <label>Distances, AU <input id="lab-distances" type="text" inputmode="decimal" autocomplete="off" value="400, 800, 1600, 3200"></label>
+        <label>Brightness, mJy <input id="lab-fluxes" type="text" inputmode="decimal" autocomplete="off" value="2, 5, 10, 25, 60"></label>
+        <label>Tries per cell <select id="lab-trials"><option>2</option><option selected>3</option><option>5</option><option>10</option></select></label>
+        <button type="submit" class="btn btn-small btn-primary" id="lab-run-btn" disabled>Run the injection test</button>
+        <button type="button" class="btn btn-small" id="lab-cancel-btn" hidden>Cancel</button>
+      </form>
+      <p class="error-text" id="lab-input-error" role="alert"></p>
+      <progress id="lab-progress" class="lab-progress" max="1" value="0" hidden></progress>
+      <p class="muted small" id="lab-status" role="status" aria-live="polite">Needs images of one detector from at least 3 survey passes with real pixels. A body that starts in the middle of the field stays inside it, over a year, beyond about 300 AU in a 30′ field and beyond about 1700 AU in a 5′ field (the column headings of the map give the swing for these images).</p>
+      <div id="lab-map-wrap" hidden>
+        <div class="table-scroll"><table id="lab-map" class="lab-map"></table></div>
+        <p class="muted small" id="lab-map-note"></p>
+        <p><button type="button" class="btn btn-small" id="lab-csv-btn">Save the map (CSV)</button></p>
+        <details class="provenance"><summary>How this map was made</summary><p id="lab-provenance"></p></details>
+      </div>
+    </section>
   </main>
 
   <!-- ============ ABOUT THE PROJECT ============ -->

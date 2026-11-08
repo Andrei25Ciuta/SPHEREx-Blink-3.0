@@ -16,6 +16,7 @@ import { BlinkPlayer, MODES, loadImage, meanImageData } from "./player.js";
 import { canvasToSky, measureAndPlot, clearMeasurement, APERTURE_RADIUS_PX } from "./features/measure.js";
 import { setupViewer } from "./features/viewerControls.js";
 import { setupWorkspace } from "./features/workspaceView.js";
+import { setupPlanetLab } from "./features/planetLabView.js";
 import { MARK_IDLE, markText } from "./features/workspace.js";
 import { setupTooltips } from "./features/tooltip.js";
 import { applyIcons } from "./features/ui.js";
@@ -389,6 +390,7 @@ function setPlayerEnabled(enabled) {
   viewer.refresh();                                  // the zoom buttons follow whether there is a picture
   $("find-movers-btn").disabled = !enabled || !canFindMovers();
   $("find-distant-btn").disabled = !enabled || !canFindMovers();
+  planetLab?.refresh();
   if (discoverPanel) { if (enabled) discoverPanel.refresh(); else $("discover-btn").disabled = true; }
 }
 
@@ -819,6 +821,7 @@ const MOVERS_HINT = "Compares the dots in all images and lists the ones that mov
 const MIN_PASSES = 3;                      // same rule as in movers.js: a third pass proves a line
 let movers = [];                           // candidates for the detector on screen, best first
 let selectedMover = -1;
+let planetLab = null;                      // the Planet X Lab (features/planetLabView.js), set up further down
 let moversCatalogueChecked = false;        // was SIMBAD consulted for the list on screen?
 let moversRun = null;                      // how the list on screen was made (features/provenance.js): input, settings, algorithm version, time of the run
 
@@ -828,6 +831,12 @@ const countPasses = (frames) => (frames.length ? passIndices(frames.map((f) => f
 // (different wavelengths do not matter): 3-6 times more images and passes than one detector has. On real data the
 // blind test went from 0.62 to 0.52 arcsec/yr (Epsilon Indi B) and 0.80 to 0.28 (Barnard) off the catalogue.
 const frameId = (f) => `${f.detector}@${f.mjd}`;
+
+/** The date of every dot of every candidate (for the Planet X Lab's comparison of motions): a dot says which image of the search it is in, a candidate of several detectors says which image by its frameIds. */
+function attachDotDates(candidates, frames) {
+  const mjdById = new Map(frames.map((f) => [frameId(f), f.mjd]));
+  for (const c of candidates) c.dotDates = (c.points ?? []).map((p) => (c.frameIds ? mjdById.get(c.frameIds[p.frame]) : frames[p.frame]?.mjd) ?? null);
+}
 const hasSeveralDetectors = () => new Set(allFrames.map((f) => f.detector)).size > 1;
 const useAllDetectors = () => $("movers-all-det").checked && hasSeveralDetectors();
 const searchFrames = () => (useAllDetectors() ? allFrames : player.frames);
@@ -863,6 +872,7 @@ function clearMovers() {
   $("mover-export").hidden = true;
   $("mover-detail").hidden = true;
   $("movers-status").textContent = MOVERS_HINT;
+  planetLab?.refresh();
 }
 
 /** Grey values (0..255) of one image from its PNG URL (for images the player does not hold), or null if the browser refuses. */
@@ -975,6 +985,7 @@ $("find-movers-btn").addEventListener("click", async () => {
     const result = findMoversAcrossDetectors(frames.map((f, i) => ({ mjd: f.mjd, detector: f.detector, id: frameId(f), grey: arrays[i], mask: masks?.[i] ?? null })),
       player.naturalSize, isFloat ? { sigmaFloor: 1e-9 } : {});
     addSupport(result.candidates, frames, arrays, player.naturalSize, { ...(isFloat ? { sigmaFloor: 1e-9 } : {}) });
+    attachDotDates(result.candidates, frames);
     // Known objects: the test list always, and real SIMBAD objects too when we have real data.
     if (DATA_SOURCE === "api") status.textContent = "Checking SIMBAD and SkyBoT for known objects…";
     const [objects] = await Promise.all([ensureCatalogue(), ensureAsteroids()]);        // each answers null if it cannot: never blocks
@@ -1037,6 +1048,7 @@ $("find-distant-btn").addEventListener("click", async () => {
     const result = findDistantMovers(detected, currentGeo());
     const ids = frames.map(frameId);
     for (const c of result.candidates) c.frameIds = ids;
+    attachDotDates(result.candidates, frames);
     addSupport(result.candidates, frames, arrays, n, isFloat ? { sigmaFloor: 1e-9 } : {});
     showMovers(result, null, { distant: true });
     moversRun = recordRun("find-distant", PARALLAX_VERSION, frames, { ...DISTANT_DEFAULTS, ...MOVER_DEFAULTS, ...(isFloat ? { sigmaFloor: 1e-9 } : {}), allDetectors: useAllDetectors() }, startedAt, isFloat);
@@ -1059,6 +1071,8 @@ function showMovers({ candidates, stats, reason }, catalogueObjects = null, { di
   const pool = catalogueObjects ? [...TARGETS, ...catalogueObjects] : TARGETS;     // test objects first: their motions are the best
   movers = candidates.map((c, k) => ({
     ...c, ...describeMover(c, geo),
+    dots: c.points,                                   // the raw dots of the fit, before `points` below becomes the places on the images (the Planet X Lab compares motions on them)
+    dotDates: c.dotDates ?? null,                     // the date of each dot (attachDotDates)
     label: `#${k + 1}`,
     known: distant ? null : matchKnownObject(c, geo, pool)?.target.label ?? null,
     distant: distant ? describeDistant(c, geo) : null,
@@ -1146,6 +1160,7 @@ $("export-json-btn").addEventListener("click", () => {
 function selectMover(k) {
   player.stopFollow();                              // the view followed the one selected before
   selectedMover = k;
+  planetLab?.refresh();                             // the lab compares the motions of the one selected
   document.querySelectorAll("#mover-list .mover-item").forEach((b) =>
     b.setAttribute("aria-pressed", String(Number(b.dataset.index) === k)));
   player.setCandidates(movers, k);
@@ -1373,6 +1388,33 @@ $("copy-link-btn").addEventListener("click", async () => {
   const ok = await copyLink();
   const btn = $("copy-link-btn");
   if (ok) { btn.textContent = "Link copied ✓"; setTimeout(() => { btn.textContent = "Copy link"; }, 1800); }
+});
+
+// ---------------------------------------------------------------
+// Planet X Lab (features/planetLab.js, planetLabView.js, planetLabWorker.js): which motion fits the selected candidate, and how likely a distant body is to be found
+// ---------------------------------------------------------------
+planetLab = setupPlanetLab({
+  els: {
+    compareBtn: $("lab-compare-btn"), modelsHint: $("lab-models-hint"), modelsOut: $("lab-models-out"), form: $("lab-form"), distances: $("lab-distances"), fluxes: $("lab-fluxes"),
+    trials: $("lab-trials"), runBtn: $("lab-run-btn"), cancelBtn: $("lab-cancel-btn"), inputError: $("lab-input-error"), progress: $("lab-progress"), status: $("lab-status"),
+    mapWrap: $("lab-map-wrap"), map: $("lab-map"), mapNote: $("lab-map-note"), csvBtn: $("lab-csv-btn"), provenance: $("lab-provenance"),
+  },
+  canRun: () => canFindMovers(),
+  getContext: async () => {
+    if (!player.length || !currentQuery) return null;
+    const frames = searchFrames();
+    const { arrays, masks, isFloat } = await detectionPixels(frames);
+    if (!arrays) return null;
+    const dets = [...new Set(frames.map((f) => f.detector))].join(", ");
+    return { arrays, masks, isFloat, mjds: frames.map((f) => f.mjd), geo: currentGeo(), dataText: `${isFloat ? "REAL SPHEREx pixels (float, MJy/sr)" : "8-bit pictures"}, detector${dets.includes(",") ? "s" : ""} ${dets}, the same flux in every image` };
+  },
+  getSelection: () => {
+    const m = movers[selectedMover];
+    if (!m || !m.dots?.length || !m.dotDates || !currentQuery) return null;
+    const usable = m.dots.map((p, i) => ({ frame: i, x: p.x, y: p.y, mjd: m.dotDates[i] })).filter((p) => Number.isFinite(p.mjd));
+    return { candidate: m, dots: usable.map((p, i) => ({ frame: i, x: p.x, y: p.y })), mjds: usable.map((p) => p.mjd), geo: currentGeo() };
+  },
+  download: downloadText,
 });
 
 // ---------------------------------------------------------------
