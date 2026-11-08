@@ -5,6 +5,8 @@
 // repeated in a real table under each chart for screen readers. The builders below are pure functions (they return
 // strings), so scratch/test_results.mjs tests them without a browser.
 
+import { setupThemeSwitcher } from "./features/theme.js";
+
 // ---------- small pure helpers ----------
 
 export const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -279,3 +281,4 @@ async function main() {
   }
 }
 if (typeof document !== "undefined" && document.getElementById("results-status")) main();
+if (typeof document !== "undefined" && document.getElementById("theme-select")) setupThemeSwitcher(document.getElementById("theme-select"));

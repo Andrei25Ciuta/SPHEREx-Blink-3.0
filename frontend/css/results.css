@@ -40,7 +40,7 @@
 .rsec code { font-size: max(.88em, 12px); padding: .05em .35em; border-radius: 4px; background: var(--field); color: var(--text); }
 p.rcaveat {
   padding: .7rem .9rem; color: var(--text); border-left: 3px solid var(--warn); border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-  background: rgb(242 176 123 / .09);
+  background: rgb(var(--warn-rgb) / .09);
 }
 .rlimits { margin: 0 0 .6rem; padding-left: 1.2rem; max-width: 74ch; color: var(--text-muted); display: grid; gap: .45rem; }
 
@@ -112,3 +112,8 @@ p.rcaveat {
 }
 @media (pointer: coarse) { .rtable summary, .rhead nav a { min-height: 44px; display: inline-flex; align-items: center; } }
 @media (prefers-reduced-motion: reduce) { .sky-bg, .brand-logo::before, .brand-logo::after { animation: none; } }
+
+/* Header with the theme switch: wrap instead of squeezing the link into a column */
+.rhead { flex-wrap: wrap; row-gap: .4rem; }
+.rhead nav a { white-space: nowrap; }
+@media (max-width: 480px) { .rhead .theme-switch { margin-right: 0; } .rhead-logo span:last-child { font-size: .95rem; } }

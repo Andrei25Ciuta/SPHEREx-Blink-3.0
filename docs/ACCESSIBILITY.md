@@ -57,6 +57,19 @@ Checked with `scratch/audit_page.js` in the app's built-in browser (Chromium), p
   The map itself (Aladin Lite) is a canvas and is not keyboard accessible; that is unchanged.
 - Not checked: a screen reader on the results page, keyboard-only use of the sky map, Firefox/Safari.
 
+## Colour themes and "Find everything" (added 8 Nov 2026)
+
+- **Themes** (Deep Space, Observatory, Light research, Classic): `scratch/test_theme.mjs` reads the CSS tokens and requires 4.5:1 for every text colour
+  (text, secondary text, links, warnings, errors, success, secondary accent) on every surface it can sit on, and for the text on an accent fill, in all four themes;
+  inputs and buttons need a 3:1 border in the three new themes (Classic keeps its original faint border: a known gap).
+- The script audit (`scratch/audit_page.js`, with the background taken from the theme's `--bg` instead of the Classic colour) at 375 px, with real data and the
+  *Find everything* dossier open: 0 text nodes under 4.5:1 and no horizontal overflow in all four themes (157, 349, 318 and 157 text nodes). The index and the results
+  page were both looked at. The audit cannot see text over a sibling's background: the bar values of the results page (`.rval.inside`) are reported as 1.1:1 by it
+  and are a false positive; their colour pair (`--on-accent` on the bar) is covered by the token test.
+- Found and fixed: the *Find everything* controls made the page 14 px wider than a phone (a `<select>` sized by its longest option); the light theme's banner text
+  and button were unreadable until the banner, the image stage and the charts were given the dark palette (they stay dark in every theme).
+- Not checked: a screen reader on the new panel, a real phone, other browsers, a high-contrast mode, the Plotly chart in the light theme.
+
 ## Re-running
 
 ```js

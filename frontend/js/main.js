@@ -27,6 +27,7 @@ import { fetchCatalogue, catalogueTracks } from "./features/catalogue.js";
 import { fetchSkybotForFrames, asteroidPoints, matchAsteroids } from "./features/skybot.js";
 import { savePng, recordBlink, canRecord, copyLink } from "./features/exporters.js";
 import { setupDiscoverPanel } from "./features/discoverPanel.js";
+import { setupThemeSwitcher } from "./features/theme.js";
 
 // Small helper: document.getElementById is long, so we alias it.
 const $ = (id) => document.getElementById(id);
@@ -1154,6 +1155,9 @@ $("mover-spectrum-btn").addEventListener("click", async () => {
     btn.disabled = false;
   }
 });
+
+// Colour theme (features/theme.js): the choice is kept in this browser; ?theme=light overrides it for one visit
+setupThemeSwitcher($("theme-select"));
 
 // ---------------------------------------------------------------
 // Find everything: every source in the images, checked against the catalogues (features/discoverPanel.js)

@@ -1,18 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="deep-space">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#080D18">
+  <!-- Colour theme, applied before the first paint (js/features/theme.js does the same and handles the switch; keep the key and the names in step) -->
+  <script>try{var t=new URLSearchParams(location.search).get("theme")||localStorage.getItem("spherex-blink-theme");if(/^(deep-space|observatory|light|classic)$/.test(t))document.documentElement.dataset.theme=t}catch(e){}</script>
   <title>SPHEREx Blink – Spot Moving Objects in the Infrared Sky</title>
   <meta name="description" content="Enter sky coordinates and blink through NASA SPHEREx near-infrared images taken at different times to spot moving objects like brown dwarfs, nearby stars and asteroids.">
 
   <!-- Google Fonts: Space Grotesk for headings, Inter for body text -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Oswald:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Oswald:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 
   <script>if (/[?&]embed=1(&|$)/.test(location.search)) document.documentElement.classList.add("embed");</script>   <!-- ?embed=1: workspace only, for an <iframe> -->
-  <link rel="stylesheet" href="css/styles.css?v=12">
+  <link rel="stylesheet" href="css/styles.css?v=13">
 </head>
 <body>
   <!-- Decorative animated starfield behind everything (pure CSS, aria-hidden) -->
@@ -24,6 +27,7 @@
     <div class="hero-top">
       <a class="hero-logo" href="#top"><span class="brand-logo" aria-hidden="true"></span><span>SPHEREx Blink</span></a>
       <nav class="hero-nav" aria-label="Page sections"><a href="#workspace">Workspace</a><a href="#about">About</a><a href="#telescope">Telescope</a><a href="results.html">Real-data results</a></nav>
+      <label class="theme-switch"><span class="sr-only">Colour theme</span><select id="theme-select" aria-label="Colour theme"></select></label>
       <span class="badge" id="data-source-badge" title="Which data source is active">Synthetic demo data</span>
     </div>
     <div class="hero-title">

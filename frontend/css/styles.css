@@ -7,35 +7,100 @@
    ========================================================= */
 
 /* ---------- 1. Design tokens ---------- */
+/* Semantic tokens: components use these names only, never a colour. The block below is the CLASSIC theme (the original teal and
+   orange look); [data-theme="..."] blocks after it override the same names. js/features/theme.js sets data-theme on <html>.
+   Tokens ending in -rgb are space-separated channels, for rgb(var(--x-rgb) / alpha). scratch/test_theme.mjs checks the contrast of
+   every text/surface pair of every theme (WCAG 2.x, 4.5:1 for text). */
 :root {
-  /* Colors in HSL so we can tweak lightness/alpha easily */
-  --bg:          #0E1C22;                    /* near-black teal */
+  color-scheme: dark;
+  --bg:          #0E1C22;                    /* page */
   --bg-2:        #132830;
   --surface:     #17303A;                    /* panels */
-  --raised:      #1E3D49;
+  --raised:      #1E3D49;                    /* elevated: cards, list items */
   --field:       #0F2027;                    /* inputs, small cells */
   --border:      rgb(251 233 208 / .14);
+  --control-border: rgb(251 233 208 / .14);  /* borders of inputs and buttons (3:1 against the surface in the light theme) */
   --text:        #FBE9D0;                    /* cream */
-  --text-muted:  #90AEAD;                    /* pale teal */
+  --text-muted:  #90AEAD;                    /* pale teal: secondary text */
+  --text-faint:  #6F8E8E;                    /* tertiary: placeholders, disabled; never essential small text */
   --accent:      #EA4F39;                    /* brand orange: fills, dark text on it 4.7:1 */
   --accent-hi:   #F4806A;                    /* lighter coral: text on panels 5.4:1, hover */
+  --accent-text: #FF9A86;                    /* accent used as small text on raised surfaces (4.48:1 with --accent-hi was just under 4.5:1) */
   --accent-rgb:  234 79 57;
-  --accent-2:    #90AEAD;                    /* pale teal */
-  --alt-rgb:     144 174 173;
+  --accent-2:    #90AEAD;                    /* secondary accent */
+  --alt-rgb:     144 174 173;               /* secondary accent as channels: "real data" tint, hints */
   --rust:        #874F41;
-  --on-accent:   #0E1C22;                    /* text on orange fills */
-  --display:     "Oswald", "Space Grotesk", "Inter", sans-serif;
+  --on-accent:   #0E1C22;                    /* text on accent fills */
   --warn:        #F2B07B;
+  --warn-rgb:    242 176 123;
   --danger:      #FF8A75;
   --success:     #90AEAD;
+  --bg-rgb:      14 28 34;
+  --surface-rgb: 23 48 58;
+  --text-rgb:    251 233 208;
+  --panel-alpha: .86;                        /* panels let a little of the nebula through */
+  --veil-top:    .30;                        /* how strongly the page colour covers the nebula picture, top and bottom */
+  --veil-bottom: .78;
+  --chart-bg:     #0F2027;                   /* the Plotly palette in measure.js was validated against this surface */
 
   --radius:      16px;
   --radius-sm:   10px;
   --shadow:      0 20px 50px -20px rgb(0 0 0 / .7);
+  --display:     "Oswald", "Space Grotesk", "Inter", sans-serif;
   --font-body:   "Inter", system-ui, sans-serif;
   --font-head:   "Space Grotesk", "Inter", sans-serif;
+  --font-mono:   var(--font-body);           /* Classic keeps its proportional digits; the other themes use JetBrains Mono */
   --ease:        cubic-bezier(.2, .8, .2, 1);
 }
+
+/* DEEP SPACE (default): blue-black ground, blue / violet / cyan accents. Also the palette of the dark "islands" (the photo banner, the
+   image stage, the charts) inside the light theme: they stay dark so that the images and the validated chart colours keep their ground. */
+[data-theme="deep-space"],
+[data-theme="light"] :is(.hero, .stage, .chart) {
+  --bg: #080D18; --bg-2: #101827; --surface: #151F30; --raised: #1B2940; --field: #0C1424;
+  --border: #29364B; --control-border: #60748F;
+  --text: #EDF3FC; --text-muted: #A6B5C9; --text-faint: #718198;
+  --accent: #64B5F6; --accent-hi: #8FCBFA; --accent-text: #8FCBFA; --accent-rgb: 100 181 246; --on-accent: #06101F;
+  --accent-2: #A99DFF; --alt-rgb: 54 214 208; --rust: #8B7CFF;
+  --warn: #F5B942; --warn-rgb: 245 185 66; --danger: #F16D78; --success: #45C98A;
+  --bg-rgb: 8 13 24; --surface-rgb: 21 31 48; --text-rgb: 237 243 252;
+  --panel-alpha: .9; --veil-top: .62; --veil-bottom: .9;
+  --display: "Inter", system-ui, sans-serif; --font-head: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* OBSERVATORY: softer slate ground */
+[data-theme="observatory"] {
+  --bg: #111827; --bg-2: #162033; --surface: #1F2937; --raised: #27364A; --field: #141C2B;
+  --border: #374357; --control-border: #6E8099;
+  --text: #F3F4F6; --text-muted: #B7C0CE; --text-faint: #8493A8;
+  --accent: #60A5FA; --accent-hi: #93C5FD; --accent-text: #93C5FD; --accent-rgb: 96 165 250; --on-accent: #08111F;
+  --accent-2: #B7A8FC; --alt-rgb: 54 214 208; --rust: #A78BFA;
+  --warn: #F5B942; --warn-rgb: 245 185 66; --danger: #F87F88; --success: #45C98A;
+  --bg-rgb: 17 24 39; --surface-rgb: 31 41 55; --text-rgb: 243 244 246;
+  --panel-alpha: .9; --veil-top: .6; --veil-bottom: .9;
+    --display: "Inter", system-ui, sans-serif; --font-head: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+/* LIGHT RESEARCH: white panels on a pale ground; images, banner and charts stay dark */
+[data-theme="light"] {
+  color-scheme: light;
+  --bg: #F5F7FB; --bg-2: #EAEFF7; --surface: #FFFFFF; --raised: #F1F5FA; --field: #FFFFFF;
+  --border: #DCE3EC; --control-border: #77869C;
+  --text: #172033; --text-muted: #56657C; --text-faint: #8190A5;
+  --accent: #2563EB; --accent-hi: #1D4ED8; --accent-text: #1D4ED8; --accent-rgb: 37 99 235; --on-accent: #FFFFFF;
+  --accent-2: #5B4BC4; --alt-rgb: 14 116 144; --rust: #7C3AED;
+  --warn: #9A4A06; --warn-rgb: 154 74 6; --danger: #B42318; --success: #11743A;
+  --bg-rgb: 245 247 251; --surface-rgb: 255 255 255; --text-rgb: 23 32 51;
+  --panel-alpha: .94; --veil-top: .93; --veil-bottom: .97;
+  --shadow: 0 14px 34px -18px rgb(23 32 51 / .28);
+  --display: "Inter", system-ui, sans-serif; --font-head: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+[data-theme="light"] .sky-bg { display: none; }                    /* white stars on a pale page would be invisible noise */
+
+[data-theme="light"] :is(.hero, .stage, .chart) { color-scheme: dark; color: var(--text); }
 
 /* ---------- 2. Base ---------- */
 *, *::before, *::after { box-sizing: border-box; }
@@ -109,7 +174,7 @@ kbd {
 
 .badge {
   font-size: .8rem; font-weight: 600; padding: .35rem .75rem; border-radius: 999px;
-  color: var(--warn); background: rgb(242 176 123 / .12); border: 1px solid rgb(242 176 123 / .35);
+  color: var(--warn); background: rgb(var(--warn-rgb) / .12); border: 1px solid rgb(var(--warn-rgb) / .35);
 }
 .badge.real { color: var(--success); background: rgb(var(--alt-rgb) / .14); border-color: rgb(var(--alt-rgb) / .4); }
 
@@ -144,7 +209,7 @@ input[type="text"], select {
   padding: .7rem .85rem;
   font: inherit; color: var(--text);
   background: var(--field);
-  border: 1px solid var(--border);
+  border: 1px solid var(--control-border);
   border-radius: var(--radius-sm);
   transition: border-color .2s var(--ease), box-shadow .2s var(--ease);
 }
@@ -181,7 +246,7 @@ output { font-weight: 600; color: var(--accent); }
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
   font: inherit; font-weight: 600; cursor: pointer;
-  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  border: 1px solid var(--control-border); border-radius: var(--radius-sm);
   color: var(--text); background: var(--bg-2);
   transition: transform .15s var(--ease), box-shadow .2s var(--ease), background .2s;
 }
@@ -268,7 +333,7 @@ output { font-weight: 600; color: var(--accent); }
 .overlay-progress {
   width: min(220px, 70%); height: 6px; margin-top: .9rem;
   appearance: none; -webkit-appearance: none; border: none; border-radius: 999px;
-  background: rgb(251 233 208 / .15); overflow: hidden;
+  background: rgb(var(--text-rgb) / .15); overflow: hidden;
 }
 .overlay-progress::-webkit-progress-bar { background: transparent; }
 .overlay-progress::-webkit-progress-value { background: var(--accent); border-radius: 999px; }
@@ -439,7 +504,7 @@ output { font-weight: 600; color: var(--accent); }
 .measure p, .context p { margin: .4rem 0; }
 .measure-pos { font-variant-numeric: tabular-nums; font-size: .88rem; }
 .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: .6rem; }
-.chart { margin: 0; padding: .6rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: #0F2027; }
+.chart { margin: 0; padding: .6rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--chart-bg); }
 .chart figcaption { font-size: .85rem; font-weight: 600; margin: 0 0 .3rem .3rem; }
 .chart-box { width: 100%; height: 300px; }
 .table-view { margin-top: .6rem; font-size: .85rem; }
@@ -458,7 +523,7 @@ output { font-weight: 600; color: var(--accent); }
 .sky-readout {
   position: absolute; left: .5rem; bottom: 2.6rem; z-index: 5; max-width: calc(100% - 1rem); pointer-events: none;   /* above Aladin's own zoom / field-of-view control (bottom left) */
   padding: .3rem .6rem; border-radius: 8px; border: 1px solid var(--border);
-  background: rgb(14 28 34 / .86); color: var(--text); font-size: .8rem; line-height: 1.35; font-variant-numeric: tabular-nums;
+  background: rgb(var(--bg-rgb) / .86); color: var(--text); font-size: .8rem; line-height: 1.35; font-variant-numeric: tabular-nums;
 }
 .sky-readout:empty { display: none; }
 
@@ -491,7 +556,7 @@ html.fs-locked { overflow: hidden; }
   color: var(--text-muted);
 }
 .track-info:empty { display: none; }
-.track-info::before { content: "◆ "; color: #FBE9D0; }
+.track-info::before { content: "◆ "; color: var(--text); }
 
 /* Find movers: button + status, ranked list, details of the selected candidate */
 .movers { margin-top: .9rem; padding-top: .8rem; border-top: 1px solid var(--border); }
@@ -509,7 +574,7 @@ html.fs-locked { overflow: hidden; }
 }
 .mover-item:hover { border-color: var(--accent); background: rgb(var(--accent-rgb) / .12); }
 .mover-item[aria-pressed="true"] { border-color: var(--accent); background: rgb(var(--accent-rgb) / .22); }
-.mover-rank { grid-row: 1 / span 2; font-family: var(--display); font-weight: 700; font-size: 1.15rem; color: #FF9A86; }   /* lighter than --accent-hi: 4.48:1 was just under the 4.5:1 minimum */
+.mover-rank { grid-row: 1 / span 2; font-family: var(--display); font-weight: 700; font-size: 1.15rem; color: var(--accent-text); }
 .mover-main { font-weight: 600; }
 .mover-sub { font-size: .8rem; color: var(--text-muted); }
 .mover-detail {
@@ -527,7 +592,7 @@ summary { padding-block: .4rem; cursor: pointer; }          /* a 21 px tall summ
 .discover-head { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem .9rem; }
 .discover-head .btn-primary { width: auto; padding: .55rem 1.1rem; }
 .discover-status { flex: 1 1 14rem; margin: 0; font-size: .85rem; color: var(--text-muted); }
-.discover-notes { margin: .6rem 0 0; padding: .5rem .8rem .5rem 1.6rem; font-size: .82rem; color: var(--warn); border-left: 3px solid var(--warn); background: rgb(242 176 123 / .07); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+.discover-notes { margin: .6rem 0 0; padding: .5rem .8rem .5rem 1.6rem; font-size: .82rem; color: var(--warn); border-left: 3px solid var(--warn); background: rgb(var(--warn-rgb) / .07); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
 .discover-chips { list-style: none; margin: .7rem 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: .4rem .5rem; }
 .discover-chips li { padding: .2rem .65rem; font-size: .82rem; color: var(--text-muted); background: var(--field); border: 1px solid var(--border); border-radius: 99px; }
 .discover-chips strong { color: var(--text); font-family: var(--display); font-size: 1rem; }
@@ -679,12 +744,12 @@ html { scroll-behavior: smooth; }
 body::before {
   content: ""; position: fixed; inset: 0; z-index: -2; pointer-events: none;
   background:
-    linear-gradient(to bottom, rgb(14 28 34 / .30), rgb(14 28 34 / .78)),
+    linear-gradient(to bottom, rgb(var(--bg-rgb) / var(--veil-top)), rgb(var(--bg-rgb) / var(--veil-bottom))),
     url("../img/bg-nebula.jpg") center / cover no-repeat;
 }
 /* Panels let a little of the background through */
 .panel {
-  background: rgb(23 48 58 / .86);
+  background: rgb(var(--surface-rgb) / var(--panel-alpha));
   backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
 }
 @media (max-width: 560px) {
@@ -711,7 +776,7 @@ body::before {
 .info { max-width: 1240px; margin: 0 auto; padding: clamp(2rem, 5vw, 4rem) clamp(1rem, 3vw, 2rem) 0; }
 .info:last-of-type { padding-bottom: clamp(1.5rem, 4vw, 3rem); }
 .info-box {
-  background: rgb(23 48 58 / .86); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  background: rgb(var(--surface-rgb) / var(--panel-alpha)); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--border); padding: clamp(1.2rem, 3vw, 2.6rem);
 }
 .info-kicker { margin: 0 0 .6rem; font-size: .75rem; letter-spacing: .22em; text-transform: uppercase; color: var(--accent-hi); }
@@ -752,3 +817,26 @@ body::before {
 .info-links a { padding: .5rem .9rem; border: 1px solid var(--border); color: var(--text); text-decoration: none; font-weight: 500; }
 .info-links a:hover { border-color: var(--accent); color: var(--accent-hi); }
 @media (max-width: 860px) { .info-top { grid-template-columns: 1fr; } }
+
+/* =========================================================
+   Theme switch and numerals (css tokens: section 1; js/features/theme.js)
+   ========================================================= */
+.theme-switch { display: inline-flex; align-items: center; }
+.theme-switch select { width: auto; min-width: 0; max-width: 100%; padding: .3rem 1.7rem .3rem .7rem; font-size: .8rem; border-radius: 999px; }
+.rhead .theme-switch { margin-left: auto; margin-right: .8rem; }
+/* Numbers that people compare line by line: equal-width digits, and the monospace face in the themes that define one */
+.meta dd, .frame-info, .measure-pos, .mover-sub, .discover-sub, .discover-facts dd, .discover-spectrum td, .stamp figcaption,
+.discover-chips strong, #measure-table td, .rtable td, .stats b {
+  font-variant-numeric: tabular-nums;
+}
+.meta dd, .measure-pos, .mover-sub, .discover-sub, .discover-facts dd, .discover-spectrum td, .stamp figcaption, #measure-table td, .rtable td {
+  font-family: var(--font-mono);
+}
+.mover-sub, .discover-sub { font-size: .76rem; }
+.hero-top { flex-wrap: wrap; row-gap: .6rem; }
+.hero-top .badge { white-space: nowrap; }
+@media (max-width: 560px) {
+  .hero-top { gap: .6rem; padding-inline: 1rem; }
+  .hero-top .hero-logo span:last-child { font-size: .95rem; }
+  .theme-switch select { padding-block: .25rem; font-size: .75rem; }
+}
