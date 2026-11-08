@@ -93,6 +93,18 @@ Checked with `scratch/audit_page.js` in the app's built-in browser (Chromium), p
   hollow, a badly flagged one is a diamond, a switched-off pass is dashed and struck through. Contrast: no text under 4.5:1 in Light and Classic at 375 px; the dots are 3.7:1 against the panel in Classic.
 - Not checked: a real touch screen (the pinch was driven with synthetic pointer events), a screen reader, other browsers.
 
+## Candidate table and provenance (added 8 Nov 2026, Phase 3)
+
+- The explorer is a real `<table>` with a caption for screen readers, `scope="col"` headers, a button in each header to sort (the header carries `aria-sort`), and a button in the first cell of
+  each row to open it (`aria-current` on the open one). The line "Showing 1–10 of 42" is a polite live region, so filtering and paging are announced. Filter, search and page size are labelled
+  controls; the pager is a `nav` with previous/next buttons that disable at the ends.
+- The plot of support against S/N is a picture of the same rows and is hidden from assistive technology on purpose (`aria-hidden`): the table is the equivalent. Its points are 24 px buttons
+  with a full name, reachable by mouse and touch only; the shape of a point (diamond, ring, circle, square, dashed square) and not only its colour says the class.
+- On a phone the table scrolls sideways inside its box and the page does not (no horizontal scroll of the page at 375 px; found and fixed: a grid column had grown to the width of the table).
+- "How this search was run" is a `<details>` (closed): the same sentence as in the files.
+- Checked at 375 px in the Light theme on the results page: no horizontal overflow of the page, no low-contrast text (the audit script reports the four `rval.inside` bar values, a known false
+  positive described above). Not checked: a screen reader, a real phone, the other themes on the new section.
+
 ## Re-running
 
 ```js

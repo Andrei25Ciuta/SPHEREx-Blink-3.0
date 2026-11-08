@@ -19,9 +19,10 @@ import { setupTimeline } from "./features/timelineView.js";
 import { FLAGGED_LIMIT } from "./features/timeline.js";
 import { SkyContext } from "./features/skyContext.js";
 import { setupFullscreen } from "./features/fullscreen.js";
-import { findMoversAcrossDetectors, detectSources, describeMover, matchKnownObject, moverPositionAtMjd, passIndices, trackSupport, blendWarning } from "./features/movers.js";
+import { findMoversAcrossDetectors, detectSources, describeMover, matchKnownObject, moverPositionAtMjd, passIndices, trackSupport, blendWarning, VERSION as MOVERS_VERSION, DEFAULTS as MOVER_DEFAULTS } from "./features/movers.js";
+import { buildProvenance, provenanceText } from "./features/provenance.js";
 import { colourHint } from "./features/spectrum.js";
-import { findDistantMovers, describeDistant, classifyApparentMotion } from "./features/parallax.js";
+import { findDistantMovers, describeDistant, classifyApparentMotion, VERSION as PARALLAX_VERSION, DISTANT_DEFAULTS } from "./features/parallax.js";
 import { candidatesToCsv, candidatesToJson, exportFileName } from "./features/export.js";
 import { startTour, WORKSPACE_STEPS } from "./features/tour.js";
 import { PLANET_X_DEMO } from "./data/mockSource.js";
@@ -785,6 +786,7 @@ const MIN_PASSES = 3;                      // same rule as in movers.js: a third
 let movers = [];                           // candidates for the detector on screen, best first
 let selectedMover = -1;
 let moversCatalogueChecked = false;        // was SIMBAD consulted for the list on screen?
+let moversRun = null;                      // how the list on screen was made (features/provenance.js): input, settings, algorithm version, time of the run
 
 const countPasses = (frames) => (frames.length ? passIndices(frames.map((f) => f.mjd)).at(-1) + 1 : 0);
 
@@ -818,6 +820,8 @@ $("movers-all-det").addEventListener("change", () => {
 
 function clearMovers() {
   movers = [];
+  moversRun = null;
+  $("movers-provenance").hidden = true;
   selectedMover = -1;
   player.setCandidates([]);
   $("mover-list").hidden = true;
@@ -920,6 +924,7 @@ $("find-movers-btn").addEventListener("click", async () => {
   const token = loadToken;
   const status = $("movers-status");
   const frames = searchFrames();
+  const startedAt = performance.now();
   $("find-movers-btn").disabled = true;
   clearMovers();
   status.textContent = `Searching… comparing the dots in ${describeSearchSet(frames)}.`;
@@ -941,6 +946,8 @@ $("find-movers-btn").addEventListener("click", async () => {
     const [objects] = await Promise.all([ensureCatalogue(), ensureAsteroids()]);        // each answers null if it cannot: never blocks
     if (token !== loadToken) return;
     showMovers(result, objects);
+    // the options the search ran with: the defaults of movers.js, with the noise floor of real (float) pixels when it was used
+    moversRun = recordRun("find-movers", MOVERS_VERSION, frames, { ...MOVER_DEFAULTS, ...(isFloat ? { sigmaFloor: 1e-9 } : {}), allDetectors: useAllDetectors() }, startedAt, isFloat);
   } catch (err) {
     console.error(err);
     status.textContent = `The search failed: ${err.message}`;
@@ -949,6 +956,18 @@ $("find-movers-btn").addEventListener("click", async () => {
     $("find-distant-btn").disabled = !canFindMovers();
   }
 });
+
+/** The record of a search that has just finished (features/provenance.js): its input, its settings, the algorithm version, the time it finished and how long it took. */
+function recordRun(analysis, version, frames, settings, startedAt, isFloat) {
+  const record = buildProvenance({
+    analysis, algorithm: { version }, frames, settings, ranAt: new Date(), durationMs: performance.now() - startedAt,
+    ctx: { ...exportContext(), detector: useAllDetectors() ? "all" : currentDetector },
+    pixels: isFloat ? "float32 pixels in the file's own unit (backend)" : "8-bit pictures (no float pixels: synthetic data)",
+  });
+  $("movers-provenance-text").textContent = provenanceText(record);          // the same sentence as in the files, for the page
+  $("movers-provenance").hidden = false;
+  return record;
+}
 
 /** The cutout the pixels belong to: centre, size and pixel scale. */
 const currentGeo = () => {
@@ -963,6 +982,7 @@ $("find-distant-btn").addEventListener("click", async () => {
   const token = loadToken;
   const status = $("movers-status");
   const frames = searchFrames();
+  const startedAt = performance.now();
   $("find-movers-btn").disabled = true;
   $("find-distant-btn").disabled = true;
   clearMovers();
@@ -985,6 +1005,7 @@ $("find-distant-btn").addEventListener("click", async () => {
     for (const c of result.candidates) c.frameIds = ids;
     addSupport(result.candidates, frames, arrays, n, isFloat ? { sigmaFloor: 1e-9 } : {});
     showMovers(result, null, { distant: true });
+    moversRun = recordRun("find-distant", PARALLAX_VERSION, frames, { ...DISTANT_DEFAULTS, ...MOVER_DEFAULTS, ...(isFloat ? { sigmaFloor: 1e-9 } : {}), allDetectors: useAllDetectors() }, startedAt, isFloat);
   } catch (err) {
     console.error(err);
     status.textContent = `The search failed: ${err.message}`;
@@ -1078,12 +1099,12 @@ function exportContext() {
 }
 $("export-csv-btn").addEventListener("click", () => {
   if (!movers.length || !currentQuery) return;
-  const ctx = exportContext();
+  const ctx = { ...exportContext(), provenance: moversRun };
   downloadText("﻿" + candidatesToCsv(movers, ctx), exportFileName(ctx, "csv"), "text/csv;charset=utf-8");   // BOM: Excel reads UTF-8
 });
 $("export-json-btn").addEventListener("click", () => {
   if (!movers.length || !currentQuery) return;
-  const ctx = exportContext();
+  const ctx = { ...exportContext(), provenance: moversRun };
   downloadText(candidatesToJson(movers, ctx), exportFileName(ctx, "json"), "application/json");
 });
 

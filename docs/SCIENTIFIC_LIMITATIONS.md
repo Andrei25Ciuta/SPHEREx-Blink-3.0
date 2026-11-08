@@ -60,6 +60,18 @@ A candidate is a lead with its evidence, never a discovery. Nothing this applica
 - The value is shown in Blink mode only; in Difference, Stack, Trail and Compare the picture is a combination of images, so no single value belongs to it.
 - Pixel numbers count from 0 at the top-left of the cutout; the centre of the field is pixel 24 of a 49-pixel (5′) cutout.
 
+## Provenance and the candidate table
+
+- A provenance record says **what a search was run with and when**; it does not say the result is right. The version labels (`movers-1`, `parallax-1`, `discovery-2`) are names the code
+  gives itself, first written on 8 Nov 2026: a result made before that has none, and a code change that alters results without a new label would make a record misleading (the
+  results page's test fails when the file's version differs from the code's).
+- The time of a run is the **browser's clock**; the "settings" are the thresholds and options of the search, not every constant of the maths (the pixel stretch, the registration, the
+  catalogue radii are in the code). "Images used" lists their detector and date, not their pixels.
+- The plot of support against S/N shows the **median detector S/N** of a source's dots and the support score (a sum of documented terms, not a probability). A source with no
+  S/N (no dots found) is only in the table. Both axes describe how well the images support a detection, not whether the object is new.
+- The table of the six real fields (results page, section 11) lists **42 sources, every one explained by a catalogue**, as in VALIDATION §14. Positions and designations are derived
+  numbers and public catalogue names; no pixel is published. It shows that the cross-match does not leave known stars unexplained; it cannot show what the tool would find that is new.
+
 ## Spectra
 
 - The colour hint (flux at 4-5 µm over flux at 1-2 µm) cannot tell an M dwarf from an early T dwarf and is not a classification.

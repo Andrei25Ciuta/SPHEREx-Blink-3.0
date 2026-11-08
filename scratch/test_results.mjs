@@ -1,6 +1,8 @@
 // Tests for the real-data results page: frontend/js/results.js (pure helpers + chart builders), frontend/data/real_results.json,
 // frontend/results.html.  Run: node scratch/test_results.mjs
-import { niceTicks, place, assignLanes, fmtChance, fmtPow10, fmtBy, getPath, fixed, esc, buildCharts, barsHtml, dotsHtml, tableHtml } from "../frontend/js/results.js";
+import { niceTicks, place, assignLanes, fmtChance, fmtPow10, fmtBy, getPath, fixed, esc, buildCharts, barsHtml, dotsHtml, tableHtml, sourceRows, sourcesSummary, sourcesSentence, sourcesVerdict } from "../frontend/js/results.js";
+import { missingProvenance } from "../frontend/js/features/provenance.js";
+import { VERSION as DISCOVERY_VERSION, SETTINGS as DISCOVERY_SETTINGS, CLASSES } from "../frontend/js/features/discovery.js";
 import { readFileSync, statSync } from "node:fs";
 
 let failed = 0;
@@ -135,6 +137,43 @@ check("charts that draw bars or dots are hidden from screen readers (the table s
   check("the page says the images are not published, shows the failure of the first blind Planet X search and the limits of the fair one",
     /No SPHEREx image or pixel is published/.test(HTML) && /blind search failed/i.test(HTML) && /A fair test/.test(HTML) && /default options the search found nothing/.test(HTML) && /not yet a result/.test(HTML));
   check("the status line and the module are there", HTML.includes('id="results-status"') && HTML.includes('src="js/results.js"') && HTML.includes("data-limits"));
+}
+
+// ================================================================= the sources of the six real fields (section 11): data/real_sources.json
+{
+  const file = JSON.parse(readFileSync(new URL("../frontend/data/real_sources.json", import.meta.url), "utf8"));
+  const rows = sourceRows(file);
+  check("sources file: six fields, 42 sources, a command to remake it and a date", file.fields.length === 6 && rows.length === 42 && /make_results_sources\.mjs/.test(file.command) && /^\d{4}-\d\d-\d\d$/.test(file.measuredOn));
+  check("sources file: each field's total is its number of rows and its counts add up to it, class by class", file.fields.every((f) => f.total === f.rows.length
+    && Object.values(f.counts).reduce((a, b) => a + b, 0) === f.total && Object.entries(f.counts).every(([k, v]) => f.rows.filter((r) => r.class === k).length === v)));
+  check("sources file: every row has a known class, a headline, a position, a support score and a unique id in its field", file.fields.every((f) => new Set(f.rows.map((r) => r.id)).size === f.rows.length)
+    && rows.every((r) => r.class in CLASSES && r.headline && Number.isFinite(r.ra) && Number.isFinite(r.dec) && Number.isFinite(r.support) && Array.isArray(r.tags)));
+  const ALLOWED = new Set(["id", "class", "classLabel", "headline", "ra", "dec", "motion", "nDet", "nFrames", "passes", "snr", "support", "fluxMilliJy", "tags", "match", "field"]);
+  check("sources file: only derived numbers, no pixel or image (a fixed list of keys, every value a number, text, null or a short list of words)", rows.every((r) => Object.keys(r).every((k) => ALLOWED.has(k))
+    && Object.values(r).every((v) => v === null || typeof v === "number" || typeof v === "string" || (Array.isArray(v) && v.every((x) => typeof x === "string")))));
+  check("sources file: it is small (no data hiding in it) and carries no address of this computer", statSync(new URL("../frontend/data/real_sources.json", import.meta.url)).size < 100_000 && !/localhost|127\.0\.0\.1|C:\\\\Users/i.test(JSON.stringify(file)));
+  check("sources file: every field has a COMPLETE provenance (algorithm version, time of the run, images, field, settings, data)", file.fields.every((f) => missingProvenance(f.provenance).length === 0 && f.provenance.analysis === "find-everything" && f.provenance.isReal === true));
+  check("sources file: it was made by the algorithm and settings the code has NOW (a stale file fails here: remake it when VERSION or a threshold changes)",
+    file.fields.every((f) => f.provenance.algorithm.version === DISCOVERY_VERSION && JSON.stringify(f.provenance.settings) === JSON.stringify(DISCOVERY_SETTINGS)), `file ${file.fields[0].provenance.algorithm.version}, code ${DISCOVERY_VERSION}`);
+  check("sources file: all four catalogues answered in every field, with no problem noted", file.fields.every((f) => ["simbad", "gaia", "2mass", "allwise"].every((c) => f.provenance.catalogues.used.includes(c)) && f.provenance.catalogues.problems.length === 0));
+  // the same numbers as the table of docs/VALIDATION.md §14 (the doc's table was written by hand from the first run; this file is a second run)
+  const table = [...DOC.matchAll(/^\| ([^|]+?) \| (\d+) \| [\d-]+ \| (\d+) \| (\d+) \((\d+)\) \| \*\*(\d+)\*\* \|$/gm)].map((m) => ({ name: m[1], images: +m[2], sources: +m[3], known: +m[4], moving: +m[5], unexplained: +m[6] }));
+  const labelOf = (name) => name.replace(/'s Star/, "'s Star field").replace(/^(Epsilon Indi B|WISE 0855) (D\d)$/, "$1 field · $2").replace(/^(Barnard's Star field) (D\d)$/, "$1 · $2");
+  check("sources file agrees with the table of VALIDATION.md §14, field by field: images, sources, known ones, moving ones, none unexplained",
+    table.length === 6 && table.every((t) => { const f = file.fields.find((x) => x.label === labelOf(t.name)); return f && f.provenance.input.images.count === t.images && f.total === t.sources
+      && f.rows.filter((r) => ["catalogued", "catalogued-moving", "solar-system"].includes(r.class)).length === t.known && f.rows.filter((r) => r.class === "catalogued-moving").length === t.moving && t.unexplained === 0 && f.total - t.known === 0; }),
+    `${table.length} table rows: ${table.map((t) => t.name).join("; ")}`);
+
+  const s = sourcesSummary(file);
+  check("summary: counted from the rows, and the sentence and verdict follow from it", s.total === 42 && s.fields === 6 && s.known === 42 && s.needChecking === 0 && /^42 sources in 6 fields: 42 in a catalogue or a known Solar System body; none is left unexplained\.$/.test(sourcesSentence(s))
+    && /found nothing new, and this test cannot say whether it would/.test(sourcesVerdict(s)));
+  const fake = sourcesSummary({ fields: [{ label: "F", rows: [{ id: "a", class: "unknown" }, { id: "b", class: "unknown-weak" }, { id: "c", class: "catalogued" }] }] });
+  check("summary: sources left over are said to be leads, never claimed as found", /^3 sources in 1 field: 1 in a catalogue/.test(sourcesSentence(fake)) && /2 not explained \(1 need checking, 1 weakly supported/.test(sourcesSentence(fake)) && /leads to check, not discoveries/.test(sourcesVerdict(fake)) && !/found nothing new/.test(sourcesVerdict(fake)));
+  check("one field's rows, or all of them; each row says which field", sourceRows(file, file.fields[0].id).length === file.fields[0].total && sourceRows(file, "all").length === 42 && sourceRows(file).every((r) => r.field && r.field.includes("field")) && sourceRows(file, "nope").length === 0);
+
+  check("page: the section for the sources, its controls and its status line are in results.html; the sections are numbered 11 and 12", ["sources-section", "sources-summary", "sources-verdict", "sources-field", "sources-explorer", "sources-detail", "sources-provenance", "sources-command", "sources-date", "sources-status"].every((id) => HTML.includes(`id="${id}"`))
+    && /<h2 id="r11">11\./.test(HTML) && /<h2 id="r12">12\./.test(HTML) && /id="sources-section"[^>]*hidden/.test(HTML));
+  check("page: every section heading is the one its section points to (aria-labelledby)", [...HTML.matchAll(/aria-labelledby="(r\d+)"/g)].every((m) => HTML.includes(`id="${m[1]}"`)));
 }
 
 console.log(failed ? `\n${failed} FAILED` : "\nall passed");

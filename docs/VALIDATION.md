@@ -619,6 +619,10 @@ objects.** The three measurements below are the real-data part.
 - **All 42 sources are explained**, every one of them by **Gaia DR3** (G down to about 21), most also by 2MASS and AllWISE. Barnard's Star is
   found as a mover at 10.1″/yr and matched to its Gaia entry with a consistent proper motion. No source was classed as an artefact and none as
   unknown.
+- **Repeated and written to a file (8 Nov 2026, 12:51 local).** `node scratch/make_results_sources.mjs` ran the same six fields again (real-only backend, the four catalogues and SkyBoT asked again) and
+  wrote every source, as derived numbers, to `frontend/data/real_sources.json` (the results page's section 11). It reproduced the table above field by field (8, 6, 7, 3, 14 and 4 sources = 42,
+  every one in a catalogue, the moving ones 1, 1, 1, 1, 0 and 1; the images 18, 6, 11, 6, 6 and 6); all four catalogues answered, no problem was noted. The run took 4-11 s per field. `scratch/test_results.mjs`
+  compares the file with this table and fails if the file was made by another version of the algorithm (`discovery-2`) or other thresholds than the code has.
 - **The honest reading: in these six small (5′) fields the detector shows only stars that the catalogues already hold.** It says nothing about
   how many *new* objects the tool would find, because there were none to find. The test does show that the cross-match, with proper motion and
   epochs, does not leave real stars unexplained (§13 had 21 of 60 dots "in neither 2MASS nor AllWISE").

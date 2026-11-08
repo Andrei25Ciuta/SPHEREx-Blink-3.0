@@ -12,8 +12,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Oswald:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=13">
-  <link rel="stylesheet" href="css/results.css?v=2">
+  <link rel="stylesheet" href="css/styles.css?v=20">
+  <link rel="stylesheet" href="css/results.css?v=3">
 </head>
 <body>
   <div class="sky-bg" aria-hidden="true"></div>
@@ -219,9 +219,25 @@
       <p class="rcaveat"><strong>From memory, not checked:</strong> the relation between brightness, size and albedo, the colour of the Sun, and the size and orbit of Planet Nine. Makemake itself, measured in the real images, comes out about one magnitude fainter than that formula says: the scale is right to the order of magnitude.</p>
     </section>
 
-    <!-- 11 -->
-    <section class="panel rsec" aria-labelledby="r11">
-      <h2 id="r11">11. What this does not show</h2>
+    <!-- 11: the candidate explorer on the six real fields, from data/real_sources.json (hidden until the file is loaded) -->
+    <section class="panel rsec" id="sources-section" aria-labelledby="r11" hidden>
+      <h2 id="r11">11. Every source <em>Find everything</em> lists on the six real fields</h2>
+      <p id="sources-summary"></p>
+      <p>This is the list behind the real fields of the sections above (<a href="https://github.com/mateibut/SPHEREx/blob/main/docs/VALIDATION.md">VALIDATION.md &sect;14</a>): every source the images show, each checked against SIMBAD, Gaia DR3, 2MASS and AllWISE at that
+        catalogue's own date. Click a column to sort; filter, search and open a row. Derived numbers only (no pixels). A source nothing explains would be a <strong>lead</strong>, never a discovery.</p>
+      <label class="rfield">Field <select id="sources-field"></select></label>
+      <div id="sources-explorer"></div>
+      <p id="sources-detail" class="rcaveat" role="status"></p>
+      <h3>How each field's list was made</h3>
+      <div id="sources-provenance"></div>
+      <p class="rcaveat">Made by <code id="sources-command"></code> on <span id="sources-date"></span>, from the author's copy of the real images (not published). Each record above says what it was run with: input, settings, algorithm version and the time of the run.
+        <strong id="sources-verdict"></strong> How faint a source must be to be missed is in <a href="https://github.com/mateibut/SPHEREx/blob/main/docs/VALIDATION.md">VALIDATION.md &sect;14</a>.</p>
+    </section>
+    <p id="sources-status" class="rstatus" role="status" hidden></p>
+
+    <!-- 12 -->
+    <section class="panel rsec" aria-labelledby="r12">
+      <h2 id="r12">12. What this does not show</h2>
       <ul class="rlimits" data-limits></ul>
       <h3>Reproduce it</h3>
       <p>The commands are in <a href="https://github.com/mateibut/SPHEREx/blob/main/docs/VALIDATION.md">docs/VALIDATION.md</a>. They need the real cutouts, which are not published

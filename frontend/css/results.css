@@ -15,7 +15,8 @@
 .rhead nav a { display: inline-block; padding: .55rem .4rem; color: var(--text); font-weight: 500; text-decoration: none; }
 .rhead nav a:hover { color: var(--accent-hi); text-decoration: underline; }
 
-.rmain { max-width: 1100px; margin: 0 auto; padding: .6rem clamp(1rem, 3vw, 2rem) 2rem; display: grid; gap: 1.2rem; }
+.rmain { max-width: 1100px; margin: 0 auto; padding: .6rem clamp(1rem, 3vw, 2rem) 2rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.2rem; }   /* minmax(0, ...): a wide table scrolls inside its section, it does not widen the page */
+.rfield { display: grid; gap: .3rem; max-width: 26rem; margin: 0 0 .8rem; font-size: .85rem; color: var(--text-muted); }
 .rintro h1 {
   margin: 0 0 1rem; font-family: var(--display); font-weight: 700; color: var(--text);
   font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1.05;

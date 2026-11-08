@@ -29,6 +29,7 @@ modules in `frontend/` (no build step, no npm), a FastAPI + astropy backend in `
 for f in scratch/test_*.mjs; do node "$f" | tail -1; done          # Node tests: PASS/FAIL lines, exit code != 0 on failure
 backend/.venv/Scripts/python.exe -m pytest backend -q               # backend tests (Python 3.14 venv; `py` is the launcher, `python` is a broken alias)
 py scripts/serve_frontend.py 8765                                   # frontend, no stale cache (also .claude/launch.json "frontend")
+node scratch/make_results_sources.mjs                               # remake frontend/data/real_sources.json (needs "backend-real" and internet): do it when discovery.js VERSION or a threshold changes, test_results.mjs fails on a stale file
 # real-data runs need a real-only backend:  SPHEREX_DATA_DIR=backend/data/real  uvicorn on port 8003  ("backend-real" in .claude/launch.json),
 # then e.g.  node scratch/validate_discovery.mjs --mode real --field "Barnard D2"      (VALIDATION.md §14)
 ```

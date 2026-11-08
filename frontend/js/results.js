@@ -6,6 +6,8 @@
 // strings), so scratch/test_results.mjs tests them without a browser.
 
 import { setupThemeSwitcher } from "./features/theme.js";
+import { createExplorer } from "./features/candidateExplorerView.js";
+import { provenanceText, missingProvenance } from "./features/provenance.js";
 
 // ---------- small pure helpers ----------
 
@@ -264,6 +266,62 @@ export function renderPage(data, root = document) {
   for (const el of root.querySelectorAll("[data-limits]")) el.innerHTML = data.limits.map((t) => `<li>${esc(t)}</li>`).join("");
 }
 
+// ---------- every source on the six real fields (data/real_sources.json): the candidate explorer, with the provenance of each run ----------
+
+/** The rows of one field, or of all of them ("all"). Every row says which field it came from. */
+export function sourceRows(file, fieldId = "all") {
+  return file.fields.filter((f) => fieldId === "all" || f.id === fieldId).flatMap((f) => f.rows.map((r) => ({ ...r, field: r.field ?? f.label })));
+}
+
+/** The numbers above the table, all counted from the rows (nothing is typed in): how many sources, in how many fields, how many of each class. */
+export function sourcesSummary(file) {
+  const rows = sourceRows(file);
+  const by = {};
+  for (const r of rows) by[r.class] = (by[r.class] ?? 0) + 1;
+  const known = (by.catalogued ?? 0) + (by["catalogued-moving"] ?? 0) + (by["solar-system"] ?? 0);
+  return { total: rows.length, fields: file.fields.length, byClass: by, known, needChecking: by.unknown ?? 0, weak: by["unknown-weak"] ?? 0, artefacts: by.artefact ?? 0, unchecked: by.unchecked ?? 0 };
+}
+
+/** The verdict under the table, from the counts: nothing left unexplained says that this test cannot show the tool would find something new; sources left over are leads. */
+export function sourcesVerdict(s) {
+  const left = s.needChecking + s.weak + s.artefacts + s.unchecked;
+  return left === 0
+    ? "Every source was explained by a catalogue or a known body: it found nothing new, and this test cannot say whether it would."
+    : `${left} source${left === 1 ? " is" : "s are"} not explained by a catalogue or a known body: leads to check, not discoveries.`;
+}
+
+/** One sentence from those counts. It claims no discovery; it says what the catalogues explained and what is left. */
+export function sourcesSentence(s) {
+  const left = s.needChecking + s.weak + s.artefacts + s.unchecked;
+  return `${s.total} source${s.total === 1 ? "" : "s"} in ${s.fields} field${s.fields === 1 ? "" : "s"}: ${s.known} in a catalogue or a known Solar System body` +
+    (left === 0 ? "; none is left unexplained." : `; ${left} not explained (${s.needChecking} need checking, ${s.weak} weakly supported, ${s.artefacts} possible artefacts, ${s.unchecked} not checked).`);
+}
+
+function renderSources(file, root = document) {
+  const section = root.getElementById("sources-section");
+  if (!section) return;
+  const select = root.getElementById("sources-field");
+  select.replaceChildren(new Option("All fields", "all"), ...file.fields.map((f) => new Option(`${f.label} (${f.total})`, f.id)));
+  const summary = sourcesSummary(file);
+  root.getElementById("sources-summary").textContent = sourcesSentence(summary);
+  root.getElementById("sources-verdict").textContent = sourcesVerdict(summary);
+  const explorer = createExplorer({ root: root.getElementById("sources-explorer"), threshold: file.fields[0]?.provenance?.settings?.needsCheckingScore ?? null, showField: true,
+    onSelect: (id) => { const r = sourceRows(file).find((x) => x.id === id && (select.value === "all" || x.field === file.fields.find((f) => f.id === select.value)?.label)); root.getElementById("sources-detail").textContent = r ? `${r.id} · ${r.field} · ${r.headline}${r.match ? ` · match: ${r.match}` : ""}` : ""; } });
+  explorer.setRows(sourceRows(file));
+  select.addEventListener("change", () => { explorer.reset(); explorer.setRows(sourceRows(file, select.value)); root.getElementById("sources-detail").textContent = ""; });
+  const prov = root.getElementById("sources-provenance");
+  prov.replaceChildren(...file.fields.map((f) => {
+    const d = document.createElement("details");
+    d.className = "provenance";
+    const missing = missingProvenance(f.provenance);
+    d.innerHTML = `<summary>${esc(f.label)}: how it was made</summary><p>${esc(provenanceText(f.provenance))}${missing.length ? ` <strong>Missing from this record: ${esc(missing.join(", "))}.</strong>` : ""}</p>`;
+    return d;
+  }));
+  root.getElementById("sources-command").textContent = file.command;
+  root.getElementById("sources-date").textContent = file.measuredOn;
+  section.hidden = false;
+}
+
 async function main() {
   const status = document.getElementById("results-status");
   try {
@@ -278,6 +336,16 @@ async function main() {
         ? "This page needs to be served over http (for example: py -m http.server 8765 -d frontend), not opened as a file."
         : `The numbers could not be loaded (${err.message}).`;
     }
+  }
+  // The sources table is a separate file: if it fails, say so in its own place and leave the rest of the page as it is.
+  const note = document.getElementById("sources-status");
+  try {
+    const r = await fetch("data/real_sources.json");
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    renderSources(await r.json());
+    if (note) note.hidden = true;
+  } catch (err) {
+    if (note) { note.hidden = false; note.textContent = `The list of sources could not be loaded (${err.message}).`; }
   }
 }
 if (typeof document !== "undefined" && document.getElementById("results-status")) main();

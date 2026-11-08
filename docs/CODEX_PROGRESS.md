@@ -5,7 +5,7 @@ Verify what is written here against `git log` and the test commands in `AGENTS.m
 
 ## Where it stands
 
-**Phase 0 (audit) done. Phase 1 (design foundation) mostly done. Phase 2 (workspace) mostly done: the viewer (zoom, pan, readout, scale bar, coordinate grid, centre on a candidate, layer list) and the timeline (time × wavelength plot, survey-pass switches, wavelength window) are in; the three-panel layout and the inspector panel are not.** Phases are defined in
+**Phase 0 (audit) done. Phase 1 (design foundation) mostly done. Phase 3 (results dashboard and candidate explorer) partly done: provenance, the candidate table and plot, and the six real fields' sources on the results page are in; the other ten sections of the results page are still hand-copied numbers. Phase 2 (workspace) mostly done: the viewer (zoom, pan, readout, scale bar, coordinate grid, centre on a candidate, layer list) and the timeline (time × wavelength plot, survey-pass switches, wavelength window) are in; the three-panel layout and the inspector panel are not.** Phases are defined in
 [IMPLEMENTATION_ROADMAP.md](IMPLEMENTATION_ROADMAP.md).
 
 ## Completed
@@ -20,9 +20,11 @@ Verify what is written here against `git log` and the test commands in `AGENTS.m
 
 | 8 Nov | Phase 2, third part: **Timeline 2.0**: a plot with one button per image (time order across, grouped by survey pass; wavelength up), the image on screen marked, hollow points for images the filter leaves out, diamonds for more than 1 % flagged pixels; **survey-pass switches** and a **wavelength window** (two sliders); the filter changes what the blink visits and what Stack, Trail and Difference are made of (not the searches); *Show all*; the player has `active` images (`setActive`, stepping and Play over them, Stack and Trail over them, Difference reference from the active images of other passes); the recorded video loops over the active images | `scratch/test_timeline.mjs` (36); built-in browser, real data (Barnard D2, 18 images, 4 passes): click shows the image; window 1.30–1.50 µm leaves 3, arrow keys visit only those, "Stack of 3 of 18", Difference runs, the slider reaches every image; a pass off removes its 5; no image left: Play disabled, no error; 375 px no overflow, 0 low-contrast text in Light and Classic |
 
-## Tests (8 Nov 2026, after Phase 2, third part)
+| 8 Nov | Phase 3, first part: **provenance** (input, settings, algorithm version, time of the run, built when a search finishes; on the page, in the CSV columns, the JSON and every dossier); **candidate explorer** (table with sort by column, filter, search, paging; a plot of support against S/N with the "needs checking" line) in the *Find everything* panel ("Table and plot") and on the results page; **results page section 11**: all 42 sources of the six real fields from `frontend/data/real_sources.json`, made by `scratch/make_results_sources.mjs`, each field with its provenance | `test_provenance.mjs` (28), `test_explorer.mjs` (37), `test_results.mjs` (+14: the file against VALIDATION §14 field by field, complete provenance, made by the algorithm and settings of the code now, no pixel and no local address), `test_discovery.mjs` / `test_export.mjs` / `test_discover_panel.mjs` extended. Real data: the second run reproduced §14 (8, 6, 7, 3, 14, 4 = 42, all four catalogues answered, no problem); built-in browser: provenance in the movers and Find everything exports, table sort/filter/search/select, paging on the results page, 375 px: no page overflow after two fixes (a grid column grown to the table's width in `index.html` and `results.html`) |
 
-- Node: 20 files, all exit 0, **651** `PASS`, 0 `FAIL` (`test_coords` and `test_mock` print differently and are not counted).
+## Tests (8 Nov 2026, after Phase 3, first part)
+
+- Node: 22 files, all exit 0, **740** `PASS`, 0 `FAIL` (`test_coords` and `test_mock` print differently and are not counted).
 - Backend: `pytest backend`: **146** passed.
 - Not run: CI on GitHub (nothing pushed), Playwright (none exist), a real touch screen, other browsers, any screen-reader check.
 - Method note: changing `data-theme` from a script in a pane that is not visible freezes the CSS transitions and gives false low-contrast results (light and classic showed 10 "failures" that vanished on a fresh load with `?theme=`).
@@ -54,6 +56,19 @@ New: `frontend/js/features/timeline.js`, `frontend/js/features/timelineView.js`,
 `activeCount`; `next`/`prev`/`play` over the active images; `_stat` and `_referenceFor` use them), `frontend/js/main.js` (the timeline, the Stack/Trail text, Play enabled by the active
 count, the flagged limit shared with the timeline), `frontend/js/features/exporters.js` (video loops over the active images), `frontend/index.html` and `frontend/css/styles.css`
 (the timeline section), docs and README.
+
+## Files changed in Phase 3 (first part)
+
+New: `frontend/js/features/{provenance,candidateExplorer,candidateExplorerView}.js`, `frontend/data/real_sources.json`, `scratch/{test_provenance,test_explorer,make_results_sources}.mjs`.
+Changed: `movers.js` (`VERSION`), `parallax.js` (`VERSION`, `DISTANT_DEFAULTS`: the same defaults, now exported), `discovery.js` (`SETTINGS`), `export.js` and `dossier.js` (provenance columns, JSON and
+Markdown; `dataLabel` now defined in `provenance.js`), `discoverPanel.js` (provenance, "Table and plot", `explorerRow`, `FILTERS` moved to `candidateExplorer.js` and re-exported), `main.js` (the movers' run record),
+`results.js` and `results.html` (section 11, the old 11 is now 12), `index.html`, `styles.css`, `results.css`, tests and docs. One existing check was **changed on purpose**: the cell count of
+`test_export.mjs` used a regular expression that miscounts a line ending in an empty cell; it now uses a real CSV line parser (same intent, stricter).
+
+## Remaining in Phase 3
+
+- Sections 1-10 of the results page are still `real_results.json`, whose numbers were copied by hand from VALIDATION.md (the test compares them); making them with scripts is the next step.
+- The table has no pictures (stamps) or spectra in its rows: they are in the dossier a row opens. A comparison of candidates across fields in the live app does not exist.
 
 ## Remaining in Phase 2
 

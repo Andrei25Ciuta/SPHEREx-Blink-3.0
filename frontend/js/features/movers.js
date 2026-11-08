@@ -21,8 +21,11 @@
 import { canvasToSky, skyToCanvas, mjdToYear } from "../geometry.js";
 import { positionAtEpoch } from "../targets.js";
 
+/** Name of this version of the mover search (provenance.js writes it into every result). Change it whenever a change may alter what the search finds. First written 8 Nov 2026. */
+export const VERSION = "movers-1";
+
 export const DEFAULTS = {
-  detectSigma: 5,           // a dot must stand this many sigma above the background
+  detectSigma: 5,          // a dot must stand this many sigma above the background
   edgeMargin: 2,            // px: peaks closer to the border have unreliable centres
   matchRadiusPx: 1.5,       // a dot supports a line if it is this close to the predicted spot
   staticRadiusPx: 1.2,      // dots this close in two passes are tried first (still stars, slow movers)

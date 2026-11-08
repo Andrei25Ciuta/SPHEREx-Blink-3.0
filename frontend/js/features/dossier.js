@@ -11,7 +11,7 @@
 // Pure functions (no DOM).
 
 import { VERSION, CLASSES } from "./discovery.js";
-import { dataLabel } from "./export.js";
+import { dataLabel, provenanceColumns, provenanceText, PROVENANCE_CSV_COLUMNS } from "./provenance.js";
 
 const MJD_UNIX_EPOCH = 40587;
 export const mjdToIso = (mjd) => new Date((mjd - MJD_UNIX_EPOCH) * 86400000).toISOString().replace(/\.\d+Z$/, "Z");
@@ -76,6 +76,7 @@ export function candidateDossier(c, ctx) {
     provenance: {
       tool: "SPHEREx Blink (NASA Space Apps 2026)", pipeline: VERSION, data: dataLabel(ctx.isReal), detector: ctx.detector,
       field: { raDeg: ctx.query.ra, decDeg: ctx.query.dec, fovArcmin: ctx.query.fov }, permalink: ctx.permalink ?? "", generated: ctx.generated ?? new Date().toISOString(),
+      run: ctx.provenance ?? null,                 // how the search was run: input, settings, algorithm version, time of the run (provenance.js)
       note: "A candidate is a lead with its evidence, not a discovery: it needs independent confirmation.",
     },
   };
@@ -105,6 +106,7 @@ export function dossierMarkdown(d) {
   L.push("", "## How the support score came about", "", Object.entries(d.support.parts).map(([k, v]) => `${k} ${v}`).join(", ") + (Object.keys(d.support.penalties).length ? `; penalties: ${Object.entries(d.support.penalties).map(([k, v]) => `${k} -${v}`).join(", ")}` : "") + ".", d.support.meaning);
   L.push("", "## What to check next", "", ...d.whatToCheck.map((t) => `- ${t}`));
   L.push("", "## Provenance", "", `${d.provenance.tool}, ${d.provenance.pipeline}. Field RA ${d.provenance.field.raDeg}°, Dec ${d.provenance.field.decDeg}°, ${d.provenance.field.fovArcmin}′, detector ${d.provenance.detector}. ${d.provenance.permalink ? `Reopen: ${d.provenance.permalink}. ` : ""}Generated ${d.provenance.generated}. ${d.provenance.note}`, "");
+  if (d.provenance.run) L.push("### How the search was run", "", provenanceText(d.provenance.run), "");
   return L.join("\n");
 }
 
@@ -112,7 +114,7 @@ export function dossierMarkdown(d) {
 
 export const CSV_COLUMNS = ["id", "class", "needs_checking", "support", "kind", "ra_deg", "dec_deg", "epoch_mjd", "pos_err_arcsec", "pm_east_arcsec_per_yr", "pm_north_arcsec_per_yr", "pm_err_arcsec_per_yr",
   "detections", "images", "survey_passes", "median_detector_snr", "rms_px", "persistence", "chance_lines_expected", "tags", "flags", "best_catalogue", "best_match", "best_match_sep_arcsec",
-  "solar_system_body", "colour_ratio", "colour_kind", "median_flux_mjy", "data", "permalink"];
+  "solar_system_body", "colour_ratio", "colour_kind", "median_flux_mjy", "data", "permalink", ...PROVENANCE_CSV_COLUMNS];
 
 /** One CSV cell (a text starting with = + - @ would run as a spreadsheet formula: it gets a leading apostrophe). */
 function cell(v) {
@@ -136,6 +138,7 @@ export function candidateRows(candidates, ctx) {
       best_catalogue: best?.label ?? "", best_match: best?.id ?? "", best_match_sep_arcsec: best ? round(best.sepArcsec, 2) : null, solar_system_body: c.body?.name ?? "",
       colour_ratio: round(c.colour?.ratio, 3), colour_kind: c.colour?.kind ?? "", median_flux_mjy: round(median(c.photometry.filter((p) => c.frames.includes(p.frame)).map((p) => p.fluxMilliJy)), 4),
       data: dataLabel(ctx.isReal), permalink: ctx.permalink ?? "",
+      ...(ctx.provenance ? provenanceColumns(ctx.provenance) : Object.fromEntries(PROVENANCE_CSV_COLUMNS.map((k) => [k, ""]))),
     };
   });
 }
@@ -148,6 +151,7 @@ export function candidatesToJson(candidates, ctx) {
   return JSON.stringify({
     tool: "SPHEREx Blink (NASA Space Apps 2026)", pipeline: VERSION, generated: ctx.generated ?? new Date().toISOString(), data: dataLabel(ctx.isReal),
     field: { ra_deg: ctx.query.ra, dec_deg: ctx.query.dec, fov_arcmin: ctx.query.fov, detector: ctx.detector }, permalink: ctx.permalink ?? "",
+    provenance: ctx.provenance ?? null,
     note: "Candidates are leads with their evidence, not discoveries.", candidates: candidates.map((c) => candidateDossier(c, ctx)),
   }, null, 2) + "\n";
 }

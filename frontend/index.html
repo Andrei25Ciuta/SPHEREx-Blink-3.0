@@ -15,7 +15,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Oswald:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 
   <script>if (/[?&]embed=1(&|$)/.test(location.search)) document.documentElement.classList.add("embed");</script>   <!-- ?embed=1: workspace only, for an <iframe> -->
-  <link rel="stylesheet" href="css/styles.css?v=17">
+  <link rel="stylesheet" href="css/styles.css?v=20">
 </head>
 <body>
   <!-- Decorative animated starfield behind everything (pure CSS, aria-hidden) -->
@@ -256,6 +256,10 @@
           <p class="movers-status" id="movers-status" role="status" aria-live="polite">Compares the dots in all images and lists the ones that moved.</p>
         </div>
         <ol class="mover-list" id="mover-list" aria-label="Candidate movers" hidden></ol>
+        <details class="provenance" id="movers-provenance" hidden>
+          <summary>How this search was run</summary>
+          <p id="movers-provenance-text"></p>
+        </details>
         <div class="mover-export" id="mover-export" hidden>
           <button type="button" class="btn btn-small" id="export-csv-btn" title="One line per candidate: position, motion, significance, distance, known object, asteroid check, what the data is, and a link back to this view">Save list (CSV)</button>
           <button type="button" class="btn btn-small" id="export-json-btn" title="The same, as JSON, with the field, the date and a reminder that candidates are not discoveries">Save list (JSON)</button>
@@ -277,11 +281,20 @@
         </div>
         <ul class="discover-notes" id="discover-notes" aria-label="Problems and limits of this search" hidden></ul>
         <ul class="discover-chips" id="discover-chips" aria-label="Summary" hidden></ul>
+        <details class="provenance" id="discover-provenance" hidden>
+          <summary>How this search was run</summary>
+          <p id="discover-provenance-text"></p>
+        </details>
+        <div class="discover-views" id="discover-views" role="group" aria-label="How to list the sources" hidden>
+          <button type="button" class="btn btn-small" id="discover-view-cards" aria-pressed="true">Cards</button>
+          <button type="button" class="btn btn-small" id="discover-view-table" aria-pressed="false" title="A table you can sort by any column, filter, search and page, with a plot of support against signal-to-noise">Table and plot</button>
+        </div>
         <div class="discover-controls" id="discover-controls" hidden>
           <label>Show <select id="discover-filter"></select></label>
           <label>Sort by <select id="discover-sort"></select></label>
         </div>
         <ol class="discover-list" id="discover-list" aria-label="Sources found" hidden></ol>
+        <div id="discover-explorer" hidden></div>
         <div class="discover-export" id="discover-export" hidden>
           <button type="button" class="btn btn-small" id="discover-csv-btn" title="One line per source: position, motion, class, support score, best catalogue match, flags, colour, flux">Save table (CSV)</button>
           <button type="button" class="btn btn-small" id="discover-json-btn" title="The same, as full dossiers in JSON, with the field, the date and a reminder that candidates are not discoveries">Save dossiers (JSON)</button>

@@ -4,28 +4,21 @@
 // Pure helpers are exported for the Node tests (headline, leadSentence, FILTERS, SORTS, pointsFor, stampPixels, pickStamps);
 // setupDiscoverPanel() is the only part that touches the page.
 
-import { discover, NEEDS_CHECKING_SCORE, stampFor } from "./discovery.js";
+import { discover, NEEDS_CHECKING_SCORE, stampFor, SETTINGS, VERSION } from "./discovery.js";
+import { buildProvenance, provenanceText } from "./provenance.js";
+import { FILTERS } from "./candidateExplorer.js";
+import { createExplorer } from "./candidateExplorerView.js";
 import { fetchAllCatalogues } from "./catalogueRelay.js";
 import { fetchSkybotForFrames } from "./skybot.js";
 import { candidateDossier, dossierMarkdown, candidatesToCsv, candidatesToJson, trackletCsv, dossierFileName, listFileName, degToHms, degToDms } from "./dossier.js";
 
 const MAX_LISTED = 300;
 const STAMP_COUNT = 8;
-const KNOWN = ["catalogued", "catalogued-moving", "solar-system"];
 
 const median = (v) => { const s = v.filter(Number.isFinite).sort((a, b) => a - b); const m = Math.floor(s.length / 2); return s.length ? (s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2) : NaN; };
 export const medianFlux = (c) => median(c.photometry.filter((p) => c.frames.includes(p.frame) && !p.flagged).map((p) => p.fluxMilliJy));
 
-export const FILTERS = {
-  all: ["Everything", () => true],
-  check: ["Needs checking", (c) => c.class === "unknown"],
-  unknown: ["Not explained (also the weak ones)", (c) => c.class === "unknown" || c.class === "unknown-weak"],
-  known: ["Known (catalogue or asteroid)", (c) => KNOWN.includes(c.class)],
-  artefact: ["Possible artefacts", (c) => c.class === "artefact"],
-  moving: ["Moving", (c) => c.tags.includes("moving")],
-  transient: ["Seen in one pass only", (c) => c.tags.includes("transient")],
-  red: ["Red (cool or warm objects)", (c) => c.tags.includes("red") || c.tags.includes("very-red")],
-};
+export { FILTERS };                                           // they live in candidateExplorer.js now: the table and the results page use them too
 export const SORTS = {
   best: ["Most interesting first", null],                       // the order discover() returns
   support: ["Support score", (a, b) => b.support - a.support],
@@ -42,6 +35,16 @@ export function headline(c) {
   if (m) return `${m.label}: ${m.id.length > 34 ? m.id.slice(0, 33) + "…" : m.id}${moving}`;
   const what = c.kind === "distant" ? "possible distant body" : c.tags.includes("transient") ? "appears in one pass only" : c.kind === "mover" ? "moving source" : "fixed source";
   return `${what}${moving}`;
+}
+
+/** A candidate as one flat row for the table (candidateExplorer.js describes the row). A flux that cannot be measured is null, never 0. */
+export function explorerRow(c) {
+  const m = c.catalogue?.matches?.[0], flux = medianFlux(c), speed = c.motionIsReal ? Math.hypot(c.pmEast, c.pmNorth) : null;
+  return {
+    id: c.id, class: c.class, classLabel: c.classLabel ?? c.class, headline: headline(c), ra: c.ra, dec: c.dec, motion: speed,
+    nDet: c.nDet, nFrames: c.nFrames, passes: c.passes, snr: Number.isFinite(c.medianSnr) ? c.medianSnr : null, support: c.support,
+    fluxMilliJy: Number.isFinite(flux) ? flux : null, tags: [...c.tags], match: m ? `${m.label} ${m.id}` : c.body ? c.body.name : "",
+  };
 }
 
 /** The second line of a list item. */
@@ -125,7 +128,14 @@ export function setupDiscoverPanel(deps) {
   const els = {
     btn: $("discover-btn"), status: $("discover-status"), notes: $("discover-notes"), chips: $("discover-chips"), controls: $("discover-controls"),
     filter: $("discover-filter"), sort: $("discover-sort"), list: $("discover-list"), exports: $("discover-export"), detail: $("discover-detail"),
+    provenance: $("discover-provenance"), provenanceText: $("discover-provenance-text"),
+    views: $("discover-views"), viewCards: $("discover-view-cards"), viewTable: $("discover-view-table"), explorer: $("discover-explorer"),
   };
+  let view = "cards";                                          // "cards": the list with the dossier inside the open item; "table": the explorer (table + plot)
+  const explorer = createExplorer({
+    root: els.explorer, threshold: NEEDS_CHECKING_SCORE,
+    onSelect: (id) => { const c = run?.result.candidates.find((x) => x.id === id); if (c) select(c); },
+  });
   els.filter.replaceChildren(...Object.entries(FILTERS).map(([k, [label]]) => el("option", { value: k, textContent: label })));
   els.sort.replaceChildren(...Object.entries(SORTS).map(([k, [label]]) => el("option", { value: k, textContent: label })));
 
@@ -138,7 +148,9 @@ export function setupDiscoverPanel(deps) {
   function clear() {
     if (highlighted) { player.setCandidates([]); highlighted = false; }
     run = null; selected = null;
-    for (const k of ["notes", "chips", "controls", "list", "exports", "detail"]) { els[k].hidden = true; }
+    for (const k of ["notes", "chips", "controls", "list", "exports", "detail", "provenance", "views", "explorer"]) { els[k].hidden = true; }
+    explorer.setRows([]);
+    setView("cards");
     els.list.replaceChildren(); els.chips.replaceChildren(); els.notes.replaceChildren(); els.detail.replaceChildren();
     setStatus("Lists every source in these images, checks each against catalogues and known asteroids, and ranks what nothing explains.");
   }
@@ -154,6 +166,7 @@ export function setupDiscoverPanel(deps) {
     if (!field) return;
     clear();
     els.btn.disabled = true;
+    const startedAt = performance.now();
     const stale = () => !deps.isCurrent(field.token);
     try {
       const frames = [...field.frames].sort((a, b) => a.mjd - b.mjd);
@@ -183,8 +196,15 @@ export function setupDiscoverPanel(deps) {
       const result = discover({ frames: dframes, n: field.n, geo: field.geo, isFloat, catalogues, skybot });
       if (stale()) return;
       const exportBase = deps.exportContext();
-      run = { result, frames: dframes, n: field.n, field, notes,
-        ctx: { ...exportBase, detector: field.detector, query: field.query, frames: dframes.map((f) => ({ id: f.id, dateISO: f.dateISO })) } };
+      // How this result was made, written NOW (the moment the search finished), so that every file saved later says when and with what it was run
+      const provenance = buildProvenance({
+        analysis: "find-everything", algorithm: { version: VERSION }, ctx: { ...exportBase, detector: field.detector, query: field.query }, frames: dframes,
+        settings: { ...SETTINGS }, ranAt: new Date(), durationMs: performance.now() - startedAt,
+        catalogues: isReal ? { used: result.summary?.catalogues ?? [], problems: notes } : { used: [], problems: notes },
+        pixels: isFloat ? "float32 pixels in the file's own unit (backend)" : "8-bit pictures (no float pixels: synthetic data)",
+      });
+      run = { result, frames: dframes, n: field.n, field, notes, provenance,
+        ctx: { ...exportBase, detector: field.detector, query: field.query, frames: dframes.map((f) => ({ id: f.id, dateISO: f.dateISO })), provenance } };
       show();
     } catch (err) {
       console.error(err);
@@ -213,7 +233,13 @@ export function setupDiscoverPanel(deps) {
       ...(c.unchecked ? [chip("not checked", c.unchecked, "No deep catalogue checked them")] : []),
     );
     els.chips.hidden = false;
-    els.controls.hidden = els.exports.hidden = false;
+    els.provenanceText.textContent = provenanceText(run.provenance);
+    els.provenance.hidden = false;
+    els.views.hidden = false;
+    explorer.reset();
+    explorer.setRows(result.candidates.map(explorerRow));
+    els.exports.hidden = false;
+    setView(view);
     els.notes.replaceChildren(...run.notes.map((t) => el("li", { textContent: t })));
     els.notes.hidden = run.notes.length === 0;
     const sources = s.catalogues.length ? s.catalogues.join(", ") : "none";
@@ -243,20 +269,39 @@ export function setupDiscoverPanel(deps) {
       btn.setAttribute("aria-expanded", String(open));
       btn.addEventListener("click", () => select(selected === c ? null : c));
       li.append(btn);
-      if (open) li.append(els.detail);
+      if (open && view === "cards") li.append(els.detail);
       return li;
     }));
     if (all.length > MAX_LISTED) els.list.append(el("li", { className: "discover-more", textContent: `${all.length - MAX_LISTED} more are not listed here: use the filter, or save the table.` }));
     if (!all.length) els.list.append(el("li", { className: "discover-more", textContent: "Nothing matches this filter." }));
-    els.list.hidden = false;
-    if (selected && !shown.includes(selected)) select(null);
+    els.list.hidden = view !== "cards";
+    if (view === "cards" && selected && !shown.includes(selected)) select(null);
   }
   els.filter.addEventListener("change", renderList);
   els.sort.addEventListener("change", renderList);
 
+  // ------------------------------------------------------------ cards or table
+  /** "cards" = the list, one card per source, the dossier opens inside the card; "table" = the explorer, the dossier opens under the table. */
+  function setView(v) {
+    view = v;
+    const table = v === "table";
+    els.viewCards.setAttribute("aria-pressed", String(!table));
+    els.viewTable.setAttribute("aria-pressed", String(table));
+    const has = Boolean(run) && !run.result.reason;
+    els.controls.hidden = !has || table;
+    els.list.hidden = !has || table;
+    els.explorer.hidden = !has || !table;
+    if (table) els.exports.after(els.detail);                                       // the dossier under the table and the save buttons
+    renderList();
+    explorer.setSelected(selected?.id ?? null);
+  }
+  els.viewCards.addEventListener("click", () => setView("cards"));
+  els.viewTable.addEventListener("click", () => setView("table"));
+
   // ------------------------------------------------------------ one source
   function select(c) {
     selected = c;
+    explorer.setSelected(c?.id ?? null);
     if (!c) {
       els.detail.hidden = true;
       if (highlighted) { player.setCandidates([]); highlighted = false; }

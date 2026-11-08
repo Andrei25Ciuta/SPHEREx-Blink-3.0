@@ -4,7 +4,8 @@
 
 import { separationArcsec, movePosition, normaliseCatalogue, matchCandidate, matchBodies, MIN_USEFUL_PM } from "../frontend/js/features/crossmatch.js";
 import { edgeDistance, coreFlaggedCount, vetCandidate, looksLikeArtefact, supportScore } from "../frontend/js/features/vetting.js";
-import { linkStaticSources, fitTrack, discover, stampFor, isShadowOf, NEEDS_CHECKING_SCORE, CLASSES } from "../frontend/js/features/discovery.js";
+import { linkStaticSources, fitTrack, discover, stampFor, isShadowOf, NEEDS_CHECKING_SCORE, CLASSES, SETTINGS, VERSION } from "../frontend/js/features/discovery.js";
+import { buildProvenance, missingProvenance, PROVENANCE_CSV_COLUMNS } from "../frontend/js/features/provenance.js";
 import { degToHms, degToDms, mjdToIso, whatToCheck, candidateDossier, dossierMarkdown, candidatesToCsv, candidatesToJson, trackletCsv, CSV_COLUMNS } from "../frontend/js/features/dossier.js";
 import { canvasToSky } from "../frontend/js/geometry.js";
 import { mulberry32 } from "./lib_real.mjs";
@@ -277,6 +278,25 @@ check("sexagesimal text", degToHms(269.4462) === "17h57m47.09s" && degToDms(4.76
   const tr = trackletCsv(c, ctx).trim().split("\r\n");
   check("tracklet CSV: one line per image where the mover was seen, UTC time, RA, Dec, uncertainty (and it is not called ADES)", tr.length === c.frames.length + 1 && /obs_time_utc/.test(tr[0]) && /2025-|2026-/.test(tr[1]) && !/ADES/i.test(tr.join()));
   check("every class has a label and a 'what to check' text exists for each candidate", Object.keys(CLASSES).length === 7 && result.candidates.every((x) => whatToCheck(x).length >= 1));
+
+  // ---- provenance: the run, not the export, is described
+  const frames = MJDS.map((m, k) => ({ mjd: m, dateISO: mjdToIso(m), detector: "D2", wavelengthUm: 1.1 + 0.05 * k }));
+  const provenance = buildProvenance({ analysis: "find-everything", algorithm: { version: VERSION }, ctx, frames, settings: { ...SETTINGS }, ranAt: "2026-11-08T10:00:00Z", durationMs: 4200,
+    catalogues: { used: ["simbad"], problems: [] }, pixels: "8-bit pictures" });
+  check("provenance (Find everything): complete, with the algorithm version and the numbers the search ran with", missingProvenance(provenance).length === 0 && provenance.algorithm.version === VERSION
+    && provenance.settings.needsCheckingScore === NEEDS_CHECKING_SCORE && provenance.input.images.count === 9);
+  const pctx = { ...ctx, provenance };
+  const pcsv = candidatesToCsv(result.candidates, pctx).trim().split("\r\n");
+  const header = pcsv[0].split(",");
+  check("provenance in the CSV: every candidate's line carries the analysis, the version, the run time, the images used and the settings", PROVENANCE_CSV_COLUMNS.every((k) => header.includes(k))
+    && pcsv.slice(1).every((l) => l.includes(`,${VERSION},2026-11-08T10:00:00Z,9,`) && l.includes("needsCheckingScore=65")));
+  const withoutRun = candidatesToCsv(result.candidates, ctx).trim().split("\r\n");
+  check("without a recorded run the provenance cells are empty, never invented", withoutRun[1].endsWith(",,,,,,") && !withoutRun[1].includes("movers-"));
+  const pjson = JSON.parse(candidatesToJson(result.candidates, pctx));
+  check("provenance in the JSON: at the top and inside every dossier", pjson.provenance.ranAt === "2026-11-08T10:00:00Z" && pjson.candidates.every((x) => x.provenance.run.algorithm.version === VERSION));
+  const pmd = dossierMarkdown(candidateDossier(c, pctx));
+  check("provenance in the Markdown dossier: the paragraph that says how the search was run", pmd.includes("### How the search was run") && pmd.includes("2026-11-08T10:00:00Z") && pmd.includes(`discovery-2`) && pmd.includes("needsCheckingScore=65") && pmd.includes("SYNTHETIC"));
+  check("a dossier made without a recorded run says nothing about one", !dossierMarkdown(candidateDossier(c, ctx)).includes("How the search was run") && candidateDossier(c, ctx).provenance.run === null);
 }
 
 console.log(failed ? `\n${failed} FAILED` : "\nall passed");

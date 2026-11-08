@@ -7,7 +7,7 @@ Branch `blink-2.0` (from `main` at `3f1e538`; `main` is left as the reference an
 
 | Check | Result (8 Nov 2026) |
 |---|---|
-| Node tests (`scratch/test_*.mjs`) | 16 files, all exit 0, 480 `PASS` lines before Phase 1; 17 files and 526 `PASS` after it (`test_theme.mjs`, 46); 20 files and **651** `PASS` after Phase 2 (`test_view.mjs` 63, `test_grid.mjs` 26, `test_timeline.mjs` 36); 0 `FAIL` (`test_coords` and `test_mock` print in another style and are not in that count) |
+| Node tests (`scratch/test_*.mjs`) | 16 files, all exit 0, 480 `PASS` lines before Phase 1; 17 files and 526 `PASS` after it (`test_theme.mjs`, 46); 20 files and 651 `PASS` after Phase 2 (`test_view.mjs` 63, `test_grid.mjs` 26, `test_timeline.mjs` 36); 22 files and **740** `PASS` after Phase 3's first part (`test_provenance.mjs` 28, `test_explorer.mjs` 37, `test_results.mjs` 64); 0 `FAIL` (`test_coords` and `test_mock` print in another style and are not in that count) |
 | Backend tests (`pytest backend`) | 146 passed after Phase 2 (143 after Phase 1, 112 before this work) |
 | CI (`.github/workflows/tests.yml`) | runs every `scratch/test_*.mjs` and pytest; **not run on the new branch yet** (nothing pushed); the action versions in it were written from memory |
 | Browser check of the new panel (built-in browser, real data, backend on port 8003) | opens, runs, no console errors; 375 px wide: no horizontal overflow after a fix (see §4) |

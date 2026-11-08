@@ -44,6 +44,9 @@ checked by `validateFrame` in `getCutouts.js`.
 | `readout.js` | what is shown under the pointer: pixel, RA/Dec (the same conversion as a click), offset, value text |
 | `layers.js` | the overlay layers: names, colours (used for drawing and for the colour key), counts |
 | `viewerControls.js` | the DOM side of the viewer (not pure): buttons, drag, pinch, wheel, keys, the readout line, the layer list |
+| `provenance.js` | the record of how a search was run (input, settings, algorithm version, time of the run); text and CSV columns from it; what the data is |
+| `candidateExplorer.js` | rows for the candidate table: filter, search, sort by a column, pages, cell text, the support-against-S/N plot layout |
+| `candidateExplorerView.js` | the DOM side of the explorer (not pure): the table, the plot, the pager; used by the *Find everything* panel and the results page |
 | `timeline.js` | survey passes, the time × wavelength layout, the filter (wavelength window, passes off), stepping through the images that pass it, texts |
 | `timelineView.js` | the DOM side of the timeline (not pure): one button per image, pass switches, wavelength sliders; tells the player which images are active |
 

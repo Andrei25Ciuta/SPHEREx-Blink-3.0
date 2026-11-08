@@ -1,6 +1,6 @@
 // Tests for the pure helpers of frontend/js/features/discoverPanel.js (texts, filters, sorting, stamps). The page part is checked in the browser.
 // Run: node scratch/test_discover_panel.mjs
-import { headline, subline, leadSentence, FILTERS, SORTS, pointsFor, pickStamps, stampPixels, medianFlux } from "../frontend/js/features/discoverPanel.js";
+import { headline, subline, leadSentence, FILTERS, SORTS, pointsFor, pickStamps, stampPixels, medianFlux, explorerRow } from "../frontend/js/features/discoverPanel.js";
 import { NEEDS_CHECKING_SCORE, CLASSES } from "../frontend/js/features/discovery.js";
 
 let failed = 0;
@@ -108,6 +108,20 @@ const make = (over) => ({ ...base, ...over });
   const px = stampPixels({ size, values: nan });
   check("stamp pixels: a missing pixel (outside the image) is drawn dark and see-through", px[0] === 0 && px[3] < 255 && px[7] === 255);
   check("stamp pixels: an all-equal stamp does not divide by zero", stampPixels({ size: 2, values: new Float32Array(4) }).every((v) => Number.isFinite(v)));
+}
+
+// ---------------------------------------------------------------- the row of the table (candidateExplorer.js)
+{
+  const r = explorerRow(base);
+  check("explorerRow: id, class, headline, position, seen-in, S/N, support and a tag copy", r.id === base.id && r.class === "unknown" && r.classLabel === base.classLabel && r.headline === "fixed source" && r.ra === 269.4 && r.dec === 4.7
+    && r.nDet === 6 && r.nFrames === 9 && r.snr === 12.4 && r.support === 71 && Array.isArray(r.tags) && r.tags !== base.tags);
+  check("explorerRow: no motion when it is not significant; the median flux of the images where it was found (1..6 -> 3.5); no match is an empty text", r.motion === null && r.fluxMilliJy === 3.5 && r.match === "");
+  const moving = explorerRow(make({ kind: "mover", motionIsReal: true, pmEast: 3, pmNorth: 4, catalogue: { ...base.catalogue, matches: [{ label: "Gaia DR3", id: "4472", sepArcsec: 1.2 }] } }));
+  check("explorerRow: a significant motion is the speed in arcsec/yr, a match is 'catalogue id'", moving.motion === 5 && moving.match === "Gaia DR3 4472");
+  check("explorerRow: a Solar System body is the match; a flux or S/N that cannot be measured is null, never NaN or 0",
+    explorerRow(make({ class: "solar-system", body: { name: "Ceres", cls: "MB>Inner", hits: 2 } })).match === "Ceres"
+    && explorerRow(make({ medianSnr: NaN, frames: [0], photometry: [{ frame: 0, fluxMilliJy: NaN, flagged: false }] })).snr === null
+    && explorerRow(make({ frames: [0], photometry: [{ frame: 0, fluxMilliJy: NaN, flagged: false }] })).fluxMilliJy === null);
 }
 
 console.log(failed ? `\n${failed} FAILED` : "\nall passed");

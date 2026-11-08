@@ -28,6 +28,12 @@ const PRESENT_SNR = 3;                              // an image "shows" the sour
 const DAYS_PER_YEAR = 365.25;
 const ASTROMETRIC_FLOOR_ARCSEC = 1;                 // the Arosa test: 1.0 arcsec between the image and the ephemeris
 
+/** The numbers Find everything runs with, for provenance.js (a result says what it was run with). Each is the constant above, not a copy. */
+export const SETTINGS = {
+  needsCheckingScore: NEEDS_CHECKING_SCORE, minPersistence: MIN_PERSISTENCE, minDetections: MIN_DETECTIONS, staticRadiusPx: STATIC_RADIUS_PX,
+  aperturePx: APERTURE_PX, presentSnr: PRESENT_SNR, astrometricFloorArcsec: ASTROMETRIC_FLOOR_ARCSEC,
+};
+
 export const CLASSES = {
   "solar-system": "Known Solar System body",
   "catalogued-moving": "In a catalogue, and moving",
