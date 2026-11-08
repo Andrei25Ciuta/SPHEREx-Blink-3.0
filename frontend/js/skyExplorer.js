@@ -6,6 +6,9 @@ import { SkyContext } from "./features/skyContext.js";
 const $ = id => document.getElementById(id);
 $("workspace").hidden = !CAN_USE_LOCAL_BACKEND;
 $("workspace-help").hidden = CAN_USE_LOCAL_BACKEND;
+$("search").querySelector('button[type="submit"]').disabled = !CAN_USE_LOCAL_BACKEND;
+if (!CAN_USE_LOCAL_BACKEND) $("live-search-help").textContent =
+  "Live IRSA search requires the local Blink backend. Explore the saved QR2 field below.";
 const map = new SkyContext($("aladin-box"), $("map-status"));
 const params = new URLSearchParams(location.search);
 const stateKeys = ["ra", "dec", "fov", "collection"];
@@ -18,6 +21,19 @@ function readQuery() {
     return null;
   }
   return {ra: ra.deg, dec: dec.deg, fov: $("fov").valueAsNumber, collection: $("collection").value};
+}
+
+function validArchiveResponse(body) {
+  return body && Array.isArray(body.records) && body.query &&
+    stateKeys.every(key => body.query[key] !== undefined) &&
+    typeof body.source === "string" && typeof body.retrieved === "string" &&
+    body.records.every(record => record && typeof record.id === "string" &&
+      (record.detector === null || typeof record.detector === "string") &&
+      (record.startMjd === null || Number.isFinite(record.startMjd)) &&
+      (record.productUrl === null || typeof record.productUrl === "string") &&
+      (record.footprint === null || Array.isArray(record.footprint) &&
+        record.footprint.every(point => Array.isArray(point) && point.length === 2 &&
+          point.every(Number.isFinite))));
 }
 
 function plot(records) {
@@ -95,20 +111,29 @@ async function search(saved) {
   request?.abort();
   const controller = new AbortController();
   request = controller;
+  if (!saved && !CAN_USE_LOCAL_BACKEND) {
+    $("status").textContent = "Live archive search requires the local Blink backend. Load the saved QR2 field instead.";
+    return;
+  }
+  const query = saved ? null : readQuery();
+  if (!saved && !query) return;
   $("products").hidden = true;
   selected = null;
   drawMapOverlay();
-  const query = saved ? null : readQuery();
-  if (!saved && !query) return;
   const base = API_BASE && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(API_BASE) &&
     !["localhost","127.0.0.1","[::1]"].includes(location.hostname) ? location.origin : API_BASE;
   const url = saved ? "data/sky-example.json" : base + "/api/observations?" + new URLSearchParams(query);
   $("status").textContent = saved ? "Reading the saved IRSA field…" : "Querying IRSA…";
   try {
     const response = await fetch(url, {signal: AbortSignal.any([controller.signal, AbortSignal.timeout(30000)])});
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (!response.ok) {
+      const problem = await response.json().catch(() => null);
+      throw new Error(typeof problem?.detail === "string" ? problem.detail : `HTTP ${response.status}`);
+    }
     const body = await response.json();
     if (controller.signal.aborted) return;
+    if (!validArchiveResponse(body))
+      throw new Error("Invalid archive metadata response.");
     current = body;
     for (const key of stateKeys) $(key).value = current.query[key];
     selected = null;
