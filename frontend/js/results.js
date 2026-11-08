@@ -255,9 +255,33 @@ export function buildCharts(data) {
 
 // ---------- the page ----------
 
-/** Fill the page: charts into [data-chart], numbers into [data-n], the limits list into [data-limits]. */
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+/** "2026-11-07" -> "7 Nov 2026"; anything else is returned as it is. */
+export function fmtDate(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso));
+  return m ? `${Number(m[3])} ${MONTHS[Number(m[2]) - 1]} ${m[1]}` : String(iso);
+}
+
+const VALIDATION_URL = "https://github.com/mateibut/SPHEREx/blob/main/docs/VALIDATION.md";
+
+/**
+ * The line under the heading of sections 1-10: which command made the numbers of the section and where VALIDATION.md reports it.
+ * Honest about the way: these numbers were typed into the data file from the printed report of the command (on the date of the measurement);
+ * the page cannot remake them by itself. Section 11 is different: a command writes its file.
+ */
+export function originHtml(origin, measuredOn) {
+  const cmds = origin.commands.map((c) => `<code>${esc(c)}</code>`).join("; ");
+  return `<strong>Where these numbers come from.</strong> ${cmds}. Reported in <a href="${VALIDATION_URL}">VALIDATION.md &sect;${esc(origin.validation)}</a>. `
+    + `Measured on ${esc(fmtDate(measuredOn))} and typed into this page's data file from the report of that command; this page does not remake them (the list in section 11 is made by a command).`;
+}
+
+/** Fill the page: charts into [data-chart], numbers into [data-n], the origin lines into [data-origin], the limits list into [data-limits]. */
 export function renderPage(data, root = document) {
   const charts = buildCharts(data);
+  for (const el of root.querySelectorAll("[data-origin]")) {
+    const origin = (data.origins ?? []).find((o) => String(o.section) === el.dataset.origin);
+    el.innerHTML = origin ? originHtml(origin, data.measuredOn) : "";
+  }
   for (const el of root.querySelectorAll("[data-chart]")) {
     const html = charts[el.dataset.chart];
     if (html) el.innerHTML = html;

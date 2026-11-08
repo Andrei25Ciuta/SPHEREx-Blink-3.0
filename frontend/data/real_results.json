@@ -3,6 +3,18 @@
   "measuredOn": "2026-11-07",
   "pixelArcsec": 6.14,
   "data": { "files": 60, "megabytes": 279, "fields": 7 },
+  "origins": [
+    { "section": 1,  "validation": "2",  "commands": ["node scratch/validate_real.mjs --ra 269.4462 --dec 4.769 --fov 5 --det D2 (and D6; the same for Epsilon Indi B)"] },
+    { "section": 2,  "validation": "2, 10", "commands": ["node scratch/validate_real.mjs (the same six runs)", "node scratch/calibrate_real.mjs --mode null"] },
+    { "section": 3,  "validation": "2",  "commands": ["node scratch/validate_real.mjs --ra 269.4462 --dec 4.769 --fov 5 --det D2"] },
+    { "section": 4,  "validation": "3",  "commands": ["py scratch/validate_photometry.py --ra 269.4462 --dec 4.769 --det D2 (and D6; Epsilon Indi B)"] },
+    { "section": 5,  "validation": "6",  "commands": ["node scratch/validate_asteroids.mjs --ra 269.4462 --dec 4.769 --fov 5 --det D6 (with the Arosa cutouts of scratch/fetch_asteroid_cutout.py)"] },
+    { "section": 6,  "validation": "7",  "commands": ["py scratch/stack_wise0855.py --det D6 (and D2)"] },
+    { "section": 7,  "validation": "5, 12", "commands": ["node scratch/real_parallax.mjs", "node scratch/blind_planet_x.mjs --det D1"] },
+    { "section": 8,  "validation": "10", "commands": ["node scratch/calibrate_real.mjs --mode inject --trials 40"] },
+    { "section": 9,  "validation": "10", "commands": ["node scratch/calibrate_real.mjs --mode null --nulls 300"] },
+    { "section": 10, "validation": "11", "commands": ["node scratch/planet_x_limits.mjs"] }
+  ],
   "summary": { "recovered": [6, 6], "minDifference": 0.20, "maxDifference": 0.80 },
 
   "movers": {

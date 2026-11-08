@@ -50,6 +50,7 @@
     <!-- 1 -->
     <section class="panel rsec" aria-labelledby="r1">
       <h2 id="r1">1. A blind search for fast movers</h2>
+      <p class="rorigin" data-origin="1"></p>
       <p>The detector (<em>Find movers</em>) was <strong>not told what to look for</strong>. Afterwards its candidates were compared with SIMBAD.
         Each field has exactly one catalogued fast mover: Barnard's Star (10.4″ a year) and Epsilon Indi B (4.7″ a year).
         The chart shows how far the measured motion is from the catalogue motion.</p>
@@ -66,6 +67,7 @@
     <!-- 2 -->
     <section class="panel rsec" aria-labelledby="r2">
       <h2 id="r2">2. How many of the lines are chance?</h2>
+      <p class="rorigin" data-origin="2"></p>
       <p>A candidate is a line through dots in several images. In a crowded field some lines happen by chance, so the detector
         estimates how many lines <em>this good</em> the dots of that field would make by chance, and keeps a candidate only if that number is below 1.
         Epsilon Indi B in D6 shows why: with the first version of the rule it listed the real star <strong>and three false lines</strong>.</p>
@@ -82,6 +84,7 @@
     <!-- 3 -->
     <section class="panel rsec" aria-labelledby="r3">
       <h2 id="r3">3. A bright star and the bad-pixel mask</h2>
+      <p class="rorigin" data-origin="3"></p>
       <p>Barnard's Star is so bright that the core of its image is flagged as saturated in every exposure. The centre of a partly flagged core
         moves from date to date, which looks like a wrong proper motion. Fitting the star only to the unflagged pixels fixed it.</p>
       <figure class="rfig">
@@ -95,6 +98,7 @@
     <!-- 4 -->
     <section class="panel rsec" aria-labelledby="r4">
       <h2 id="r4">4. Are the brightnesses on the right scale?</h2>
+      <p class="rorigin" data-origin="4"></p>
       <p>For isolated, unsaturated stars the measured flux (a small aperture, in Jansky) was divided by the flux expected from the star's 2MASS or AllWISE magnitude at the wavelength of that image.</p>
       <figure class="rfig">
         <figcaption>Measured flux divided by catalogue flux</figcaption>
@@ -109,6 +113,7 @@
     <!-- 5 -->
     <section class="panel rsec" aria-labelledby="r5">
       <h2 id="r5">5. An asteroid that moved between two images</h2>
+      <p class="rorigin" data-origin="5"></p>
       <p>The main-belt asteroid Arosa (V = 14.6) lies in two images of the same survey pass, <span data-n="arosa.hours"></span> hours apart.
         The ephemeris service SkyBoT says where it is at each time. The chart shows the flux at those two positions in each image.</p>
       <figure class="rfig">
@@ -124,6 +129,7 @@
     <!-- 6 -->
     <section class="panel rsec" aria-labelledby="r6">
       <h2 id="r6">6. WISE 0855, the namesake object</h2>
+      <p class="rorigin" data-origin="6"></p>
       <p>WISE 0855 is the coldest known brown dwarf and far too faint to show as a dot in one exposure, so a blind search cannot find it.
         The weaker question: is there flux at the position its catalogue motion predicts, when all the images are added up?
         The same stack was made at 16 control places (the same path shifted 40 and 60 arcseconds), where nothing is expected.</p>
@@ -147,6 +153,7 @@
     <!-- 7 -->
     <section class="panel rsec" aria-labelledby="r7">
       <h2 id="r7">7. Planet X mode on a real dwarf planet</h2>
+      <p class="rorigin" data-origin="7"></p>
       <p>Planet X mode looks for a body so far away that it swings across the sky as the Earth goes round the Sun, and reads its distance from that swing.
         Makemake (a dwarf planet at 52 AU) is in <span data-n="makemake.imageCount"></span> real images. Each cutout was centred on the position the ephemeris gives, and the ephemeris was otherwise used only for grading.</p>
       <figure class="rfig">
@@ -173,6 +180,7 @@
     <!-- 8 -->
     <section class="panel rsec" aria-labelledby="r8">
       <h2 id="r8">8. How faint can it go? Fake movers in real images</h2>
+      <p class="rorigin" data-origin="8"></p>
       <p>To learn what the detector can and cannot see, fake moving stars of known brightness and speed were added to the <strong>real</strong> images
         (with the star shape given in the FITS headers) and the unchanged detector was run: <span data-n="calibration.fakesPerCell"></span> fakes for every brightness and
         speed, 2400 per field. The chart shows the total flux at which <em>one image</em> finds the fake half of the time and nine times in ten.</p>
@@ -191,6 +199,7 @@
     <!-- 9 -->
     <section class="panel rsec" aria-labelledby="r9">
       <h2 id="r9">9. Is the &ldquo;chance lines&rdquo; number honest? Empty-sky test</h2>
+      <p class="rorigin" data-origin="9"></p>
       <p>Every real image was rotated or mirrored at random and moved by a random number of pixels, independently of the others, <span data-n="calibration.emptySky.copies"></span> times per field. Real noise and real star counts stay,
         but nothing links one image to the next, so <strong>any candidate is false by construction</strong>. The chart shows how often the detector would still list one.</p>
       <figure class="rfig">
@@ -207,6 +216,7 @@
     <!-- 10 -->
     <section class="panel rsec" aria-labelledby="r10">
       <h2 id="r10">10. Could SPHEREx see a &ldquo;Planet X&rdquo;?</h2>
+      <p class="rorigin" data-origin="10"></p>
       <p>A distant planet shines only by reflected sunlight. From the limit of section 8, one image shows stars down to about V = <span data-n="planetX.oneImageV.0" data-fmt="fixed:1"></span>&ndash;<span data-n="planetX.oneImageV.1" data-fmt="fixed:1"></span>.
         The chart compares that with what a planet of 2 to 4 Earth radii would be at 300, 500 and 1000 AU.</p>
       <figure class="rfig">

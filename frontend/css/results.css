@@ -118,3 +118,9 @@ p.rcaveat {
 .rhead { flex-wrap: wrap; row-gap: .4rem; }
 .rhead nav a { white-space: nowrap; }
 @media (max-width: 480px) { .rhead .theme-switch { margin-right: 0; } .rhead-logo span:last-child { font-size: .95rem; } }
+
+/* Under the heading of sections 1-10: which command made the numbers, and where VALIDATION.md reports it */
+.rorigin { margin: -.4rem 0 1rem; font-size: .82rem; color: var(--text-muted); overflow-wrap: anywhere; max-width: 74ch; }
+.rorigin:empty { display: none; }
+.rsec .rorigin strong { color: var(--text-muted); }
+.rsec .rorigin code { font-size: max(.9em, 12px); }

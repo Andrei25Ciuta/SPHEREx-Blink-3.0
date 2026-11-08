@@ -331,6 +331,10 @@ each detector were taken from a fresh run of `scratch/stack_wise0855.py` on 7 No
 Makemake with its **negative blind-search result written next to the successful fit**. Charts are HTML + CSS (no library, no
 canvas), so text keeps its size on a phone, and every chart is followed by a real table (the chart itself is hidden from
 screen readers). The numbers in the prose are filled in from the JSON (`data-n`), so they cannot drift from the charts.
+Since 8 Nov 2026 the JSON also has `origins`: for each of sections 1-10 the command (or commands) and the section of this file that
+reports it, shown as a line under the heading. **These numbers were typed into the JSON from the printed reports of those commands on the
+day of the measurement; no script writes the file** (only section 11 of the page, `real_sources.json`, is made by a command), and the page says
+so. `test_results.mjs` checks that every named script and every cited section of this file exists, and that the headline numbers stand here.
 
 `node scratch/test_results.mjs` (47 checks): the helpers (ticks, scales, lane spreading, number formats); the JSON agrees
 with itself (every stated difference is the distance between its measured and catalogue vectors; the control median, the

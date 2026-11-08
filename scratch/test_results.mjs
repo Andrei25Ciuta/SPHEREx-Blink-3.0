@@ -1,9 +1,9 @@
 // Tests for the real-data results page: frontend/js/results.js (pure helpers + chart builders), frontend/data/real_results.json,
 // frontend/results.html.  Run: node scratch/test_results.mjs
-import { niceTicks, place, assignLanes, fmtChance, fmtPow10, fmtBy, getPath, fixed, esc, buildCharts, barsHtml, dotsHtml, tableHtml, sourceRows, sourcesSummary, sourcesSentence, sourcesVerdict } from "../frontend/js/results.js";
+import { niceTicks, place, assignLanes, fmtChance, fmtPow10, fmtBy, getPath, fixed, esc, buildCharts, barsHtml, dotsHtml, tableHtml, sourceRows, sourcesSummary, sourcesSentence, sourcesVerdict, originHtml, fmtDate } from"../frontend/js/results.js";
 import { missingProvenance } from "../frontend/js/features/provenance.js";
 import { VERSION as DISCOVERY_VERSION, SETTINGS as DISCOVERY_SETTINGS, CLASSES } from "../frontend/js/features/discovery.js";
-import { readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync, existsSync } from "node:fs";
 
 let failed = 0;
 function check(name, ok, detail = "") {
@@ -174,6 +174,29 @@ check("charts that draw bars or dots are hidden from screen readers (the table s
   check("page: the section for the sources, its controls and its status line are in results.html; the sections are numbered 11 and 12", ["sources-section", "sources-summary", "sources-verdict", "sources-field", "sources-explorer", "sources-detail", "sources-provenance", "sources-command", "sources-date", "sources-status"].every((id) => HTML.includes(`id="${id}"`))
     && /<h2 id="r11">11\./.test(HTML) && /<h2 id="r12">12\./.test(HTML) && /id="sources-section"[^>]*hidden/.test(HTML));
   check("page: every section heading is the one its section points to (aria-labelledby)", [...HTML.matchAll(/aria-labelledby="(r\d+)"/g)].every((m) => HTML.includes(`id="${m[1]}"`)));
+}
+
+// ---- where the numbers of sections 1-10 come from (the origins of the data file)
+{
+  const origins = data.origins ?? [];
+  check("origins: exactly one for each of the sections 1 to 10, in order", same(origins.map((o) => o.section), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]));
+  const scripts = origins.flatMap((o) => o.commands.map((c) => ({ section: o.section, path: /(scratch\/[\w]+\.(?:mjs|py))/.exec(c)?.[1] })));
+  check("origins: every command names a script of scratch/ that exists in the repository", scripts.length >= 10 && scripts.every((s) => s.path && existsSync(new URL(`../${s.path}`, import.meta.url))),
+    scripts.filter((s) => !s.path || !existsSync(new URL(`../${s.path}`, import.meta.url))).map((s) => `${s.section}:${s.path}`).join(", "));
+  const headings = new Set([...DOC.matchAll(/^## (\d+)\./gm)].map((m) => m[1]));
+  const cited = origins.flatMap((o) => o.validation.split(",").map((s) => s.trim()));
+  check("origins: every VALIDATION.md section they cite exists as a heading", cited.length >= 10 && cited.every((n) => headings.has(n)), cited.filter((n) => !headings.has(n)).join(", "));
+  check("origins: no web address or local address in a command", origins.every((o) => o.commands.every((c) => !/https?:|localhost|127\.0\.0\.1/i.test(c))));
+  check("origins: every command starts with the program that runs it (node or py)", origins.every((o) => o.commands.every((c) => /^(node|py) scratch\//.test(c))));
+  const sectionOf = (n) => HTML.slice(HTML.indexOf(`<h2 id="r${n}">`), HTML.indexOf(`<h2 id="r${n + 1}">`));
+  check("page: each section 1-10 has its own origin line, right under its heading, and sections 11-12 have none",
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].every((n) => (sectionOf(n).match(new RegExp(`data-origin="${n}"`, "g")) || []).length === 1 && new RegExp(`<h2 id="r${n}">[^\\n]*</h2>\\s*<p class="rorigin" data-origin="${n}">`).test(HTML))
+    && !/data-origin="1[12]"/.test(HTML));
+  check("origins: the date is written for people (7 Nov 2026) and anything else is left alone", fmtDate("2026-11-07") === "7 Nov 2026" && fmtDate("2026-12-31") === "31 Dec 2026" && fmtDate("soon") === "soon");
+  const h = originHtml({ section: 1, validation: "2, 10", commands: ["node scratch/a.mjs --x <y>"] }, "2026-11-07");
+  check("origins: the line shows the command (escaped), links VALIDATION.md with its sections, gives the date and says the numbers were typed in",
+    h.includes("<code>node scratch/a.mjs --x &lt;y&gt;</code>") && h.includes("VALIDATION.md &sect;2, 10") && h.includes("7 Nov 2026") && /typed into this page's data file/.test(h) && !h.includes("<y>"));
+  check("origins: the data file is still small (the origins added to it)", statSync(JSON_PATH).size < 12_000, `${statSync(JSON_PATH).size} bytes`);
 }
 
 console.log(failed ? `\n${failed} FAILED` : "\nall passed");

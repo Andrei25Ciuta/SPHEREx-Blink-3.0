@@ -5,7 +5,7 @@ Verify what is written here against `git log` and the test commands in `AGENTS.m
 
 ## Where it stands
 
-**Phase 0 (audit) done. Phase 1 (design foundation) mostly done. Phase 4 (scientific pipeline) mostly done: positions, velocities and fluxes now carry errors that were checked against repeated injections and real stars (VALIDATION §15); a PSF-fit centroid and the parallax search's errors are not done. Phase 3 (results dashboard and candidate explorer) partly done: provenance, the candidate table and plot, and the six real fields' sources on the results page are in; the other ten sections of the results page are still hand-copied numbers. Phase 2 (workspace) mostly done: the viewer (zoom, pan, readout, scale bar, coordinate grid, centre on a candidate, layer list) and the timeline (time × wavelength plot, survey-pass switches, wavelength window) are in; the three-panel layout and the inspector panel are not.** Phases are defined in
+**Phase 0 (audit) done. Phase 2 (workspace) done, with limits: the viewer, the timeline, the three-panel layout (search / picture / inspector, side panels that close) and the inspector are in; a view that follows a candidate, layer order and opacity are not. Phase 3 (results dashboard and candidate explorer) mostly done: provenance, the candidate table and plot, the six real fields' sources made by a command, and an origin line under each of sections 1-10 (the command and the VALIDATION.md section); the numbers of sections 1-10 are still typed into `real_results.json` from the reports of those commands. Phase 1 (design foundation) mostly done. Phase 4 (scientific pipeline) mostly done: positions, velocities and fluxes carry errors checked against repeated injections and real stars (VALIDATION §15); a PSF-fit centroid and the parallax search's errors are not done.** Phases are defined in
 [IMPLEMENTATION_ROADMAP.md](IMPLEMENTATION_ROADMAP.md).
 
 ## Completed
@@ -23,12 +23,14 @@ Verify what is written here against `git log` and the test commands in `AGENTS.m
 | 8 Nov | Phase 3, first part: **provenance** (input, settings, algorithm version, time of the run, built when a search finishes; on the page, in the CSV columns, the JSON and every dossier); **candidate explorer** (table with sort by column, filter, search, paging; a plot of support against S/N with the "needs checking" line) in the *Find everything* panel ("Table and plot") and on the results page; **results page section 11**: all 42 sources of the six real fields from `frontend/data/real_sources.json`, made by `scratch/make_results_sources.mjs`, each field with its provenance | `test_provenance.mjs` (28), `test_explorer.mjs` (37), `test_results.mjs` (+14: the file against VALIDATION §14 field by field, complete provenance, made by the algorithm and settings of the code now, no pixel and no local address), `test_discovery.mjs` / `test_export.mjs` / `test_discover_panel.mjs` extended. Real data: the second run reproduced §14 (8, 6, 7, 3, 14, 4 = 42, all four catalogues answered, no problem); built-in browser: provenance in the movers and Find everything exports, table sort/filter/search/select, paging on the results page, 375 px: no page overflow after two fixes (a grid column grown to the table's width in `index.html` and `results.html`) |
 
 | 8 Nov | Phase 4, first part: **errors of positions, motions and fluxes measured and fixed** (VALIDATION §15). Measured first: the windowed centroid has no bias on average but a pixel-phase bias of up to 0.05 px; the velocity error was a floor 2-4 times too large; the aperture flux error left out the background term (8-13 % too small) and is 1.7 times too small on real cutouts. Now: every dot has `sigmaPx` (σ² = (1.05/S/N)² + B²), the velocity error is propagated from the dots (`lineUncertainty`) with a systematic floor of 0.04 px found on real stars, the dossier has `± mJy` (`calibratedFluxErr`: `errTotal`, ×1.7 on real cutouts) and the candidate's position error comes from the dots; `ERROR_MODEL` goes into every provenance record; versions `movers-2` / `discovery-3` | `test_astrometry.mjs` (31: spread of z 0.98-1.00 for positions, 0.89-0.96 for faint movers, 1.00 for fluxes; the exact velocity formula on 6 000 lines); `calibrate_astrometry.mjs` (the tables), `check_astrometry_real.mjs` (real fixed stars: z 0.97 at S/N 20-60; empty sky 1.68). **No regression on real data**, A/B with the committed code: the same candidate with the same motion, chance number and path support in all 6 blind runs (significance of Epsilon Indi B 8/7/11 → 15/11/18 σ), empty-sky control 316/225/86/12/0 → 315/225/86/12/0 false leads, the injection table identical, the 42 sources identical; `real_sources.json` remade |
+| 8 Nov | Phase 2, fourth part: **three-panel workspace and inspector**. From 1180 px: search / picture / inspector (the inspector stays in view while the page scrolls); from 861 px: search beside the picture, the inspector below; below that one column with the picture first. The search panel and the inspector close (a button each, keys `[` and `]`), a closed panel is a thin rail on a wide screen, the picture takes its room (never taller than the window), the choice is kept in `localStorage` (not in the link). The inspector holds the facts of the image on screen (detector, wavelength, MJD, flags), the **marked position** (pixel, RA/Dec, offset: it follows the measuring circle wherever it is set or cleared) and, on a wide screen, the description of the selected candidate (`#mover-detail`, `#discover-detail` are moved there and back; same ids and code) | `scratch/test_workspace.mjs` (53): breakpoints equal to the CSS ones, the saved choice (damaged or blocked storage: both open), keys, moving the descriptions, the layout read from the media queries (a first version read `innerWidth` and lagged in an emulated resize: found in the browser, fixed, test added), page markup (ids, aria, order). Built-in browser, real data (Barnard D2): 1440 px three panels; Find movers found Barnard's Star and its description appeared in the inspector; a click marked RA 17h57m44.70s Dec +04°46′38.7″, the same as the section-3 measurement; Escape cleared it; closing panels: picture 622 → 756 px; 1000 px two columns; 375 px one column, no horizontal overflow, 44 px buttons |
+| 8 Nov | Phase 3, second part: **where the numbers of sections 1-10 come from**: `origins` in `real_results.json` (the command or commands and the VALIDATION.md section of each section), shown under each heading (`originHtml`), saying openly that the numbers were typed into the file from the report of the command on the day of the measurement and that the page does not remake them | `test_results.mjs` (+9, 73 in all): one origin per section 1-10 in order, every command names a script that exists, every cited VALIDATION.md section exists as a heading, no address in a command, each page section has its origin line right under its heading, the date and the text, the data file is still under 12 000 bytes. Browser: ten origin lines drawn, no overflow, no console error |
 
-## Tests (8 Nov 2026, after Phase 4, first part)
+## Tests (8 Nov 2026, after the workspace panels and the origins of the results page)
 
-- Node: 23 files, all exit 0, **771** `PASS`, 0 `FAIL` (`test_coords` and `test_mock` print differently and are not counted).
+- Node: 24 files, all exit 0, **833** `PASS`, 0 `FAIL` (`test_coords` and `test_mock` print differently and are not counted).
 - Backend: `pytest backend`: **146** passed.
-- Not run: CI on GitHub (nothing pushed), Playwright (none exist), a real touch screen, other browsers, any screen-reader check.
+- CI on GitHub: both jobs of `tests.yml` passed on the pull request (https://github.com/mateibut/SPHEREx/pull/2) for commit `180d4ef`; the work after it is not pushed. Not run: Playwright (none exist), a real touch screen, other browsers, any screen-reader check.
 - Method note: changing `data-theme` from a script in a pane that is not visible freezes the CSS transitions and gives false low-contrast results (light and classic showed 10 "failures" that vanished on a fresh load with `?theme=`).
 
 ## Files changed in Phase 1
@@ -73,6 +75,11 @@ New: `scratch/{lib_inject,test_astrometry,calibrate_astrometry,check_astrometry_
 `errTotal` in `apertureSnr`, `VERSION` movers-2), `discovery.js` (`fitTrack`, `posErrArcsec`, `fluxErrMilliJy`, `SETTINGS`, `VERSION` discovery-3), `dossier.js` and `discoverPanel.js` (`± mJy`), `main.js` (the error model in the movers' provenance),
 `frontend/data/real_sources.json` (remade), `test_discovery.mjs` and `test_provenance.mjs` (version labels no longer hard-coded), docs. The searches' behaviour is unchanged; only the reported errors are.
 
+## Files changed in Phase 2 (fourth part) and Phase 3 (second part)
+
+New: `frontend/js/features/{workspace,workspaceView}.js`, `scratch/test_workspace.mjs`.
+Changed: `index.html` (the search panel has a head with a button and a body; a new `<aside id="inspector">` takes the frame facts, which moved out of the picture panel; the keyboard hint), `styles.css` (a section at the end: panel heads and buttons, the three layouts, the closed rails, the picture's room), `main.js` (`setupWorkspace`, the marked position), `viewerControls.js` (`describeAt`), `player.js` (`onMarkerChange`), `results.js`/`results.html`/`results.css` (`originHtml`, `fmtDate`, an origin line under sections 1-10), `real_results.json` (`origins`), `test_results.mjs` (+9), docs. No check was weakened or changed.
+
 ## Remaining in Phase 4
 
 - A **PSF-fit centroid** (the windowed centroid stops at 0.04 px for bright stars; the best possible is 5-16 times smaller on injected stars) and a PSF width per image instead of the cautious default.
@@ -80,13 +87,12 @@ New: `scratch/{lib_inject,test_astrometry,calibrate_astrometry,check_astrometry_
 
 ## Remaining in Phase 3
 
-- Sections 1-10 of the results page are still `real_results.json`, whose numbers were copied by hand from VALIDATION.md (the test compares them); making them with scripts is the next step.
+- Sections 1-10 of the results page: the numbers are typed into `real_results.json` from the reports of the commands (`origins` names the command and the VALIDATION.md section of each section, the page shows it, `test_results.mjs` checks that the scripts and the sections exist and that the headline numbers stand in VALIDATION.md). Making the file with the scripts (a `--json` output for `validate_real.mjs`, `calibrate_real.mjs`, `real_parallax.mjs` and the Python ones, then one `make_results_data.mjs`) is not done; it needs the real backend and would change numbers measured with older code.
 - The table has no pictures (stamps) or spectra in its rows: they are in the dossier a row opens. A comparison of candidates across fields in the live app does not exist.
 
 ## Remaining in Phase 2
 
-- Three-panel layout (controls / viewer / inspector), collapsible panels: changes what judges see on 14-15 Nov, so it waits for the author's decision (see next steps).
-- Inspector panel (the readout is a one-line start).
+- A tour step for the inspector (the tour test allows 8 steps and there are 8: one would have to go).
 - A view that follows a moving candidate from image to image (co-moving view); layer order and opacity.
 - The pixel value is shown in Blink mode only.
 
@@ -99,8 +105,8 @@ New: `scratch/{lib_inject,test_astrometry,calibrate_astrometry,check_astrometry_
 
 ## Next recommended steps
 
-1. Phase 2 is mostly done. What is left (three panels, inspector) depends on the author's decision about the page layout; Phase 3 (results dashboard and candidate explorer) does not.
-2. Before the larger rework of the page layout (three panels), decide whether it may change what judges see on 14-15 Nov; `main` still has the old page.
+1. Phases 2 and 3 are finished as far as this note says; what is left in each is listed above. The next phases (5-10) are Planet X Lab, spectral and multi-detector analysis, footprints, the simulator, the assistant and hardening.
+2. The page layout changed (three panels): `main` still has the old page, so decide when this branch replaces it.
 3. Run the new tests in CI once the branch is pushed by the author (the action versions in `tests.yml` were written from memory).
 
 ## Decisions made
