@@ -2,8 +2,10 @@
 
 Same algorithm as aperturePhotometry() in frontend/js/data/mockSource.js, so mock and
 real behave alike: sum inside a circle of radius r (pixels) minus the median background
-of a ring from r+2 to r+5 pixels; error from the ring's scatter. Units = image units
-(BUNIT) times pixels. For real SPHEREx files (BUNIT = MJy/sr) the sum is also given in Jansky.
+of a ring from r+2 to r+5 pixels; nominal error from the ring's scatter after
+resampling, without pixel covariance, source noise or calibration terms. Units
+= image units (BUNIT) times pixels. For real SPHEREx files (BUNIT = MJy/sr)
+the sum is also given in Jansky.
 
 The object may MOVE: with `motion` its position is moved to each frame's date, so the
 measurement follows it (that is how a moving object gets a spectrum).
@@ -82,6 +84,7 @@ def measure(frames: list[FrameFile], ra: float, dec: float, radius_px: float = 2
             "fluxErr": res[1] if res else None,
             "fluxJy": float(f"{res[0] * jy:.6g}") if res and jy else None,
             "fluxJyErr": float(f"{res[1] * jy:.6g}") if res and jy else None,
+            "errorModel": "resampled_sky_scatter",
             "flagged": flagged,
         })
     return points

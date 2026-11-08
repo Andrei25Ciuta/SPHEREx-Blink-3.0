@@ -100,6 +100,22 @@ these images is that it does nothing for the unsaturated star, and that it is co
 
 ## 3. Spectrum along the path, and the Jansky scale
 
+**Error-model clarification (8 November 2026).** The backend's `fluxErr` and
+`fluxJyErr` are the standard deviation of sky-ring pixels *after bilinear
+resampling*, multiplied by the square root of the aperture pixel count. These
+are nominal local sky-scatter estimates, not calibrated uncertainties:
+interpolation correlates neighbouring pixels, while the formula treats them
+as independent, and it omits source noise and calibration terms. A seeded
+white-noise diagnostic (`python scratch/diagnose_resampled_noise.py`) found
+empirical aperture-flux scatter / mean reported error of 1.05 without a
+subpixel shift, 1.62 at a (0.25, 0.40) pixel shift, and 1.86 at a (0.50, 0.50)
+shift. This is a mechanism check on synthetic noise, not a correction factor
+for SPHEREx images. Numeric errors were kept for backward compatibility; the
+API now marks them `errorModel=resampled_sky_scatter`, and the workspace calls
+the resulting ratios **nominal S/N**. Previously listed photometry S/N and
+error bars in this document use this nominal model; control-position tests
+remain necessary for significance claims.
+
 The backend converts the aperture sum from MJy/sr to Jansky with the pixel's solid angle
 (`backend/spherex/photometry.py`). The app measures a candidate **where it is on each image's date** and plots
 flux against wavelength.

@@ -127,9 +127,11 @@ function lightCurveTraces(points, col = "flux") {
 
 function renderTable(table, points, col = "flux") {
   const unit = col === "fluxJy" ? " (Jy)" : "";
+  const nominalError = points.some((p) => p.errorModel === "resampled_sky_scatter");
   table.replaceChildren();
   const head = table.createTHead();
-  const labels = ["Date (UTC)", "Detector", "λ (µm)", "Flux" + unit, "± Error", "Flux / error", "Flag"];
+  const labels = ["Date (UTC)", "Detector", "λ (µm)", "Flux" + unit,
+    nominalError ? "± Sky scatter" : "± Error", nominalError ? "Nominal S/N" : "Flux / error", "Flag"];
   const header = head.insertRow();
   for (const label of labels) {
     const th = document.createElement("th");
@@ -181,6 +183,8 @@ export async function measureAndPlot({ query, sky, els, isCurrent, motion = null
       (col === "fluxJy" ? ", converted from MJy/sr to Jansky with the pixel size. A quick aperture sum, not SPHEREx's own calibrated photometry: treat the absolute values as approximate." : ", in image units (not calibrated).") +
       " The 1–2 µm and 4–5 µm points come from different detectors, so compare the shape of the spectrum, not single points.";
     else els.note.textContent = `Flux is the background-subtracted sum in a ${APERTURE_RADIUS_PX}-pixel aperture at a fixed sky position. ${col === "fluxJy" ? "Flux density is in Jy, with approximate aperture calibration." : "Flux is in image units."} Detector visits can fall on different dates. A moving source can leave the aperture.`;
+    if (points.some((p) => p.errorModel === "resampled_sky_scatter"))
+      els.note.textContent += " The listed error is sky scatter measured after image resampling; interpolation correlates pixels, so the shown S/N is nominal and may be too high. It excludes calibration and source-noise terms.";
   }
 
   const visible = () => points.filter(p => !els.detector?.value || p.detector === els.detector.value);

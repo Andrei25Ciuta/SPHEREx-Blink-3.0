@@ -56,6 +56,9 @@ apply its WCS transform, so this comparison does not independently validate
 the absolute sky coordinates. Earlier real-data validation in
 `docs/VALIDATION.md` already includes Epsilon Indi B; this is a new raw-pixel
 cross-check on three dated D6 products, not a fresh blind discovery test.
+The API now identifies its unchanged numerical error values as
+`resampled_sky_scatter`; see the error-model clarification in
+`docs/VALIDATION.md` and `scratch/diagnose_resampled_noise.py`.
 
 Run `scratch/browser_real_responsive.cjs` against a local backend serving
 these files with `BLINK_REAL_FIELD=epsind-d6`. The test covers 320, 375, and

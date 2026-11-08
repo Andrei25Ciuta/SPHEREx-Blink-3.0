@@ -20,7 +20,9 @@
 //   getPhotometry({ centerRa, centerDec, fovArcmin, ra, dec, detector, radiusPx, motion }) -> Promise<Point[]>
 //   Point = { mjd, dateISO, detector, wavelengthUm, wavelengthMinUm, wavelengthMaxUm,
 //             flux: number|null, fluxErr: number|null, flagged: boolean,
-//             fluxJy?: number|null, fluxJyErr?: number|null }       // Jy only when the file is in MJy/sr
+//             fluxJy?: number|null, fluxJyErr?: number|null,
+//             errorModel?: "resampled_sky_scatter" } // Jy only when the file is in MJy/sr;
+//   the backend error uses sky scatter after interpolation, without covariance or calibration terms.
 //   flux = background-subtracted aperture sum at (ra, dec), in IMAGE units (not calibrated).
 //   (centerRa/centerDec/fovArcmin = the current cutout query; only the mock needs them.)
 //   motion (optional) = { epochMjd, pmEast, pmNorth }: measure a MOVING object. It is at (ra, dec) on

@@ -41,6 +41,8 @@ async function check() {
       await page.locator("#blink-canvas").click({ position: { x: canvasBox.width / 2, y: canvasBox.height / 2 } });
       await page.locator("#measure-table-wrap:not([hidden])").waitFor({ timeout: 120000 });
       assert.equal(await page.locator("#measure-table tbody tr").count(), count);
+      assert.match(await page.locator("#measure-note").textContent(), /resampling.*S\/N is nominal/);
+      assert.match(await page.locator("#measure-table thead").textContent(), /Sky scatter.*Nominal S\/N/);
       if (width === 1280) {
         const table = page.locator("#measure-table-wrap");
         if (!await table.evaluate(details => details.open)) await table.locator("summary").click();
@@ -49,7 +51,8 @@ async function check() {
         const exported = JSON.parse(readFileSync(await download.path(), "utf8"));
         assert.equal(exported.data, "spherex_header");
         assert.equal(exported.measurements.length, count);
-        assert.ok(exported.measurements.every(point => point.detector === field.det && Number.isFinite(point.fluxJy)));
+        assert.ok(exported.measurements.every(point => point.detector === field.det &&
+          Number.isFinite(point.fluxJy) && point.errorModel === "resampled_sky_scatter"));
       }
       assert.deepEqual(errors, [], "no browser exceptions");
       await page.close();

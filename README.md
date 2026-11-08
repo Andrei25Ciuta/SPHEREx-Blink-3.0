@@ -128,7 +128,7 @@ Open `http://localhost:8001/?data=api` or choose **Local FITS backend** under Se
 | Endpoint | Returns |
 |---|---|
 | `GET /api/cutouts?ra=&dec=&fov=&det=` | `{ frames: Frame[] }` – contract in `frontend/js/data/getCutouts.js`; each frame also has `dataUrl`, the same pixels as raw little-endian float32, and `maskUrl`, one byte per pixel (1 = a BAD flag bit is set there, e.g. a saturated core; north up like the pixels) |
-| `GET /api/photometry?ra=&dec=&det=&radius=` | `{ points: Point[] }` – aperture photometry per frame, in image units and (files in MJy/sr) in Jansky. For a **moving** object add `epoch_mjd=&pm_east=&pm_north=` (arcsec/yr): each frame is measured where the object is on its date |
+| `GET /api/photometry?ra=&dec=&det=&radius=` | `{ points: Point[] }` – aperture photometry per frame, in image units and (files in MJy/sr) in Jansky. Each point identifies the nominal resampled sky-scatter error model. For a **moving** object add `epoch_mjd=&pm_east=&pm_north=` (arcsec/yr): each frame is measured where the object is on its date |
 | `GET /api/hips/<survey>/<file>` | IRSA HiPS sky tiles relayed with CORS (allowlist of 3 surveys) |
 | `GET /api/health` | indexed files + files that could not be read |
 | `GET /cutouts/<file>.png` | cached cutout / flag-mask PNGs |
@@ -144,7 +144,7 @@ stretch/cutout code without bumping `STRETCH_VERSION`.
 - The public demo runs on **synthetic** data; real SPHEREx images are used only on the author's machine (with the Python backend) and are not published. The page [`frontend/results.html`](frontend/results.html) shows what came out, as numbers only.
 - **Find movers** needs images from at least 3 survey passes about 6 months apart, finds nothing that moves less than about 0.8 pixel over the whole period, uses positions only, and in a field with a saturated star it loses a factor of about 30 in sensitivity ([docs/VALIDATION.md](docs/VALIDATION.md) §10).
 - **Planet X mode** works on bodies that single images can show (to roughly V 17, i.e. a 2-4 Earth-radius planet out to 150-270 AU); on real data the blind search found Makemake once, with loosened options, among about 33 chance candidates per field (§12), and a Planet-Nine-like body at 300-800 AU is 3-5 magnitudes too faint for it (§11).
-- Fluxes are quick aperture sums (2-10 % below catalogue magnitudes), not SPHEREx's calibrated photometry; WISE 0855 is a suggestive stack, not a detection.
+- Fluxes are quick aperture sums (2-10 % below catalogue magnitudes), not SPHEREx's calibrated photometry. The displayed S/N is nominal: resampling correlates pixels, and the error estimate omits covariance, source noise and calibration terms ([docs/VALIDATION.md](docs/VALIDATION.md) §3). WISE 0855 is a suggestive stack, not a detection.
 - Candidates are leads, never discoveries. The licence and terms of use of the real data have not been reviewed (see [CREDITS.md](CREDITS.md)). Everything is listed in [docs/VALIDATION.md](docs/VALIDATION.md) §8.
 
 ## Tests
@@ -165,6 +165,8 @@ node scratch/test_export.mjs
 node scratch/test_tour.mjs
 node scratch/test_results.mjs
 node scratch/test_skygeo.mjs
+node scratch/test_candidate_roundtrip.mjs
+node scratch/test_parallax_profile.mjs
 ```
 
 More scripts need the backend and real files (they print a report; run them against a backend started with `SPHEREX_DATA_DIR` set to `backend/data/real`, so it serves only the real files; otherwise the synthetic frames at the same sky position get mixed in): `scratch/validate_real.mjs` (blind test of Find movers against SIMBAD; `--det all` for both detectors, `--relaxed 1` for the original rule), `scratch/validate_asteroids.mjs` (known asteroids against real cutouts), `scratch/validate_photometry.py` (Jansky scale against 2MASS/AllWISE stars), `scratch/stack_wise0855.py` (WISE 0855 stacked along its path, with control positions) and `scratch/real_parallax.mjs` (Earth-parallax fit and blind search on real Makemake cutouts; `scratch/find_body_frames.py` finds such images through JPL Horizons), `scratch/calibrate_real.mjs` (injection and recovery of fake movers, and the empty-sky calibration of the false-alarm number), `scratch/planet_x_limits.mjs` (what a single image can see, in magnitudes) and `scratch/fetch_body_cutouts.py` (plans and, after a yes, downloads off-centre 30′ cutouts around a moving body for a fair blind test); see [docs/VALIDATION.md](docs/VALIDATION.md). To remake the README GIF from the synthetic files: `backend/.venv/Scripts/python.exe scripts/make_demo_gif.py` (backend running).
@@ -176,7 +178,7 @@ backend/.venv/Scripts/python.exe -m pip install -r backend/requirements-dev.txt
 backend/.venv/Scripts/python.exe -m pytest backend
 ```
 
-112 tests cover `cutout` (north up / east left, rotated frames, edges, flags, the bad-pixel mask, bilinear resampling), `photometry` (including a moving object), `query` (headers, bad files, distortion that cannot be inverted), `stretch` and the `hips_proxy` allowlist. The HTTP layer in `backend/app.py` is not covered yet. The browser-side modules have 359 checks in the Node tests above (the results page, which checks its data file against `docs/VALIDATION.md`, and the sky-map country readout, which uses a tiny invented world map, are among them).
+The backend suite covers `cutout` (north up / east left, rotated frames, edges, flags, the bad-pixel mask, bilinear resampling), `photometry` (including a moving object), `query` (headers, bad files, distortion that cannot be inverted), `stretch` and the `hips_proxy` allowlist. Browser checks and live archive validation are recorded in [docs/CODEX_PROGRESS.md](docs/CODEX_PROGRESS.md).
 
 `scratch/check_track.js` is a browser-console helper that measures, frame by frame, how far
 WISE 0855 is from its predicted position (use it again on real data).

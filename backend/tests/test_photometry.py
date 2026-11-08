@@ -73,6 +73,13 @@ def test_measure_reports_flagged_pixels_next_to_the_target(write_frame):
     points = measure([read_frame_file(clean), read_frame_file(dirty)], 150.0, 20.0)
     assert [p["flagged"] for p in points] == [False, True]
 
+
+def test_measure_identifies_resampled_sky_scatter_error_model(write_frame):
+    path, _ = write_frame(stars=[(150.0, 20.0, 1000.0)])
+    point = measure([read_frame_file(path)], 150.0, 20.0)[0]
+    assert point["fluxErr"] is not None
+    assert point["errorModel"] == "resampled_sky_scatter"
+
 def test_surface_brightness_preserves_si_prefix_case(write_frame):
     path, _ = write_frame()
     frame = read_frame_file(path)
