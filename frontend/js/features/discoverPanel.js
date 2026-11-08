@@ -358,9 +358,9 @@ export function setupDiscoverPanel(deps) {
     const spectrum = el("details", { className: "discover-spectrum" }, el("summary", { textContent: "Spectrum, image by image" }),
       el("div", { className: "table-scroll" }, el("table", {},
         el("caption", { className: "sr-only", textContent: "Flux of the source in each image, at its place" }),
-        el("thead", {}, el("tr", {}, ...["wavelength µm", "S/N", "flux mJy", "detected", "flagged"].map((h) => el("th", { scope: "col", textContent: h })))),
+        el("thead", {}, el("tr", {}, ...["wavelength µm", "S/N", "flux mJy", "± mJy (1σ)", "detected", "flagged"].map((h) => el("th", { scope: "col", textContent: h })))),
         el("tbody", {}, ...[...d.spectrum].sort((a, b) => (a.wavelengthUm ?? 0) - (b.wavelengthUm ?? 0)).map((p) => el("tr", {},
-          ...[p.wavelengthUm ?? "–", p.snr ?? "–", p.fluxMilliJy ?? "–", p.detected ? "yes" : "no", p.flagged ? "yes" : ""].map((t) => el("td", { textContent: String(t) }))))))));
+          ...[p.wavelengthUm ?? "–", p.snr ?? "–", p.fluxMilliJy ?? "–", p.fluxErrMilliJy ?? "–", p.detected ? "yes" : "no", p.flagged ? "yes" : ""].map((t) => el("td", { textContent: String(t) }))))))));
 
     const flags = d.flags.length ? el("ul", { className: "discover-flags" }, ...d.flags.map((f) => el("li", {}, el("strong", { textContent: f.code }), ` (${f.severity}): ${f.text}`))) : null;
     const todo = el("ul", { className: "discover-todo" }, ...d.whatToCheck.map((t) => el("li", { textContent: t })));

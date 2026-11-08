@@ -67,7 +67,7 @@ export function candidateDossier(c, ctx) {
     distance: c.kind === "distant" ? { au: round(c.distanceAU, 0), rangeAu: c.distanceRangeAU?.map((v) => round(v, 0)) } : null,
     detections: { n: c.nDet, images: c.nFrames, survey_passes: c.passes, passes_in_data: c.nPasses, medianDetectorSnr: round(c.medianSnr, 1), rmsPx: round(c.rmsPx, 3), chanceLinesExpected: Number.isFinite(c.falseAlarm) ? Number(c.falseAlarm.toPrecision(2)) : null,
       persistence: c.persistence ? { imagesLookedAt: c.persistence.images, imagesShowingIt: c.persistence.present, fraction: round(c.persistence.fraction, 2) } : null },
-    spectrum: c.photometry.map((p) => ({ image: p.frame + 1, date: dateOf(p.frame), detector: p.detector, wavelengthUm: round(p.wavelengthUm, 3), snr: round(p.snr, 1), fluxMilliJy: round(p.fluxMilliJy, 4), flagged: p.flagged, detected: c.frames.includes(p.frame), measured: p.measured })),
+    spectrum: c.photometry.map((p) => ({ image: p.frame + 1, date: dateOf(p.frame), detector: p.detector, wavelengthUm: round(p.wavelengthUm, 3), snr: round(p.snr, 1), fluxMilliJy: round(p.fluxMilliJy, 4), fluxErrMilliJy: round(p.fluxErrMilliJy, 4), flagged: p.flagged, detected: c.frames.includes(p.frame), measured: p.measured })),
     colour: c.colour ? { kind: c.colour.kind, ratio: round(c.colour.ratio, 3), text: c.colour.text } : null,
     catalogue: { matches: c.catalogue.matches.map((m) => ({ catalogue: m.label, id: m.id, separationArcsec: round(m.sepArcsec, 2), searchRadiusArcsec: round(m.radiusArcsec, 1), magnitudes: m.mag, type: m.type, properMotionArcsecPerYr: round(m.pm, 3) })), checked: c.catalogue.checked, notChecked: c.catalogue.notChecked },
     solarSystemBody: c.body ? { name: c.body.name, vmag: c.body.vmag, class: c.body.cls, imagesMatched: c.body.hits } : null,
@@ -100,8 +100,8 @@ export function dossierMarkdown(d) {
   if (d.catalogue.notChecked.length) L.push(`- Not checked: ${d.catalogue.notChecked.join(", ")}.`);
   L.push("", "## Flags", "");
   L.push(...(d.flags.length ? d.flags.map((f) => `- **${f.code}** (${f.severity}): ${f.text}`) : ["- None."]));
-  L.push("", "## Spectrum, image by image", "", "| image | date (UTC) | detector | wavelength µm | S/N | flux mJy | detected | flagged |", "|---|---|---|---|---|---|---|---|");
-  for (const s of d.spectrum) L.push(`| ${s.image} | ${s.date} | ${s.detector ?? ""} | ${s.wavelengthUm ?? ""} | ${s.snr ?? ""} | ${s.fluxMilliJy ?? ""} | ${s.detected ? "yes" : "no"} | ${s.flagged ? "yes" : ""} |`);
+  L.push("", "## Spectrum, image by image", "", "| image | date (UTC) | detector | wavelength µm | S/N | flux mJy | ± mJy (1σ) | detected | flagged |", "|---|---|---|---|---|---|---|---|---|");
+  for (const s of d.spectrum) L.push(`| ${s.image} | ${s.date} | ${s.detector ?? ""} | ${s.wavelengthUm ?? ""} | ${s.snr ?? ""} | ${s.fluxMilliJy ?? ""} | ${s.fluxErrMilliJy ?? ""} | ${s.detected ? "yes" : "no"} | ${s.flagged ? "yes" : ""} |`);
   if (d.colour) L.push("", d.colour.text);
   L.push("", "## How the support score came about", "", Object.entries(d.support.parts).map(([k, v]) => `${k} ${v}`).join(", ") + (Object.keys(d.support.penalties).length ? `; penalties: ${Object.entries(d.support.penalties).map(([k, v]) => `${k} -${v}`).join(", ")}` : "") + ".", d.support.meaning);
   L.push("", "## What to check next", "", ...d.whatToCheck.map((t) => `- ${t}`));
@@ -161,10 +161,10 @@ export function candidatesToJson(candidates, ctx) {
  * Not ADES (see the top of this file).
  */
 export function trackletCsv(c, ctx) {
-  const header = ["candidate", "image", "obs_time_utc", "mjd", "ra_deg", "dec_deg", "pos_err_arcsec", "detector", "wavelength_um", "flux_mjy", "snr", "data"];
+  const header = ["candidate", "image", "obs_time_utc", "mjd", "ra_deg", "dec_deg", "pos_err_arcsec", "detector", "wavelength_um", "flux_mjy", "flux_err_mjy", "snr", "data"];
   const rows = (c.trackSky ?? []).map((p) => {
     const ph = c.photometry[p.frame];
-    return [c.id, p.frame + 1, mjdToIso(p.mjd), round(p.mjd, 5), round(p.ra, 6), round(p.dec, 6), round(c.posErrArcsec, 2), ph.detector, round(ph.wavelengthUm, 3), round(ph.fluxMilliJy, 4), round(ph.snr, 1), dataLabel(ctx.isReal)];
+    return [c.id, p.frame + 1, mjdToIso(p.mjd), round(p.mjd, 5), round(p.ra, 6), round(p.dec, 6), round(c.posErrArcsec, 2), ph.detector, round(ph.wavelengthUm, 3), round(ph.fluxMilliJy, 4), round(ph.fluxErrMilliJy, 4), round(ph.snr, 1), dataLabel(ctx.isReal)];
   });
   return [header.join(","), ...rows.map((r) => r.map(cell).join(","))].join("\r\n") + "\r\n";
 }

@@ -66,7 +66,8 @@ const base = { analysis: "find-everything", algorithm: { version: DISCOVERY_VERS
 
 // ---------------------------------------------------------------- the versions and settings come from the code, not from this file
 {
-  check("every search has a version label", MOVERS_VERSION === "movers-1" && PARALLAX_VERSION === "parallax-1" && DISCOVERY_VERSION === "discovery-2");
+  check("every search has a version label (name-number); a change that may alter results raises the number (movers-2 and discovery-3 since Phase 4)", /^movers-\d+$/.test(MOVERS_VERSION) && /^parallax-\d+$/.test(PARALLAX_VERSION) && /^discovery-\d+$/.test(DISCOVERY_VERSION)
+    && Number(MOVERS_VERSION.split("-")[1]) >= 2 && Number(DISCOVERY_VERSION.split("-")[1]) >= 3);
   check("Find everything's settings are the constants of discovery.js", SETTINGS.needsCheckingScore === NEEDS_CHECKING_SCORE && SETTINGS.minPersistence === MIN_PERSISTENCE && Object.values(SETTINGS).every(Number.isFinite));
   check("Find movers' settings are DEFAULTS and the parallax search's are DISTANT_DEFAULTS (every value a number)", Object.keys(DEFAULTS).length >= 12 && Object.values(DEFAULTS).every(Number.isFinite) && Object.values(DISTANT_DEFAULTS).every((v) => typeof v === "number") && DISTANT_DEFAULTS.minDistanceAU === 50 && DISTANT_DEFAULTS.maxParallaxRmsPx === 0.6);
 }
@@ -88,9 +89,9 @@ const base = { analysis: "find-everything", algorithm: { version: DISCOVERY_VERS
   const p = buildProvenance({ analysis: "find-movers", algorithm: { version: MOVERS_VERSION }, ctx: { ...ctx, isReal: false }, frames, settings: { ...DEFAULTS }, ranAt: "2026-11-08T11:00:00Z" });
   const pctx = { ...ctx, isReal: false, provenance: p };
   const lines = candidatesToCsv([cand], pctx).trim().split("\r\n");
-  check("movers CSV: the header has the provenance columns last, and the row has the run", PROVENANCE_CSV_COLUMNS.every((k, i) => COLUMNS.at(-PROVENANCE_CSV_COLUMNS.length + i) === k) && lines[1].includes(",movers-1,2026-11-08T11:00:00Z,6,3,") && lines[1].includes("detectSigma=5"));
+  check("movers CSV: the header has the provenance columns last, and the row has the run", PROVENANCE_CSV_COLUMNS.every((k, i) => COLUMNS.at(-PROVENANCE_CSV_COLUMNS.length + i) === k) && lines[1].includes(`,${MOVERS_VERSION},2026-11-08T11:00:00Z,6,3,`) && lines[1].includes("detectSigma=5"));
   const json = JSON.parse(candidatesToJson([cand], pctx));
-  check("movers JSON: the whole record at the top", json.provenance.algorithm.version === "movers-1" && json.provenance.settings.minPassGapDays === 30 && json.provenance.input.images.count === 6);
+  check("movers JSON: the whole record at the top", json.provenance.algorithm.version === MOVERS_VERSION && json.provenance.settings.minPassGapDays === 30 && json.provenance.input.images.count === 6);
   check("movers export without a run: empty cells, null provenance", candidatesToCsv([cand], { ...ctx, isReal: false }).includes(",,,,,,") && JSON.parse(candidatesToJson([cand], { ...ctx, isReal: false })).provenance === null);
 }
 

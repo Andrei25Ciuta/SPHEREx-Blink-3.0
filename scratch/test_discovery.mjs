@@ -295,7 +295,7 @@ check("sexagesimal text", degToHms(269.4462) === "17h57m47.09s" && degToDms(4.76
   const pjson = JSON.parse(candidatesToJson(result.candidates, pctx));
   check("provenance in the JSON: at the top and inside every dossier", pjson.provenance.ranAt === "2026-11-08T10:00:00Z" && pjson.candidates.every((x) => x.provenance.run.algorithm.version === VERSION));
   const pmd = dossierMarkdown(candidateDossier(c, pctx));
-  check("provenance in the Markdown dossier: the paragraph that says how the search was run", pmd.includes("### How the search was run") && pmd.includes("2026-11-08T10:00:00Z") && pmd.includes(`discovery-2`) && pmd.includes("needsCheckingScore=65") && pmd.includes("SYNTHETIC"));
+  check("provenance in the Markdown dossier: the paragraph that says how the search was run", pmd.includes("### How the search was run") && pmd.includes("2026-11-08T10:00:00Z") && pmd.includes(VERSION) && pmd.includes("needsCheckingScore=65") && pmd.includes("SYNTHETIC"));
   check("a dossier made without a recorded run says nothing about one", !dossierMarkdown(candidateDossier(c, ctx)).includes("How the search was run") && candidateDossier(c, ctx).provenance.run === null);
 }
 

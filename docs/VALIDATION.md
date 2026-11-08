@@ -60,6 +60,9 @@ candidate is kept only if that number is below 1.
   match.** Searching both detectors together uses all images in one line fit: more images (21 and 17) and the
   smallest differences for Barnard.
 - 0.2-0.8 ″/yr is 0.03-0.13 pixel per year.
+- **The significance column is from the version before Phase 4** (the error of the velocity was a floor of 0.15 px, 2-4 times too large: §15.3). Re-run on 8 Nov with the propagated
+  error, on the same data (more images now: Barnard D2 has 18), the same six candidates come out with the same motions, chance numbers and path support, and the faint Epsilon Indi B
+  at **15 / 11 / 18 σ** (D2 / D6 / both) instead of 8 / 7 / 11; Barnard's Star, saturated, stays at 16 / 10 / 20 σ.
 - **The two D6 differences got a little worse** than in the previous version of this file (0.55 → 0.80 and
   0.54 → 0.65 ″/yr) after the bad-pixel mask and the other changes below; D2 got much better (next subsection).
 - **A failure, and the change it caused.** The first run on Epsilon Indi B in D6 (6 images, about 9 dots each) listed
@@ -705,3 +708,106 @@ listed as a source:
 - The positions CSV of a source is **not** an MPC/ADES report: the observatory code and the spacecraft position were not verified, so it is
   not called that.
 - Not checked by a person on a phone; script checks only (see docs/ACCESSIBILITY.md).
+
+## 15. Are the positions, the motions and the fluxes right, and are their errors? (Phase 4, added 8 Nov 2026)
+
+The question is not only "is the value right" but "is the **error** that goes with it right": a velocity of 10.2 ± 0.3 ″/yr is worth something only if
+the real spread of such velocities is 0.3. Two kinds of check, one command each:
+
+- **Injected stars** (`node scratch/calibrate_astrometry.mjs`, about a minute; `node scratch/test_astrometry.mjs` is the same code with fixed seeds and
+  assertions, in CI): point sources with a **pixel-integrated Gaussian PSF** (the PSF of SPHEREx is smaller than a pixel: σ 0.356 px = FWHM 5.15″ in D2,
+  0.457 px = 6.61″ in D6, from the headers' median `PSF_FWHM`) on white noise.
+- **Real fixed stars and empty sky** (`node scratch/check_astrometry_real.mjs`, needs the real-only backend): the six real fields of §14.
+
+### 15.1 The position of a star (`detectSources`, a windowed centroid)
+
+| PSF σ | flux / pixel noise | found | bias | rms per axis | best possible (Cramér–Rao) | rms / best |
+|---|---|---|---|---|---|---|
+| 0.356 px (5.15″) | 12 | 78 % | 0.002 | 0.176 px | 0.120 | 1.47 |
+| | 20 | 100 % | 0.001 | 0.110 | 0.067 | 1.64 |
+| | 40 | 100 % | 0.002 | 0.064 | 0.034 | 1.87 |
+| | 80 | 100 % | 0.001 | 0.045 | 0.017 | 2.65 |
+| | 200 | 100 % | 0.002 | 0.037 | 0.007 | 5.5 |
+| | 600 | 100 % | 0.001 | 0.036 | 0.002 | 16 |
+| 0.457 px (6.61″) | 20 | 100 % | 0.001 | 0.117 | 0.080 | 1.47 |
+| | 200 | 100 % | 0.001 | 0.018 | 0.008 | 2.3 |
+| | 600 | 100 % | 0.000 | 0.015 | 0.003 | 5.5 |
+
+- **No bias on average, but a pixel-phase bias.** An undersampled star pulls the centroid towards the centre of its pixel: in x, for σ = 0.356 and a bright
+  star, +0.017 / +0.042 / +0.049 / +0.038 / +0.015 px in the five tenths of the pixel before its centre and the same with the opposite sign after it. Up to
+  0.05 px = 0.3″. Because of it the error **stops falling at about 0.036 px** however bright the star is (16 times the best possible at flux 600):
+  a fit of the PSF could do 5-10 times better for bright stars; it was **not done** (the real PSF is not a Gaussian, and the real floor is larger anyway, §15.5).
+- For faint stars (flux 20-40 times the pixel noise) the centroid is within 1.5-1.9 times the best possible error, and 0.4-0.5 px is the worst error found at flux 20.
+
+### 15.2 The error model, and the error that was reported before
+
+The error of a dot's position follows **σ² = (A / S/N)² + B²** per axis (S/N = the dot's own, from `detectSources`): fitted on 14 000 stars of flux 8-900
+(`sigmaPx` of every dot, `centroidSigmaPx` in `movers.js`):
+
+| PSF σ | fitted A | fitted B | in the code | spread of z on 4 000 other stars | inside 1σ / 2σ |
+|---|---|---|---|---|---|
+| 0.356 | 1.059 px | 0.036 px | 1.05, 0.036 | **1.00** | 61 % / 98 % |
+| 0.400 | 1.037 | 0.024 | 1.05, 0.024 | 0.98 | 64 % / 98 % |
+| 0.457 | 1.050 | 0.014 | 1.05, 0.014 | 0.98 | 67 % / 97 % |
+
+z = (measured − true) / σ of the dot. 61-67 % rather than 68 % inside 1σ because the error at high S/N is the (bounded) pixel-phase bias, not a Gaussian.
+The code assumes the cautious PSF width (0.356, the largest B) unless the caller gives one; on a wider PSF that is conservative (spread of z 0.71).
+
+### 15.3 The velocity of a mover (`findMovers`), and the error that was reported before
+
+18 images in 4 survey passes (the cadence of Barnard's Star in D2), a star in a random direction, 150 trials per row, all found:
+
+| speed | flux / noise | spread of the fitted velocity | **error reported now** | spread of z | inside 1σ / 2σ |
+|---|---|---|---|---|---|
+| 1.7 px/yr | 40 | 0.048 px/yr | 0.053 | 0.89 | 75 % / 98 % |
+| 1.7 | 80 | 0.030 | 0.041 | 0.74 | 83 % / 99 % |
+| 1.7 | 200 | 0.026 | 0.037 | 0.70 | 86 % / 99 % |
+| 5 | 40 | 0.049 | 0.053 | 0.92 | 73 % / 96 % |
+| 5 | 80 | 0.037 | 0.041 | 0.91 | 68 % / 99 % |
+| 5 | 200 | 0.036 | 0.037 | 0.96 | 64 % / 98 % |
+
+- **Before Phase 4 the error was a floor**: 0.15 px / √Σdt² = **0.101 px/yr for every star**, 2-4 times the real spread (spread of z 0.26-0.48; 96-100 % of the
+  fitted velocities inside "1σ"). So the "significance" of a mover was 2-4 times too low.
+- Now the error is propagated from the errors of the dots: for the ordinary least-squares line the velocity has the exact error √(Σ dt²σ²) / Σ dt² (checked:
+  6 000 simulated lines, spread of z 1.01, 67.6 % inside 1σ), multiplied by max(1, scatter / modelled scatter) and combined in quadrature with a
+  **systematic floor of 0.04 px per dot** (found on real stars, §15.5). Faint stars: the error is the spread (z 0.89-0.92). Bright ones: cautious (z 0.70-0.74), because of that floor.
+- **On the six real runs** (`node scratch/validate_real.mjs`): the same candidate, the same motion, the same chance-line number and the same path support
+  as before in every one; the significance of the faint Epsilon Indi B went from 8 / 7 / 11 σ to **15 / 11 / 18 σ**, the saturated Barnard's Star stays at 16 / 10 / 20 σ (a
+  star positioned by the masked fit keeps an error of 0.15 px). Compared with the catalogue: Barnard's Star is 0.2-0.8″/yr off, **0.4-0.8 of its error**;
+  Epsilon Indi B is 0.5-0.65″/yr off in RA in D2, D6 and both, **1.7-2.3 of its error**: the same offset in both detectors, so a systematic: the catalogue
+  motion of a binary brown dwarf (its photocentre moves with the orbit) or the instrument; not decided here.
+- **Nothing else moved.** Same seeds, old code against new: the empty-sky control (200 copies of each of the six fields) gives 316 / 225 / 86 / 12 / 0
+  false "needs checking" sources at support 40 / 50 / 60 / 70 / 80 with the old code and 315 / 225 / 86 / 12 / 0 with the new one; the injection table of §14 (Barnard D6) is
+  identical cell by cell; the 42 sources of the six fields are the same in class, position, motion, support, flux and match.
+
+### 15.4 The flux in an aperture (`apertureSnr`, radius 2 px)
+
+White noise, 3 000 stars per row: the flux is unbiased (0.991-0.999 of the injected), and the old error (`err`: the scatter of the ring times √N) is 8-13 % too small
+(spread of z 1.08-1.13) because it leaves out the error of the background level; with that term (`errTotal`) the spread is 0.99-1.04. `snr` (flux / `err`) is left as it was:
+the thresholds of §10-§14 were tuned with it. The error to **report** is `calibratedFluxErr`: `errTotal` for synthetic data, and for real cutouts `err` × 1.7 (next).
+
+### 15.5 The same errors on the real images (`node scratch/check_astrometry_real.mjs`)
+
+- **Positions of fixed stars** (a dot at the same place in at least 6 images, after the registration, a star that moves removed; the saturated stars, positioned by the masked fit, are outside the model and left out): 183 dots. Pooled spread of z
+  **0.85**. By S/N of the dot:
+
+| dot S/N | dots | modelled error | real rms residual | spread of z | floor needed |
+|---|---|---|---|---|---|
+| 3-8 | 51 | 0.164 px | 0.087 | 0.55 | 0 |
+| 8-20 | 70 | 0.099 | 0.060 | 0.65 | 0 |
+| 20-60 | 37 | 0.050 | 0.046 | **0.97** | 0 |
+| above 60 | 25 | 0.038 | 0.055 | 1.48 | **0.040** |
+
+  The model is right where most of the information is (S/N 20-60), **too cautious for faint dots** (by 1.5-1.8 times: linking dots within 1.2 px keeps the less scattered ones, and the
+  real noise is correlated) and **too optimistic for bright ones** by 0.04 px: that is `SYSTEMATIC_SIGMA_PX`. Stars positioned by the masked fit (saturated cores) are outside the model and get 0.15 px.
+- **Flux in empty sky** (7 950 apertures of radius 2 px far from every dot): the robust spread (1.4826 × MAD) of flux / `err` is **1.68** (1.47-1.85 per field), the plain
+  spread 13 (sources below the detection threshold and the wings of bright stars sit in some "empty" apertures; WISE 0855 D2 gives 37). The cutouts are resampled, so their noise is correlated between pixels:
+  a sum over an aperture scatters more than the pixel scatter says. `REAL_APERTURE_NOISE_FACTOR = 1.7`; it is an upper-ish figure (part of it is real faint sources).
+
+### 15.6 What this does not settle
+
+- White noise and a Gaussian PSF in the injections; real noise and the real PSF only in the two checks of §15.5, on 6 small fields (183 dots, 7 950 apertures).
+- The centroid is not a PSF fit: bright stars are limited by the pixel-phase floor, and the real floor (0.055 px = 0.34″) is larger still.
+- The astrometric floor of 1″ (`ASTROMETRIC_FLOOR_ARCSEC`, from the Arosa test) still dominates the position error that is reported for a candidate.
+- The **parallax search** (Planet X mode) still uses the old floor of 0.15 px for its fits: not changed, and not re-validated.
+- Versions: `movers-2` and `discovery-3` (the numbers of the errors changed; the classes and thresholds did not).

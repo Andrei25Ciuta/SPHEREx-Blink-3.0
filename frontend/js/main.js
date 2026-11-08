@@ -19,7 +19,7 @@ import { setupTimeline } from "./features/timelineView.js";
 import { FLAGGED_LIMIT } from "./features/timeline.js";
 import { SkyContext } from "./features/skyContext.js";
 import { setupFullscreen } from "./features/fullscreen.js";
-import { findMoversAcrossDetectors, detectSources, describeMover, matchKnownObject, moverPositionAtMjd, passIndices, trackSupport, blendWarning, VERSION as MOVERS_VERSION, DEFAULTS as MOVER_DEFAULTS } from "./features/movers.js";
+import { findMoversAcrossDetectors, detectSources, describeMover, matchKnownObject, moverPositionAtMjd, passIndices, trackSupport, blendWarning, VERSION as MOVERS_VERSION, DEFAULTS as MOVER_DEFAULTS, ERROR_MODEL } from "./features/movers.js";
 import { buildProvenance, provenanceText } from "./features/provenance.js";
 import { colourHint } from "./features/spectrum.js";
 import { findDistantMovers, describeDistant, classifyApparentMotion, VERSION as PARALLAX_VERSION, DISTANT_DEFAULTS } from "./features/parallax.js";
@@ -947,7 +947,7 @@ $("find-movers-btn").addEventListener("click", async () => {
     if (token !== loadToken) return;
     showMovers(result, objects);
     // the options the search ran with: the defaults of movers.js, with the noise floor of real (float) pixels when it was used
-    moversRun = recordRun("find-movers", MOVERS_VERSION, frames, { ...MOVER_DEFAULTS, ...(isFloat ? { sigmaFloor: 1e-9 } : {}), allDetectors: useAllDetectors() }, startedAt, isFloat);
+    moversRun = recordRun("find-movers", MOVERS_VERSION, frames, { ...MOVER_DEFAULTS, ...ERROR_MODEL, ...(isFloat ? { sigmaFloor: 1e-9 } : {}), allDetectors: useAllDetectors() }, startedAt, isFloat);
   } catch (err) {
     console.error(err);
     status.textContent = `The search failed: ${err.message}`;

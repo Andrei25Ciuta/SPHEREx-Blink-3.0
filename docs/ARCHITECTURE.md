@@ -29,7 +29,7 @@ checked by `validateFrame` in `getCutouts.js`.
 
 | Module | Job |
 |---|---|
-| `movers.js` | dots (`detectSources`), registration on field stars, straight-line movers with a chance-line estimate, aperture S/N, spectrum colour inputs |
+| `movers.js` | dots (`detectSources`, each with its position error `sigmaPx`), registration on field stars, straight-line movers with a chance-line estimate and their propagated velocity error (`lineUncertainty`), aperture S/N and the flux error to report (`calibratedFluxErr`), `ERROR_MODEL` (every constant of the error model), spectrum colour inputs |
 | `parallax.js` | Earth-parallax search for distant bodies (low-precision Sun position from Meeus ch. 25) |
 | `spectrum.js` | colour hint and smoothness of a spectrum |
 | `catalogue.js`, `skybot.js` | request builders and parsers for SIMBAD and SkyBoT, with an injectable `fetch` |

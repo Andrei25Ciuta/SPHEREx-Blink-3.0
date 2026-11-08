@@ -5,7 +5,7 @@ Verify what is written here against `git log` and the test commands in `AGENTS.m
 
 ## Where it stands
 
-**Phase 0 (audit) done. Phase 1 (design foundation) mostly done. Phase 3 (results dashboard and candidate explorer) partly done: provenance, the candidate table and plot, and the six real fields' sources on the results page are in; the other ten sections of the results page are still hand-copied numbers. Phase 2 (workspace) mostly done: the viewer (zoom, pan, readout, scale bar, coordinate grid, centre on a candidate, layer list) and the timeline (time × wavelength plot, survey-pass switches, wavelength window) are in; the three-panel layout and the inspector panel are not.** Phases are defined in
+**Phase 0 (audit) done. Phase 1 (design foundation) mostly done. Phase 4 (scientific pipeline) mostly done: positions, velocities and fluxes now carry errors that were checked against repeated injections and real stars (VALIDATION §15); a PSF-fit centroid and the parallax search's errors are not done. Phase 3 (results dashboard and candidate explorer) partly done: provenance, the candidate table and plot, and the six real fields' sources on the results page are in; the other ten sections of the results page are still hand-copied numbers. Phase 2 (workspace) mostly done: the viewer (zoom, pan, readout, scale bar, coordinate grid, centre on a candidate, layer list) and the timeline (time × wavelength plot, survey-pass switches, wavelength window) are in; the three-panel layout and the inspector panel are not.** Phases are defined in
 [IMPLEMENTATION_ROADMAP.md](IMPLEMENTATION_ROADMAP.md).
 
 ## Completed
@@ -22,9 +22,11 @@ Verify what is written here against `git log` and the test commands in `AGENTS.m
 
 | 8 Nov | Phase 3, first part: **provenance** (input, settings, algorithm version, time of the run, built when a search finishes; on the page, in the CSV columns, the JSON and every dossier); **candidate explorer** (table with sort by column, filter, search, paging; a plot of support against S/N with the "needs checking" line) in the *Find everything* panel ("Table and plot") and on the results page; **results page section 11**: all 42 sources of the six real fields from `frontend/data/real_sources.json`, made by `scratch/make_results_sources.mjs`, each field with its provenance | `test_provenance.mjs` (28), `test_explorer.mjs` (37), `test_results.mjs` (+14: the file against VALIDATION §14 field by field, complete provenance, made by the algorithm and settings of the code now, no pixel and no local address), `test_discovery.mjs` / `test_export.mjs` / `test_discover_panel.mjs` extended. Real data: the second run reproduced §14 (8, 6, 7, 3, 14, 4 = 42, all four catalogues answered, no problem); built-in browser: provenance in the movers and Find everything exports, table sort/filter/search/select, paging on the results page, 375 px: no page overflow after two fixes (a grid column grown to the table's width in `index.html` and `results.html`) |
 
-## Tests (8 Nov 2026, after Phase 3, first part)
+| 8 Nov | Phase 4, first part: **errors of positions, motions and fluxes measured and fixed** (VALIDATION §15). Measured first: the windowed centroid has no bias on average but a pixel-phase bias of up to 0.05 px; the velocity error was a floor 2-4 times too large; the aperture flux error left out the background term (8-13 % too small) and is 1.7 times too small on real cutouts. Now: every dot has `sigmaPx` (σ² = (1.05/S/N)² + B²), the velocity error is propagated from the dots (`lineUncertainty`) with a systematic floor of 0.04 px found on real stars, the dossier has `± mJy` (`calibratedFluxErr`: `errTotal`, ×1.7 on real cutouts) and the candidate's position error comes from the dots; `ERROR_MODEL` goes into every provenance record; versions `movers-2` / `discovery-3` | `test_astrometry.mjs` (31: spread of z 0.98-1.00 for positions, 0.89-0.96 for faint movers, 1.00 for fluxes; the exact velocity formula on 6 000 lines); `calibrate_astrometry.mjs` (the tables), `check_astrometry_real.mjs` (real fixed stars: z 0.97 at S/N 20-60; empty sky 1.68). **No regression on real data**, A/B with the committed code: the same candidate with the same motion, chance number and path support in all 6 blind runs (significance of Epsilon Indi B 8/7/11 → 15/11/18 σ), empty-sky control 316/225/86/12/0 → 315/225/86/12/0 false leads, the injection table identical, the 42 sources identical; `real_sources.json` remade |
 
-- Node: 22 files, all exit 0, **740** `PASS`, 0 `FAIL` (`test_coords` and `test_mock` print differently and are not counted).
+## Tests (8 Nov 2026, after Phase 4, first part)
+
+- Node: 23 files, all exit 0, **771** `PASS`, 0 `FAIL` (`test_coords` and `test_mock` print differently and are not counted).
 - Backend: `pytest backend`: **146** passed.
 - Not run: CI on GitHub (nothing pushed), Playwright (none exist), a real touch screen, other browsers, any screen-reader check.
 - Method note: changing `data-theme` from a script in a pane that is not visible freezes the CSS transitions and gives false low-contrast results (light and classic showed 10 "failures" that vanished on a fresh load with `?theme=`).
@@ -64,6 +66,17 @@ Changed: `movers.js` (`VERSION`), `parallax.js` (`VERSION`, `DISTANT_DEFAULTS`: 
 Markdown; `dataLabel` now defined in `provenance.js`), `discoverPanel.js` (provenance, "Table and plot", `explorerRow`, `FILTERS` moved to `candidateExplorer.js` and re-exported), `main.js` (the movers' run record),
 `results.js` and `results.html` (section 11, the old 11 is now 12), `index.html`, `styles.css`, `results.css`, tests and docs. One existing check was **changed on purpose**: the cell count of
 `test_export.mjs` used a regular expression that miscounts a line ending in an empty cell; it now uses a real CSV line parser (same intent, stricter).
+
+## Files changed in Phase 4 (first part)
+
+New: `scratch/{lib_inject,test_astrometry,calibrate_astrometry,check_astrometry_real}.mjs`. Changed: `movers.js` (`centroidSigmaPx`, `lineUncertainty`, `calibratedFluxErr`, `ERROR_MODEL`, `sigmaPx` on dots, `vErrPx` / `posErrPx` on candidates,
+`errTotal` in `apertureSnr`, `VERSION` movers-2), `discovery.js` (`fitTrack`, `posErrArcsec`, `fluxErrMilliJy`, `SETTINGS`, `VERSION` discovery-3), `dossier.js` and `discoverPanel.js` (`± mJy`), `main.js` (the error model in the movers' provenance),
+`frontend/data/real_sources.json` (remade), `test_discovery.mjs` and `test_provenance.mjs` (version labels no longer hard-coded), docs. The searches' behaviour is unchanged; only the reported errors are.
+
+## Remaining in Phase 4
+
+- A **PSF-fit centroid** (the windowed centroid stops at 0.04 px for bright stars; the best possible is 5-16 times smaller on injected stars) and a PSF width per image instead of the cautious default.
+- The **parallax search** still uses its 0.15 px floor; Epsilon Indi B's 0.5″/yr offset from the catalogue is unexplained (a systematic); the flux errors of the backend's spectrum chart (`photometry.py`) are not recalibrated.
 
 ## Remaining in Phase 3
 

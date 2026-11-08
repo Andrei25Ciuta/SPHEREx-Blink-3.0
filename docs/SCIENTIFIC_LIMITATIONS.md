@@ -60,6 +60,22 @@ A candidate is a lead with its evidence, never a discovery. Nothing this applica
 - The value is shown in Blink mode only; in Difference, Stack, Trail and Compare the picture is a combination of images, so no single value belongs to it.
 - Pixel numbers count from 0 at the top-left of the cutout; the centre of the field is pixel 24 of a 49-pixel (5′) cutout.
 
+## Errors of positions, motions and fluxes (Phase 4; VALIDATION §15)
+
+- A **position** is a windowed centroid: no bias on average, but a **pixel-phase bias** of up to 0.05 px (0.3″) towards the centre of the pixel, because the PSF is smaller than a pixel.
+  Bright stars therefore stop improving at about 0.04 px; the real scatter of bright fixed stars is 0.055 px. A fit of the PSF would do better and was not done.
+- The **error of a position** is σ² = (1.05 / dot S/N)² + B² (B 0.014-0.036 px by PSF width). Right on injected stars (spread of z 1.00) and on real stars of S/N 20-60 (0.97);
+  **too cautious by 1.5-1.8 times for faint real dots**, and 0.04 px too optimistic for bright ones, which a systematic floor of 0.04 px covers. A star positioned by the masked fit
+  (a saturated core) gets 0.15 px, outside the model. The default assumes the narrowest PSF (the most cautious); real PSF widths vary with wavelength and are not passed in.
+- The **error of a velocity** is propagated from the dots' errors; checked on injected movers (spread of z 0.89-0.96 for faint ones, cautious for bright ones). Before Phase 4 it was a fixed
+  floor, 2-4 times too large, so every earlier "significance" of a mover is 2-4 times lower than the new one for faint stars (the candidates found are the same). On **Epsilon Indi B the measured
+  motion is 0.5-0.65″/yr off the catalogue in RA in every run, 1.7-2.3 times its error**: a systematic (the photocentre of a binary brown dwarf moves with the orbit; or the instrument), not explained here.
+- The **parallax search** (Planet X mode) still uses its old 0.15 px floor; its "σ" figures were not recalibrated.
+- The **flux** of an aperture is unbiased on injected stars (0.99-1.00). The error to report is 1.00 of the spread for white noise, and on real cutouts the noise is **1.7 times larger** than the
+  scatter of single pixels says (robust spread of flux / err over 7 950 empty places: 1.68, per field 1.47-1.85: resampled cutouts have correlated noise, and the sky has faint sources). The S/N the
+  searches use is unchanged (their thresholds were tuned with it): the honest error is a separate number, `± mJy` in the dossier.
+- The `posErrArcsec` of a candidate is still dominated by the 1″ astrometric floor (the Arosa test), not by the measurement.
+
 ## Provenance and the candidate table
 
 - A provenance record says **what a search was run with and when**; it does not say the result is right. The version labels (`movers-1`, `parallax-1`, `discovery-2`) are names the code

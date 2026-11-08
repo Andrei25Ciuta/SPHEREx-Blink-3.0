@@ -25,12 +25,12 @@
     "analysis": "find-everything",
     "algorithm": {
      "name": "Find everything (every source: vetted, cross-matched, ranked)",
-     "version": "discovery-2"
+     "version": "discovery-3"
     },
     "data": "real SPHEREx data (served by the project's backend)",
     "isReal": true,
-    "ranAt": "2026-11-08T10:51:23.887Z",
-    "durationSeconds": 10.5,
+    "ranAt": "2026-11-08T11:26:03.669Z",
+    "durationSeconds": 10.7,
     "input": {
      "field": {
       "raDeg": 269.4462,
@@ -80,7 +80,12 @@
      "staticRadiusPx": 1.2,
      "aperturePx": 2,
      "presentSnr": 3,
-     "astrometricFloorArcsec": 1
+     "astrometricFloorArcsec": 1,
+     "positionNoiseCoeff": 1.05,
+     "defaultPsfSigmaPx": 0.356,
+     "systematicSigmaPx": 0.04,
+     "maskedFitSigmaPx": 0.15,
+     "realApertureNoiseFactor": 1.7
     },
     "catalogues": {
      "used": [
@@ -265,12 +270,12 @@
     "analysis": "find-everything",
     "algorithm": {
      "name": "Find everything (every source: vetted, cross-matched, ranked)",
-     "version": "discovery-2"
+     "version": "discovery-3"
     },
     "data": "real SPHEREx data (served by the project's backend)",
     "isReal": true,
-    "ranAt": "2026-11-08T10:51:27.862Z",
-    "durationSeconds": 4,
+    "ranAt": "2026-11-08T11:26:07.740Z",
+    "durationSeconds": 4.1,
     "input": {
      "field": {
       "raDeg": 269.4462,
@@ -308,7 +313,12 @@
      "staticRadiusPx": 1.2,
      "aperturePx": 2,
      "presentSnr": 3,
-     "astrometricFloorArcsec": 1
+     "astrometricFloorArcsec": 1,
+     "positionNoiseCoeff": 1.05,
+     "defaultPsfSigmaPx": 0.356,
+     "systematicSigmaPx": 0.04,
+     "maskedFitSigmaPx": 0.15,
+     "realApertureNoiseFactor": 1.7
     },
     "catalogues": {
      "used": [
@@ -457,12 +467,12 @@
     "analysis": "find-everything",
     "algorithm": {
      "name": "Find everything (every source: vetted, cross-matched, ranked)",
-     "version": "discovery-2"
+     "version": "discovery-3"
     },
     "data": "real SPHEREx data (served by the project's backend)",
     "isReal": true,
-    "ranAt": "2026-11-08T10:51:33.990Z",
-    "durationSeconds": 6.1,
+    "ranAt": "2026-11-08T11:26:13.655Z",
+    "durationSeconds": 5.9,
     "input": {
      "field": {
       "raDeg": 331.0965,
@@ -505,7 +515,12 @@
      "staticRadiusPx": 1.2,
      "aperturePx": 2,
      "presentSnr": 3,
-     "astrometricFloorArcsec": 1
+     "astrometricFloorArcsec": 1,
+     "positionNoiseCoeff": 1.05,
+     "defaultPsfSigmaPx": 0.356,
+     "systematicSigmaPx": 0.04,
+     "maskedFitSigmaPx": 0.15,
+     "realApertureNoiseFactor": 1.7
     },
     "catalogues": {
      "used": [
@@ -672,12 +687,12 @@
     "analysis": "find-everything",
     "algorithm": {
      "name": "Find everything (every source: vetted, cross-matched, ranked)",
-     "version": "discovery-2"
+     "version": "discovery-3"
     },
     "data": "real SPHEREx data (served by the project's backend)",
     "isReal": true,
-    "ranAt": "2026-11-08T10:51:37.650Z",
-    "durationSeconds": 3.7,
+    "ranAt": "2026-11-08T11:26:17.705Z",
+    "durationSeconds": 4,
     "input": {
      "field": {
       "raDeg": 331.0965,
@@ -715,7 +730,12 @@
      "staticRadiusPx": 1.2,
      "aperturePx": 2,
      "presentSnr": 3,
-     "astrometricFloorArcsec": 1
+     "astrometricFloorArcsec": 1,
+     "positionNoiseCoeff": 1.05,
+     "defaultPsfSigmaPx": 0.356,
+     "systematicSigmaPx": 0.04,
+     "maskedFitSigmaPx": 0.15,
+     "realApertureNoiseFactor": 1.7
     },
     "catalogues": {
      "used": [
@@ -810,12 +830,12 @@
     "analysis": "find-everything",
     "algorithm": {
      "name": "Find everything (every source: vetted, cross-matched, ranked)",
-     "version": "discovery-2"
+     "version": "discovery-3"
     },
     "data": "real SPHEREx data (served by the project's backend)",
     "isReal": true,
-    "ranAt": "2026-11-08T10:51:41.897Z",
-    "durationSeconds": 4.2,
+    "ranAt": "2026-11-08T11:26:21.690Z",
+    "durationSeconds": 4,
     "input": {
      "field": {
       "raDeg": 133.7598,
@@ -853,7 +873,12 @@
      "staticRadiusPx": 1.2,
      "aperturePx": 2,
      "presentSnr": 3,
-     "astrometricFloorArcsec": 1
+     "astrometricFloorArcsec": 1,
+     "positionNoiseCoeff": 1.05,
+     "defaultPsfSigmaPx": 0.356,
+     "systematicSigmaPx": 0.04,
+     "maskedFitSigmaPx": 0.15,
+     "realApertureNoiseFactor": 1.7
     },
     "catalogues": {
      "used": [
@@ -1144,11 +1169,11 @@
     "analysis": "find-everything",
     "algorithm": {
      "name": "Find everything (every source: vetted, cross-matched, ranked)",
-     "version": "discovery-2"
+     "version": "discovery-3"
     },
     "data": "real SPHEREx data (served by the project's backend)",
     "isReal": true,
-    "ranAt": "2026-11-08T10:51:45.820Z",
+    "ranAt": "2026-11-08T11:26:25.561Z",
     "durationSeconds": 3.9,
     "input": {
      "field": {
@@ -1187,7 +1212,12 @@
      "staticRadiusPx": 1.2,
      "aperturePx": 2,
      "presentSnr": 3,
-     "astrometricFloorArcsec": 1
+     "astrometricFloorArcsec": 1,
+     "positionNoiseCoeff": 1.05,
+     "defaultPsfSigmaPx": 0.356,
+     "systematicSigmaPx": 0.04,
+     "maskedFitSigmaPx": 0.15,
+     "realApertureNoiseFactor": 1.7
     },
     "catalogues": {
      "used": [

@@ -12,13 +12,13 @@
 // Nothing here is a discovery: an "unknown" candidate is a lead with its evidence, to be checked by a person (the dossier says how).
 // Pure functions (no DOM, no network): images, catalogues and SkyBoT lists are passed in. Real-data check: docs/VALIDATION.md §14.
 
-import { detectSources, registerShifts, passIndices, apertureSnr, moverPositionAtMjd, findMoversAcrossDetectors, describeMover } from "./movers.js";
+import { detectSources, registerShifts, passIndices, apertureSnr, moverPositionAtMjd, findMoversAcrossDetectors, describeMover, lineUncertainty, centroidSigmaPx, calibratedFluxErr, ERROR_MODEL } from "./movers.js";
 import { canvasToSky, skyToCanvas } from "../geometry.js";
 import { colourHint } from "./spectrum.js";
 import { vetCandidate, looksLikeArtefact, supportScore, FLAGS as FLAGS_TEXT } from "./vetting.js";
 import { matchCandidate, matchBodies, checkedDeep, MIN_USEFUL_PM } from "./crossmatch.js";
 
-export const VERSION = "discovery-2";
+export const VERSION = "discovery-3";             // discovery-3: errors of positions, motions and fluxes from the errors of the dots and of the apertures (Phase 4); the classes and thresholds are those of discovery-2
 export const NEEDS_CHECKING_SCORE = 65;             // support score from which an unknown candidate "needs checking": about 1 false one per 20 empty fields of the real ones tried (VALIDATION.md §14)
 const STATIC_RADIUS_PX = 1.2;
 const MIN_DETECTIONS = 3;
@@ -32,6 +32,7 @@ const ASTROMETRIC_FLOOR_ARCSEC = 1;                 // the Arosa test: 1.0 arcse
 export const SETTINGS = {
   needsCheckingScore: NEEDS_CHECKING_SCORE, minPersistence: MIN_PERSISTENCE, minDetections: MIN_DETECTIONS, staticRadiusPx: STATIC_RADIUS_PX,
   aperturePx: APERTURE_PX, presentSnr: PRESENT_SNR, astrometricFloorArcsec: ASTROMETRIC_FLOOR_ARCSEC,
+  ...ERROR_MODEL,                                    // the model of the errors of positions, motions and fluxes (movers.js)
 };
 
 export const CLASSES = {
@@ -100,16 +101,18 @@ export function fitTrack(members, mjds, minBaselineYears = 0.3) {
   let ss = 0;
   members.forEach((d, i) => { const dt = t[i] - tm; ss += (d.x - xm - vx * dt) ** 2 + (d.y - ym - vy * dt) ** 2; });
   const rms = Math.sqrt(ss / (2 * Math.max(1, m - (constrained ? 2 : 1))));
-  const sigmaPos = Math.max(rms, 0.15);
-  return { x: xm, y: ym, vx, vy, mjd: tm * DAYS_PER_YEAR, rms, baselineYears: baseline, vErr: constrained ? sigmaPos / Math.sqrt(sxx) : Infinity, sigmaPos };
+  // errors from the errors of the dots (movers.js lineUncertainty), not from a fixed floor of 0.15 px
+  const u = lineUncertainty(members.map((d, i) => ({ t: t[i], sigma: d.sigmaPx ?? centroidSigmaPx(d.snr) })), rms);
+  return { x: xm, y: ym, vx, vy, mjd: tm * DAYS_PER_YEAR, rms, baselineYears: baseline, vErr: constrained ? u.vErr : Infinity, sigmaPos: u.sigmaPos, posErr: u.posErr };
 }
 
 // ------------------------------------------------------------------ measuring
 
 /** Aperture flux of one image at (x, y) (pixels of that image): { snr, flux, err, flagged } or null when it cannot be measured there. */
-function measureAt(frame, n, x, y) {
+function measureAt(frame, n, x, y, isFloat) {
   const ap = apertureSnr(frame.grey, n, x, y, APERTURE_PX);
   if (!ap) return null;
+  ap.errReported = calibratedFluxErr(ap, isFloat);              // the uncertainty to report (real cutouts: x REAL_APERTURE_NOISE_FACTOR); ap.snr, which the thresholds use, is unchanged
   let bad = 0, inside = 0;
   if (frame.mask) {
     for (let j = Math.floor(y - APERTURE_PX); j <= Math.ceil(y + APERTURE_PX); j++) for (let i = Math.floor(x - APERTURE_PX); i <= Math.ceil(x + APERTURE_PX); i++) {
@@ -125,13 +128,15 @@ function photometry(frames, n, rawPositions, geo, isFloat) {
   const omega = (geo.scaleArcsec / 206264.806) ** 2;                          // sr per pixel
   return frames.map((f, k) => {
     const p = rawPositions[k];
-    const m = p ? measureAt(f, n, p.x, p.y) : null;
+    const m = p ? measureAt(f, n, p.x, p.y, isFloat) : null;
     const point = { frameId: f.id, frame: k, mjd: f.mjd, wavelengthUm: f.wavelengthUm ?? null, detector: f.detector ?? null, measured: Boolean(m), x: p?.x ?? null, y: p?.y ?? null };
-    if (!m) return { ...point, snr: null, flux: null, fluxErr: null, fluxJy: null, fluxMilliJy: null, flagged: false };
+    if (!m) return { ...point, snr: null, flux: null, fluxErr: null, fluxJy: null, fluxMilliJy: null, fluxErrMilliJy: null, flagged: false };
     return {
       ...point, snr: m.snr, flux: m.flux, fluxErr: m.err, flagged: m.flagged,
       // real pixels are in MJy/sr: x solid angle of a pixel x 1e6 gives Jansky (the backend does the same); synthetic pixels have no unit
       fluxJy: isFloat ? m.flux * omega * 1e6 : null, fluxMilliJy: isFloat ? m.flux * omega * 1e9 : null,
+      // fluxErr / snr are the S/N the thresholds use; fluxErrMilliJy is the honest 1-sigma uncertainty of the flux (calibratedFluxErr: larger on real cutouts)
+      fluxErrMilliJy: isFloat ? m.errReported * omega * 1e9 : null,
     };
   });
 }
@@ -203,7 +208,11 @@ export function discover({ frames, n, geo, isFloat = true, catalogues = {}, skyb
     const passes = new Set(framesWith.map((g) => passOf[g])).size;
     const phot = photometry(frames, n, rawPositions, geo, isFloat);
     const medianSnr = median(detections.map((d) => d.snr ?? 0));
-    const posErrArcsec = Math.hypot(ASTROMETRIC_FLOOR_ARCSEC, (Math.max(rmsPx, 0.15) / Math.sqrt(Math.max(1, detections.length))) * geo.scaleArcsec);
+    // position error: the errors of the dots (movers.js lineUncertainty: the mean of the dots' positions) combined with the astrometric floor of the Arosa test
+    const posErrPx = detections.length
+      ? lineUncertainty(detections.map((d) => ({ t: mjds[d.frame] / DAYS_PER_YEAR, sigma: d.sigmaPx ?? centroidSigmaPx(d.snr) })), rmsPx).posErr
+      : Math.max(rmsPx, 0.15);
+    const posErrArcsec = Math.hypot(ASTROMETRIC_FLOOR_ARCSEC, posErrPx * geo.scaleArcsec);
     const flags = vetCandidate({ detections, dotsPerFrame: dots, masks: frames.map((f) => f.mask ?? null), n, nPasses, passes, rmsPx });
     const c = {
       id: slug(kind, sky.ra, sky.dec), kind, ra: sky.ra, dec: sky.dec, epochMjd, posErrArcsec,

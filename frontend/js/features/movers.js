@@ -21,8 +21,9 @@
 import { canvasToSky, skyToCanvas, mjdToYear } from "../geometry.js";
 import { positionAtEpoch } from "../targets.js";
 
-/** Name of this version of the mover search (provenance.js writes it into every result). Change it whenever a change may alter what the search finds. First written 8 Nov 2026. */
-export const VERSION = "movers-1";
+/** Name of this version of the mover search (provenance.js writes it into every result). Change it whenever a change may alter what the search finds. First written 8 Nov 2026.
+ *  movers-2: the error of a velocity comes from the errors of the dots (lineUncertainty), not from a floor of 0.15 px: significances change (Phase 4). */
+export const VERSION = "movers-2";
 
 export const DEFAULTS = {
   detectSigma: 5,          // a dot must stand this many sigma above the background
@@ -38,10 +39,65 @@ export const DEFAULTS = {
   maxRmsPx: 0.8,            // the dots must lie this close to their fitted line (rms)
   minMotionPx: 0.8,         // total motion over the observed period (about 5")
   minSignificance: 6,       // speed divided by its uncertainty
-  centroidFloorPx: 0.15,    // never trust a dot's position better than this
+  centroidFloorPx: 0.15,    // never trust a dot's position better than this (used by the PARALLAX search; the straight-line search takes its errors from the dots: lineUncertainty)
   sigmaFloor: 0.5,          // smallest noise (in grey levels) we believe; use ~1e-9 for real (float) pixel values
 };
 const GRID_CELL = 8;        // px, for the neighbour lookup
+
+// ------------------------------------------------------------------ position uncertainty (Phase 4)
+
+/**
+ * How well is a dot's position known? Fitted on injected point sources (pixel-integrated Gaussian PSF, white noise, 14 000 trials per width, 8 Nov 2026):
+ *     sigma^2 = (A / snr)^2 + B^2        per axis, in pixels, snr = the dot's own S/N (detectSources)
+ * A = 1.04-1.06 px whatever the PSF; B, the floor left by the PIXEL PHASE (an undersampled PSF pulls the centroid towards the pixel centre by up to 0.05 px),
+ * is 0.036 / 0.024 / 0.014 px for PSF sigma = 0.356 / 0.40 / 0.457 px (FWHM 5.15 / 5.8 / 6.61 arcsec at 6.14 arcsec per pixel: the median PSF_FWHM of the D2 and D6 headers).
+ * The real PSF is not a Gaussian and real noise is not white, so this is the error of an ideal case: the scatter of the dots of a track (lineUncertainty)
+ * and a systematic floor are added on top. scratch/test_astrometry.mjs checks the model on injections, scratch/check_astrometry_real.mjs on real stars.
+ */
+export const POSITION_NOISE_COEFF = 1.05;
+const PHASE_FLOOR_PX = [[0.356, 0.036], [0.4, 0.024], [0.457, 0.014]];       // [PSF sigma px, B px], measured; outside this range the nearest value is used
+export const DEFAULT_PSF_SIGMA_PX = 0.356;                                   // D2 (the narrowest, so the largest floor B): the cautious default
+export const MASKED_FIT_SIGMA_PX = 0.15;                                     // a star positioned by the masked Gaussian fit (a saturated core): not covered by the model above
+
+export function centroidSigmaPx(snr, psfSigmaPx = DEFAULT_PSF_SIGMA_PX) {
+  if (!(snr > 0) || !Number.isFinite(snr)) return 0.3;                       // no usable S/N: say so with a large error
+  const t = PHASE_FLOOR_PX;
+  let B = t[0][1];
+  if (psfSigmaPx >= t.at(-1)[0]) B = t.at(-1)[1];
+  else if (psfSigmaPx > t[0][0]) {
+    const k = t.findIndex((p, i) => i > 0 && psfSigmaPx <= p[0]);
+    B = t[k - 1][1] + ((psfSigmaPx - t[k - 1][0]) / (t[k][0] - t[k - 1][0])) * (t[k][1] - t[k - 1][1]);
+  }
+  return Math.hypot(POSITION_NOISE_COEFF / snr, B);
+}
+
+/** What the images do not tell us, added in quadrature to a fitted track (registration of the exposures on the field stars, a PSF that is not Gaussian): px per axis. */
+export const SYSTEMATIC_SIGMA_PX = 0.04;       // the floor that real fixed stars brighter than S/N 60 need (0.055 px scatter against 0.038 modelled: scratch/check_astrometry_real.mjs, VALIDATION §15)
+
+/**
+ * Uncertainty of a straight-line fit through dots (position = p0 + v t), propagated from the errors of the dots.
+ *   members : [{ t (years), sigma (px per axis, centroidSigmaPx) }]
+ *   rms     : the scatter of the dots about the fit, per axis, with the degrees of freedom taken out (px)
+ * The velocity of the ordinary least-squares line has the exact error  sqrt(sum dt_i^2 sigma_i^2) / sum dt_i^2  (dt = t - mean t); it is multiplied by
+ * max(1, rms / model rms) when the dots scatter more than their errors say (never made smaller by a lucky small rms: with 3 dots one degree of freedom
+ * says almost nothing), and combined with the systematic floor.
+ * -> { sigmaPos: what to expect of one dot (px), vErr: error of each velocity component (px/yr), posErr: error of the mean position (px), sxx, inflation }
+ */
+export function lineUncertainty(members, rms, { systematicPx = SYSTEMATIC_SIGMA_PX } = {}) {
+  const m = members.length;
+  const tm = members.reduce((s, d) => s + d.t, 0) / m;
+  let sxx = 0, wdt = 0, sumVar = 0;
+  for (const d of members) { const dt = d.t - tm; sxx += dt * dt; wdt += dt * dt * d.sigma * d.sigma; sumVar += d.sigma * d.sigma; }
+  const modelRms = Math.sqrt(sumVar / m);
+  const inflation = Number.isFinite(rms) && modelRms > 0 ? Math.max(1, rms / modelRms) : 1;
+  const sigmaPos = Math.hypot(modelRms * inflation, systematicPx);
+  const vModel = sxx > 1e-12 ? Math.sqrt(wdt) / sxx : Infinity;
+  return {
+    sigmaPos, inflation, sxx,
+    vErr: Math.hypot(vModel * inflation, sxx > 1e-12 ? systematicPx / Math.sqrt(sxx) : 0),
+    posErr: Math.hypot((Math.sqrt(sumVar) / m) * inflation, systematicPx / Math.sqrt(m)),
+  };
+}
 
 /** P(X >= k) for X ~ Binomial(trials, p), summed from the top (no cancellation for tiny tails). */
 export function binomialTail(trials, p, k) {
@@ -230,11 +286,11 @@ function fitMaskedGaussian(grey, image, mask, n, px, py, background) {
 
 /**
  * Dots in one grey image (n x n, values 0..255, row 0 = top).
- * Returns [{ x, y, snr }] with x, y in "edge" pixel coordinates (centre of pixel 0 = 0.5).
+ * Returns [{ x, y, snr, sigmaPx }] with x, y in "edge" pixel coordinates (centre of pixel 0 = 0.5); sigmaPx is the error of the position per axis (centroidSigmaPx).
  * options.mask (optional, Uint8Array n*n, 1 = bad pixel, from the backend's `maskUrl`): a star whose 5 x 5 core has at least
  * MIN_BAD_CORE flagged pixels (a saturated star) is positioned by fitting a Gaussian on the good pixels only (see fitMaskedGaussian).
  */
-export function detectSources(image, n, { detectSigma = DEFAULTS.detectSigma, edgeMargin = DEFAULTS.edgeMargin, sigmaFloor = DEFAULTS.sigmaFloor, mask = null } = {}) {
+export function detectSources(image, n, { detectSigma = DEFAULTS.detectSigma, edgeMargin = DEFAULTS.edgeMargin, sigmaFloor = DEFAULTS.sigmaFloor, mask = null, psfSigmaPx = DEFAULT_PSF_SIGMA_PX } = {}) {
   if (!image || image.length !== n * n || n < 2 * edgeMargin + 3) return [];
   const useMask = mask && mask.length === n * n;
   const grey = fillMissing(image);          // `image` may be 8-bit grey values or real (float) pixel values
@@ -247,8 +303,14 @@ export function detectSources(image, n, { detectSigma = DEFAULTS.detectSigma, ed
       const v = sm[y * n + x];
       if (v < threshold || !isLocalMax(sm, n, x, y, v)) continue;
       let c = centroid(grey, n, x, y, median);
-      if (c && useMask && coreIsCompromised(image, mask, n, x, y)) c = fitMaskedGaussian(grey, image, mask, n, x, y, median) ?? c;
-      if (c) found.push({ x: c.x, y: c.y, snr: (v - median) / sigma });
+      let masked = false;
+      if (c && useMask && coreIsCompromised(image, mask, n, x, y)) {
+        const fit = fitMaskedGaussian(grey, image, mask, n, x, y, median);
+        if (fit) { c = fit; masked = true; }
+      }
+      const snr = (v - median) / sigma;
+      // sigmaPx: the error of this position per axis (centroidSigmaPx); a star positioned by the masked fit is outside that model and gets the cautious MASKED_FIT_SIGMA_PX
+      if (c) found.push({ x: c.x, y: c.y, snr, sigmaPx: masked ? Math.max(MASKED_FIT_SIGMA_PX, centroidSigmaPx(snr, psfSigmaPx)) : centroidSigmaPx(snr, psfSigmaPx) });
     }
   }
   return found;
@@ -353,7 +415,7 @@ function findMoversOnce(frames, o) {
   const minDet = Math.max(o.minDetections, Math.ceil(o.minDetectionFraction * N));
   const epochsOf = (members) => new Set(members.map((d) => epoch[d.k])).size;
 
-  const dots = frames.map((f, k) => f.sources.map((s) => ({ k, x: s.x, y: s.y, snr: s.snr ?? 0, used: false })));
+  const dots = frames.map((f, k) => f.sources.map((s) => ({ k, x: s.x, y: s.y, snr: s.snr ?? 0, sigma: s.sigmaPx ?? centroidSigmaPx(s.snr ?? 0), used: false })));
   const grids = dots.map(makeGrid);
   const candidates = [];
   let tested = 0;                                    // pairs of dots tried as the start of a line (for the false-alarm estimate)
@@ -398,11 +460,12 @@ function findMoversOnce(frames, o) {
 
     // 4) accept the line; is it a still star or a mover?
     for (const d of members) d.used = true;
-    const sigmaPos = Math.max(rms, o.centroidFloorPx);
+    // the error of the velocity comes from the errors of the dots (lineUncertainty), not from a fixed floor: checked against repeated injections (scratch/test_astrometry.mjs)
+    const u = lineUncertainty(members.map((d) => ({ t: t[d.k], sigma: d.sigma })), rms);
     const speed = Math.hypot(line.vx, line.vy);
     const first = Math.min(...members.map((d) => t[d.k])), last = Math.max(...members.map((d) => t[d.k]));
     const motion = speed * (last - first);
-    const significance = speed / (sigmaPos / Math.sqrt(line.sxx));
+    const significance = speed / u.vErr;
     if (significance < o.minSignificance || motion < o.minMotionPx) { stats.stillDots += 1; return true; }
 
     const at = lineAt(line, tRef);
@@ -410,6 +473,7 @@ function findMoversOnce(frames, o) {
       x: at.x, y: at.y, vx: line.vx, vy: line.vy, mjdRef,
       speedPx: speed, motionPx: motion,
       nDet: m, nFrames: N, rms, significance, snr: snrSum / m,
+      vErrPx: u.vErr, posErrPx: u.posErr,                        // error of each velocity component (px/yr) and of the position (px), from the errors of the dots
       points: members.map((d) => ({ frame: d.k, x: d.x, y: d.y })),
     });
     return true;
@@ -603,8 +667,27 @@ export function apertureSnr(img, n, x, y, r = 2) {
   const sd = Math.max(1.4826 * mad, 1e-12);
   const flux = inside.reduce((s, v) => s + v, 0) - bg * inside.length;
   const err = sd * Math.sqrt(inside.length);
-  return { flux, err, snr: flux / err };
+  // errTotal: the same noise, plus the error of the background level (the median of the ring has its own, (pi/2) sd^2 / N): exact for white noise
+  // (injections: the measured spread of the flux is 1.10 x err and 1.00 x errTotal). `snr` stays flux / err: the S/N the thresholds of the searches were tuned with.
+  const errTotal = sd * Math.sqrt(inside.length + ((inside.length * inside.length) / ring.length) * (Math.PI / 2));
+  return { flux, err, snr: flux / err, errTotal, nInside: inside.length, nRing: ring.length };
 }
+
+/**
+ * The factor by which the REAL SPHEREx cutouts' noise exceeds apertureSnr's `err` (robust sd of flux/err at 7 950 empty places of the six real fields: 1.68, per field
+ * 1.47-1.85; docs/VALIDATION.md §15). The cutouts are resampled (their noise is correlated between pixels) and the sky holds sources below the detection
+ * threshold, so the scatter of a sum over an aperture is larger than the scatter of single pixels says. An upper-ish figure: some of it is real faint sources.
+ */
+export const REAL_APERTURE_NOISE_FACTOR = 1.7;
+
+/** The 1-sigma uncertainty to REPORT for the flux of an aperture (image units): real cutouts x REAL_APERTURE_NOISE_FACTOR, synthetic (white noise) errTotal. */
+export const calibratedFluxErr = (ap, real) => (real ? ap.err * REAL_APERTURE_NOISE_FACTOR : ap.errTotal);
+
+/** Every number of the error model in one place, so that provenance.js can write it into each result (a result says which model its errors came from). */
+export const ERROR_MODEL = {
+  positionNoiseCoeff: POSITION_NOISE_COEFF, defaultPsfSigmaPx: DEFAULT_PSF_SIGMA_PX, systematicSigmaPx: SYSTEMATIC_SIGMA_PX,
+  maskedFitSigmaPx: MASKED_FIT_SIGMA_PX, realApertureNoiseFactor: REAL_APERTURE_NOISE_FACTOR,
+};
 
 /**
  * Measure a candidate at its predicted position in every image, whether or not a dot was found there.
