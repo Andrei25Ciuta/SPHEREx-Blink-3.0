@@ -83,6 +83,8 @@ function drawMapOverlay() {
 function renderProducts() {
   const records = current.records.filter(r => $("detector").value === "all" || r.detector === $("detector").value);
   if (!records.includes(selected)) selected = records[0];
+  $("empty-products").hidden = records.length > 0;
+  $("workspace").hidden = !CAN_USE_LOCAL_BACKEND || !selected;
   const rows = $("rows");
   function select(record, button) {
     selected = record;
@@ -104,7 +106,9 @@ function renderProducts() {
     else file.textContent = "Unavailable";
     return tr;
   }));
-  plot(records); drawMapOverlay(); $("workspace").href = workspaceUrl();
+  plot(records); drawMapOverlay();
+  if (selected) $("workspace").href = workspaceUrl();
+  else $("workspace").removeAttribute("href");
 }
 
 async function search(saved) {

@@ -167,6 +167,7 @@ node scratch/test_results.mjs
 node scratch/test_skygeo.mjs
 node scratch/test_candidate_roundtrip.mjs
 node scratch/test_parallax_profile.mjs
+node scratch/test_explorer_geometry.mjs
 ```
 
 More scripts need the backend and real files (they print a report; run them against a backend started with `SPHEREX_DATA_DIR` set to `backend/data/real`, so it serves only the real files; otherwise the synthetic frames at the same sky position get mixed in): `scratch/validate_real.mjs` (blind test of Find movers against SIMBAD; `--det all` for both detectors, `--relaxed 1` for the original rule), `scratch/validate_asteroids.mjs` (known asteroids against real cutouts), `scratch/validate_photometry.py` (Jansky scale against 2MASS/AllWISE stars), `scratch/stack_wise0855.py` (WISE 0855 stacked along its path, with control positions) and `scratch/real_parallax.mjs` (Earth-parallax fit and blind search on real Makemake cutouts; `scratch/find_body_frames.py` finds such images through JPL Horizons), `scratch/calibrate_real.mjs` (injection and recovery of fake movers, and the empty-sky calibration of the false-alarm number), `scratch/planet_x_limits.mjs` (what a single image can see, in magnitudes) and `scratch/fetch_body_cutouts.py` (plans and, after a yes, downloads off-centre 30′ cutouts around a moving body for a fair blind test); see [docs/VALIDATION.md](docs/VALIDATION.md). To remake the README GIF from the synthetic files: `backend/.venv/Scripts/python.exe scripts/make_demo_gif.py` (backend running).

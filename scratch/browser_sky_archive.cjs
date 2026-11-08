@@ -87,6 +87,14 @@ async function check() {
     await localPage.locator("#rows button").getByText("live-product-1").waitFor();
     assert.match(await localPage.locator("#provenance").textContent(), /Live IRSA SIA2 response/);
     assert.equal(await localPage.locator("#rows tr").count(), 1);
+
+    apiResponse = { status: 200, body: { ...liveResult, records: [] } };
+    await localPage.locator('#search button[type="submit"]').click();
+    await localPage.getByText("0 image products found.").waitFor();
+    assert.equal(await localPage.locator("#rows tr").count(), 0);
+    assert.equal(await localPage.locator("#workspace").isVisible(), false,
+      "an empty archive search has no actionable observed-field link");
+    assert.match(await localPage.locator("#empty-products").textContent(), /No image products/i);
     assert.deepEqual(errors, [], "no browser exceptions");
     await localPage.close();
     console.log("Sky Explorer public boundary, failure and recovery passed");
