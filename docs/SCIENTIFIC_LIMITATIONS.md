@@ -40,7 +40,14 @@ A candidate is a lead with its evidence, never a discovery. Nothing this applica
 ## Viewer (zoom, pan, readout)
 
 - Zoom enlarges the cutout's pixels (nearest neighbour, no smoothing): it adds no detail and never changes a measurement. Sky position under the cursor uses the same
-  flat-sky formula as everything else (`geometry.js`, error far below a pixel for fields up to 30′); zooming and panning leave it exactly as it was (`test_view.mjs`).
+  flat-sky formula as everything else (`geometry.js`); zooming and panning leave it exactly as it was (`test_view.mjs`).
+- **The flat-sky mapping is not exact.** The images are TAN projections; the page maps RA/Dec with a flat approximation. Measured against the exact projection at the
+  corner of a field (`scratch/test_grid.mjs`): 5′ cutout 0.002 px at Dec 5° and 0.035 px at Dec 60°; 30′ cutout 0.06 px at Dec 5° but **1.2 px at Dec 60°**. Fine for the
+  5′ fields the app mostly uses; for a 30′ field far from the equator a position near a corner is good to about a pixel (6″), and the grid and the readout share that error.
+- The **coordinate grid** is drawn on round values (RA in seconds of time, Dec in arcseconds or arcminutes) with the same flat mapping: a line is where the page believes
+  that RA or Dec is, to the accuracy above. It is not a WCS from the FITS file. Near a pole the RA lines are left out.
+- *Centre the picture on it* puts the candidate's position **on the image shown** in the middle (in Stack, Trail and Compare: the middle of its whole path) and zooms to at
+  least ×6. It does not follow the candidate from image to image.
 - The **value** in the readout is the pixel of the *cutout the backend made*: resampled onto a common grid (bilinear) and background-subtracted, in the file's own
   unit (its `BUNIT`, shown as is; "MJy/sr" for SPHEREx). It is **not** the original detector pixel and not calibrated photometry. A file without `BUNIT` shows no unit.
   Checked on one real frame (Barnard D2, frame 7 of 18, pixel 24,24: 680.2 and pixel 24,20: 4.206 read from the backend's float file with a separate script; the page showed 680 and 4.21).

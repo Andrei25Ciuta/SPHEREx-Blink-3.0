@@ -11,6 +11,7 @@ export const OVERLAY_COLORS = {
   candidates: "#EA4F39",            // movers found by the search: orange
   candidateSelected: "#F4806A",     // the one picked in the list
   marker: "#FFFF29",                // the measuring circle: yellow (hsl(55 100% 60%))
+  grid: "#8FB2E0",                  // the coordinate grid: pale blue, drawn thin and see-through so it never hides a dot
   scalebar: "#FBE9D0",
 };
 
@@ -25,6 +26,7 @@ export const LAYERS = [
   { id: "asteroids", label: "Known asteroids (SkyBoT)", checkbox: "show-asteroids", color: OVERLAY_COLORS.asteroids, swatch: "diamond", needsData: true },
   { id: "candidates", label: "Movers found", checkbox: "show-candidates", color: OVERLAY_COLORS.candidates, swatch: "ring", needsData: true },
   { id: "marker", label: "Measuring circle", checkbox: "show-marker", color: OVERLAY_COLORS.marker, swatch: "ring", needsData: true },
+  { id: "grid", label: "Coordinate grid (RA, Dec)", checkbox: "show-grid", color: OVERLAY_COLORS.grid, swatch: "cross", needsData: false },
   { id: "scalebar", label: "Scale bar", checkbox: "show-scalebar", color: OVERLAY_COLORS.scalebar, swatch: "bar", needsData: false },
 ];
 
@@ -38,5 +40,5 @@ export function layerCounts(state) {
   const bodies = isAnimated
     ? (asteroids[index] ?? []).length
     : new Set(asteroids.flatMap((list) => (list ?? []).map((a) => a.name))).size;
-  return { flags: null, tracks: tracks.length, catalogue: catalogue.length, asteroids: bodies, candidates: candidates.length, marker: marker ? 1 : 0, scalebar: null };
+  return { flags: null, tracks: tracks.length, catalogue: catalogue.length, asteroids: bodies, candidates: candidates.length, marker: marker ? 1 : 0, grid: null, scalebar: null };
 }

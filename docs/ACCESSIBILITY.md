@@ -83,6 +83,9 @@ Checked with `scratch/audit_page.js` in the app's built-in browser (Chromium), p
   Light research and Classic: 0 of 164 on a fresh load); the new text uses the existing pairs (`--text-muted` on the panel, `--text` on the dark stage).
   *Method note:* changing `data-theme` from a script in a pane that is not visible leaves CSS transitions frozen at the old colours and reports false contrast failures;
   load the page with `?theme=` instead.
+- The **coordinate grid** and its labels, the scale bar and every overlay are drawn on the canvas: a screen reader does not read them (the canvas has a text label for the
+  image; the positions of candidates are in their lists and dossiers). *Centre the picture on it* is a normal button in the candidate's description and in the dossier, so the same
+  zoom is reachable by keyboard.
 - Not checked: a real touch screen (the pinch was driven with synthetic pointer events), a screen reader, other browsers.
 
 ## Re-running

@@ -23,8 +23,9 @@
 // only drawing goes through the view (`_px`), so the sky <-> image mapping of geometry.js is untouched by zoom and pan.
 
 import { combine } from "./features/compare.js";
-import { createView, clampView, fracToCanvas, canvasToFrac, sourceRect, zoomAt, panBy, panStep, scaleBar } from "./features/view.js";
+import { createView, clampView, fracToCanvas, canvasToFrac, sourceRect, zoomAt, panBy, panStep, scaleBar, centreAndZoom, pathCentre } from "./features/view.js";
 import { OVERLAY_COLORS } from "./features/layers.js";
+import { gridLines } from "./features/grid.js";
 
 export const MODES = ["blink", "diff", "mean", "max", "compare"];
 const ANIMATED = new Set(["blink", "diff"]);       // modes that step through time
@@ -38,8 +39,9 @@ export class BlinkPlayer {
     this.onViewChange = onViewChange;             // called with (view) when zoom or pan changed
     this.onDraw = onDraw;                         // called after every redraw (the layer counts and the readout follow it)
     this.view = createView();                     // which part of the image the canvas shows (features/view.js)
-    this.hidden = new Set();                      // layers switched off: "candidates", "marker", "scalebar" (flags and tracks have their own switch)
-    this.pixelScaleArcsec = null;                 // arcsec per image pixel, for the scale bar
+    this.hidden = new Set(["grid"]);              // layers switched off: "candidates", "marker", "grid", "scalebar" (flags and tracks have their own switch); the grid starts off
+    this.pixelScaleArcsec = null;                 // arcsec per image pixel, for the scale bar and the grid
+    this.field = null;                            // { ra, dec } of the middle of the cutout, for the grid
 
     this.frames = [];       // metadata objects (the Frame contract)
     this.images = [];       // matching, already-decoded HTMLImageElements
@@ -165,6 +167,7 @@ export class BlinkPlayer {
       ctx.globalAlpha = 1;
     }
 
+    if (!this.hidden.has("grid")) this._drawGrid();
     if (this.showTracks && this.tracks.length) this._drawTracks();
     if (this.catalogue.length) this._drawCatalogue();
     if (this.asteroids.length) this._drawAsteroids();
@@ -218,6 +221,23 @@ export class BlinkPlayer {
   /** Layers that have no switch of their own: "candidates", "marker", "scalebar". */
   setLayerVisible(id, on) { if (on) this.hidden.delete(id); else this.hidden.add(id); this.draw(); }
   setPixelScale(arcsecPerPixel) { this.pixelScaleArcsec = Number(arcsecPerPixel) > 0 ? Number(arcsecPerPixel) : null; this.draw(); }
+  /** The field on screen: RA/Dec of the middle of the cutout (degrees) and arcsec per pixel; the coordinate grid and the scale bar need them. */
+  setField({ ra, dec, scaleArcsec }) {
+    this.field = Number.isFinite(ra) && Number.isFinite(dec) ? { ra, dec } : null;
+    this.setPixelScale(scaleArcsec);
+  }
+
+  /**
+   * Centre the view on a candidate (index into `candidates`, default the selected one) and zoom in to at least minZoom.
+   * Animated modes: its place on the image shown now; combined modes: the middle of its path. Returns false when there is nothing to centre on.
+   */
+  centreOnCandidate(i = this.selectedCandidate, minZoom = 6) {
+    const c = this.candidates[i];
+    const p = c ? pathCentre(c.points, this.index, this.isAnimated) : null;
+    if (!p) return false;
+    this.setView(centreAndZoom(this.view, p.fx, p.fy, minZoom));
+    return true;
+  }
 
   /** The 8-bit display level (0..255) of one pixel of the frame on screen, or null (pixels unreadable, or outside the image). */
   greyLevelAt(ix, iy) {
@@ -541,6 +561,46 @@ export class BlinkPlayer {
     ctx.restore();
   }
 
+  /**
+   * The coordinate grid (features/grid.js): thin see-through lines of constant RA (vertical) and Dec (horizontal) on round values, labelled at the
+   * bottom and left edges, with the spacing written in the top-left corner. The positions come from the same flat-sky mapping as everything else.
+   */
+  _drawGrid() {
+    const n = this.naturalSize, scale = this.pixelScaleArcsec ?? this.frames[0]?.pixelScaleArcsec;
+    if (!n || !scale || !this.field) return;
+    const { ctx, canvas } = this, W = canvas.width, H = canvas.height;
+    const g = gridLines(this.view, { ra: this.field.ra, dec: this.field.dec, n, scaleArcsec: scale }, W, H);
+    ctx.save();
+    ctx.strokeStyle = ctx.fillStyle = OVERLAY_COLORS.grid;
+    ctx.lineWidth = 1; ctx.globalAlpha = 0.4;
+    ctx.beginPath();
+    for (const l of g.raLines) { const x = Math.round(l.x) + 0.5; ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+    for (const l of g.decLines) { const y = Math.round(l.y) + 0.5; ctx.moveTo(0, y); ctx.lineTo(W, y); }
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.shadowColor = "#000"; ctx.shadowBlur = 3;
+    ctx.font = "600 12px Inter, system-ui, sans-serif";
+    let lastEnd = -Infinity;                                       // RA labels never overlap: skip one that would
+    for (const l of [...g.raLines].sort((a, b) => a.x - b.x)) {
+      const tw = ctx.measureText(l.label).width;
+      let x = l.x + 4;
+      if (x + tw > W - 4) x = l.x - 4 - tw;
+      if (x < 4 || x < lastEnd + 6) continue;
+      ctx.fillText(l.label, x, H - 6);
+      lastEnd = x + tw;
+    }
+    // Dec labels: on the right edge (the bottom-left is where the scale bar is), except in the top strip where the zoom buttons are: there on the left
+    for (const l of g.decLines) {
+      if (l.y < 34 || l.y > H - 26) continue;
+      const atRight = l.y > 100;
+      ctx.textAlign = atRight ? "right" : "left";
+      ctx.fillText(l.label, atRight ? W - 5 : 5, l.y - 4);
+    }
+    ctx.textAlign = "left";
+    if (g.raStep || g.decStep) ctx.fillText(`grid ${[g.raStep, g.decStep].filter(Boolean).join(" × ")}`, 5, 15);
+    ctx.restore();
+  }
+
   /** A scale bar in the bottom-left corner: a round angle (features/view.js scaleBar) as long as it is on the canvas at this zoom. */
   _drawScaleBar() {
     const n = this.naturalSize;
@@ -549,7 +609,7 @@ export class BlinkPlayer {
     const bar = scaleBar((scale * n) / (this.canvas.width * this.view.zoom), this.canvas.width * 0.3);
     if (!bar) return;
     const { ctx, canvas } = this;
-    const x0 = 16, y0 = canvas.height - 16;
+    const x0 = 16, y0 = canvas.height - 16 - (this.hidden.has("grid") ? 0 : 22);       // above the RA labels when the grid is on
     ctx.save();
     ctx.shadowColor = "#000"; ctx.shadowBlur = 3;
     ctx.strokeStyle = ctx.fillStyle = OVERLAY_COLORS.scalebar;

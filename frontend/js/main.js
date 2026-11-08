@@ -517,7 +517,8 @@ async function showDetector(detector) {
 
   setupCompare();
   frameSlider.max = String(currentFrames.length - 1);
-  player.setPixelScale(currentFrames[0].pixelScaleArcsec ?? (currentQuery.fov * 60) / player.naturalSize);   // for the scale bar
+  player.setField({ ra: currentQuery.ra, dec: currentQuery.dec,                                              // for the scale bar and the grid
+    scaleArcsec: currentFrames[0].pixelScaleArcsec ?? (currentQuery.fov * 60) / player.naturalSize });
   hideOverlay();
   setPlayerEnabled(true);
   updateTracks();
@@ -1136,6 +1137,16 @@ $("planetx-demo-btn").addEventListener("click", () => {
   form.requestSubmit();
 });
 
+/** Bring the picture to a candidate: zoom in on it, centred, and make sure the picture is on screen (the button may be far below it). */
+function centrePictureOn(candidateIndex) {
+  if (!player.centreOnCandidate(candidateIndex)) return false;
+  $("stage").scrollIntoView({ block: "nearest", behavior: prefersReducedMotion ? "auto" : "smooth" });
+  return true;
+}
+$("mover-centre-btn").addEventListener("click", () => {
+  if (!centrePictureOn(selectedMover)) $("mover-detail-text").textContent += " (It has no position on these images to centre on.)";
+});
+
 $("mover-map-btn").addEventListener("click", async () => {
   const m = movers[selectedMover];
   if (!m || !currentQuery) return;
@@ -1202,6 +1213,7 @@ discoverPanel = setupDiscoverPanel({
       throw err;
     }
   },
+  centre: () => centrePictureOn(0),                    // the dossier's source is the one candidate the player holds (index 0)
   openMap: async (c) => {
     await openSkyMap({ ra: c.ra, dec: c.dec, fov: currentQuery.fov });
     $("sky-frame").scrollIntoView({ block: "center", behavior: prefersReducedMotion ? "auto" : "smooth" });

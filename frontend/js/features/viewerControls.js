@@ -13,7 +13,7 @@ import { MAX_ZOOM, MIN_ZOOM, ZOOM_STEP, zoomLabel, fracToCanvas } from "./view.j
 import { describePoint, formatValue, readoutParts } from "./readout.js";
 
 const DRAG_PIXELS = 4;                           // a pointer must move this far (screen pixels) before it counts as a drag
-const OWN_LAYERS = ["candidates", "marker", "scalebar"];   // layers whose switch the viewer wires (the others are wired in main.js: they fetch data)
+const OWN_LAYERS = ["candidates", "marker", "grid", "scalebar"];   // layers whose switch the viewer wires (the others are wired in main.js: they fetch data)
 
 export function setupViewer({ player, canvas, crosshair, zoomEls, readoutEls, layersRoot, getGeo, loadFloat = null }) {
   const pointers = new Map();                    // active pointers: id -> { x, y } in client pixels

@@ -15,7 +15,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Oswald:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 
   <script>if (/[?&]embed=1(&|$)/.test(location.search)) document.documentElement.classList.add("embed");</script>   <!-- ?embed=1: workspace only, for an <iframe> -->
-  <link rel="stylesheet" href="css/styles.css?v=14">
+  <link rel="stylesheet" href="css/styles.css?v=15">
 </head>
 <body>
   <!-- Decorative animated starfield behind everything (pure CSS, aria-hidden) -->
@@ -211,6 +211,7 @@
           <li class="layer" data-layer="asteroids"><label class="check"><input type="checkbox" id="show-asteroids" disabled><span class="layer-key" aria-hidden="true"></span><span class="layer-name">Known asteroids (SkyBoT)</span></label><span class="layer-count" data-count="asteroids"></span></li>
           <li class="layer" data-layer="candidates"><label class="check" title="The dots that Find movers reports"><input type="checkbox" id="show-candidates" checked><span class="layer-key" aria-hidden="true"></span><span class="layer-name">Movers found</span></label><span class="layer-count" data-count="candidates"></span></li>
           <li class="layer" data-layer="marker"><label class="check" title="The circle left by a click on the image"><input type="checkbox" id="show-marker" checked><span class="layer-key" aria-hidden="true"></span><span class="layer-name">Measuring circle</span></label><span class="layer-count" data-count="marker"></span></li>
+          <li class="layer" data-layer="grid"><label class="check" title="Lines of constant right ascension and declination, on round values; they get finer as you zoom in"><input type="checkbox" id="show-grid"><span class="layer-key" aria-hidden="true"></span><span class="layer-name">Coordinate grid (RA, Dec)</span></label><span class="layer-count" data-count="grid"></span></li>
           <li class="layer" data-layer="scalebar"><label class="check"><input type="checkbox" id="show-scalebar" checked><span class="layer-key" aria-hidden="true"></span><span class="layer-name">Scale bar</span></label><span class="layer-count" data-count="scalebar"></span></li>
         </ul>
       </fieldset>
@@ -239,6 +240,7 @@
         <div class="mover-detail" id="mover-detail" hidden>
           <p id="mover-detail-text"></p>
           <p id="mover-colour" class="mover-colour" role="status" aria-live="polite" hidden></p>
+          <button type="button" class="btn btn-small" id="mover-centre-btn" title="Zoom the picture in on this candidate and put it in the middle (where it is on the image shown; in Stack and Trail, the middle of its path)">Centre the picture on it</button>
           <button type="button" class="btn btn-small" id="mover-map-btn">Check in sky map</button>
           <button type="button" class="btn btn-small" id="mover-spectrum-btn" title="Measure the candidate in every image, where it is on that image's date, and plot flux against wavelength">Spectrum along its path</button>
         </div>

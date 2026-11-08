@@ -62,6 +62,33 @@ export function panStep(view, dirX, dirY, share = 0.15) {
 /** Centre the view on an image fraction, keeping the zoom (for "show this candidate"). */
 export function centreOn(view, fx, fy) { return clampView({ zoom: view.zoom, cx: fx, cy: fy }); }
 
+/**
+ * Centre the view on an image fraction and zoom in to at least `minZoom` (never out: a view that is already closer stays as close).
+ * For "show me this candidate": the point ends up in the middle of the canvas, unless it is so near an edge that the view cannot move that far.
+ */
+export function centreAndZoom(view, fx, fy, minZoom = 6) {
+  return clampView({ zoom: Math.max(view.zoom, Math.min(MAX_ZOOM, minZoom)), cx: fx, cy: fy });
+}
+
+/**
+ * Where a candidate is, as an image fraction { fx, fy }, for "centre on it". points = its position on each image's date.
+ * Animated modes (one image at a time): its place on the image shown. Combined modes (stack, trail, compare): the middle of the box
+ * around its whole path, so the whole path is near the centre. null when it has no points or the numbers are not finite.
+ */
+export function pathCentre(points, index, animated) {
+  if (!Array.isArray(points) || !points.length) return null;
+  let fx, fy;
+  if (animated) {
+    const p = points[index] ?? points[0];
+    fx = p.fx; fy = p.fy;
+  } else {
+    const xs = points.map((p) => p.fx), ys = points.map((p) => p.fy);
+    fx = (Math.min(...xs) + Math.max(...xs)) / 2;
+    fy = (Math.min(...ys) + Math.max(...ys)) / 2;
+  }
+  return Number.isFinite(fx) && Number.isFinite(fy) ? { fx, fy } : null;
+}
+
 /** The pixel of the image that holds an image fraction: { ix, iy, inside }. Pixel ix covers fractions [ix/n, (ix+1)/n). */
 export function pixelOf(fx, fy, n) {
   const inside = fx >= 0 && fx < 1 && fy >= 0 && fy < 1;

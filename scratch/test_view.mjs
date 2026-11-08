@@ -4,7 +4,7 @@
 import { readFileSync } from "node:fs";
 import {
   MIN_ZOOM, MAX_ZOOM, ZOOM_STEP, createView, clampView, fracToCanvas, canvasToFrac, sourceRect,
-  zoomAt, zoomTo, panBy, panStep, centreOn, pixelOf, scaleBar, zoomLabel,
+  zoomAt, zoomTo, panBy, panStep, centreOn, centreAndZoom, pathCentre, pixelOf, scaleBar, zoomLabel,
 } from "../frontend/js/features/view.js";
 import { OVERLAY_COLORS, LAYERS, layerCounts } from "../frontend/js/features/layers.js";
 import { describePoint, cleanUnit, formatValue, readoutParts } from "../frontend/js/features/readout.js";
@@ -89,6 +89,27 @@ const randomView = () => clampView({ zoom: 1 + rnd() * 31, cx: rnd(), cy: rnd() 
   check("centreOn keeps the zoom and clamps at the edge", (() => { const c = centreOn(v, 0.02, 0.5); return c.zoom === 4 && c.cx === 0.125 && c.cy === 0.5; })());
 }
 
+// ---------------------------------------------------------------- centring on a candidate
+{
+  const whole = createView();
+  const c = centreAndZoom(whole, 0.6, 0.45, 6);
+  check("centreAndZoom: zooms in to at least the given zoom and puts the point in the middle of the canvas",
+    c.zoom === 6 && near(c.cx, 0.6) && near(c.cy, 0.45) && near(fracToCanvas(c, 0.6, 0.45, W, H).x, W / 2) && near(fracToCanvas(c, 0.6, 0.45, W, H).y, H / 2));
+  check("centreAndZoom: a view that is already closer stays as close (it never zooms out)", centreAndZoom({ zoom: 12, cx: 0.5, cy: 0.5 }, 0.3, 0.3, 6).zoom === 12);
+  const edge = centreAndZoom(whole, 0.99, 0.01, 6);
+  check("centreAndZoom: near the edge the view stops at the edge, and the point is still on screen", near(edge.cx, 1 - 0.5 / 6) && near(edge.cy, 0.5 / 6) && fracToCanvas(edge, 0.99, 0.01, W, H).x < W && fracToCanvas(edge, 0.99, 0.01, W, H).y > 0);
+  check("centreAndZoom: a point off the image is clamped, not followed", (() => { const o = centreAndZoom(whole, 3, -2, 6); return o.cx === 1 - 0.5 / 6 && o.cy === 0.5 / 6; })());
+  check("centreAndZoom: the zoom limit holds", centreAndZoom(whole, 0.5, 0.5, 1000).zoom === MAX_ZOOM);
+
+  const path = [{ fx: 0.40, fy: 0.50 }, { fx: 0.42, fy: 0.52 }, { fx: 0.46, fy: 0.50 }, { fx: 0.44, fy: 0.56 }];
+  const now = pathCentre(path, 2, true);
+  check("pathCentre: one image at a time -> where the candidate is on the image shown", now.fx === 0.46 && now.fy === 0.50);
+  const mid = pathCentre(path, 2, false);
+  check("pathCentre: stack or trail -> the middle of the box around its whole path", near(mid.fx, 0.43) && near(mid.fy, 0.53));
+  check("pathCentre: an index past the end falls back to the first point; no points or bad numbers give null",
+    pathCentre(path, 99, true).fx === 0.40 && pathCentre([], 0, true) === null && pathCentre(undefined, 0, true) === null && pathCentre([{ fx: NaN, fy: 0.5 }], 0, true) === null);
+}
+
 // ---------------------------------------------------------------- THE claim: the sky mapping does not change with zoom and pan
 {
   // a cutout like the real ones: 49 x 49 pixels of 6.14 arcsec around Barnard's Star's field
@@ -143,7 +164,7 @@ const randomView = () => clampView({ zoom: 1 + rnd() * 31, cx: rnd(), cy: rnd() 
   const ids = LAYERS.map((l) => l.id);
   check("layers: ids and checkbox ids are unique", new Set(ids).size === ids.length && new Set(LAYERS.map((l) => l.checkbox)).size === ids.length);
   check("layers: every colour is a hex colour and comes from OVERLAY_COLORS", LAYERS.every((l) => /^#[0-9A-F]{6}$/i.test(l.color) && Object.values(OVERLAY_COLORS).includes(l.color)));
-  check("layers: every swatch shape is one the CSS draws", LAYERS.every((l) => ["square", "ring", "diamond", "bar"].includes(l.swatch)));
+  check("layers: every swatch shape is one the CSS draws", LAYERS.every((l) => ["square", "ring", "diamond", "bar", "cross"].includes(l.swatch)));
   const html = readFileSync(new URL("../frontend/index.html", import.meta.url), "utf8");
   const missing = LAYERS.filter((l) => !html.includes(`id="${l.checkbox}"`)).map((l) => l.checkbox);
   check("layers: every layer has its checkbox in index.html", missing.length === 0, missing.join(", "));
@@ -156,7 +177,7 @@ const randomView = () => clampView({ zoom: 1 + rnd() * 31, cx: rnd(), cy: rnd() 
   };
   const c = layerCounts(state);
   check("layerCounts: objects per layer; asteroids on this date when animated", c.tracks === 2 && c.catalogue === 3 && c.candidates === 1 && c.marker === 1 && c.asteroids === 2, JSON.stringify(c));
-  check("layerCounts: flags and scale bar have no count", c.flags === null && c.scalebar === null);
+  check("layerCounts: flags, grid and scale bar have no count", c.flags === null && c.grid === null && c.scalebar === null);
   check("layerCounts: not animated -> each asteroid once over all dates", layerCounts({ ...state, isAnimated: false }).asteroids === 2 && layerCounts({ ...state, isAnimated: true, index: 2 }).asteroids === 0);
   const empty = layerCounts({});
   check("layerCounts: an empty player gives zeros, not errors", empty.tracks === 0 && empty.marker === 0 && empty.asteroids === 0);

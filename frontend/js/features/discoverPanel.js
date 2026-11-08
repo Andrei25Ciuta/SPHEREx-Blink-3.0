@@ -321,6 +321,7 @@ export function setupDiscoverPanel(deps) {
     const todo = el("ul", { className: "discover-todo" }, ...d.whatToCheck.map((t) => el("li", { textContent: t })));
 
     const buttons = el("div", { className: "discover-actions" },
+      action("Centre the picture on it", "Zoom the picture in on this source and put it in the middle (where it is on the image shown; in Stack and Trail, the middle of its path)", () => deps.centre()),
       action("Check in sky map", "Open the sky map on this position, to compare with 2MASS, AllWISE and DSS pictures", () => deps.openMap(c)),
       action("Spectrum chart", "Measure it in every image with the backend and plot flux against wavelength", () => deps.plotSpectrum(c)),
       action("Save dossier (Markdown)", "Everything above as a text file", () => deps.download(dossierMarkdown(d), dossierFileName(c, run.ctx, "md"), "text/markdown;charset=utf-8")),

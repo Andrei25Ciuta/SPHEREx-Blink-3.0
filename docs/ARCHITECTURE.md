@@ -22,7 +22,7 @@ tiles. Real SPHEREx FITS files are read from disk only; they are never downloade
 
 `getCutouts(query)` returns `Frame[]`; a frame has `mjd`, `dateISO`, `detector`, `wavelengthMinUm/MaxUm`, `imageUrl` (PNG for the player) and, with
 the backend, `dataUrl` (raw little-endian float32, MJy/sr, background-subtracted, north up), `maskUrl` (1 byte per pixel, 1 = bad flag bit),
-`flags`, `pixelScaleArcsec`. Synthetic frames carry no `dataUrl`: the detectors then work on the 8-bit pictures and say so. The contract is
+`flags`, `pixelScaleArcsec`, `unit` (the file's `BUNIT`, or null). Synthetic frames carry no `dataUrl`: the detectors then work on the 8-bit pictures and say so. The contract is
 checked by `validateFrame` in `getCutouts.js`.
 
 ## Analysis modules (all pure: no DOM, no network, so Node tests can run them)
@@ -39,6 +39,11 @@ checked by `validateFrame` in `getCutouts.js`.
 | `discovery.js` | `discover()`: sources (fixed, moving, one-pass), photometry in every image, matching, class; also `isShadowOf`, `fitTrack`, `stampFor` |
 | `dossier.js` | one source as an object, Markdown, CSV, JSON, positions CSV |
 | `discoverPanel.js` | the *Find everything* panel (DOM) and its pure helpers (texts, filters, stamps) |
+| `view.js` | the viewer's zoom and pan as pure functions: image fraction <-> canvas pixel, zoom about a point, drag, keyboard step, centre-and-zoom on a point, the middle of a candidate's path, scale bar |
+| `grid.js` | the coordinate grid: which RA and Dec lines are on screen, on round values, with labels (same flat-sky mapping as `geometry.js`) |
+| `readout.js` | what is shown under the pointer: pixel, RA/Dec (the same conversion as a click), offset, value text |
+| `layers.js` | the overlay layers: names, colours (used for drawing and for the colour key), counts |
+| `viewerControls.js` | the DOM side of the viewer (not pure): buttons, drag, pinch, wheel, keys, the readout line, the layer list |
 
 ## State and flow in `main.js`
 
@@ -46,6 +51,13 @@ Module-level variables: `allFrames` (every frame of the query), `currentFrames` 
 a late answer is ignored), `movers`, `catalogueCache`, `asteroidState`. `loadData` fetches frames, `showDetector` sets the player, and
 `clearMovers()` / `discoverPanel.clear()` reset the analysis when the data changes. A search (`Find movers`, `Find everything`) reads the float
 pixels with `detectionPixels`, runs the pure module, and draws into the DOM; everything stale is dropped by comparing `loadToken`.
+
+## The viewer: zoom is only a way of drawing
+
+Every position in the analysis is an **image fraction** (0..1 from the top-left of the cutout) and `geometry.js` turns it into RA/Dec and back.
+Zoom and pan live in `player.view = { zoom, cx, cy }` and are applied in exactly two places: when the picture is drawn (`_blit`, a source rectangle of the
+image) and when an overlay point is placed on the canvas (`_px`). A mouse position goes back through `player.pointToFrac`, so a click, the readout and the
+grid all use the same chain: canvas pixel -> image fraction -> sky. `scratch/test_view.mjs` and `scratch/test_grid.mjs` check that chain at random zooms and pans.
 
 ## Find everything, step by step
 
