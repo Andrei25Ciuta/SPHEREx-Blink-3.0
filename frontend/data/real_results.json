@@ -1,12 +1,9 @@
 {
-  "about": "Numbers derived from real SPHEREx images, measured on 2026-11-07 on the author's machine. Only derived numbers are here: no pixels, no images, no FITS data. Every figure is copied from docs/VALIDATION.md, where the command that produced it is given.",
+  "about": "Numbers derived from real SPHEREx images, measured on 2026-11-07 on the author's machine. Only derived numbers are here: no pixels, no images, no FITS data. Every figure is copied from docs/VALIDATION.md, where the command that produced it is given, except sections 1-3, which are in real_results_generated.json (made by scratch/make_results.mjs from the real images).",
   "measuredOn": "2026-11-07",
   "pixelArcsec": 6.14,
   "data": { "files": 60, "megabytes": 279, "fields": 7 },
   "origins": [
-    { "section": 1,  "validation": "2",  "commands": ["node scratch/validate_real.mjs --ra 269.4462 --dec 4.769 --fov 5 --det D2 (and D6; the same for Epsilon Indi B)"] },
-    { "section": 2,  "validation": "2, 10", "commands": ["node scratch/validate_real.mjs (the same six runs)", "node scratch/calibrate_real.mjs --mode null"] },
-    { "section": 3,  "validation": "2",  "commands": ["node scratch/validate_real.mjs --ra 269.4462 --dec 4.769 --fov 5 --det D2"] },
     { "section": 4,  "validation": "3",  "commands": ["py scratch/validate_photometry.py --ra 269.4462 --dec 4.769 --det D2 (and D6; Epsilon Indi B)"] },
     { "section": 5,  "validation": "6",  "commands": ["node scratch/validate_asteroids.mjs --ra 269.4462 --dec 4.769 --fov 5 --det D6 (with the Arosa cutouts of scratch/fetch_asteroid_cutout.py)"] },
     { "section": 6,  "validation": "7",  "commands": ["py scratch/stack_wise0855.py --det D6 (and D2)"] },
@@ -15,25 +12,7 @@
     { "section": 9,  "validation": "10", "commands": ["node scratch/calibrate_real.mjs --mode null --nulls 300"] },
     { "section": 10, "validation": "11", "commands": ["node scratch/planet_x_limits.mjs"] }
   ],
-  "summary": { "recovered": [6, 6], "minDifference": 0.20, "maxDifference": 0.80 },
 
-  "movers": {
-    "runs": [
-      { "id": "barnard-d2",  "label": "Barnard's Star · D2",       "catalogue": [-0.80, 10.36], "measured": [-1.03, 10.15], "difference": 0.31, "seen": [15, 15], "sigma": 15, "chanceLines": 2e-21 },
-      { "id": "barnard-d6",  "label": "Barnard's Star · D6",       "catalogue": [-0.80, 10.36], "measured": [-0.25,  9.78], "difference": 0.80, "seen": [6, 6],   "sigma": 11, "chanceLines": 8e-6 },
-      { "id": "barnard-all", "label": "Barnard's Star · D2 + D6",  "catalogue": [-0.80, 10.36], "measured": [-0.91, 10.19], "difference": 0.20, "seen": [21, 21], "sigma": 19, "chanceLines": 2e-30 },
-      { "id": "eps-d2",      "label": "Epsilon Indi B · D2",       "catalogue": [3.98, -2.47],  "measured": [3.45, -2.14],  "difference": 0.62, "seen": [11, 11], "sigma": 8,  "chanceLines": 4e-15 },
-      { "id": "eps-d6",      "label": "Epsilon Indi B · D6",       "catalogue": [3.98, -2.47],  "measured": [3.34, -2.42],  "difference": 0.65, "seen": [6, 6],   "sigma": 7,  "chanceLines": 1e-4 },
-      { "id": "eps-all",     "label": "Epsilon Indi B · D2 + D6",  "catalogue": [3.98, -2.47],  "measured": [3.46, -2.37],  "difference": 0.53, "seen": [17, 17], "sigma": 11, "chanceLines": 3e-23 }
-    ],
-    "originalRule": {
-      "note": "Epsilon Indi B in D6 with the first version of the rule (a line needs dots in half of the images): the real line and three false ones.",
-      "realChanceLines": 6e-5,
-      "falseChanceLines": [17, 17, 17],
-      "falseSupportedImages": [[3, 6], [2, 6], [2, 4]]
-    },
-    "barnardD2Mask": { "before": 3.72, "after": 0.31 }
-  },
 
   "jansky": [
     { "label": "Barnard field · D2",        "stars": 5, "measurements": 33, "median": 0.967, "scatter": 0.031, "p16": 0.92, "p84": 0.99 },

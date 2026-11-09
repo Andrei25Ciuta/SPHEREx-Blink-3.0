@@ -1,6 +1,6 @@
 // Tests for the real-data results page: frontend/js/results.js (pure helpers + chart builders), frontend/data/real_results.json,
 // frontend/results.html.  Run: node scratch/test_results.mjs
-import { niceTicks, place, assignLanes, fmtChance, fmtPow10, fmtBy, getPath, fixed, esc, buildCharts, barsHtml, dotsHtml, tableHtml, sourceRows, sourcesSummary, sourcesSentence, sourcesVerdict, originHtml, fmtDate } from"../frontend/js/results.js";
+import { niceTicks, place, assignLanes, fmtChance, fmtPow10, fmtBy, getPath, fixed, esc, buildCharts, barsHtml, dotsHtml, tableHtml, sourceRows, sourcesSummary, sourcesSentence, sourcesVerdict, originHtml, fmtDate, mergeResults } from"../frontend/js/results.js";
 import { missingProvenance } from "../frontend/js/features/provenance.js";
 import { VERSION as DISCOVERY_VERSION, SETTINGS as DISCOVERY_SETTINGS, CLASSES } from "../frontend/js/features/discovery.js";
 import { readFileSync, statSync, existsSync } from "node:fs";
@@ -16,7 +16,9 @@ const near = (a, b, tol) => Math.abs(a - b) <= tol;
 const JSON_PATH = new URL("../frontend/data/real_results.json", import.meta.url);
 const HTML = readFileSync(new URL("../frontend/results.html", import.meta.url), "utf8");
 const DOC = readFileSync(new URL("../docs/VALIDATION.md", import.meta.url), "utf8");
-const data = JSON.parse(readFileSync(JSON_PATH, "utf8"));
+const GEN_PATH = new URL("../frontend/data/real_results_generated.json", import.meta.url);
+const typedData = JSON.parse(readFileSync(JSON_PATH, "utf8")), generatedData = JSON.parse(readFileSync(GEN_PATH, "utf8"));
+const data = mergeResults(typedData, generatedData);          // what the page shows: the typed numbers (sections 4-10) with the generated ones (sections 1-3) laid over them
 
 // ---- helpers
 check("ticks of 0-1 are 0, .2 ... 1", same(niceTicks(0, 1, 5), [0, 0.2, 0.4, 0.6, 0.8, 1]), JSON.stringify(niceTicks(0, 1, 5)));
@@ -36,7 +38,7 @@ check("place: log scale", near(place(1, [1e-32, 1e3], true).pct, 32 / 35 * 100, 
 check("chance numbers in scientific notation", fmtChance(2e-21) === "2×10⁻²¹" && fmtChance(6e-5) === "6×10⁻⁵" && fmtChance(1e-4) === "1×10⁻⁴" && fmtChance(2e-30) === "2×10⁻³⁰");
 check("chance numbers from 0.1 up are plain", fmtChance(17) === "17" && fmtChance(0.5) === "0.5");
 check("power-of-ten axis labels", fmtPow10(-20) === "10⁻²⁰" && fmtPow10(2) === "10²" && fmtPow10(0) === "1");
-check("getPath follows objects and array indexes, undefined when missing", getPath(data, "movers.runs.2.difference") === 0.2 && getPath(data, "movers.nope.x") === undefined);
+check("getPath follows objects and array indexes, undefined when missing", getPath(data, "movers.runs.2.difference") === data.movers.runs[2].difference && getPath(data, "movers.nope.x") === undefined);
 check("fmtBy formats", fmtBy("fixed:2", 0.2) === "0.20" && fmtBy("ofn", [6, 6]) === "6 of 6" && fmtBy("chance", 2e-21) === "2×10⁻²¹" && fmtBy("", 563) === "563" && fmtBy("fixed:2", undefined) === "?");
 check("text is escaped", esc('<b a="1">&\'') === "&lt;b a=&quot;1&quot;&gt;&amp;&#39;" && fixed(null) === "–");
 
@@ -46,7 +48,8 @@ check("text is escaped", esc('<b a="1">&\'') === "&lt;b a=&quot;1&quot;&gt;&amp;
   check("each stated difference is the distance between its measured and catalogue motion", bad.length === 0, bad.map((r) => r.id).join(", "));
   const diffs = data.movers.runs.map((r) => r.difference);
   check("the headline range is the min and max of the runs, and all runs recovered", data.summary.minDifference === Math.min(...diffs) && data.summary.maxDifference === Math.max(...diffs)
-    && same(data.summary.recovered, [data.movers.runs.length, data.movers.runs.length]) && data.movers.runs.every((r) => r.seen[0] === r.seen[1]));
+    && same(data.summary.recovered, [data.movers.runs.length, data.movers.runs.length])
+    && data.movers.runs.every((r) => r.seen[0] >= Math.ceil(0.6 * r.seen[1]) && r.seen[0] <= r.seen[1]));      // seen in at least the share of images the search asks for (minDetectionFraction 0.6): not "all" any more, a real run saw 15 of 17
   check("kept lines are below 1 chance line, the false lines above it", data.movers.runs.every((r) => r.chanceLines < 1) && data.movers.originalRule.realChanceLines < 1 && data.movers.originalRule.falseChanceLines.every((v) => v > 1));
   check("Jansky: the median lies inside its 16th-84th percentile", data.jansky.every((j) => j.p16 <= j.median && j.median <= j.p84));
   check("Arosa: the speed is the distance over the time", near(data.arosa.movedArcsec / data.arosa.hours, data.arosa.arcsecPerHour, 0.15));
@@ -79,7 +82,7 @@ check("text is escaped", esc('<b a="1">&\'') === "&lt;b a=&quot;1&quot;&gt;&amp;
   (function walk(o) { if (Array.isArray(o)) o.forEach(walk); else if (o && typeof o === "object") for (const [k, v] of Object.entries(o)) { keys.push(k); walk(v); } else if (typeof o === "string") strings.push(o); })(data);
   check("no image, data URL, base64, file name or pixel field in the data file",
     !keys.some((k) => /^(dataUrl|maskUrl|pixels?|image|images|fits|file|path)$/i.test(k)) && !strings.some((s) => /^data:|base64|\.fits\b|\.png\b|\.jpe?g\b/i.test(s)));
-  check("the data file is small", statSync(JSON_PATH).size < 12_000, `${statSync(JSON_PATH).size} bytes`);
+  check("the data files are small", statSync(JSON_PATH).size < 12_000 && statSync(GEN_PATH).size < 6_000, `${statSync(JSON_PATH).size} + ${statSync(GEN_PATH).size} bytes`);
   const longest = (o) => (Array.isArray(o) ? Math.max(o.length, ...o.map(longest)) : o && typeof o === "object" ? Math.max(0, ...Object.values(o).map(longest)) : 0);
   check("no array longer than 20 numbers (no light-curve or pixel dumps)", longest(data) <= 20, String(longest(data)));
   check("the page has no <img>, <canvas> or inline image", !/<img|<canvas|<video|data:image/i.test(HTML));
@@ -91,7 +94,7 @@ check("text is escaped", esc('<b a="1">&\'') === "&lt;b a=&quot;1&quot;&gt;&amp;
   const need = (s) => { if (!DOC.includes(s)) miss.push(s); };
   for (const r of data.movers.runs) { need(`**${r.difference.toFixed(2)} ″/yr**`); need(r.chanceLines.toExponential(0)); }
   for (const j of data.jansky) need(`**${j.median.toFixed(3)}**`);
-  need("3.72"); need("0.31");
+  need(data.movers.barnardD2Mask.before.toFixed(2)); need(data.movers.barnardD2Mask.after.toFixed(2));
   for (const w of [data.wise0855.D6, data.wise0855.D2]) need(`${w.stack.toFixed(3)} ± ${w.err.toFixed(3)} mJy`);
   need(`${data.makemake.fitAU}`); need(`${data.makemake.horizonsAU}`); need(`${data.arosa.movedArcsec}″ in ${data.arosa.hours} hours`);
   for (const r of data.arosa.rows) if (r.fluxMilliJy !== null) need(`${r.fluxMilliJy.toFixed(2)} ± ${r.err.toFixed(2)} mJy`);
@@ -107,9 +110,9 @@ check("text is escaped", esc('<b a="1">&\'') === "&lt;b a=&quot;1&quot;&gt;&amp;
 const charts = buildCharts(data);
 const wanted = [...HTML.matchAll(/data-chart="([^"]+)"/g)].map((m) => m[1]);
 check("every chart the page asks for is built, and is not empty", wanted.length >= 8 && wanted.every((id) => typeof charts[id] === "string" && charts[id].length > 200), wanted.join(", "));
-check("the movers chart has one bar per run, with its value", (charts.moversDifference.match(/class="rbar /g) || []).length === 6 && charts.moversDifference.includes("0.20″/yr") && charts.moversDifference.includes("0.80″/yr"));
-check("the chance-line chart marks the three false lines apart (bad diamonds) and writes 2×10⁻²¹", (charts.chanceLines.match(/rpt diamond bad/g) || []).length === 3 && charts.chanceLines.includes("2×10⁻²¹") && charts.chanceLines.includes('class="rref"'));
-check("the Barnard chart shows both bars", charts.barnardMask.includes("3.72″/yr") && charts.barnardMask.includes("0.31″/yr"));
+check("the movers chart has one bar per run, with its value", (charts.moversDifference.match(/class="rbar /g) || []).length === 6 && charts.moversDifference.includes(`${data.summary.minDifference.toFixed(2)}″/yr`) && charts.moversDifference.includes(`${data.summary.maxDifference.toFixed(2)}″/yr`));
+check("the chance-line chart marks the three false lines apart (bad diamonds) and writes the chance number of the first run", (charts.chanceLines.match(/rpt diamond bad/g) || []).length === 3 && charts.chanceLines.includes(fmtChance(data.movers.runs[0].chanceLines)) && charts.chanceLines.includes('class="rref"'));
+check("the Barnard chart shows both bars", charts.barnardMask.includes(`${data.movers.barnardD2Mask.before.toFixed(2)}″/yr`) && charts.barnardMask.includes(`${data.movers.barnardD2Mask.after.toFixed(2)}″/yr`));
 check("the Jansky chart has a range and a reference line per row", (charts.jansky.match(/class="rrange"/g) || []).length === 4 && (charts.jansky.match(/class="rref"/g) || []).length === 4);
 check("the Arosa chart has whiskers, and says the fourth position is not in the cutout", (charts.arosa.match(/class="rwhisker"/g) || []).length === 3 && charts.arosa.includes("not in this cutout"));
 check("the WISE D6 chart puts the +4.81 outlier at the edge with its label, D2 has no outlier", (charts.wiseD6.match(/off offR/g) || []).length === 1 && charts.wiseD6.includes("+4.81") && !charts.wiseD2.includes("off offR"));
@@ -126,7 +129,7 @@ check("charts that draw bars or dots are hidden from screen readers (the table s
   const paths = [...HTML.matchAll(/data-n="([^"]+)"(?:\s+data-fmt="([^"]+)")?/g)].map((m) => ({ path: m[1], fmt: m[2] }));
   const unresolved = paths.filter((p) => getPath(data, p.path) === undefined).map((p) => p.path);
   check(`all ${paths.length} numbers the page fills in exist in the data file`, paths.length > 25 && unresolved.length === 0, unresolved.join(", "));
-  const known = ["fixed", "int", "chance", "pct", "signed", "thousands", "ofn"];
+  const known = ["fixed", "int", "chance", "pct", "signed", "thousands", "ofn", "date"];
   check("every data-fmt is one fmtBy understands", paths.every((p) => !p.fmt || known.includes(p.fmt.split(":")[0])));
   const ids = [...HTML.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
   check("ids are unique", new Set(ids).size === ids.length);
@@ -197,6 +200,34 @@ check("charts that draw bars or dots are hidden from screen readers (the table s
   check("origins: the line shows the command (escaped), links VALIDATION.md with its sections, gives the date and says the numbers were typed in",
     h.includes("<code>node scratch/a.mjs --x &lt;y&gt;</code>") && h.includes("VALIDATION.md &sect;2, 10") && h.includes("7 Nov 2026") && /typed into this page's data file/.test(h) && !h.includes("<y>"));
   check("origins: the data file is still small (the origins added to it)", statSync(JSON_PATH).size < 12_000, `${statSync(JSON_PATH).size} bytes`);
+}
+
+// ---- sections 1-3 are made by a command (scratch/make_results.mjs), laid over the typed file
+{
+  const g = generatedData;
+  check("merge: the generated keys replace the typed ones, the typed sections stay, the origins of sections 1-3 come from the generated file and the list stays in order",
+    mergeResults({ a: 1, jansky: [1], origins: [{ section: 1, v: "typed" }, { section: 4, v: "typed" }] }, { summary: 9, origins: [{ section: 1, v: "gen" }] }).summary === 9
+    && same(mergeResults({ origins: [{ section: 4 }, { section: 1, v: "t" }] }, { origins: [{ section: 1, v: "g" }] }).origins.map((o) => `${o.section}${o.v ?? ""}`), ["1g", "4"]) && mergeResults({ jansky: [1] }, { origins: [] }).jansky[0] === 1);
+  check("the typed file no longer holds the numbers of sections 1-3 (nothing typed can contradict the generated ones)", typedData.movers === undefined && typedData.summary === undefined && !typedData.origins.some((o) => g.origins.some((x) => x.section === o.section)));
+  check("the generated file: sections 1-3, with the date, the command and the images each run had; no key the pixel guard forbids",
+    same(g.generated.sections, [1, 2, 3]) && /^\d{4}-\d{2}-\d{2}$/.test(g.generated.on) && /make_results\.mjs/.test(g.generated.command) && Object.keys(g.generated.runs).length === 6
+    && Object.values(g.generated.runs).every((r) => r.imageCount > 0 && r.passes >= 3) && g.origins.length === 3 && g.origins.every((o) => o.generated === g.generated.on));
+  check("the merged page data have an origin for each of sections 1-10, and exactly sections 1-3 are 'generated'", data.origins.length === 10 && data.origins.filter((o) => o.generated).map((o) => o.section).join() === "1,2,3");
+  const gen = originHtml(data.origins[0], data.measuredOn), typedLine = originHtml(data.origins[3], data.measuredOn);
+  check("the origin line of a generated section says 'made by a command, not typed', the date it ran and the file; a typed section still says it was typed",
+    /Made by a command, not typed/.test(gen) && gen.includes(fmtDate(g.generated.on)) && gen.includes("real_results_generated.json") && !/typed into this page's data file/.test(gen) && /typed into this page's data file/.test(typedLine));
+  check("fmtBy 'date' writes the date in words", fmtBy("date", "2026-11-10") === "10 November 2026" || fmtBy("date", "2026-11-10") === "10 Nov 2026", fmtBy("date", "2026-11-10"));
+  // what the prose of results.html says about sections 1-3 must be true of the numbers (make_results.mjs refuses to write otherwise; this checks the file that is there)
+  const runs = data.movers.runs, d = (id) => runs.find((r) => r.id === id).difference;
+  check("prose: every run recovered its mover with no other candidate; both detectors give the smallest difference for each star; every real line is supported in every measurable image; the mask helps",
+    data.summary.recovered[0] === data.summary.recovered[1] && runs.length === 6 && d("barnard-all") <= Math.min(d("barnard-d2"), d("barnard-d6")) && d("eps-all") <= Math.min(d("eps-d2"), d("eps-d6"))
+    && data.movers.realSupport.every(([s, m]) => s === m) && data.movers.barnardD2Mask.before > data.movers.barnardD2Mask.after && data.movers.maxChanceLines === Math.max(...runs.map((r) => r.chanceLines)));
+  check("prose: the pixel range of the differences is the range divided by the pixel scale; the 'original rule' record keeps the failure of 7 Nov and says what it gives now",
+    near(data.movers.differencePixels[0], data.summary.minDifference / data.pixelArcsec, 0.006) && near(data.movers.differencePixels[1], data.summary.maxDifference / data.pixelArcsec, 0.006)
+    && data.movers.originalRule.falseChanceLines.length === 3 && data.movers.originalRule.reproducedNow.candidates === 1 && data.movers.originalRule.reproducedNow.falseLines === 0);
+  check("the page says that sections 1-3 were remade and 4-10 are typed", /Sections 1&ndash;3 were remade by a command/.test(HTML) && /sections 4&ndash;10 are still the numbers of 7 November/.test(HTML) && /no longer something this page can remake/.test(HTML));
+  const results = readFileSync(new URL("../frontend/js/results.js", import.meta.url), "utf8");
+  check("the page loads both data files, and fails as a whole (the status line) if one cannot be loaded", /real_results_generated\.json/.test(results) && /Promise\.all\(\["data\/real_results\.json", "data\/real_results_generated\.json"\]/.test(results) && /throw new Error\(`\$\{url\}: HTTP/.test(results));
 }
 
 console.log(failed ? `\n${failed} FAILED` : "\nall passed");

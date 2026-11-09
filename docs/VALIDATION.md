@@ -84,6 +84,26 @@ candidate is kept only if that number is below 1.
   pointing error, up to about 0.7 px between passes, which over a one-year baseline looks like a motion of several
   arcsec/yr). Both are covered by synthetic tests (`scratch/test_movers.mjs`), not only by these fields.
 
+### 2.1 Remade on 10 Nov 2026 by a command, on the images the backend holds now
+
+`node scratch/make_results.mjs [--write]` (backend on the real files, port 8003; SIMBAD for the catalogue motion) runs the six blind searches above with the code of the app and writes
+`frontend/data/real_results_generated.json`, which sections 1-3 of the results page read; the table above stays as it was measured on 7 Nov. The images are more now (Barnard D2 has 18, it had 15; the other
+runs have the same images) and the code changed in Phase 4, so the numbers moved:
+
+| Field, detector | Candidates | Catalogue match | Catalogue motion | Measured motion | Difference | Seen in | Significance | Chance lines expected |
+|---|---|---|---|---|---|---|---|---|
+| Barnard's Star, D2 | 1 | Barnard's Star | (−0.80, +10.36) | (−1.36, +10.12) | **0.61 ″/yr** | 18 of 18 | 16 σ | 2e-26 |
+| Barnard's Star, D6 | 1 | Barnard's Star | (−0.80, +10.36) | (−0.25, +9.78) | **0.80 ″/yr** | 6 of 6 | 10 σ | 8e-6 |
+| Barnard's Star, **D2 + D6** | 1 | Barnard's Star | (−0.80, +10.36) | (−1.17, +10.16) | **0.42 ″/yr** | 24 of 24 | 20 σ | 1e-35 |
+| Epsilon Indi B, D2 | 1 | Epsilon Indi B | (+3.98, −2.47) | (+3.59, −1.93) | **0.66 ″/yr** | 11 of 11 | 16 σ | 5e-15 |
+| Epsilon Indi B, D6 | 1 | Epsilon Indi B | (+3.98, −2.47) | (+3.50, −2.74) | **0.56 ″/yr** | 6 of 6 | 18 σ | 1e-5 |
+| Epsilon Indi B, **D2 + D6** | 1 | Epsilon Indi B | (+3.98, −2.47) | (+3.61, −2.36) | **0.39 ″/yr** | 15 of 17 | 21 σ | 5e-19 |
+
+- Still **recovered in every run, with no candidate besides the known mover**; both detectors together still give the smallest difference for each star; the differences are 0.39-0.80 ″/yr (0.06-0.13 pixel per year); every real line is supported in every image that could be measured (18 of 18, 6 of 6, 24 of 24, 11 of 11, 6 of 6, 17 of 17).
+- **What changed.** Barnard D2 went from 0.31 to **0.61 ″/yr** with three more images (so the 0.31 of 7 Nov was partly luck of that set of 15), and Barnard D2 + D6 from 0.20 to 0.42. Epsilon Indi B D6 improved (0.65 to 0.56) and D2 + D6 too (0.53 to 0.39). The line of Epsilon Indi B D2 + D6 is now seen in **15 of 17** images, not all of them: the search asks for 60 %. The headline range of the page is now 0.39-0.80, not 0.2-0.8.
+- **The failure of the original rule cannot be remade by the code of today.** `--relaxed 1` (the rule that listed Epsilon Indi B in D6 and three false lines on 7 Nov) now lists only the real line: the dots found per image are 4-8 (they were about 9), so there are no chance matches to join. The numbers of the failure in the section above (6e-5 for the real line, about 17 for the false ones, 3 of 6, 2 of 6 and 2 of 4 images) are therefore a record of the code of 7 Nov, and the page says so. The sentence above, "re-running ... reproduces the failure", was true then and is not now.
+- **Barnard in D2 without and with the bad-pixel mask**: **3.56 → 0.61 ″/yr** on these 18 images (the same code with `mask: null` is the code before the mask), so the mask still removes most of the error, and the 3.72 → 0.31 of 7 Nov (15 images) is the same effect on the old set.
+
 ### Barnard in D2: from 3.7 to 0.3 ″/yr in RA
 
 Before the mask the D2 result was 3.72 ″/yr off. The star is so bright that on every one of the 21 images (D2 and

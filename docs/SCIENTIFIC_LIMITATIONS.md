@@ -94,6 +94,12 @@ A candidate is a lead with its evidence, never a discovery. Nothing this applica
 - The table of the six real fields (results page, section 11) lists **42 sources, every one explained by a catalogue**, as in VALIDATION §14. Positions and designations are derived
   numbers and public catalogue names; no pixel is published. It shows that the cross-match does not leave known stars unexplained; it cannot show what the tool would find that is new.
 
+## Results page: what is made by a command and what is typed
+
+- Sections 1-3 (the blind search on Barnard's Star and Epsilon Indi B, the chance lines, the bad-pixel mask) are remade by `scratch/make_results.mjs` on the images the backend holds on the day it runs: **a different set of images gives different numbers** (Barnard D2: 0.31 ″/yr with 15 images, 0.61 with 18). They are six runs on two fast stars: not a statistical survey, and the rules were tuned on these fields (the page says so).
+- The false lines of the **original rule** are a record of the code of 7 Nov: today's code finds fewer dots per image and no longer produces them. Their numbers are typed and dated, not remade.
+- Sections 4-10 are still the numbers of 7 Nov, typed from the reports of their commands; they do not move when the images do.
+
 ## Which survey images cover a place (IRSA; VALIDATION §18)
 
 - The list is **metadata of what IRSA has published** (a live query of `spherex.plane`, retrieved at the time the page shows): it changes weekly as the survey adds images, and it says nothing about whether an image is good. A row with a quality flag is listed, not filtered.

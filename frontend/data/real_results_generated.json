@@ -1,0 +1,148 @@
+{
+ "generated": {
+  "on": "2026-11-10",
+  "sections": [1,2,3],
+  "command": "node scratch/make_results.mjs --write",
+  "runs": {
+   "barnard-d2": {
+    "imageCount": 18,
+    "passes": 4
+   },
+   "barnard-d6": {
+    "imageCount": 6,
+    "passes": 3
+   },
+   "barnard-all": {
+    "imageCount": 24,
+    "passes": 4
+   },
+   "eps-d2": {
+    "imageCount": 11,
+    "passes": 5
+   },
+   "eps-d6": {
+    "imageCount": 6,
+    "passes": 4
+   },
+   "eps-all": {
+    "imageCount": 17,
+    "passes": 5
+   }
+  },
+  "note": "Remade from the real images the backend holds on this date; the numbers of 7 Nov (15 images in Barnard D2) are in docs/VALIDATION.md section 2 as they were."
+ },
+ "summary": {
+  "recovered": [6,6],
+  "minDifference": 0.39,
+  "maxDifference": 0.8
+ },
+ "movers": {
+  "runs": [
+   {
+    "id": "barnard-d2",
+    "label": "Barnard's Star · D2",
+    "catalogue": [-0.8,10.36],
+    "measured": [-1.36,10.12],
+    "difference": 0.61,
+    "seen": [18,18],
+    "sigma": 16,
+    "chanceLines": 2e-26
+   },
+   {
+    "id": "barnard-d6",
+    "label": "Barnard's Star · D6",
+    "catalogue": [-0.8,10.36],
+    "measured": [-0.25,9.78],
+    "difference": 0.8,
+    "seen": [6,6],
+    "sigma": 10,
+    "chanceLines": 0.000008
+   },
+   {
+    "id": "barnard-all",
+    "label": "Barnard's Star · D2 + D6",
+    "catalogue": [-0.8,10.36],
+    "measured": [-1.17,10.16],
+    "difference": 0.42,
+    "seen": [24,24],
+    "sigma": 20,
+    "chanceLines": 1e-35
+   },
+   {
+    "id": "eps-d2",
+    "label": "Epsilon Indi B · D2",
+    "catalogue": [3.98,-2.47],
+    "measured": [3.59,-1.93],
+    "difference": 0.66,
+    "seen": [11,11],
+    "sigma": 16,
+    "chanceLines": 5e-15
+   },
+   {
+    "id": "eps-d6",
+    "label": "Epsilon Indi B · D6",
+    "catalogue": [3.98,-2.47],
+    "measured": [3.5,-2.74],
+    "difference": 0.56,
+    "seen": [6,6],
+    "sigma": 18,
+    "chanceLines": 0.00001
+   },
+   {
+    "id": "eps-all",
+    "label": "Epsilon Indi B · D2 + D6",
+    "catalogue": [3.98,-2.47],
+    "measured": [3.61,-2.36],
+    "difference": 0.39,
+    "seen": [15,17],
+    "sigma": 21,
+    "chanceLines": 5e-19
+   }
+  ],
+  "differencePixels": [0.06,0.13],
+  "maxChanceLines": 0.00001,
+  "realSupport": [[18,18],[6,6],[24,24],[11,11],[6,6],[17,17]],
+  "originalRule": {
+   "note": "Epsilon Indi B in D6 with the first version of the rule (a line needs dots in half of the images): the real line and three false ones.",
+   "realChanceLines": 0.00006,
+   "falseChanceLines": [17,17,17],
+   "falseSupportedImages": [[3,6],[2,6],[2,4]],
+   "reproducedNow": {
+    "on": "2026-11-10",
+    "candidates": 1,
+    "falseLines": 0,
+    "dotsNote": "fewer dots per image now (4-8 on Epsilon Indi B in D6), so no chance line has dots to join"
+   }
+  },
+  "barnardD2Mask": {
+   "before": 3.56,
+   "after": 0.61
+  }
+ },
+ "origins": [
+  {
+   "section": 1,
+   "validation": "2",
+   "commands": [
+    "node scratch/make_results.mjs --write (the six runs of Find movers, the original rule on Epsilon Indi B in D6, Barnard in D2 without the mask)"
+   ],
+   "generated": "2026-11-10"
+  },
+  {
+   "section": 2,
+   "validation": "2, 10",
+   "commands": [
+    "node scratch/make_results.mjs --write (the six runs of Find movers, the original rule on Epsilon Indi B in D6, Barnard in D2 without the mask)"
+   ],
+   "generated": "2026-11-10"
+  },
+  {
+   "section": 3,
+   "validation": "2",
+   "commands": [
+    "node scratch/make_results.mjs --write (the six runs of Find movers, the original rule on Epsilon Indi B in D6, Barnard in D2 without the mask)"
+   ],
+   "generated": "2026-11-10"
+  }
+ ]
+}

@@ -76,6 +76,7 @@ export function fmtBy(spec, v) {
   if (kind === "signed") return signed(v, Number(arg ?? 2));
   if (kind === "thousands") return Math.round(v).toLocaleString("en-US");
   if (kind === "ofn") return `${v[0]} of ${v[1]}`;
+  if (kind === "date") return fmtDate(v);
   return String(v);
 }
 
@@ -271,8 +272,22 @@ const VALIDATION_URL = "https://github.com/mateibut/SPHEREx/blob/main/docs/VALID
  */
 export function originHtml(origin, measuredOn) {
   const cmds = origin.commands.map((c) => `<code>${esc(c)}</code>`).join("; ");
+  if (origin.generated) {                                    // made by a script from the images the backend held that day: remade every time the command is run
+    return `<strong>Where these numbers come from.</strong> <span class="rmade">Made by a command, not typed:</span> ${cmds}. It ran on ${esc(fmtDate(origin.generated))} on the real images the backend held that day `
+      + `and wrote them into this page's data file (<code>real_results_generated.json</code>); running it again remakes them. The report of that day is in <a href="${VALIDATION_URL}">VALIDATION.md &sect;${esc(origin.validation)}</a>.`;
+  }
   return `<strong>Where these numbers come from.</strong> ${cmds}. Reported in <a href="${VALIDATION_URL}">VALIDATION.md &sect;${esc(origin.validation)}</a>. `
     + `Measured on ${esc(fmtDate(measuredOn))} and typed into this page's data file from the report of that command; this page does not remake them (the list in section 11 is made by a command).`;
+}
+
+/**
+ * The numbers of the page: the typed file (sections 4-10, copied from the reports of 7 Nov) with the generated file (sections 1-3, made by scratch/make_results.mjs from the real
+ * images) laid over it. A generated key replaces the typed one; the origins of the generated sections replace the typed origins of the same sections.
+ */
+export function mergeResults(typed, generated) {
+  const made = new Set((generated.origins ?? []).map((o) => o.section));
+  const { origins: _o, ...rest } = generated;
+  return { ...typed, ...rest, origins: [...(typed.origins ?? []).filter((o) => !made.has(o.section)), ...(generated.origins ?? [])].sort((a, b) => a.section - b.section) };
 }
 
 /** Fill the page: charts into [data-chart], numbers into [data-n], the origin lines into [data-origin], the limits list into [data-limits]. */
@@ -349,9 +364,12 @@ function renderSources(file, root = document) {
 async function main() {
   const status = document.getElementById("results-status");
   try {
-    const r = await fetch("data/real_results.json");
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    renderPage(await r.json());
+    const [typed, generated] = await Promise.all(["data/real_results.json", "data/real_results_generated.json"].map(async (url) => {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`);
+      return r.json();
+    }));
+    renderPage(mergeResults(typed, generated));
     if (status) status.hidden = true;
   } catch (err) {
     if (status) {

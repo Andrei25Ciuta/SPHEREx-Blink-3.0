@@ -31,7 +31,8 @@
       <h1 id="results-title">What the detector did on real images</h1>
       <p class="rlead">On 7 November 2026 the detector of this app was run on <strong><span data-n="data.files"></span> real SPHEREx cutouts</strong>
         (<span data-n="data.megabytes"></span> MB) of <span data-n="data.fields"></span> sky patches. This page shows what came out,
-        <strong>the failures next to the successes</strong>.</p>
+        <strong>the failures next to the successes</strong>. <strong>Sections 1&ndash;3 were remade by a command on <span data-n="generated.on" data-fmt="date"></span></strong> from the images the backend holds now
+        (they are more than on 7 November: Barnard's Star in D2 has <span data-n="generated.runs.barnard-d2.imageCount"></span> images, it had 15); sections 4&ndash;10 are still the numbers of 7 November, typed from the report of each command.</p>
       <p class="rnotice"><strong>No SPHEREx image or pixel is published on this page.</strong> The images stay on the author's computer; only
         numbers measured from them are shown. Every number is copied from <a href="https://github.com/mateibut/SPHEREx/blob/main/docs/VALIDATION.md">docs/VALIDATION.md</a>,
         which gives the command that produced it. The charts on the rest of the site (blink, difference, spectrum) run on <strong>synthetic</strong> data unless the backend is connected.</p>
@@ -59,9 +60,9 @@
         <div data-chart="moversDifference"></div>
       </figure>
       <p><strong>Both objects were found in every run, and nothing else was reported</strong> (no candidate without a catalogue match).
-        The differences are 0.03&ndash;0.13 pixel per year. Searching both detectors together gave the smallest difference for each star
+        The differences are <span data-n="movers.differencePixels.0" data-fmt="fixed:2"></span>&ndash;<span data-n="movers.differencePixels.1" data-fmt="fixed:2"></span> pixel per year. Searching both detectors together gave the smallest difference for each star
         (<span data-n="movers.runs.2.difference" data-fmt="fixed:2"></span> and <span data-n="movers.runs.5.difference" data-fmt="fixed:2"></span>″/yr).
-        The two D6 differences got a little worse than in an earlier version of the code; that is in VALIDATION.md too.</p>
+        Remade with more images than on 7 November, the differences moved: Barnard's Star in D2 went from 0.31 to <span data-n="movers.runs.0.difference" data-fmt="fixed:2"></span>″/yr (the table of 7 November is in VALIDATION.md).</p>
     </section>
 
     <!-- 2 -->
@@ -75,10 +76,12 @@
         <figcaption>Lines expected by chance, for the kept lines and for the false lines of the original rule</figcaption>
         <div data-chart="chanceLines"></div>
       </figure>
-      <p>The real lines have at most <span data-n="movers.runs.4.chanceLines" data-fmt="chance"></span> chance lines expected; the three false ones about
-        <span data-n="movers.originalRule.falseChanceLines.0" data-fmt="chance"></span> each. The false ones are also supported by dots in only 2&ndash;3 of the images
+      <p>The real lines have at most <span data-n="movers.maxChanceLines" data-fmt="chance"></span> chance lines expected; the three false ones <strong>on 7 November</strong> about
+        <span data-n="movers.originalRule.falseChanceLines.0" data-fmt="chance"></span> each. The false ones were also supported by dots in only 2&ndash;3 of the images
         where the position could be measured, the real ones in all of them.</p>
-      <p class="rcaveat"><strong>Not an independent test.</strong> The rule was tightened <em>after</em> this failure was seen on these images. A new field would be needed to test it.</p>
+      <p class="rcaveat"><strong>Not an independent test, and no longer something this page can remake.</strong> The rule was tightened <em>after</em> this failure was seen on these images. Run again today with the original rule,
+        the same field in D6 lists <span data-n="movers.originalRule.reproducedNow.candidates"></span> candidate (the real one) and <span data-n="movers.originalRule.reproducedNow.falseLines"></span> false lines: the dots found in each image are fewer now,
+        so the failure belongs to the code of 7 November and its numbers above are kept as they were. A new field would be needed to test the rule.</p>
     </section>
 
     <!-- 3 -->
