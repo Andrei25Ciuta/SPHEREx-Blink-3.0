@@ -55,6 +55,9 @@ checked by `validateFrame` in `getCutouts.js`.
 | `planetLab.js` | the Planet X Lab (pure): the three motions compared by BIC and the distance only when constrained, injecting a synthetic body into real images, the trial of the app's own search, the completeness map and its Wilson intervals, CSV |
 | `planetLabView.js` | the DOM side of the lab (not pure): the comparison table, the form, the map; starts the worker |
 | `../planetLabWorker.js` | a module worker that runs the injection test off the main thread (messages: run, progress, done, error) |
+| `searchTasks.js` | the two long searches as plain tasks (pure): `runSearchTask("movers" \| "distant", payload)`; the same function runs in the worker and, when no worker can be had, on the page |
+| `workerClient.js` | runs a task in a worker or, if the worker cannot start, stops with an error before it answered, or cannot be sent the data, on the page; says which (`inWorker`); the worker is injected, so Node tests it |
+| `../searchWorker.js` | a module worker: `{ kind, payload }` in, `{ ok: true, result }` or `{ ok: false, message }` out; no DOM, no network |
 | `tooltip.js` | tooltips for any element with a title or `data-tip`: where the box goes (pure), the DOM part with the delays, keyboard focus, Escape, `aria-describedby` |
 | `ui.js` | the icons (inline SVG paths) and the box for an empty, error, loading or partial state (pure strings) |
 | `dialog.js` | the modal dialog on the native `<dialog>`, and the list of keyboard shortcuts |
@@ -94,4 +97,13 @@ cached on disk under `backend/cache/` (keys include the input files and an algor
 ## Tests
 
 `scratch/test_*.mjs` (Node, no install; `PASS`/`FAIL` lines, non-zero exit on failure) and `backend/tests` (pytest, synthetic FITS made on the fly).
-`.github/workflows/tests.yml` runs both. Scripts that need the real files (`validate_*.mjs`, `calibrate_real.mjs`, ...) are not run in CI.
+`.github/workflows/tests.yml` runs both, and a third job runs `scratch/e2e_smoke.mjs`. Scripts that need the real files (`validate_*.mjs`, `calibrate_real.mjs`, ...) are not run in CI.
+
+- `scratch/e2e_smoke.mjs`: the page in headless Chrome or Edge, driven over the DevTools Protocol with Node only (Node 22+ for the built-in WebSocket; no Playwright,
+  no npm). It serves `frontend/` itself, loads the **synthetic** demo, walks the main path and fails on a console error, an exception or a request to any host but its own
+  server (the web fonts are answered with an empty file). It is not in the `test_*.mjs` set because it needs a browser.
+- `scratch/benchmark.mjs`: three deterministic scenarios and the digest of their output; `test_benchmark.mjs` fails when an output changes
+  ([BENCHMARKS.md](BENCHMARKS.md)).
+- A long search is a task: `main.js` `searchInWorker(kind, payload)` → `workerClient.runTask` → `searchWorker.js` → `searchTasks.runSearchTask`, or the same
+  `runSearchTask` on the page. The page writes where the last search ran into `data-last-search` of the movers section. What is still on the page thread: the detection of the
+  dots (also for the Planet X search), the support of each candidate, *Find everything*.

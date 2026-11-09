@@ -816,7 +816,7 @@ the thresholds of §10-§14 were tuned with it. The error to **report** is `cali
 - The **parallax search** (Planet X mode) still uses the old floor of 0.15 px for its fits: not changed, and not re-validated.
 - Versions: `movers-2` and `discovery-3` (the numbers of the errors changed; the classes and thresholds did not).
 
-### 15.7 A PSF-fit centroid, and the error of the backend's photometry (9 Nov 2026, the remainder of Phase 4)
+### 15.7 A PSF-fit centroid, and the error of the backend's photometry (8 Nov 2026, the remainder of Phase 4)
 
 **A PSF fit.** `fitPsfCentroid` (movers.js) fits, by least squares, a Gaussian of the true PSF width **integrated over each pixel** (centre and total flux free, background fixed at the
 measured median) in a 7 x 7 window; `detectSources(..., { psfFit: true })` uses it to refine every dot whose core is intact (a saturated, masked star keeps the masked fit; a fit that does
@@ -866,7 +866,7 @@ construction the pooled robust spread of z is 1; by field it is 0.8-1.1 (1.67-2.
 orbit of about 11 years), unresolved in a 6.14″ pixel, so what is measured is the motion of their light centre, which has the orbital motion on top of the proper motion that SIMBAD lists. A test would
 need the orbit; none was made.
 
-## 16. The Planet X Lab: which motion fits, and how likely is a distant body to be found (Phase 5, 9 Nov 2026)
+## 16. The Planet X Lab: which motion fits, and how likely is a distant body to be found (Phase 5, 8 Nov 2026)
 
 Section 5 of the page (`planetLab.js`, `planetLabView.js`, `planetLabWorker.js`; version `planetlab-1`) has two parts.
 
@@ -906,7 +906,7 @@ spectrum would be brighter in some images than in others); one field at a time; 
 the pixel's solid angle. Detection is judged against the images' own noise, so the same map on another field differs. Not done: a map on a 30′ real field of the same patch (the author's 30′ Makemake cutouts lie on
 different bits of sky: §12), a body with a spectrum, the real PSF.
 
-## 17. The Solar System simulator: are the planets where JPL Horizons puts them? (Phase 8, 9 Nov 2026)
+## 17. The Solar System simulator: are the planets where JPL Horizons puts them? (Phase 8, 8 Nov 2026)
 
 Section 7 of the page (`solarSystem.js`, `solarSystemView.js`): a top-down view of the ecliptic with the planets on a date, and a distant body in the direction of the field with the lines of
 sight from the Earth on the dates of the survey passes. **Scientific mode** is to scale (linear in AU); **educational mode** compresses the distances (square root), enlarges the planets and says it
@@ -929,7 +929,7 @@ search can never disagree (`test_solarsystem.mjs`: the two Earths are the same t
 | Neptune | 29.89 | 0.00591 | 34 |
 
 So the elements recalled from memory are right (a wrong constant would put a planet whole AU away, not hundredths), and the differences are those of an approximate table, largest for Saturn (4.5 arcmin, 0.013 AU).
-They are far too small to be seen at any range of the simulator. `test_solarsystem.mjs` keeps the Horizons numbers (fetched on 9 Nov 2026) and checks every planet against a bound about 1.5 times the difference
+They are far too small to be seen at any range of the simulator. `test_solarsystem.mjs` keeps the Horizons numbers (fetched on 8 Nov 2026) and checks every planet against a bound about 1.5 times the difference
 measured, so a change that worsens a position fails without a network. The swing of a body that does not move (the angle between the lines of sight from two Earths) equals the parallax the search uses
 (`parallaxOffsetArcsec`) to 0.3 % on the dates of the Barnard passes (angles of several hundred arcsec). Found by the tests: a Kepler solver that started at pi for high eccentricities ran away for negative mean
 anomalies (residuals of 3e5); it is now confined to [M - e, M + e]. Found while writing the check: Horizons does not return the dates in the order they are asked, so the rows are matched by their Julian date.

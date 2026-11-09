@@ -208,10 +208,12 @@ backend/             FastAPI + astropy
   tests/             pytest suite
 scripts/             serve_frontend.py (dev server for the frontend, no stale cache), make_demo_gif.py (README GIF, labelled synthetic)
 scratch/             Node tests (test_*.mjs), validate_real.mjs, validate_asteroids.mjs and helpers
-.github/workflows/   pages.yml (GitHub Pages demo), tests.yml (Node tests and pytest on every push)
+.github/workflows/   pages.yml (GitHub Pages demo), tests.yml (Node tests, pytest and a browser smoke test on every push)
 docs/                VALIDATION.md (what was measured on real data), PITCH.md (3-minute script, slides, questions),
                      PROJECT_AUDIT.md, FEATURE_STATUS.md, IMPLEMENTATION_ROADMAP.md, ARCHITECTURE.md, SCIENTIFIC_LIMITATIONS.md (the 2.0 audit, 8 Nov 2026),
+                     BENCHMARKS.md (timings and golden outputs), DEPLOYMENT.md (how it is run and published, and what is not done),
                      DATA_CHECKLIST.md, IRSA_FACTS.md, REAL_DATA_TEST.md, SUBMISSION.md, img/demo.gif
+CONTRIBUTING.md, CHANGELOG.md   how to contribute (the rules that protect the project); what changed, by phase
 ```
 
 ## Licence, credits & data

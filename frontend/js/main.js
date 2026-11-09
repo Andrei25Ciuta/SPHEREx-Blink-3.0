@@ -860,10 +860,11 @@ const frameId = (f) => `${f.detector}@${f.mjd}`;
  * (features/workerClient.js, searchTasks.js). The worker gets a copy of the data.
  */
 async function searchInWorker(kind, payload) {
-  const { result } = await runTask(kind, payload, {
+  const { result, inWorker } = await runTask(kind, payload, {
     makeWorker: () => new Worker(new URL("./searchWorker.js", import.meta.url), { type: "module" }),
     fallback: () => runSearchTask(kind, payload),
   });
+  $("movers").dataset.lastSearch = `${kind}:${inWorker ? "worker" : "page"}`;       // where the last search really ran (the end-to-end test reads it: a worker that failed to load must not pass as one that ran)
   return result;
 }
 

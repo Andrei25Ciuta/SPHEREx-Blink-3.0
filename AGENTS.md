@@ -28,6 +28,8 @@ modules in `frontend/` (no build step, no npm), a FastAPI + astropy backend in `
 ```bash
 for f in scratch/test_*.mjs; do node "$f" | tail -1; done          # Node tests: PASS/FAIL lines, exit code != 0 on failure
 backend/.venv/Scripts/python.exe -m pytest backend -q               # backend tests (Python 3.14 venv; `py` is the launcher, `python` is a broken alias)
+node scratch/e2e_smoke.mjs                                          # the page in headless Chrome (synthetic demo, Node 22+, no install; not part of the test_*.mjs set); docs/BENCHMARKS.md section 3
+node scratch/benchmark.mjs --check                                  # the digests of three searches against scratch/benchmark_baseline.json; --write only when a scientific change was meant
 py scripts/serve_frontend.py 8765                                   # frontend, no stale cache (also .claude/launch.json "frontend")
 node scratch/calibrate_astrometry.mjs                               # the injection tables of VALIDATION §15 (a minute); scratch/check_astrometry_real.mjs: the same errors on the real fields (needs backend-real)
 node scratch/make_results_sources.mjs                               # remake frontend/data/real_sources.json (needs "backend-real" and internet): do it when discovery.js VERSION or a threshold changes, test_results.mjs fails on a stale file

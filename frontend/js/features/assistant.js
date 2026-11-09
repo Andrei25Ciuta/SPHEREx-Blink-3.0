@@ -13,7 +13,7 @@
 //   validateSentences()       is every sentence grounded? -> { ok, problems }
 //   promptFor / parseModelAnswer   the two ends of the optional road to a language model
 
-/** Name of this version (written into what it produces). First written 9 Nov 2026. */
+/** Name of this version (written into what it produces). First written 8 Nov 2026. */
 export const VERSION = "assistant-1";
 
 const isNum = (v) => typeof v === "number" && Number.isFinite(v);

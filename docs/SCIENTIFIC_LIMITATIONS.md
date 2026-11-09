@@ -94,6 +94,19 @@ A candidate is a lead with its evidence, never a discovery. Nothing this applica
 - The table of the six real fields (results page, section 11) lists **42 sources, every one explained by a catalogue**, as in VALIDATION §14. Positions and designations are derived
   numbers and public catalogue names; no pixel is published. It shows that the cross-match does not leave known stars unexplained; it cannot show what the tool would find that is new.
 
+## Workers, benchmarks and the end-to-end test (Phase 10)
+
+- A search in a worker works on a **copy** of the pixels or the dots and returns a copy of the result; the page's own data are not changed by it. A worker that cannot run is
+  replaced by the same task on the page, so the answer does not depend on it (`test_workers.mjs`), but the page then stops drawing for longer (Find movers: 396-499 ms against 15-28 ms in
+  the measurement of BENCHMARKS.md, one machine, three runs). The detection of the dots and *Find everything* are not in a worker.
+- The golden digests (`benchmark_baseline.json`) prove that three **synthetic** scenarios still give exactly the same output to 5 significant digits. They are not a validation (that is
+  VALIDATION.md, on real data) and they say nothing about a change below the 5th digit. A new baseline is written only when a scientific change is meant, and the commit says so. The
+  baseline comes from one machine (Node 24, Windows); that it is identical on other versions of Node and other systems has not been shown.
+- The times in BENCHMARKS.md are medians of 3-5 runs on one machine; two runs of the same code differed by 20-25 %. They are for comparing a "before" and an "after" made the same way, not
+  absolute figures.
+- The end-to-end test uses the **synthetic** demo only. It shows that the main path works in one browser (Chrome); it does not test real data, the backend, other browsers, a touch screen
+  or a screen reader, and it is a smoke test (12 checks), not a coverage of the page.
+
 ## Spectra
 
 - The colour hint (flux at 4-5 µm over flux at 1-2 µm) cannot tell an M dwarf from an early T dwarf and is not a classification.

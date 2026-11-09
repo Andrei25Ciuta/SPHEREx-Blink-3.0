@@ -1,7 +1,7 @@
 // Tests for the Solar System simulator (frontend/js/features/solarSystem.js): the planets against JPL Horizons, the Earth against the one the parallax search uses, the body that
 // swings, the scales.   Run: node scratch/test_solarsystem.mjs
 //
-// REFERENCE below = what JPL Horizons gave for the vectors of the eight planets (heliocentric, ecliptic J2000, AU) on five dates, fetched on 9 Nov 2026 with
+// REFERENCE below = what JPL Horizons gave for the vectors of the eight planets (heliocentric, ecliptic J2000, AU) on five dates, fetched on 8 Nov 2026 with
 //   node scratch/check_planets.mjs --json
 // (the file needs no network: the numbers are kept here, to 8 decimals). `node scratch/check_planets.mjs` makes the live comparison and prints the table of docs/VALIDATION.md section 17.
 import {

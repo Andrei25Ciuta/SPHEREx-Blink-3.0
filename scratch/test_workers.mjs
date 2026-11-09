@@ -70,6 +70,7 @@ class FakeWorker {
   const WORKER = readFileSync(new URL("../frontend/js/searchWorker.js", import.meta.url), "utf8");
   check("page: the worker file exists, imports only the task module, answers { ok, result } or { ok: false, message }, and has no DOM or network", existsSync(new URL("../frontend/js/searchWorker.js", import.meta.url)) && /import \{ runSearchTask \} from "\.\/features\/searchTasks\.js"/.test(WORKER)
     && /ok: true, result/.test(WORKER) && /ok: false, message/.test(WORKER) && !/document\.|window\.|fetch\(/.test(WORKER.replace(/\/\/.*$/gm, "")));
+  check("page: main.js records where the last search really ran (data-last-search = kind:worker|page), which the end-to-end test reads", /const \{ result, inWorker \} = await runTask/.test(MAIN) && /dataset\.lastSearch = `\$\{kind\}:\$\{inWorker \? "worker" : "page"\}`/.test(MAIN));
   check("page: main.js runs 'movers' and 'distant' through searchInWorker (a module worker, with the same task as the fallback), checks the load token after the wait, and no longer calls the two searches directly",
     /searchInWorker\("movers"/.test(MAIN) && /searchInWorker\("distant"/.test(MAIN) && /new Worker\(new URL\("\.\/searchWorker\.js", import\.meta\.url\), \{ type: "module" \}\)/.test(MAIN) && /fallback: \(\) => runSearchTask\(kind, payload\)/.test(MAIN)
     && !/findMoversAcrossDetectors\(|findDistantMovers\(/.test(MAIN) && (MAIN.match(/searchInWorker\("(movers|distant)"[\s\S]{0,400}?if \(token !== loadToken\) return;/g) || []).length === 2);

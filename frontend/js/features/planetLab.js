@@ -19,7 +19,7 @@
 import { fitParallax, parallaxOffsetArcsec, findDistantMovers, logGrid, ARCSEC_PER_RAD } from "./parallax.js";
 import { detectSources, registerShifts, moverPositionAtMjd, normalCdf } from "./movers.js";
 
-/** Name of this version of the lab (written into every result of it). First written 9 Nov 2026. */
+/** Name of this version of the lab (written into every result of it). First written 8 Nov 2026. */
 export const VERSION = "planetlab-1";
 
 const KMS_PER_AU_YR = 4.74047;
