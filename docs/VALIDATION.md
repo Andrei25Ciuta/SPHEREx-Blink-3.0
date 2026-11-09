@@ -977,3 +977,31 @@ The check is IRSA's own answer to the same question: `SELECT COUNT(*) FROM spher
 **7 of 7 comparable positions agree exactly**, including a footprint across RA 0 and one near the pole. Also, around Barnard's Star (269.4462, +4.769) a 30′ circle has 559 images touching it and 359 covering its centre by both IRSA's `COUNT` and the page. The passes are counted with the rule of Find movers (images 30 days or more apart are different passes; `passIndices`): Barnard D2 has 61 covering images in 3 passes (2025-08-21 to 2025-08-30, 2026-03-15 to 2026-03-22, 2026-08-18 to 2026-09-22).
 
 What it does not show. "Covers" means the footprint contains the point, not that the pixel there has valid data (an edge, a flagged pixel). Where the survey is dense (R Draconis, near the ecliptic pole, has 2483 images over its position) the list of 1000 images is cut off, the page says so and does not claim a number of passes. The test is of the geometry against IRSA's, on eight positions; it does not test IRSA's table itself, which changes weekly (the answers above are of 10 Nov 2026). Found while building it: IRSA refuses `INTERSECTS(CIRCLE(...), poly)` as "Invalid or unsupported ADQL query string" and accepts the polygon first, `INTERSECTS(poly, CIRCLE(...))`; the polygon comes as EWKB hex with longitude in [-180, 180].
+
+## 19. Sections 4-6 of the results page remade by a command (10 Nov 2026)
+
+`node scratch/make_results.mjs [--write]` (backend on the real files; IRSA TAP and SkyBoT for the catalogue magnitudes and the asteroid positions) remakes the Jansky scale (section 3 of this file), the asteroid Arosa (section 6) and the WISE 0855 stack (section 7) and writes them to `frontend/data/real_results_generated.json`; the tables of those sections stay as measured on 7 Nov. The fields and the code are the same, so most numbers did not move.
+
+**Jansky scale** (`validate_photometry.py`, aperture of 2 pixels, isolated unsaturated stars, 2MASS J/H or AllWISE W2). "Stars" is the number of stars with at least two usable measurements (3 of the 5 isolated stars in Barnard D2): the table of 7 Nov counted the isolated stars of the field, which is a different number.
+
+| Field, detector | Stars | Measurements | Median measured / catalogue | Scatter | 16th-84th percentile |
+|---|---|---|---|---|---|
+| Barnard field · D2 | 3 | 38 | **0.968** | 0.034 | 0.93-1.00 |
+| Barnard field · D6 | 5 | 18 | **0.895** | 0.046 | 0.84-0.93 |
+| Epsilon Indi B field · D2 | 2 | 15 | **0.979** | 0.053 | 0.93-1.02 |
+| Epsilon Indi B field · D6 | 1 | 3 | **0.932** | 0.024 | 0.90-0.94 |
+
+The medians are the same as on 7 Nov to 0.001 (0.967 → 0.968 for Barnard D2, with three more images); D6 is still lower than D2 in both fields. The zero points are still written from memory (section 3).
+
+**Arosa**: SkyBoT gives its position at each time, the backend measures the flux there: it moved **563″ in 19.5 hours** (28.8″/hour; SkyBoT says 28.8″/hour, it said 29.0 on 7 Nov: the average of its two dates, not one).
+
+| Image | Flux |
+|---|---|
+| Image of 00:10 UTC (1.21 µm), at the 00:10 position | 8.68 ± 0.30 mJy |
+| Image of 00:10 UTC (1.22 µm), at the 19:42 position | 0.01 ± 0.95 mJy |
+| Image of 19:42 UTC (1.34 µm), at the 19:42 position | 8.56 ± 1.11 mJy |
+| Image of 19:42 UTC (1.34 µm), at the 00:10 position | not in this cutout |
+
+The fluxes are the same as on 7 Nov (8.67, 0.02, 8.56); the errors are 10-30 % larger (0.27 → 0.30, 0.84 → 0.95, 0.98 → 1.11) because the backend's flux error was changed in Phase 4 (15.7). The centre offset of the source (1.0″) is still the typed value of 7 Nov: the script does not measure it.
+
+**WISE 0855** (`stack_wise0855.py`): **identical to 7 Nov**: D6 stack 0.415 ± 0.076 mJy, 4.3 times the robust scatter of the controls, brighter than 15 of 16 controls, one control at +4.81 mJy on a field star; D2 stack 0.635 ± 0.086 mJy, brighter than 16 of 16 (the 2MASS star inside the aperture). The explanation of the D2 excess is text, not measured by the script.

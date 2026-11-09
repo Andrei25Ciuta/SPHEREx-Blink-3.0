@@ -82,7 +82,7 @@ check("text is escaped", esc('<b a="1">&\'') === "&lt;b a=&quot;1&quot;&gt;&amp;
   (function walk(o) { if (Array.isArray(o)) o.forEach(walk); else if (o && typeof o === "object") for (const [k, v] of Object.entries(o)) { keys.push(k); walk(v); } else if (typeof o === "string") strings.push(o); })(data);
   check("no image, data URL, base64, file name or pixel field in the data file",
     !keys.some((k) => /^(dataUrl|maskUrl|pixels?|image|images|fits|file|path)$/i.test(k)) && !strings.some((s) => /^data:|base64|\.fits\b|\.png\b|\.jpe?g\b/i.test(s)));
-  check("the data files are small", statSync(JSON_PATH).size < 12_000 && statSync(GEN_PATH).size < 6_000, `${statSync(JSON_PATH).size} + ${statSync(GEN_PATH).size} bytes`);
+  check("the data files are small", statSync(JSON_PATH).size < 12_000 && statSync(GEN_PATH).size < 9_000, `${statSync(JSON_PATH).size} + ${statSync(GEN_PATH).size} bytes`);
   const longest = (o) => (Array.isArray(o) ? Math.max(o.length, ...o.map(longest)) : o && typeof o === "object" ? Math.max(0, ...Object.values(o).map(longest)) : 0);
   check("no array longer than 20 numbers (no light-curve or pixel dumps)", longest(data) <= 20, String(longest(data)));
   check("the page has no <img>, <canvas> or inline image", !/<img|<canvas|<video|data:image/i.test(HTML));
@@ -208,12 +208,12 @@ check("charts that draw bars or dots are hidden from screen readers (the table s
   check("merge: the generated keys replace the typed ones, the typed sections stay, the origins of sections 1-3 come from the generated file and the list stays in order",
     mergeResults({ a: 1, jansky: [1], origins: [{ section: 1, v: "typed" }, { section: 4, v: "typed" }] }, { summary: 9, origins: [{ section: 1, v: "gen" }] }).summary === 9
     && same(mergeResults({ origins: [{ section: 4 }, { section: 1, v: "t" }] }, { origins: [{ section: 1, v: "g" }] }).origins.map((o) => `${o.section}${o.v ?? ""}`), ["1g", "4"]) && mergeResults({ jansky: [1] }, { origins: [] }).jansky[0] === 1);
-  check("the typed file no longer holds the numbers of sections 1-3 (nothing typed can contradict the generated ones)", typedData.movers === undefined && typedData.summary === undefined && !typedData.origins.some((o) => g.origins.some((x) => x.section === o.section)));
-  check("the generated file: sections 1-3, with the date, the command and the images each run had; no key the pixel guard forbids",
-    same(g.generated.sections, [1, 2, 3]) && /^\d{4}-\d{2}-\d{2}$/.test(g.generated.on) && /make_results\.mjs/.test(g.generated.command) && Object.keys(g.generated.runs).length === 6
-    && Object.values(g.generated.runs).every((r) => r.imageCount > 0 && r.passes >= 3) && g.origins.length === 3 && g.origins.every((o) => o.generated === g.generated.on));
-  check("the merged page data have an origin for each of sections 1-10, and exactly sections 1-3 are 'generated'", data.origins.length === 10 && data.origins.filter((o) => o.generated).map((o) => o.section).join() === "1,2,3");
-  const gen = originHtml(data.origins[0], data.measuredOn), typedLine = originHtml(data.origins[3], data.measuredOn);
+  check("the typed file no longer holds the numbers of sections 1-3 (nothing typed can contradict the generated ones)", typedData.movers === undefined && typedData.summary === undefined && typedData.jansky === undefined && typedData.arosa === undefined && typedData.wise0855 === undefined && !typedData.origins.some((o) => g.origins.some((x) => x.section === o.section)));
+  check("the generated file: sections 1-6, with the date, the command and the images each run had; no key the pixel guard forbids",
+    same(g.generated.sections, [1, 2, 3, 4, 5, 6]) && /^\d{4}-\d{2}-\d{2}$/.test(g.generated.on) && /make_results\.mjs/.test(g.generated.command) && Object.keys(g.generated.runs).length === 6
+    && Object.values(g.generated.runs).every((r) => r.imageCount > 0 && r.passes >= 3) && g.origins.length === 6 && g.origins.every((o) => o.generated === g.generated.on));
+  check("the merged page data have an origin for each of sections 1-10, and exactly sections 1-6 are generated", data.origins.length === 10 && data.origins.filter((o) => o.generated).map((o) => o.section).join() === "1,2,3,4,5,6");
+  const gen = originHtml(data.origins[0], data.measuredOn), typedLine = originHtml(data.origins[6], data.measuredOn);
   check("the origin line of a generated section says 'made by a command, not typed', the date it ran and the file; a typed section still says it was typed",
     /Made by a command, not typed/.test(gen) && gen.includes(fmtDate(g.generated.on)) && gen.includes("real_results_generated.json") && !/typed into this page's data file/.test(gen) && /typed into this page's data file/.test(typedLine));
   check("fmtBy 'date' writes the date in words", fmtBy("date", "2026-11-10") === "10 November 2026" || fmtBy("date", "2026-11-10") === "10 Nov 2026", fmtBy("date", "2026-11-10"));
@@ -225,7 +225,7 @@ check("charts that draw bars or dots are hidden from screen readers (the table s
   check("prose: the pixel range of the differences is the range divided by the pixel scale; the 'original rule' record keeps the failure of 7 Nov and says what it gives now",
     near(data.movers.differencePixels[0], data.summary.minDifference / data.pixelArcsec, 0.006) && near(data.movers.differencePixels[1], data.summary.maxDifference / data.pixelArcsec, 0.006)
     && data.movers.originalRule.falseChanceLines.length === 3 && data.movers.originalRule.reproducedNow.candidates === 1 && data.movers.originalRule.reproducedNow.falseLines === 0);
-  check("the page says that sections 1-3 were remade and 4-10 are typed", /Sections 1&ndash;3 were remade by a command/.test(HTML) && /sections 4&ndash;10 are still the numbers of 7 November/.test(HTML) && /no longer something this page can remake/.test(HTML));
+  check("the page says that sections 1-3 were remade and 4-10 are typed", /Sections 1&ndash;6 were remade by a command/.test(HTML) && /sections 7&ndash;10 are still the numbers of 7 November/.test(HTML) && /no longer something this page can remake/.test(HTML));
   const results = readFileSync(new URL("../frontend/js/results.js", import.meta.url), "utf8");
   check("the page loads both data files, and fails as a whole (the status line) if one cannot be loaded", /real_results_generated\.json/.test(results) && /Promise\.all\(\["data\/real_results\.json", "data\/real_results_generated\.json"\]/.test(results) && /throw new Error\(`\$\{url\}: HTTP/.test(results));
 }

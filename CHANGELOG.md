@@ -9,7 +9,9 @@ published until the author decides ([docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)).
 The reference is `main` at `3f1e538` (7 Nov 2026). Status per phase: [docs/IMPLEMENTATION_ROADMAP.md](docs/IMPLEMENTATION_ROADMAP.md); feature by feature,
 with what was and was not checked: [docs/FEATURE_STATUS.md](docs/FEATURE_STATUS.md).
 
-### Results page: sections 1-3 made by a command (10 Nov 2026)
+### Results page: sections 1-6 made by a command (10 Nov 2026)
+- Sections 4-6 too (the Jansky scale, the asteroid Arosa, the WISE 0855 stack): most numbers did not move (WISE 0855 is identical to 7 Nov; the Jansky medians moved by 0.001; the Arosa flux errors are 10-30 % larger since the Phase 4 change of the flux error). VALIDATION 19.
+
 - `scratch/make_results.mjs` remakes the numbers of sections 1-3 from the real images (the six blind searches, the original rule, the mask) into `real_results_generated.json`, laid over the typed file by the page; the page says which sections are made and which typed. The numbers moved (Barnard D2 0.31 → 0.61 ″/yr with 18 images instead of 15); the failure of the original rule can no longer be remade by the code and is kept as a record (VALIDATION 2.1).
 
 ### Survey coverage (10 Nov 2026)

@@ -98,7 +98,8 @@ A candidate is a lead with its evidence, never a discovery. Nothing this applica
 
 - Sections 1-3 (the blind search on Barnard's Star and Epsilon Indi B, the chance lines, the bad-pixel mask) are remade by `scratch/make_results.mjs` on the images the backend holds on the day it runs: **a different set of images gives different numbers** (Barnard D2: 0.31 ″/yr with 15 images, 0.61 with 18). They are six runs on two fast stars: not a statistical survey, and the rules were tuned on these fields (the page says so).
 - The false lines of the **original rule** are a record of the code of 7 Nov: today's code finds fewer dots per image and no longer produces them. Their numbers are typed and dated, not remade.
-- Sections 4-10 are still the numbers of 7 Nov, typed from the reports of their commands; they do not move when the images do.
+- Sections 4-6 are remade too (VALIDATION 19): the Jansky scale uses zero points written from memory; the Arosa centre offset (1.0″) and the explanation of the WISE 0855 D2 excess are still typed; Arosa is one asteroid in two images.
+- Sections 7-10 (Makemake and the blind Planet X search, the fake-star calibration, the empty-sky test, the Planet X limits) are still the numbers of 7 Nov, typed from the reports of their commands; they do not move when the images do.
 
 ## Which survey images cover a place (IRSA; VALIDATION §18)
 

@@ -1,12 +1,9 @@
 {
-  "about": "Numbers derived from real SPHEREx images, measured on 2026-11-07 on the author's machine. Only derived numbers are here: no pixels, no images, no FITS data. Every figure is copied from docs/VALIDATION.md, where the command that produced it is given, except sections 1-3, which are in real_results_generated.json (made by scratch/make_results.mjs from the real images).",
+  "about": "Numbers derived from real SPHEREx images, measured on 2026-11-07 on the author's machine. Only derived numbers are here: no pixels, no images, no FITS data. Every figure is copied from docs/VALIDATION.md, where the command that produced it is given, except sections 1-6, which are in real_results_generated.json (made by scratch/make_results.mjs from the real images).",
   "measuredOn": "2026-11-07",
   "pixelArcsec": 6.14,
   "data": { "files": 60, "megabytes": 279, "fields": 7 },
   "origins": [
-    { "section": 4,  "validation": "3",  "commands": ["py scratch/validate_photometry.py --ra 269.4462 --dec 4.769 --det D2 (and D6; Epsilon Indi B)"] },
-    { "section": 5,  "validation": "6",  "commands": ["node scratch/validate_asteroids.mjs --ra 269.4462 --dec 4.769 --fov 5 --det D6 (with the Arosa cutouts of scratch/fetch_asteroid_cutout.py)"] },
-    { "section": 6,  "validation": "7",  "commands": ["py scratch/stack_wise0855.py --det D6 (and D2)"] },
     { "section": 7,  "validation": "5, 12", "commands": ["node scratch/real_parallax.mjs", "node scratch/blind_planet_x.mjs --det D1"] },
     { "section": 8,  "validation": "10", "commands": ["node scratch/calibrate_real.mjs --mode inject --trials 40"] },
     { "section": 9,  "validation": "10", "commands": ["node scratch/calibrate_real.mjs --mode null --nulls 300"] },
@@ -14,53 +11,8 @@
   ],
 
 
-  "jansky": [
-    { "label": "Barnard field · D2",        "stars": 5, "measurements": 33, "median": 0.967, "scatter": 0.031, "p16": 0.92, "p84": 0.99 },
-    { "label": "Barnard field · D6",        "stars": 6, "measurements": 18, "median": 0.895, "scatter": 0.046, "p16": 0.84, "p84": 0.93 },
-    { "label": "Epsilon Indi B field · D2", "stars": 4, "measurements": 15, "median": 0.979, "scatter": 0.053, "p16": 0.93, "p84": 1.02 },
-    { "label": "Epsilon Indi B field · D6", "stars": 2, "measurements": 3,  "median": 0.932, "scatter": 0.024, "p16": 0.90, "p84": 0.94 }
-  ],
 
-  "arosa": {
-    "hours": 19.5,
-    "movedArcsec": 563,
-    "arcsecPerHour": 28.8,
-    "skybotArcsecPerHour": 29.0,
-    "rows": [
-      { "label": "Image of 00:10 UTC (1.21 µm), at the 00:10 position", "fluxMilliJy": 8.67, "err": 0.27 },
-      { "label": "Image of 00:10 UTC (1.21 µm), at the 19:42 position", "fluxMilliJy": 0.02, "err": 0.84 },
-      { "label": "Image of 19:42 UTC (1.34 µm), at the 19:42 position", "fluxMilliJy": 8.56, "err": 0.98 },
-      { "label": "Image of 19:42 UTC (1.34 µm), at the 00:10 position", "fluxMilliJy": null, "err": null, "note": "not in this cutout" }
-    ],
-    "peakSigma": 107,
-    "offsetArcsec": 1.0
-  },
 
-  "wise0855": {
-    "D6": {
-      "label": "D6 (4.5–5.0 µm)",
-      "unflagged": [4, 6], "stack": 0.415, "err": 0.076, "nominalSigma": 5.4,
-      "controlMedian": 0.025, "controlRobustScatter": 0.091, "controlPlainScatter": 1.214,
-      "timesRobust": 4.3, "brighterThan": [15, 16],
-      "controls": [-0.25, -0.22, -0.15, -0.09, -0.05, -0.04, -0.03, 0.02, 0.03, 0.03, 0.05, 0.06, 0.08, 0.09, 0.10, 4.81]
-    },
-    "D2": {
-      "label": "D2 (1.1–1.6 µm)",
-      "unflagged": [5, 6], "stack": 0.635, "err": 0.086, "nominalSigma": 7.3,
-      "controlMedian": 0.022, "controlRobustScatter": 0.129, "controlPlainScatter": 0.162,
-      "timesRobust": 4.7, "brighterThan": [16, 16],
-      "controls": [-0.08, -0.08, -0.07, -0.07, -0.06, -0.05, 0.00, 0.01, 0.04, 0.06, 0.07, 0.11, 0.13, 0.14, 0.40, 0.46],
-      "blame": "a 2MASS star of J = 15.4, 7.5 arcsec away, inside the measurement"
-    },
-    "d6Images": [
-      { "date": "2025-05-05", "um": 4.961, "fluxMilliJy": 0.156, "err": 0.148, "flagged": false },
-      { "date": "2025-11-10", "um": 4.606, "fluxMilliJy": 0.471, "err": 0.126, "flagged": true },
-      { "date": "2025-11-14", "um": 4.940, "fluxMilliJy": -0.699, "err": 0.161, "flagged": true },
-      { "date": "2026-04-22", "um": 4.512, "fluxMilliJy": 0.529, "err": 0.110, "flagged": false },
-      { "date": "2026-04-26", "um": 4.781, "fluxMilliJy": 0.458, "err": 0.544, "flagged": false },
-      { "date": "2026-05-11", "um": 4.961, "fluxMilliJy": 0.469, "err": 0.158, "flagged": false }
-    ]
-  },
 
   "makemake": {
     "horizonsAU": 52.62,
