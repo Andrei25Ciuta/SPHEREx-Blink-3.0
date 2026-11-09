@@ -20,6 +20,8 @@ import { setupPlanetLab } from "./features/planetLabView.js";
 import { setupSkyExplorer } from "./features/skyExplorerView.js";
 import { setupSolarSystem } from "./features/solarSystemView.js";
 import { setupAssistant } from "./features/assistantView.js";
+import { runTask } from "./features/workerClient.js";
+import { runSearchTask } from "./features/searchTasks.js";
 import { MARK_IDLE, markText } from "./features/workspace.js";
 import { detectorCoverage, coverageText } from "./features/spectral.js";
 import { setupTooltips } from "./features/tooltip.js";
@@ -29,10 +31,10 @@ import { setupTimeline } from "./features/timelineView.js";
 import { FLAGGED_LIMIT } from "./features/timeline.js";
 import { SkyContext } from "./features/skyContext.js";
 import { setupFullscreen } from "./features/fullscreen.js";
-import { findMoversAcrossDetectors, detectSources, describeMover, matchKnownObject, moverPositionAtMjd, passIndices, trackSupport, blendWarning, VERSION as MOVERS_VERSION, DEFAULTS as MOVER_DEFAULTS, ERROR_MODEL } from "./features/movers.js";
+import { detectSources, describeMover, matchKnownObject, moverPositionAtMjd, passIndices, trackSupport, blendWarning, VERSION as MOVERS_VERSION, DEFAULTS as MOVER_DEFAULTS, ERROR_MODEL } from "./features/movers.js";
 import { buildProvenance, provenanceText } from "./features/provenance.js";
 import { colourHint } from "./features/spectrum.js";
-import { findDistantMovers, describeDistant, classifyApparentMotion, VERSION as PARALLAX_VERSION, DISTANT_DEFAULTS } from "./features/parallax.js";
+import { describeDistant, classifyApparentMotion, VERSION as PARALLAX_VERSION, DISTANT_DEFAULTS } from "./features/parallax.js";
 import { candidatesToCsv, candidatesToJson, exportFileName } from "./features/export.js";
 import { startTour, WORKSPACE_STEPS } from "./features/tour.js";
 import { PLANET_X_DEMO } from "./data/mockSource.js";
@@ -853,6 +855,18 @@ const countPasses = (frames) => (frames.length ? passIndices(frames.map((f) => f
 // blind test went from 0.62 to 0.52 arcsec/yr (Epsilon Indi B) and 0.80 to 0.28 (Barnard) off the catalogue.
 const frameId = (f) => `${f.detector}@${f.mjd}`;
 
+/**
+ * A search that can keep the page busy for seconds runs in a worker (js/searchWorker.js), so that the page stays usable; with no worker it runs here and gives the same answer
+ * (features/workerClient.js, searchTasks.js). The worker gets a copy of the data.
+ */
+async function searchInWorker(kind, payload) {
+  const { result } = await runTask(kind, payload, {
+    makeWorker: () => new Worker(new URL("./searchWorker.js", import.meta.url), { type: "module" }),
+    fallback: () => runSearchTask(kind, payload),
+  });
+  return result;
+}
+
 /** The date of every dot of every candidate (for the Planet X Lab's comparison of motions): a dot says which image of the search it is in, a candidate of several detectors says which image by its frameIds. */
 function attachDotDates(candidates, frames) {
   const mjdById = new Map(frames.map((f) => [frameId(f), f.mjd]));
@@ -1003,8 +1017,9 @@ $("find-movers-btn").addEventListener("click", async () => {
     }
     if (token !== loadToken) return;
     // every detector together AND each alone, merged (a candidate knows which image each entry of its shifts belongs to)
-    const result = findMoversAcrossDetectors(frames.map((f, i) => ({ mjd: f.mjd, detector: f.detector, id: frameId(f), grey: arrays[i], mask: masks?.[i] ?? null })),
-      player.naturalSize, isFloat ? { sigmaFloor: 1e-9 } : {});
+    const result = await searchInWorker("movers", { frames: frames.map((f, i) => ({ mjd: f.mjd, detector: f.detector, id: frameId(f), grey: arrays[i], mask: masks?.[i] ?? null })),
+      n: player.naturalSize, options: isFloat ? { sigmaFloor: 1e-9 } : {} });
+    if (token !== loadToken) return;
     addSupport(result.candidates, frames, arrays, player.naturalSize, { ...(isFloat ? { sigmaFloor: 1e-9 } : {}) });
     attachDotDates(result.candidates, frames);
     // Known objects: the test list always, and real SIMBAD objects too when we have real data.
@@ -1066,7 +1081,8 @@ $("find-distant-btn").addEventListener("click", async () => {
     const detected = frames.map((f, i) => ({ mjd: f.mjd, sources: detectSources(arrays[i], n, { ...(isFloat ? { sigmaFloor: 1e-9 } : {}), mask: masks?.[i] ?? null }) }));
     await ensureAsteroids();                                                              // (a swinging body could also be a known one)
     if (token !== loadToken) return;
-    const result = findDistantMovers(detected, currentGeo());
+    const result = await searchInWorker("distant", { detected, geo: currentGeo() });
+    if (token !== loadToken) return;
     const ids = frames.map(frameId);
     for (const c of result.candidates) c.frameIds = ids;
     attachDotDates(result.candidates, frames);

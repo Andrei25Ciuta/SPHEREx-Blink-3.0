@@ -1,0 +1,22 @@
+{
+  "made": "2026-11-08",
+  "node": "v24.15.0",
+  "machine": "AMD Ryzen 7 7445HS w/ Radeon 740M Graphics     , win32",
+  "scenarios": [
+    {
+      "name": "detect: the dots of 30 images of 293 x 293 px",
+      "ms": 218.48620000000005,
+      "digest": "637733ad2ffc4fcf"
+    },
+    {
+      "name": "movers: 18 images of 49 x 49 px, one mover among 14 stars",
+      "ms": 12.293100000000095,
+      "digest": "b7c1407f4f494c3e"
+    },
+    {
+      "name": "distant: a body at 800 AU in 12 images of a 30 arcmin field (inject, detect, search)",
+      "ms": 112.72440000000006,
+      "digest": "25881588be76572f"
+    }
+  ]
+}
