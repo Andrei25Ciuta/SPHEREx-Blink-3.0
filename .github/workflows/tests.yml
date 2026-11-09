@@ -35,6 +35,21 @@ jobs:
           done
           exit $status
 
+  # A smoke test of the whole page in a real browser (headless Chrome over the DevTools Protocol, Node only, no npm): scratch/e2e_smoke.mjs serves
+  # frontend/ itself and uses the SYNTHETIC demo, so it needs neither the backend nor the network. It needs Node 22+ (the built-in WebSocket) and a Chrome
+  # or Edge: the ubuntu-latest image is believed to ship google-chrome (from memory, NOT yet seen in a run of this workflow). If the run says "SKIP no Chrome
+  # or Edge found", the job fails on purpose (exit 2): install Chrome in an extra step or set CHROME_PATH.
+  e2e:
+    name: Page smoke test (headless Chrome)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Walk the main path in the browser
+        run: node scratch/e2e_smoke.mjs
+
   backend:
     name: Backend (pytest)
     runs-on: ubuntu-latest
