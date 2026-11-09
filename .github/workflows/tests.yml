@@ -1,10 +1,10 @@
-# Runs the automatic tests on every push and pull request: the browser-side modules (Node, no install) and the backend (pytest).
-# Neither needs real SPHEREx data or the network: the backend tests make synthetic FITS files on the fly, and the Node tests use
+# Runs the automatic tests on every push and pull request: the browser-side modules (Node, no install), the backend (pytest) and a
+# smoke test of the page in a headless browser. None of them needs real SPHEREx data or the network: the backend tests make synthetic FITS files on the fly, and the Node tests use
 # synthetic fields and tiny invented maps. (The real-data scripts in scratch/ need the local cutouts and are NOT run here.)
 #
-# Action versions are the ones pages.yml already uses plus setup-node / setup-python v4 / v5, written from memory: if a run says
-# a version does not exist, change it. Python 3.14 is what the backend was tested with; if the runner cannot find it yet,
-# try "3.13".
+# Action versions are the ones pages.yml already uses plus setup-node / setup-python v4 / v5, written from memory; they worked in the
+# runs of 8-10 Nov 2026 (Python 3.14 included), but the logs warn that some of them target Node.js 20, which is deprecated (GitHub runs
+# them on Node 24 for now). Newer major versions were not looked up: if a run says a version does not exist, change it.
 name: Tests
 
 on:
@@ -37,8 +37,8 @@ jobs:
 
   # A smoke test of the whole page in a real browser (headless Chrome over the DevTools Protocol, Node only, no npm): scratch/e2e_smoke.mjs serves
   # frontend/ itself and uses the SYNTHETIC demo, so it needs neither the backend nor the network. It needs Node 22+ (the built-in WebSocket) and a Chrome
-  # or Edge: the ubuntu-latest image is believed to ship google-chrome (from memory, NOT yet seen in a run of this workflow). If the run says "SKIP no Chrome
-  # or Edge found", the job fails on purpose (exit 2): install Chrome in an extra step or set CHROME_PATH.
+  # or Edge: the ubuntu-latest image had one that the test found with no extra step (run 42711017130, 10 Nov 2026: 12 of 12 with Node 22.23.4). If a
+  # later image has none, the run says "SKIP no Chrome or Edge found" and the job fails on purpose (exit 2): install Chrome in an extra step or set CHROME_PATH.
   e2e:
     name: Page smoke test (headless Chrome)
     runs-on: ubuntu-latest

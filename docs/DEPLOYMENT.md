@@ -44,8 +44,9 @@ reads: `SPHEREX_DATA_DIR` (the image files) and `SPHEREX_CACHE_DIR` (its cache);
 
 - No backend is hosted anywhere. A hosted backend would need: HTTPS, a restricted CORS origin, rate limits, size limits, and the answer to the data-licence
   question. None of this was started.
-- The `e2e` job of `tests.yml` and the `node` job on Node 20 / Linux have **not run** on GitHub for the work after commit `180d4ef` (the work is not
-  pushed). The action versions in the workflow files were written from memory.
+- CI: all three jobs of `tests.yml` (`node` on Node 20.20.2, `backend` on Python 3.14, `e2e` on Node 22.23.4 with the runner's Chrome) passed on the pull
+  request for commit `cdc96c5` (run 42711017130, 10 Nov 2026). The action versions were written from memory and worked; the logs warn that some of them
+  (`actions/checkout@v4` and others) target Node.js 20, which is deprecated, and that GitHub runs them on Node 24 for now. Newer major versions were not looked up.
 - The Pages deployment of Blink 2.0 has not been tried; `main` still has the old page. Where Blink 2.0 lives (this branch or a separate repository) is the
   author's decision ([IMPLEMENTATION_ROADMAP.md](IMPLEMENTATION_ROADMAP.md), "Decisions that belong to the author").
 - Browsers: developed and checked in Chrome (and the Claude desktop app's browser pane). Firefox, Safari and phones were not tested, apart from a 375 px

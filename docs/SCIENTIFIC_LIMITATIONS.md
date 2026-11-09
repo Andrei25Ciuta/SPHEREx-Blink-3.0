@@ -101,7 +101,7 @@ A candidate is a lead with its evidence, never a discovery. Nothing this applica
   the measurement of BENCHMARKS.md, one machine, three runs). The detection of the dots and *Find everything* are not in a worker.
 - The golden digests (`benchmark_baseline.json`) prove that three **synthetic** scenarios still give exactly the same output to 5 significant digits. They are not a validation (that is
   VALIDATION.md, on real data) and they say nothing about a change below the 5th digit. A new baseline is written only when a scientific change is meant, and the commit says so. The
-  baseline comes from one machine (Node 24, Windows); that it is identical on other versions of Node and other systems has not been shown.
+  baseline was written on one machine (Node 24, Windows); the same digests came out in CI on Node 20.20.2 / Linux (10 Nov 2026), and no other Node version or system has been tried.
 - The times in BENCHMARKS.md are medians of 3-5 runs on one machine; two runs of the same code differed by 20-25 %. They are for comparing a "before" and an "after" made the same way, not
   absolute figures.
 - The end-to-end test uses the **synthetic** demo only. It shows that the main path works in one browser (Chrome); it does not test real data, the backend, other browsers, a touch screen

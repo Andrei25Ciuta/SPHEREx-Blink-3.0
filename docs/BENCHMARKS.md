@@ -32,9 +32,11 @@ measurement, not a speed-up. Only two runs exist; a proper noise estimate would 
 **What the digest does not cover.** Synthetic images only; the real-data searches have their own repeatable commands in VALIDATION.md (sections 10-17).
 The digest rounds to 5 significant digits, so a change in the 6th digit is not seen (on purpose: it is below the precision of the measurements).
 
-**Other machines.** The baseline was written with Node 24 on Windows. The CI job `node` runs Node 20 on Linux. That the digests are identical there is
-**not verified** until that job has run (the maths functions of V8 are believed to give the same results on every platform: from memory). If the job
-reports a different digest, find out why before touching the baseline; do not rewrite it to make a test pass.
+**Other machines.** The baseline was written with Node 24 on Windows. The CI job `node` runs Node 20.20.2 on Linux (GitHub's runner). In its run
+[42711017130](https://github.com/mateibut/SPHEREx/actions/runs/42711017130) (10 Nov 2026, commit `cdc96c5`) `test_benchmark.mjs` passed with the same three
+digests (`637733ad2ffc4fcf`, `b7c1407f4f494c3e`, `25881588be76572f`), so the golden outputs hold on a second version of Node and a second system. Only
+these two environments have been tried. If a job ever reports a different digest, find out why before touching the baseline; do not rewrite it to make a
+test pass.
 
 ## 2. The long searches in a worker
 
@@ -51,6 +53,10 @@ so that the fallback runs (the test then fails on purpose, and prints the gap in
 |---|---|---|
 | Find movers | 24, 15, 28 ms | 396, 499, 433 ms |
 | Planet X search | 242, 278, 319 ms | 325, 416, 288 ms |
+
+A second machine, once: in the CI run above (headless Chrome on GitHub's runner, one run) the gap was 174 ms for Find movers and 248 ms for the Planet X search,
+both in a worker. That runner gave larger gaps than the machine of the table, and its CPU is not known here, so these two numbers show the order of
+magnitude, not a comparison. The run without the worker was not made there.
 
 Reading: **Find movers** is now off the page thread (the page keeps drawing). The **Planet X search** gains little: the dots of every image are still
 found on the page (`detectSources`), and only the linking of the dots into paths is in the worker, so the page still stops for about 0.25-0.3 s. Moving
@@ -74,4 +80,5 @@ It was checked to be able to fail: with the worker file removed, exactly the two
 *created*, and passed even then: that is why the page now says where the search ran.
 
 Not covered: real data, the backend, a touch screen, other browsers than Chrome, a screen reader. Not part of the `test_*.mjs` set (it needs a browser);
-it has its own job in `.github/workflows/tests.yml`, **which has not run yet** (the runner is believed to ship Chrome: from memory).
+it has its own job in `.github/workflows/tests.yml`, which passed 12 of 12 in the run [42711017130](https://github.com/mateibut/SPHEREx/actions/runs/42711017130)
+(Node 22.23.4 on GitHub's `ubuntu-latest`; the runner's Chrome was found with no extra step).

@@ -15,7 +15,7 @@ with what was and was not checked: [docs/FEATURE_STATUS.md](docs/FEATURE_STATUS.
 - `scratch/benchmark.mjs`: three deterministic scenarios with golden digests of their output; a test fails when a search gives another answer
   (`test_benchmark.mjs`). [docs/BENCHMARKS.md](docs/BENCHMARKS.md)
 - `scratch/e2e_smoke.mjs`: the page in headless Chrome over the DevTools Protocol with Node only (no Playwright, no npm): 12 checks on the synthetic demo; a
-  separate job in `tests.yml`.
+  separate job in `tests.yml` (green in CI on PR 2, 10 Nov 2026; the golden digests are identical on Node 20 / Linux).
 - Documents: BENCHMARKS, DEPLOYMENT, CONTRIBUTING, this file.
 - Measured and said: no search got faster; Find movers no longer stops the page (longest gap between frames 15-28 ms against 396-499 ms), the Planet X search
   gains little because the dots are still found on the page.
