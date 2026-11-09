@@ -936,3 +936,24 @@ anomalies (residuals of 3e5); it is now confined to [M - e, M + e]. Found while 
 
 **What it does not show.** Only the eight planets (no moons, asteroids, comets or dwarf planets; Pluto is not in the table), 1800-2050 (the table's range), an ecliptic top view (not 3D), and no orbit of a
 hypothetical Planet X (only a body that does not move, to show the geometry of the swing). The periods are derived from the semi-major axis by Kepler's third law, not looked up.
+
+## 18. Which survey images cover a place: does the page agree with IRSA? (10 Nov 2026)
+
+The sky explorer can ask which images of the SPHEREx **survey** (not the files on this computer) touch a circle around a position: the backend asks IRSA's table `spherex.plane` (a catalogue query: no FITS file is downloaded) and the page draws each footprint and counts the images that **cover the centre**. The footprints are spherical polygons; the page projects them on the tangent plane (gnomonic), where their edges are straight lines, and tests whether the centre is inside.
+
+The check is IRSA's own answer to the same question: `SELECT COUNT(*) FROM spherex.plane WHERE 1=CONTAINS(POINT('ICRS', ra, dec), poly)` against the number of images of a 6′ circle (backend `/api/survey`, limit 1000) whose footprint contains the point by the page's test. Command (needs the network and a running backend, any of them): `node scratch/check_survey_live.mjs` (`--api http://localhost:8003`).
+
+| position | RA, Dec (deg) | IRSA: images covering the point | page | passes (30-day rule) | same |
+|---|---|---|---|---|---|
+| Barnard's Star | 269.452, 4.693 | 364 | 364 | 3 | yes |
+| Epsilon Indi B | 331.044, -56.783 | 449 | 449 | 4 | yes |
+| WISE 0855 | 133.819, -7.247 | 259 | 259 | 3 | yes |
+| RW Aurigae | 76.957, 30.401 | 333 | 333 | 3 | yes |
+| R Draconis | 248.168, 66.755 | 2483 | 919 (list cut off at 1000) | 2 | not compared |
+| across RA 0 | 0.300, 10.000 | 373 | 373 | 3 | yes |
+| near the north pole | 100.000, 85.000 | 356 | 356 | 3 | yes |
+| on the ecliptic | 90.000, 23.400 | 327 | 327 | 3 | yes |
+
+**7 of 7 comparable positions agree exactly**, including a footprint across RA 0 and one near the pole. Also, around Barnard's Star (269.4462, +4.769) a 30′ circle has 559 images touching it and 359 covering its centre by both IRSA's `COUNT` and the page. The passes are counted with the rule of Find movers (images 30 days or more apart are different passes; `passIndices`): Barnard D2 has 61 covering images in 3 passes (2025-08-21 to 2025-08-30, 2026-03-15 to 2026-03-22, 2026-08-18 to 2026-09-22).
+
+What it does not show. "Covers" means the footprint contains the point, not that the pixel there has valid data (an edge, a flagged pixel). Where the survey is dense (R Draconis, near the ecliptic pole, has 2483 images over its position) the list of 1000 images is cut off, the page says so and does not claim a number of passes. The test is of the geometry against IRSA's, on eight positions; it does not test IRSA's table itself, which changes weekly (the answers above are of 10 Nov 2026). Found while building it: IRSA refuses `INTERSECTS(CIRCLE(...), poly)` as "Invalid or unsupported ADQL query string" and accepts the polygon first, `INTERSECTS(poly, CIRCLE(...))`; the polygon comes as EWKB hex with longitude in [-180, 180].

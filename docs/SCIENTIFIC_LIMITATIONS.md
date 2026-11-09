@@ -94,6 +94,14 @@ A candidate is a lead with its evidence, never a discovery. Nothing this applica
 - The table of the six real fields (results page, section 11) lists **42 sources, every one explained by a catalogue**, as in VALIDATION §14. Positions and designations are derived
   numbers and public catalogue names; no pixel is published. It shows that the cross-match does not leave known stars unexplained; it cannot show what the tool would find that is new.
 
+## Which survey images cover a place (IRSA; VALIDATION §18)
+
+- The list is **metadata of what IRSA has published** (a live query of `spherex.plane`, retrieved at the time the page shows): it changes weekly as the survey adds images, and it says nothing about whether an image is good. A row with a quality flag is listed, not filtered.
+- "Covers" means the footprint polygon **contains the centre**; it does not say that the pixel there has valid data (an edge of the detector, a flagged pixel, a saturated star). It matched IRSA's own `CONTAINS` count at 7 of 7 comparable positions, which tests the geometry, not IRSA's table.
+- At most 1000 images are listed. Where the survey is dense (R Draconis, near the ecliptic pole: 2483 images over one position) the list is cut off, oldest first; the page then says the real number of passes may be higher and gives no verdict for Find movers. A smaller circle does not help much, because an image is 3.5 degrees wide: the number that matters is the images over the point.
+- Survey passes are the groups of images less than 30 days apart (the rule of Find movers); this is a working definition, not IRSA's. "Enough for Find movers" means at least 3 passes; whether they are about 6 months apart is for the dates shown.
+- It needs the backend (IRSA sends no CORS headers): on the public synthetic demo the button is disabled and says so. The images found are not downloaded, and the viewer shows only images the backend holds as files.
+
 ## Workers, benchmarks and the end-to-end test (Phase 10)
 
 - A search in a worker works on a **copy** of the pixels or the dots and returns a copy of the result; the page's own data are not changed by it. A worker that cannot run is
@@ -105,7 +113,7 @@ A candidate is a lead with its evidence, never a discovery. Nothing this applica
 - The times in BENCHMARKS.md are medians of 3-5 runs on one machine; two runs of the same code differed by 20-25 %. They are for comparing a "before" and an "after" made the same way, not
   absolute figures.
 - The end-to-end test uses the **synthetic** demo only. It shows that the main path works in one browser (Chrome); it does not test real data, the backend, other browsers, a touch screen
-  or a screen reader, and it is a smoke test (12 checks), not a coverage of the page.
+  or a screen reader, and it is a smoke test (13 checks), not a coverage of the page.
 
 ## Spectra
 

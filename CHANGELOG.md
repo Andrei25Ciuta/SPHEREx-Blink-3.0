@@ -9,12 +9,15 @@ published until the author decides ([docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)).
 The reference is `main` at `3f1e538` (7 Nov 2026). Status per phase: [docs/IMPLEMENTATION_ROADMAP.md](docs/IMPLEMENTATION_ROADMAP.md); feature by feature,
 with what was and was not checked: [docs/FEATURE_STATUS.md](docs/FEATURE_STATUS.md).
 
+### Survey coverage (10 Nov 2026)
+- Section 6: *Which survey images cover a place?* A live search of IRSA's table `spherex.plane` through the backend (`GET /api/survey`): the footprints of the survey's images around a position at true scale, the images that cover the centre, in how many survey passes. It agrees with IRSA's own count at 7 of 7 comparable positions (`scratch/check_survey_live.mjs`, VALIDATION 18). The `e2e` smoke test has a 13th check (the button is disabled, with its reason, on the synthetic demo).
+
 ### Phase 10: hardening (9 Nov 2026)
 - The two long searches (Find movers, the Planet X search) run in a module worker, with the same task as the fallback on the page when no worker can be had
   (`searchTasks.js`, `workerClient.js`, `searchWorker.js`; `test_workers.mjs`). The page records where the last search ran (`data-last-search`). `0c67f0d`
 - `scratch/benchmark.mjs`: three deterministic scenarios with golden digests of their output; a test fails when a search gives another answer
   (`test_benchmark.mjs`). [docs/BENCHMARKS.md](docs/BENCHMARKS.md)
-- `scratch/e2e_smoke.mjs`: the page in headless Chrome over the DevTools Protocol with Node only (no Playwright, no npm): 12 checks on the synthetic demo; a
+- `scratch/e2e_smoke.mjs`: the page in headless Chrome over the DevTools Protocol with Node only (no Playwright, no npm): 13 checks on the synthetic demo; a
   separate job in `tests.yml` (green in CI on PR 2, 10 Nov 2026; the golden digests are identical on Node 20 / Linux).
 - Documents: BENCHMARKS, DEPLOYMENT, CONTRIBUTING, this file.
 - Measured and said: no search got faster; Find movers no longer stops the page (longest gap between frames 15-28 ms against 396-499 ms), the Planet X search

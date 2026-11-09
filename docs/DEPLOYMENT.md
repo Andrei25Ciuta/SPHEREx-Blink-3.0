@@ -38,6 +38,7 @@ reads: `SPHEREX_DATA_DIR` (the image files) and `SPHEREX_CACHE_DIR` (its cache);
 - **A backend that serves real cutouts must not be put on a public address.** `backend/app.py` allows any origin (`allow_origins=["*"]`, GET only), has
   no rate limit and no request size limit ([PROJECT_AUDIT.md](PROJECT_AUDIT.md) A3), and `/api/footprints` and the cutouts would expose the files
   (the footprints send an opaque id, no path, but the cutouts are pixels).
+- `GET /api/survey` and `GET /api/catalogue` make a **live query of IRSA (or ESA) for whoever calls them**: with no rate limit, an exposed backend can be used to load those services (the answers are cached on disk, for a day for `/api/survey`). Another reason not to put the backend on a public address as it is.
 - Links the page builds for sharing drop `data=` and `api=` (a link must not carry the address of a backend on someone's computer).
 
 ## 4. Not done, and not verified

@@ -71,7 +71,7 @@ No search became faster in Phase 10, and the document does not claim one.
 node scratch/e2e_smoke.mjs        # Node 22+ (built-in WebSocket) and Chrome or Edge; CHROME_PATH names one; --keep leaves the window open
 ```
 
-12 checks on the synthetic demo in a real browser: the page loads and says its data are synthetic; the simulated Planet X field loads; Find movers and
+13 checks on the synthetic demo in a real browser: the page loads and says its data are synthetic; the simulated Planet X field loads; Find movers and
 the Planet X search finish **in a worker** (the page records where each search ran: `data-last-search` on the movers section) and the second finds the
 simulated body at 500-700 AU (the body is at 600 AU; the run gave 601); a candidate opens in the inspector; the lab compares the motions; the injection
 test refuses synthetic pixels and says why; the explainer answers and its own check passes; the Solar System is drawn; the results page loads its numbers

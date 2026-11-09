@@ -51,6 +51,8 @@ checked by `validateFrame` in `getCutouts.js`.
 | `solarSystemView.js` | the DOM side of the simulator (not pure): the SVG view, the date and the range, the table of positions |
 | `skyExplorer.js` | the sky explorer (pure): the Hammer map and its inverse, the ecliptic and the galactic plane, great circles cut at the map's edge, images grouped into fields, a field's images as arcminute offsets |
 | `skyExplorerView.js` | the DOM side of the explorer (not pure): the SVG map, the list of fields, a field at true scale, open a field |
+| `surveyCoverage.js` | which SURVEY images (IRSA `spherex.plane`, via the backend's `/api/survey`) cover a place (pure): the gnomonic projection of a footprint, point in polygon, the survey passes by the rule of `passIndices`, the coverage in words, the request and its errors |
+| `surveyView.js` | the DOM side of "Which survey images cover a place?" (not pure): the form, the footprints at true scale, the table; the button is disabled, with the reason, when there is no backend |
 | `spectral.js` | the six detectors and what each field has of them (and what is missing), the spectrum's uncertainty as a band that breaks at gaps, the summary of what is missing at a position |
 | `planetLab.js` | the Planet X Lab (pure): the three motions compared by BIC and the distance only when constrained, injecting a synthetic body into real images, the trial of the app's own search, the completeness map and its Wilson intervals, CSV |
 | `planetLabView.js` | the DOM side of the lab (not pure): the comparison table, the form, the map; starts the worker |
@@ -90,6 +92,8 @@ grid all use the same chain: canvas pixel -> image fraction -> sky. `scratch/tes
 SIMBAD alone cannot say that something is new.
 
 ## Backend conventions
+
+`GET /api/survey` (`backend/spherex/survey.py`) is a relay of IRSA's table `spherex.plane`, like `/api/catalogue` for 2MASS and AllWISE: IRSA sends no CORS headers, so the browser cannot ask it. One query at a time (a lock shared with the catalogue relay), the answer cached on disk for a day (the age is read from the time stored in the answer), only validated numbers and a detector from a fixed list in the ADQL text, a failure is HTTP 502 and is not cached. It returns the footprints IRSA publishes (detector, dates, wavelength range, four corners), never a path or a file name of this computer.
 
 Errors are `{"detail": "..."}` (FastAPI's own shape; `ValueError` becomes HTTP 400, an unreachable upstream HTTP 502, a refused catalogue HTTP 403). Answers are
 cached on disk under `backend/cache/` (keys include the input files and an algorithm version). CORS allows every origin for GET.

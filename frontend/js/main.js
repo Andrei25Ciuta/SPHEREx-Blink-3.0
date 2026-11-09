@@ -18,6 +18,8 @@ import { setupViewer } from "./features/viewerControls.js";
 import { setupWorkspace } from "./features/workspaceView.js";
 import { setupPlanetLab } from "./features/planetLabView.js";
 import { setupSkyExplorer } from "./features/skyExplorerView.js";
+import { setupSurveySearch } from "./features/surveyView.js";
+import { fetchSurvey as askSurvey } from "./features/surveyCoverage.js";
 import { setupSolarSystem } from "./features/solarSystemView.js";
 import { setupAssistant } from "./features/assistantView.js";
 import { runTask } from "./features/workerClient.js";
@@ -1468,6 +1470,23 @@ setupSkyExplorer({
     return response.json();
   },
   // open a field: the form is filled in and sent, as if the author had typed it (so the address, the history and the checks are the usual ones)
+  openField: ({ ra, dec, fov }) => {
+    $("ra-input").value = ra.toFixed(4);
+    $("dec-input").value = dec.toFixed(4);
+    $("fov-input").value = String(fov);
+    $("fov-input").dispatchEvent(new Event("input", { bubbles: true }));
+    $("search-form").requestSubmit();
+    $("workspace").scrollIntoView({ block: "start", behavior: prefersReducedMotion ? "auto" : "smooth" });
+  },
+});
+
+// Which survey images cover a place (features/surveyCoverage.js, surveyView.js; the backend's /api/survey = a live query of IRSA's table spherex.plane)
+setupSurveySearch({
+  els: { form: $("survey-form"), ra: $("survey-ra"), dec: $("survey-dec"), radius: $("survey-radius"), det: $("survey-det"), limit: $("survey-limit"), button: $("survey-btn"), fieldBtn: $("survey-field-btn"),
+    error: $("survey-error"), status: $("survey-status"), result: $("survey-result"), summary: $("survey-summary"), plot: $("survey-plot"), table: $("survey-table"), openBtn: $("survey-open-btn") },
+  hasBackend: DATA_SOURCE === "api",
+  fetchSurvey: (params) => askSurvey(API_BASE, params),
+  currentField: () => currentQuery,
   openField: ({ ra, dec, fov }) => {
     $("ra-input").value = ra.toFixed(4);
     $("dec-input").value = dec.toFixed(4);

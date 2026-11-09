@@ -234,6 +234,13 @@ async function main() {
       return (await text("#ss-swing")).trim().slice(0, 100) || "map drawn";
     });
 
+    await step("the survey search of IRSA has no backend here: its button is disabled and the page says why (no dead button, nothing invented)", async () => {
+      const state = await evaluate(`({ disabled: document.getElementById("survey-btn").disabled, status: document.getElementById("survey-status").textContent, hidden: document.getElementById("survey-result").hidden })`);
+      if (!state.disabled || !state.hidden) throw new Error(`the button is ${state.disabled ? "disabled" : "enabled"} and the result is ${state.hidden ? "hidden" : "shown"}`);
+      if (!/Needs the backend/.test(state.status) || !/CORS/.test(state.status)) throw new Error(`the status does not explain it: ${state.status.slice(0, 120)}`);
+      return state.status.slice(0, 60);
+    });
+
     // ------------------------------------------------------------ the results page
     await page("Page.navigate", { url: `${base}/results.html` });
     await step("the results page loads its numbers (none left empty) and lists sections 1 to 12", async () => {

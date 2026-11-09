@@ -459,6 +459,27 @@
         <ol class="sky-list" id="sky-list" aria-label="Fields of image files, the same as the circles on the map"></ol>
       </div>
       <div class="sky-detail" id="sky-detail" hidden></div>
+
+      <h3 id="survey-title">Which survey images cover a place?</h3>
+      <p class="muted">A <strong>live search of IRSA</strong>, the archive of the SPHEREx survey (its table <code>spherex.plane</code>), through the backend: the survey's images whose footprint touches a circle around a position, with the dates and detectors. It downloads no image and it is <strong>not</strong> the list of files on this computer (the map above). <em>Find movers</em> needs a place covered in at least 3 survey passes about 6 months apart; this tells you before you fetch anything.</p>
+      <form id="survey-form" class="lab-form" novalidate aria-labelledby="survey-title">
+        <label>Right ascension <input id="survey-ra" type="text" inputmode="decimal" autocomplete="off" value="269.4462"></label>
+        <label>Declination <input id="survey-dec" type="text" inputmode="decimal" autocomplete="off" value="4.769"></label>
+        <label>Radius <select id="survey-radius"><option value="0.1">6′</option><option value="0.25">15′</option><option value="0.5" selected>30′</option><option value="1">1°</option><option value="2">2°</option></select></label>
+        <label>Detector <select id="survey-det"><option value="all">All</option><option>D1</option><option>D2</option><option>D3</option><option>D4</option><option>D5</option><option>D6</option></select></label>
+        <label>Up to <select id="survey-limit"><option value="200">200 images</option><option value="500">500 images</option><option value="1000" selected>1000 images</option></select></label>
+        <button type="submit" class="btn btn-small btn-primary" id="survey-btn">Search IRSA</button>
+        <button type="button" class="btn btn-small" id="survey-field-btn">Use the field on screen</button>
+      </form>
+      <p class="error-text" id="survey-error" role="alert"></p>
+      <p class="muted small" id="survey-status" role="status" aria-live="polite">Type a position (degrees, or 17h57m47s / +04°46′) and press Search IRSA. The values above are Barnard's Star, one of the test objects.</p>
+      <div id="survey-result" hidden>
+        <p id="survey-summary"></p>
+        <div class="chart survey-chart" id="survey-plot"></div>
+        <p class="muted small">At true scale, east to the left, north up. The dashed circle is the search; the dot is its centre. <strong>Solid outlines cover the centre</strong>, faint ones only touch the circle.</p>
+        <p><button type="button" class="btn btn-small" id="survey-open-btn">Open this position in the viewer (5′ field)</button> <span class="muted small">The viewer shows only images the backend holds as files; the survey's images are not downloaded.</span></p>
+        <details class="table-view"><summary>Show the images as a table</summary><div class="table-scroll"><table id="survey-table"></table></div></details>
+      </div>
     </section>
 
     <!-- ============ 7. The Solar System, seen from above (features/solarSystem.js, solarSystemView.js) ============ -->
