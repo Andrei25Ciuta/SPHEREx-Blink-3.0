@@ -37,7 +37,7 @@ Verify what is written here against `git log` and the test commands in `AGENTS.m
 - Node: 32 files, all exit 0, **1099** `PASS`, 0 `FAIL` (`test_coords` and `test_mock` print differently and are not counted).
 - Backend: `pytest backend`: **158** passed.
 - Browser: `node scratch/e2e_smoke.mjs` (headless Chrome, synthetic demo): **12 of 12**; with the worker file removed it fails on exactly the two worker checks. It is not in the Node set (it needs a browser).
-- CI on GitHub: both jobs of `tests.yml` passed on the pull request (https://github.com/mateibut/SPHEREx/pull/2) for commit `180d4ef`; `origin/blink-2.0` is at `e559357` and every commit after it (`git log origin/blink-2.0..HEAD`) is not pushed, so the new `e2e` job and the benchmark digests on Node 20 / Linux have **not run** on GitHub. Not run: Playwright (not used), a real touch screen, browsers other than Chrome, any screen-reader check.
+- CI on GitHub: both jobs of `tests.yml` passed on the pull request (https://github.com/mateibut/SPHEREx/pull/2) for commit `180d4ef`; `origin/blink-2.0` was pushed on 10 Nov up to `f3c8db8` (Phase 10 part 2); the commit that adds the `e2e` job to `tests.yml` is **not pushed**: GitHub refused it because the author's fine-grained token has no "Workflows" permission. So the `e2e` job and (until that run is read) the benchmark digests on Node 20 / Linux have **not run** on GitHub. Not run: Playwright (not used), a real touch screen, browsers other than Chrome, any screen-reader check.
 - Method note: changing `data-theme` from a script in a pane that is not visible freezes the CSS transitions and gives false low-contrast results (light and classic showed 10 "failures" that vanished on a fresh load with `?theme=`).
 
 ## Files changed in Phase 1
@@ -113,7 +113,7 @@ Changed: `index.html` (the search panel has a head with a button and a body; a n
 
 1. All ten phases are in (with the limits listed in the roadmap and in FEATURE_STATUS). What is left is named there: the numbers of results sections 1-10 are typed, not made by a script; a PSF fit with the real PSF; the parallax search's error on real dots; matching sources across detectors; the survey's own footprints; 3D; a language model (the author's decision); *Find everything* and the dot detection are still on the page thread.
 2. The page layout changed (three panels): `main` still has the old page, so decide when this branch replaces it.
-3. Push the local commits (`git log origin/blink-2.0..HEAD`; `origin/blink-2.0` is at `e559357`) and read the CI of the PR: the new `e2e` job (it assumes Chrome on the runner) and the golden digests on Node 20 / Linux have never run. The action versions in `tests.yml` were written from memory. The description of PR 2 still says "Phases 0-4".
+3. Push the commit that adds the `e2e` job (`git log origin/blink-2.0..HEAD`): the author's token needs the "Workflows: read and write" permission (GitHub, Settings, Developer settings, Fine-grained tokens), or the author pushes it with other credentials. Then read the CI of the PR: the new `e2e` job (it assumes Chrome on the runner) and the golden digests on Node 20 / Linux have never run (the digests are tested by the `node` job, which ran on the push of `f3c8db8`: read its result). The action versions in `tests.yml` were written from memory. The description of PR 2 still says "Phases 0-4".
 4. Open decisions of the author: where Blink 2.0 lives, eligibility of work begun before the hackathon, the data licence and acknowledgement wording (AGENTS.md).
 
 ## Decisions made
