@@ -294,3 +294,9 @@ Changed: `index.html` (the search panel has a head with a button and a body; a n
 ## Blockers and risks
 
 See [PROJECT_AUDIT.md](PROJECT_AUDIT.md) §4. The ones that matter for the next session: the eligibility question (A7), the unreviewed data licence (A8), heavy searches on the main thread (A1).
+
+## 2026-11-10 — Blink 3.0 visual branch
+
+Copied the current SPHEREx-Blink-2.0 `main` tree at `28fa54c` into a branch that already descends from the Blink 3.0 history. The source includes the merged three-panel workspace, text analysis, search cancellation, evidence and accessibility work. The visual change makes Light research the default theme on the main and Results pages and the standalone tools, while retaining all five theme choices and stored preferences. Shared CSS now uses flat surfaces, smaller corners, quieter navigation, a compact header, and no decorative nebula or animated star background. The image viewer and scientific chart surfaces retain their dark treatment. Added narrow-screen wrapping for simulator controls and tables, and made the main workspace focusable from the skip link. No backend, scientific method, query format, or result data was changed in this branch.
+
+Verification: 42 `scratch/test_*.mjs` scripts and 190 backend pytest tests passed. `scratch/a11y_audit.mjs` passed its keyboard, names and announcement checks. `scratch/browser_layout_audit.cjs` passed the workspace, Results, Sky Explorer, Simulator and Planet X Lab at 320, 375, 768 and 1280 CSS pixels across its tested themes after the narrow-screen fix. `scratch/browser_navigation.cjs` passed four widths after the skip-link focus fix. `scratch/e2e_smoke.mjs` passed the synthetic load, worker search, saved image caption, Results and offline public-service states with no browser errors. The actual Blink 3.0 published origin and real FITS workflow have not been browser-tested for this visual branch; the local synthetic UI and structural checks were used.

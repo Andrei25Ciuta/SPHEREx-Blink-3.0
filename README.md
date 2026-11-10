@@ -1,4 +1,6 @@
-# SPHEREx Blink 2.0
+# SPHEREx Blink 3.0
+
+This repository carries the complete Blink 2.0 application and research tools with a restrained research interface. The source of the feature baseline is [SPHEREx-Blink-2.0](https://github.com/mateibut/SPHEREx-Blink-2.0); the appearance and default theme are the intended differences. The synthetic demo remains clearly labelled.
 
 > **Two lines of work were merged here on 10 Nov 2026** (the earlier Blink 2.0 of this repository and the branch `blink-2.0` of `mateibut/SPHEREx`). What came from where, what was chosen where they differ, and what was not re-measured: [docs/MERGE_NOTES.md](docs/MERGE_NOTES.md).
 

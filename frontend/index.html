@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="nebula">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0C0919">
+  <meta name="theme-color" content="#F5F7FB">
   <!-- Colour theme, applied before the first paint (js/features/theme.js does the same and handles the switch; keep the key and the names in step) -->
   <script>try{var t=new URLSearchParams(location.search).get("theme")||localStorage.getItem("spherex-blink-theme");if(/^(nebula|deep-space|observatory|light|classic)$/.test(t))document.documentElement.dataset.theme=t}catch(e){}</script>
   <title>SPHEREx Blink – Spot Moving Objects in the Infrared Sky</title>
@@ -49,7 +49,7 @@
   <!-- Only visible with ?embed=1 (the banner, which holds the data badge, is hidden then): say what the data is -->
   <p class="embed-note" id="embed-note"></p>
 
-  <main class="layout" id="workspace" data-left="open" data-right="open">
+  <main class="layout" id="workspace" tabindex="-1" data-left="open" data-right="open">
     <!-- ============ LEFT: search controls (can be hidden: button, or the key [) ============ -->
     <section class="panel controls" id="controls-panel" aria-labelledby="controls-title">
       <div class="panel-head">

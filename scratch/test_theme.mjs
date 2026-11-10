@@ -108,20 +108,20 @@ for (const needle of ["#0F2027", "#FF9A86", "#FBE9D0", "rgb(23 48 58", "rgb(251 
 const memoryStorage = (seed = {}) => { const data = { ...seed }; return { getItem: (k) => (k in data ? data[k] : null), setItem: (k, v) => { data[k] = String(v); }, data }; };
 const throwingStorage = { getItem() { throw new Error("blocked"); }, setItem() { throw new Error("blocked"); } };
 
-check("the default is Nebula (violet, since 10 Nov 2026) and every theme has an id, a label, a scheme and a browser-bar colour", DEFAULT_THEME === "nebula" && THEMES.every((t) => t.id && t.label && ["dark", "light"].includes(t.scheme) && /^#[0-9A-F]{6}$/i.test(t.themeColor)));
+check("the default is Light research and every theme has an id, a label, a scheme and a browser-bar colour", DEFAULT_THEME === "light" && THEMES.every((t) => t.id && t.label && ["dark", "light"].includes(t.scheme) && /^#[0-9A-F]{6}$/i.test(t.themeColor)));
 check("isTheme accepts the four names and nothing else", THEMES.every((t) => isTheme(t.id)) && !isTheme("neon") && !isTheme("") && !isTheme(null) && !isTheme("__proto__"));
-check("nothing saved, nothing in the address: the default", readTheme({ search: "", storage: memoryStorage() }) === "nebula");
+check("nothing saved, nothing in the address: the default", readTheme({ search: "", storage: memoryStorage() }) === "light");
 check("a saved choice is used", readTheme({ search: "", storage: memoryStorage({ [STORAGE_KEY]: "light" }) }) === "light");
 check("the address beats the saved choice", readTheme({ search: "?ra=1&theme=observatory", storage: memoryStorage({ [STORAGE_KEY]: "light" }) }) === "observatory");
-check("unknown names, in the address or in storage, are ignored", readTheme({ search: "?theme=neon", storage: memoryStorage({ [STORAGE_KEY]: "<script>" }) }) === "nebula");
-check("storage that throws (private window) is survived", readTheme({ search: "", storage: throwingStorage }) === "nebula");
+check("unknown names, in the address or in storage, are ignored", readTheme({ search: "?theme=neon", storage: memoryStorage({ [STORAGE_KEY]: "<script>" }) }) === "light");
+check("storage that throws (private window) is survived", readTheme({ search: "", storage: throwingStorage }) === "light");
 {
   const root = { dataset: {} }, meta = { c: "", setAttribute(k, v) { this.c = v; } }, doc = { querySelector: () => meta };
   const storage = memoryStorage();
   check("applyTheme sets data-theme, the browser-bar colour, and saves", applyTheme("light", { root, storage, doc }) === "light" && root.dataset.theme === "light" && meta.c === "#F5F7FB" && storage.data[STORAGE_KEY] === "light");
   applyTheme("observatory", { root, storage, doc, persist: false });
   check("persist: false (a theme asked for in the address) is shown but not saved", root.dataset.theme === "observatory" && storage.data[STORAGE_KEY] === "light");
-  check("an unknown theme falls back to the default instead of breaking the page", applyTheme("neon", { root, storage, doc }) === "nebula" && root.dataset.theme === "nebula");
+  check("an unknown theme falls back to the default instead of breaking the page", applyTheme("neon", { root, storage, doc }) === "light" && root.dataset.theme === "light");
   check("applyTheme survives storage that throws and a page without the meta tag", applyTheme("classic", { root, storage: throwingStorage, doc: { querySelector: () => null } }) === "classic");
 }
 {
@@ -147,7 +147,7 @@ for (const [name, html] of [["index.html", INDEX], ["results.html", RESULTS]]) {
   const m = /var t=new URLSearchParams\(location\.search\)\.get\("theme"\)\|\|localStorage\.getItem\("([^"]+)"\);if\(\/\^\(([^)]+)\)\$\/\.test\(t\)\)/.exec(html);
   check(`${name}: the inline script reads the same storage key and the same four names as theme.js`, Boolean(m) && m[1] === STORAGE_KEY && m[2].split("|").join() === THEMES.map((t) => t.id).join(), m ? `${m[1]} ${m[2]}` : "no inline theme script");
   check(`${name}: the default theme is on <html> (no flash and no JavaScript needed), there is a switch and a browser-bar colour`,
-    html.includes(`<html lang="en" data-theme="${DEFAULT_THEME}">`) && html.includes('id="theme-select"') && /<meta name="theme-color" content="#0C0919">/.test(html));
+    html.includes(`<html lang="en" data-theme="${DEFAULT_THEME}">`) && html.includes('id="theme-select"') && /<meta name="theme-color" content="#F5F7FB">/.test(html));
   check(`${name}: the monospace face is loaded with the other fonts`, /family=JetBrains\+Mono/.test(html) && /family=Inter:wght@400;500;600;700/.test(html));
 }
 

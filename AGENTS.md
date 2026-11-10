@@ -1,6 +1,6 @@
 # Developing SPHEREx Blink
 
-Work in this checkout. Push development to origin (SPHEREx-Blink-2.0). Treat upstream (the original SPHEREx project) and blink3 as read-only references. Read docs/CODEX_PROGRESS.md, docs/IMPLEMENTATION_ROADMAP.md and docs/FEATURE_STATUS.md, then verify HEAD and the working tree.
+Work in this checkout. This copy is SPHEREx-Blink-3.0; push only to its `blink3` remote when the user requests publication. Treat SPHEREx-Blink-2.0 as the feature baseline. Read docs/CODEX_PROGRESS.md, docs/IMPLEMENTATION_ROADMAP.md and docs/FEATURE_STATUS.md, then verify HEAD and the working tree. Historical instructions imported below describe earlier repositories; the current user's destination and scope take precedence.
 
 Serve frontend/ over HTTP. Preserve index.html, results.html, query parameters and embedded mode. The default workspace is synthetic. Keep it explicitly labelled. Read docs/VALIDATION.md before changing scientific methods, units, or thresholds.
 

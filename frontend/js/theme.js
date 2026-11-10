@@ -5,7 +5,7 @@
     ["nebula", "Nebula (violet)"], ["deep-space", "Deep Space"], ["observatory", "Observatory"], ["light", "Light research"], ["classic", "Classic (teal)"],
   ]);
   const key = "spherex-blink-theme";
-  const fallback = "nebula";
+  const fallback = "light";
   function apply(value) {
     const theme = palettes.has(value) ? value : fallback;
     document.documentElement.dataset.theme = theme;
