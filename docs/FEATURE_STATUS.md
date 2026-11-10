@@ -1,5 +1,7 @@
 # Feature inventory at the navigation milestone
 
+The default Light research presentation now uses an editorial, NASA-inspired visual direction across the workspace and four companion pages. It uses the project's own generated illustration and an explicit illustration caption; it does not use NASA logos or imply NASA operates this project. The four alternate theme choices remain available. This is a visual change, not a change to scientific results.
+
 | Area | Implementation and evidence | Remaining check or improvement |
 | --- | --- | --- |
 | Workspace and results navigation | Shared skip links, persistent three-theme control, compact research links, zoom and display controls, observation selector, side-by-side cutouts. Browser smoke passed on the demo field. A public-origin browser simulation disables local FITS selection and rejects loopback requests from legacy deep links. | Human screen reader audit, actual public-origin browser check, and broader real-data workflow. |

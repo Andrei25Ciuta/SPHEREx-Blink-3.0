@@ -1,0 +1,169 @@
+/* Editorial presentation inspired by NASA's public site. The artwork is this
+   project's illustration; neither NASA branding nor NASA site assets are used. */
+html[data-theme="light"] {
+  --bg: #f3f4f4;
+  --bg-2: #e9ebec;
+  --surface: #fff;
+  --raised: #f0f2f3;
+  --field: #fff;
+  --border: #d9dee2;
+  --control-border: #66737e;
+  --text: #171b20;
+  --text-muted: #4a5560;
+  --accent: #b91c2b;
+  --accent-hi: #a51928;
+  --accent-text: #9d1725;
+  --accent-rgb: 185 28 43;
+  --on-accent: #fff;
+  --radius: 2px;
+  --radius-sm: 2px;
+  --font-head: "Oswald", "Arial Narrow", "Inter", sans-serif;
+  --display: "Oswald", "Arial Narrow", "Inter", sans-serif;
+}
+
+html[data-theme="light"] body { background: var(--bg); }
+html[data-theme="light"] :focus-visible { outline: 3px solid #b91c2b; outline-offset: 3px; }
+html[data-theme="light"] .skip-link { z-index: 100; }
+
+/* The masthead stays a navigation surface, while the story sits below it. */
+html[data-theme="light"] .hero {
+  display: block;
+  background: #fff;
+  border-bottom: 0;
+}
+html.embed[data-theme="light"] .hero { display: none; }
+html[data-theme="light"] .hero-top {
+  min-height: 76px;
+  max-width: 1440px;
+  padding: .85rem clamp(1rem, 3vw, 2.5rem);
+  gap: 1rem 1.6rem;
+}
+html[data-theme="light"] .hero-logo {
+  color: #171b20;
+  font-family: var(--font-head);
+  font-size: 1.27rem;
+  font-weight: 700;
+  letter-spacing: .015em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+html[data-theme="light"] .hero .brand-logo,
+html[data-theme="light"] .rhead .brand-logo { border-radius: 50%; background: #b91c2b; border-color: #b91c2b; }
+html[data-theme="light"] .hero .brand-logo::before,
+html[data-theme="light"] .hero .brand-logo::after,
+html[data-theme="light"] .rhead .brand-logo::before,
+html[data-theme="light"] .rhead .brand-logo::after { background: #fff; opacity: 1; }
+html[data-theme="light"] .hero-nav { gap: clamp(.25rem, 1.2vw, 1.4rem); }
+html[data-theme="light"] .hero-nav a {
+  color: #171b20;
+  font-size: .82rem;
+  font-weight: 700;
+  letter-spacing: .035em;
+  text-transform: uppercase;
+  text-decoration: none;
+  border-bottom: 3px solid transparent;
+}
+html[data-theme="light"] .hero-nav a:hover,
+html[data-theme="light"] .hero-nav a:focus-visible { color: #9d1725; border-bottom-color: #b91c2b; }
+html[data-theme="light"] .hero .badge { background: #fff4e8; border-color: #946200; color: #6d4900; }
+html[data-theme="light"] .hero .badge.real { background: #eaf5ef; border-color: #39775a; color: #215c40; }
+html[data-theme="light"] .hero .theme-switch select { border-color: #66737e; }
+
+html[data-theme="light"] .hero-title {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: clamp(380px, 38vw, 530px);
+  width: 100%;
+  max-width: none;
+  padding: 4rem max(clamp(1.25rem, 5.5vw, 6rem), calc((100vw - 1320px) / 2));
+  gap: 1rem;
+  border: 0;
+  color: #fff;
+  background: linear-gradient(90deg, rgb(3 12 19 / .96) 0%, rgb(3 12 19 / .76) 34%, rgb(3 12 19 / .18) 78%),
+    url("../img/header-nebula-hd.jpg") 58% 50% / cover no-repeat;
+}
+html[data-theme="light"] .hero-eyebrow {
+  color: #fff;
+  font-size: .8rem;
+  font-weight: 700;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+html[data-theme="light"] .hero h1 {
+  max-width: 10ch;
+  color: #fff;
+  font-family: var(--font-head);
+  font-size: clamp(3.5rem, 7.6vw, 7rem);
+  font-weight: 700;
+  line-height: .98;
+  letter-spacing: -.035em;
+  text-transform: uppercase;
+}
+html[data-theme="light"] .hero h1 span { display: block; }
+html[data-theme="light"] .hero h1 span + span::before { content: none; }
+html[data-theme="light"] .hero-tag { max-width: 39rem; color: #f3f5f6; font-size: clamp(1rem, 1.6vw, 1.25rem); line-height: 1.45; }
+html[data-theme="light"] .hero-cta {
+  margin: .4rem 0 0;
+  min-height: 48px;
+  padding: .75rem 1.15rem;
+  border: 2px solid #fff;
+  border-radius: 2px;
+  color: #fff;
+  background: #b91c2b;
+  font-size: .9rem;
+  font-weight: 700;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+html[data-theme="light"] .hero-cta::after { content: " ↗"; margin-left: .8rem; }
+html[data-theme="light"] .hero-cta:hover { background: #8c1521; }
+html[data-theme="light"] .hero-credit {
+  display: block;
+  position: absolute;
+  right: clamp(1rem, 3vw, 2.5rem);
+  bottom: .8rem;
+  margin: 0;
+  color: #fff;
+  font-size: .72rem;
+  text-shadow: 0 1px 4px #000;
+}
+
+/* Strong section hierarchy keeps the data controls readable after the hero. */
+html[data-theme="light"] .layout { max-width: 1440px; gap: 1rem; padding: 1.25rem clamp(1rem, 3vw, 2.5rem) 3rem; }
+html[data-theme="light"] .panel { border: 1px solid var(--border); background: #fff; }
+html[data-theme="light"] .panel h2,
+html[data-theme="light"] .rsec h2,
+html[data-theme="light"] .explore h1 { font-family: var(--font-head); font-weight: 700; letter-spacing: .01em; text-transform: uppercase; }
+html[data-theme="light"] .panel h2 { font-size: clamp(1.1rem, 1.6vw, 1.4rem); }
+html[data-theme="light"] .btn-primary { background: #b91c2b; border: 1px solid #9d1725; color: #fff; text-transform: uppercase; letter-spacing: .035em; }
+html[data-theme="light"] .btn-primary:hover:not(:disabled) { background: #8c1521; }
+html[data-theme="light"] .chip { border-radius: 2px; }
+html[data-theme="light"] .research-nav { margin-block: 1rem; }
+html[data-theme="light"] .research-nav a { padding: .65rem .5rem; color: #27323c; font-weight: 600; }
+html[data-theme="light"] .research-nav a::after { content: " ↗"; float: right; color: #9d1725; }
+
+/* Subpages share the same quiet masthead and editorial heading scale. */
+html[data-theme="light"] .rhead,
+html[data-theme="light"] .explore header { border-bottom: 1px solid var(--border); }
+html[data-theme="light"] .rhead-logo,
+html[data-theme="light"] .explore header nav a:first-child { color: #171b20; font-family: var(--font-head); font-size: 1.2rem; font-weight: 700; text-transform: uppercase; }
+html[data-theme="light"] .rhead nav a,
+html[data-theme="light"] .explore header nav a { color: #27323c; font-weight: 700; }
+html[data-theme="light"] .rmain { max-width: 1200px; padding-top: 1.5rem; }
+html[data-theme="light"] .rintro h1,
+html[data-theme="light"] .explore h1 { font-size: clamp(2.5rem, 5vw, 4.5rem); }
+html[data-theme="light"] .result-links { border-bottom: 1px solid var(--border); }
+
+@media (max-width: 720px) {
+  html[data-theme="light"] .hero-top { align-items: flex-start; }
+  html[data-theme="light"] .hero-nav { order: 3; width: 100%; overflow: visible; flex-wrap: wrap; }
+  html[data-theme="light"] .hero-title { min-height: 430px; padding: 3rem 1.25rem 4rem; background-position: 58% center; }
+  html[data-theme="light"] .hero-credit { right: 1.25rem; }
+}
+@media (max-width: 560px) {
+  html[data-theme="light"] .layout .player { order: 0; }
+}
