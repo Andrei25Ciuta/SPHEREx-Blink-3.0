@@ -7,6 +7,8 @@ Endpoints
     GET /api/cutouts?ra=&dec=&fov=&det=   -> { "frames": Frame[] }   (same contract as the mock)
     GET /api/photometry?ra=&dec=&det=     -> { "points": Point[] }  (spectrum / light curve)
     GET /api/hips/<survey>/<file>         -> IRSA HiPS tiles relayed with CORS (sky map; allowlist)
+    GET /api/catalogue?cat=&ra=&dec=&radius=[&minpm=] -> { rows: [...], truncated } known sources (2mass | allwise | gaia) for the cross-match
+    GET /api/survey?ra=&dec=&radius=[&det=&limit=] -> { planes: [...] } the SPHEREx survey images that touch a circle (IRSA table spherex.plane, a live query)
     GET /api/health                       -> indexed files + files that failed to read
     GET /cutouts/<file>.png               -> the cached PNGs referenced by imageUrl
     GET /                                 -> the frontend itself (optional, same origin)
@@ -23,9 +25,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from spherex import cache, hips_proxy
+from spherex import cache, catalogues, hips_proxy, survey
 from spherex.cutout import cutout, flag_summary, target_wcs
 from spherex.floatdata import float_cutout_bytes, mask_cutout_bytes
+from spherex.footprints import footprints
 from spherex.photometry import measure
 from spherex.query import LocalArchive
 from spherex.observations import observations
@@ -48,7 +51,8 @@ archive = LocalArchive()
 @app.get("/api/health")
 def health():
     archive.refresh()
-    return {"dataDir": str(archive.root), "indexedFiles": len(archive._index),
+    return {"dataDir": str(archive.root), "indexedFiles": len(archive._index), "usedFrames": len(archive.frames()),
+            "duplicateFiles": {k.name: v.name for k, v in archive.duplicates.items()},          # exact copies of another file: not used, so that one exposure is not counted twice
             "unreadableFiles": {str(k): v for k, v in archive.errors.items()}}
 
 
@@ -60,6 +64,12 @@ def observation_search(ra: float = Query(..., ge=0, lt=360), dec: float = Query(
         return observations(ra, dec, fov, collection)
     except (OSError, UnicodeError):
         return JSONResponse(status_code=502, content={"detail": "IRSA image metadata is unavailable. Retry the search."})
+@app.get("/api/footprints")
+def footprints_endpoint(det: str = Query("all", description='"all" or a detector name like "D3"')):
+    """Where the images on this machine are on the sky (the four corners of each, from its own WCS). No file names, no paths: see spherex/footprints.py."""
+    archive.refresh()
+    return {"footprints": footprints(archive.frames(), det),
+            "note": "The footprints of the image files this backend has, not of the SPHEREx survey."}
 
 
 @app.get("/api/cutouts")
@@ -143,6 +153,8 @@ def _build(frames, ra, dec, fov, scale, key):
                 "flags": flag_summary(flags),
                 "flagsUrl": cache.save_png(key, f"{i}_flags", mask_png) if mask_png else None,
                 "pixelScaleArcsec": round(scale, 4),
+                # the unit of the float pixels (BUNIT of the file, e.g. "MJy / sr"), or None if the file does not say; the viewer's readout shows it
+                "unit": f.bunit,
             })
     out.sort(key=lambda fr: fr["mjd"])
     return out
@@ -159,6 +171,38 @@ def hips(path: str):
     except OSError as exc:
         return JSONResponse(status_code=502, content={"detail": f"IRSA HiPS unreachable: {exc}"})
     return Response(content=data, media_type=ctype, headers={"Cache-Control": "public, max-age=86400"})
+
+
+@app.get("/api/catalogue")
+def catalogue(
+    cat: str = Query(..., description='"2mass", "allwise" or "gaia" (SIMBAD is asked by the browser itself)'),
+    ra: float = Query(..., ge=0, lt=360, description="degrees, ICRS"),
+    dec: float = Query(..., ge=-90, le=90, description="degrees, ICRS"),
+    radius: float = Query(5, gt=0, le=catalogues.RADIUS_MAX_ARCMIN, description="arcmin"),
+    minpm: float = Query(0, ge=0, le=catalogues.MIN_PM_MAX_MAS, description="gaia only: keep stars moving faster than this, mas/yr"),
+):
+    """Known sources around a position, for the cross-match of "Find everything"."""
+    try:
+        return catalogues.cone_search(cat, ra, dec, radius, minpm)
+    except catalogues.NotAllowed as exc:
+        return JSONResponse(status_code=403, content={"detail": str(exc)})
+    except catalogues.CatalogueError as exc:
+        return JSONResponse(status_code=502, content={"detail": str(exc)})
+
+
+@app.get("/api/survey")
+def survey_endpoint(
+    ra: float = Query(..., ge=0, lt=360, description="degrees, ICRS"),
+    dec: float = Query(..., ge=-90, le=90, description="degrees, ICRS"),
+    radius: float = Query(0.5, gt=0, le=survey.RADIUS_MAX_DEG, description="degrees"),
+    det: str = Query("all", description='"all" or a detector name like "D3"'),
+    limit: int = Query(survey.LIMIT_DEFAULT, ge=1, le=survey.LIMIT_MAX),
+):
+    """Which SPHEREx survey images (as IRSA publishes them) touch a circle on the sky: the footprint of each. A live query of IRSA, not the files on this computer."""
+    try:
+        return survey.search(ra, dec, radius, det, limit)
+    except survey.SurveyError as exc:
+        return JSONResponse(status_code=502, content={"detail": str(exc)})
 
 
 @app.exception_handler(ValueError)

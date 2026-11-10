@@ -420,5 +420,23 @@ for (const id of ["barnard", "wise0855", "epsindb"]) {
   })());
 }
 
+// ---------------------------------------------------------------- 6a4) the aperture is not rejected for a pixelisation accident (7 Nov 2026, found by the discovery tests)
+{
+  const N = 64, img = new Float32Array(N * N);
+  for (let i = 0; i < img.length; i++) img[i] = 0.1 * Math.sin(i * 12.9898);            // a little structure, no holes
+  // for some positions on the pixel grid only 10 pixel centres fall inside a circle of radius 2 (it is 9 to 13 in general), which is
+  // below the old limit of 0.8 pi r^2 = 10.05: a complete aperture was rejected as 'holes' (1.2 % of random positions)
+  const centres = (x, y) => { let c = 0; for (let j = 20; j < 40; j++) for (let i = 20; i < 40; i++) if (Math.hypot(i + 0.5 - x, j + 0.5 - y) <= 2) c++; return c; };
+  const tenCentres = [];
+  for (let fx = 0; fx < 1; fx += 0.02) for (let fy = 0; fy < 1; fy += 0.02) if (centres(30 + fx, 30 + fy) === 10) tenCentres.push([30 + fx, 30 + fy]);
+  check("positions with only 10 pixel centres in the circle (the case that was rejected) exist and are all measurable",
+    tenCentres.length > 10 && tenCentres.every(([x, y]) => apertureSnr(img, N, x, y, 2) !== null), `${tenCentres.length} of 2500 phases`);
+  const holey = Float32Array.from(img);
+  for (let j = 29; j <= 31; j++) for (let i = 29; i <= 32; i++) holey[j * N + i] = NaN;
+  check("an aperture with real holes (a third of its pixels without data) is still not measurable", apertureSnr(holey, N, 30.5, 30.5, 2) === null);
+  const few = Float32Array.from(img); few[30 * N + 30] = NaN;
+  check("one missing pixel in the aperture does not stop the measurement", apertureSnr(few, N, 30.5, 30.5, 2) !== null);
+}
+
 console.log(failed ? `\n${failed} check(s) FAILED` : "\nAll checks passed");
 process.exitCode = failed ? 1 : 0;

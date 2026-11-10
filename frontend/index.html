@@ -1,19 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="nebula">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0C0919">
+  <!-- Colour theme, applied before the first paint (js/features/theme.js does the same and handles the switch; keep the key and the names in step) -->
+  <script>try{var t=new URLSearchParams(location.search).get("theme")||localStorage.getItem("spherex-blink-theme");if(/^(nebula|deep-space|observatory|light|classic)$/.test(t))document.documentElement.dataset.theme=t}catch(e){}</script>
   <title>SPHEREx Blink – Spot Moving Objects in the Infrared Sky</title>
   <meta name="description" content="Enter sky coordinates and blink through NASA SPHEREx near-infrared images taken at different times to spot moving objects like brown dwarfs, nearby stars and asteroids.">
 
   <!-- Google Fonts: Space Grotesk for headings, Inter for body text -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Oswald:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Oswald:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 
   <script>if (/[?&]embed=1(&|$)/.test(location.search)) document.documentElement.classList.add("embed");</script>   <!-- ?embed=1: workspace only, for an <iframe> -->
-  <script src="js/theme.js"></script>
-  <link rel="stylesheet" href="css/styles.css?v=14">
+  <link rel="stylesheet" href="css/styles.css?v=20">
 </head>
 <body>
   <a class="skip-link" href="#workspace">Skip to the workspace</a>
@@ -26,6 +28,7 @@
     <div class="hero-top">
       <a class="hero-logo" href="#top"><span class="brand-logo" aria-hidden="true"></span><span>SPHEREx Blink</span></a>
       <nav class="hero-nav" aria-label="Page sections"><a href="#workspace">Workspace</a><a href="#about">About</a><a href="#telescope">Telescope</a><a href="results.html">Real-data results</a></nav>
+      <label class="theme-switch"><span class="sr-only">Colour theme</span><select id="theme-select" aria-label="Colour theme"></select></label>
       <span class="badge" id="data-source-badge" title="Which data source is active">Synthetic demo data</span>
     </div>
     <div class="hero-title">
@@ -46,21 +49,31 @@
   <!-- Only visible with ?embed=1 (the banner, which holds the data badge, is hidden then): say what the data is -->
   <p class="embed-note" id="embed-note"></p>
 
-  <main class="layout" id="workspace" tabindex="-1">
-    <!-- ============ LEFT: search controls ============ -->
-    <section class="panel controls" aria-labelledby="controls-title">
-      <h2 id="controls-title">Observation controls</h2>
+  <main class="layout" id="workspace" data-left="open" data-right="open">
+    <!-- ============ LEFT: search controls (can be hidden: button, or the key [) ============ -->
+    <section class="panel controls" id="controls-panel" aria-labelledby="controls-title">
+      <div class="panel-head">
+        <h2 id="controls-title">1. Choose a patch of sky</h2>
+        <button type="button" class="panel-toggle" id="panel-left-btn" aria-expanded="true" aria-controls="controls-body" aria-keyshortcuts="[" title="Hide the search panel ([)"><span class="panel-toggle-icon" aria-hidden="true"></span><span class="sr-only">Hide the search panel</span></button>
+      </div>
+      <div class="panel-body" id="controls-body">
+      <p class="tour-launch"><button type="button" class="btn btn-small" id="tour-btn">Take the 1-minute tour</button></p>
       <details class="workspace-settings">
-        <summary>Settings</summary>
-        <label class="theme-picker">Theme <select data-theme-picker></select></label>
+        <summary>Settings and image display</summary>
         <label>Data source <select id="data-source"><option value="mock">Synthetic demo</option><option value="api">Local FITS backend</option></select></label>
         <p id="data-source-help" class="help" hidden>The local backend is available when you serve this workspace on your computer. This public site runs the synthetic demo.</p>
+        <div class="view-settings">
+          <label>Brightness <input type="range" id="image-brightness" min="50" max="200" value="100"></label>
+          <label>Contrast <input type="range" id="image-contrast" min="50" max="200" value="100"></label>
+          <label><input type="checkbox" id="centre-crosshair" checked> Centre crosshair</label>
+          <button type="button" class="btn btn-small" id="reset-view">Reset display</button>
+          <p class="muted small">Display adjustments affect the screen only: the saved picture and every measurement use the pixels as they are.</p>
+        </div>
       </details>
-      <nav class="research-nav" aria-label="Research tools">
+      <nav class="research-nav" aria-label="Standalone research pages">
         <a href="results.html#candidate-explorer">Candidate Explorer</a>
-        <a href="planet-x.html">Planet X Lab</a><a href="sky.html">Sky Explorer</a><a href="simulator.html">Solar System Simulator</a>
+        <a href="planet-x.html">Planet X Lab (page)</a><a href="sky.html">Sky Explorer (page)</a><a href="simulator.html">Solar System Simulator (page)</a>
       </nav>
-      <p class="tour-launch"><button type="button" class="btn btn-small" id="tour-btn">Take the 1-minute tour</button></p>
 
       <form id="search-form" novalidate>
         <div class="field">
@@ -122,6 +135,7 @@
           <li>Found something? <strong>Click it</strong> to see its spectrum and light curve, and check the sky map: is it a known object?</li>
         </ol>
       </details>
+      </div>
     </section>
 
     <!-- ============ RIGHT: blink player ============ -->
@@ -152,10 +166,17 @@
 
       <!-- The stage holds the image. aria-live announces status changes to screen readers. -->
       <div class="stage" id="stage">
-        <div class="image-viewport" tabindex="0" aria-label="Image viewport, scroll to pan when zoomed"><div class="image-plane">
-        <canvas id="blink-canvas" width="512" height="512" aria-label="Blink image" role="img"
-                title="Click a source to measure its brightness"></canvas>
-        <div class="crosshair" aria-hidden="true"></div></div></div>
+        <canvas id="blink-canvas" width="512" height="512" aria-label="Blink image" role="img" tabindex="0" aria-roledescription="image you can measure" aria-describedby="canvas-keys"
+                title="Click a source to measure its brightness. Drag to move when zoomed in. From the keyboard: Shift and the arrows move the view, plus and minus zoom, Enter measures at the centre of the view."></canvas>
+        <p id="canvas-keys" class="sr-only">With this picture focused: plus and minus zoom, Shift with the arrow keys moves the view, and Enter measures at the centre of the view. The position at the centre is read out below the picture. Escape clears the mark.</p>
+        <div class="crosshair" id="crosshair" aria-hidden="true"></div>
+        <!-- Zoom: Ctrl + scroll or pinch also work (js/features/viewerControls.js) -->
+        <div class="stage-tools" id="stage-tools" role="group" aria-label="Zoom the image">
+          <button type="button" class="stage-btn" id="zoom-in-btn" aria-label="Zoom in" title="Zoom in (+)" disabled>+</button>
+          <button type="button" class="stage-btn" id="zoom-out-btn" aria-label="Zoom out" title="Zoom out (−)" disabled>−</button>
+          <button type="button" class="stage-btn stage-btn-wide" id="zoom-fit-btn" aria-label="Show the whole image" title="Show the whole image (0)" disabled>Fit</button>
+          <output class="zoom-level" id="zoom-level" for="blink-canvas" aria-label="Zoom level">×1</output>
+        </div>
         <div class="stage-overlay" id="stage-overlay" aria-live="polite">
           <p class="overlay-title">No images yet</p>
           <p class="overlay-sub">Enter coordinates or pick a test object.</p>
@@ -165,17 +186,19 @@
         </div>
       </div>
 
-      <details class="view-settings"><summary>Image display</summary>
-        <label>Zoom <select id="image-zoom"><option value="1">1×</option><option value="2">2×</option><option value="4">4×</option></select></label>
-        <label>Brightness <input type="range" id="image-brightness" min="50" max="200" value="100"></label>
-        <label>Contrast <input type="range" id="image-contrast" min="50" max="200" value="100"></label>
-        <label><input type="checkbox" id="centre-crosshair" checked> Centre crosshair</label>
-        <button type="button" class="btn btn-small" id="reset-view">Reset display</button>
-        <p class="muted small">Scroll the enlarged image to pan. Display adjustments affect the screen only.</p>
-      </details>
-      <output id="pixel-readout"></output>
+      <!-- Under the cursor: pixel, sky position, offset from the centre of the field, value (js/features/readout.js). Not a live region: it changes with every mouse move. -->
+      <p class="readout" id="readout">
+        <span class="readout-idle" id="readout-idle">Move the pointer over the image, or focus it with Tab, to read the pixel and the sky position (with the keyboard: at the centre of the view).</span>
+        <span class="ro" id="ro-pixel"></span><span class="ro" id="ro-sky"></span><span class="ro" id="ro-offset"></span><span class="ro ro-value" id="ro-value"></span>
+      </p>
+
+      <!-- The position at the centre of the view, said to a screen reader when the picture is focused and the view moves (the readout above changes with every mouse move, so it is not live) -->
+      <p id="readout-announce" class="sr-only" role="status" aria-live="polite"></p>
+
       <!-- Short, non-blocking notes (e.g. "D1 has no images here, showing D2") -->
       <p id="status-msg" class="status" role="status" aria-live="polite"></p>
+      <!-- Said to a screen reader when the user changes the image (arrow keys, slider, timeline); silent while the blink plays, or it would speak twice a second -->
+      <p id="frame-announce" class="sr-only" role="status" aria-live="polite"></p>
 
       <div class="player-controls" role="group" aria-label="Blink player controls">
         <button type="button" id="play-btn" class="btn btn-icon" aria-label="Play" disabled>
@@ -197,18 +220,59 @@
         </div>
       </div>
 
+      <!-- Timeline: one button per image, time order across and wavelength up; survey-pass switches and a wavelength window (js/features/timelineView.js) -->
       <label class="observation-select">Observation <select id="observation-select" disabled></select></label>
+      <section class="timeline" id="timeline" aria-labelledby="timeline-title" hidden>
+        <div class="tl-head">
+          <h3 id="timeline-title">Timeline</h3>
+          <p class="tl-summary" id="tl-summary"></p>
+        </div>
+        <div class="tl-plot">
+          <div class="tl-field">
+            <span class="tl-axis tl-axis-hi" id="tl-axis-hi" aria-hidden="true"></span>
+            <span class="tl-axis tl-axis-lo" id="tl-axis-lo" aria-hidden="true"></span>
+            <div class="tl-band" id="tl-band" aria-hidden="true" hidden></div>
+            <div class="tl-points" id="tl-points" role="group" aria-label="Images in time order, left to right and not to scale; higher means a longer wavelength. Press one to show it. A diamond has more than 1 % of its pixels flagged; a hollow point is left out by the filter."></div>
+          </div>
+          <div class="tl-passes" id="tl-passes" role="group" aria-label="Survey passes: press one to leave its images out"></div>
+        </div>
+        <div class="tl-filter">
+          <label class="tl-range" for="tl-wl-min">Wavelength from <output id="tl-min-out" for="tl-wl-min"></output><input type="range" id="tl-wl-min" min="0" max="1" step="0.01" value="0"></label>
+          <label class="tl-range" for="tl-wl-max">to <output id="tl-max-out" for="tl-wl-max"></output><input type="range" id="tl-wl-max" min="0" max="1" step="0.01" value="1"></label>
+          <button type="button" class="btn btn-small" id="tl-reset" disabled>Show all</button>
+        </div>
+        <p class="tl-note" id="tl-note" aria-live="polite"></p>
+      </section>
+
       <p class="shortcuts" id="shortcuts-hint">
-        Keyboard: <kbd>Space</kbd> play/pause &middot; <kbd>←</kbd> <kbd>→</kbd> step one frame
+        Keyboard: <kbd>Space</kbd> play/pause &middot; <kbd>←</kbd> <kbd>→</kbd> step one frame &middot; <kbd>+</kbd> <kbd>−</kbd> zoom &middot; <kbd>0</kbd> whole image &middot; <kbd>Shift</kbd>+arrows move when zoomed in.
+        Mouse: <kbd>Ctrl</kbd>+scroll zooms, drag moves. Panels: <kbd>[</kbd> hides or shows the search panel, <kbd>]</kbd> the inspector.
       </p>
 
       <div class="player-options">
-        <label class="check"><input type="checkbox" id="show-flags"> Show flagged pixels</label>
         <label class="check"><input type="checkbox" id="skip-flagged"> Skip frames with &gt; 1&nbsp;% flagged pixels</label>
-        <label class="check"><input type="checkbox" id="show-track" checked disabled> Predicted position of known objects</label>
-        <label class="check"><input type="checkbox" id="show-catalogue" disabled> Catalogue stars (SIMBAD) and their motion</label>
-        <label class="check"><input type="checkbox" id="show-asteroids" disabled> Known asteroids (SkyBoT)</label>
+        <button type="button" class="btn btn-small" id="shortcuts-btn" aria-haspopup="dialog" title="Every keyboard shortcut of the workspace (?)"><span class="btn-ico" data-icon="keyboard" aria-hidden="true"></span>Keyboard shortcuts</button>
       </div>
+
+      <!-- Layers: what is drawn on top of the picture. Each one switches on its own; the key matches the colour on the canvas (js/features/layers.js) -->
+      <fieldset class="layers" id="layers">
+        <legend>Layers</legend>
+        <ul class="layer-list">
+          <li class="layer" data-layer="flags"><label class="check" title="Red = flagged as bad data in the SPHEREx file"><input type="checkbox" id="show-flags"><span class="layer-key" aria-hidden="true"></span><span class="layer-name">Flagged pixels</span></label><span class="layer-count" data-count="flags"></span></li>
+          <li class="layer" data-layer="tracks"><label class="check" title="Where the test object should be on each date"><input type="checkbox" id="show-track" checked disabled><span class="layer-key" aria-hidden="true"></span><span class="layer-name">Predicted positions</span></label><span class="layer-count" data-count="tracks"></span></li>
+          <li class="layer" data-layer="catalogue"><label class="check"><input type="checkbox" id="show-catalogue" disabled><span class="layer-key" aria-hidden="true"></span><span class="layer-name">Catalogue stars (SIMBAD) and their motion</span></label><span class="layer-count" data-count="catalogue"></span></li>
+          <li class="layer" data-layer="asteroids"><label class="check"><input type="checkbox" id="show-asteroids" disabled><span class="layer-key" aria-hidden="true"></span><span class="layer-name">Known asteroids (SkyBoT)</span></label><span class="layer-count" data-count="asteroids"></span></li>
+          <li class="layer" data-layer="candidates"><label class="check" title="The dots that Find movers reports"><input type="checkbox" id="show-candidates" checked><span class="layer-key" aria-hidden="true"></span><span class="layer-name">Movers found</span></label><span class="layer-count" data-count="candidates"></span></li>
+          <li class="layer" data-layer="marker"><label class="check" title="The circle left by a click on the image"><input type="checkbox" id="show-marker" checked><span class="layer-key" aria-hidden="true"></span><span class="layer-name">Measuring circle</span></label><span class="layer-count" data-count="marker"></span></li>
+          <li class="layer" data-layer="grid"><label class="check" title="Lines of constant right ascension and declination, on round values; they get finer as you zoom in"><input type="checkbox" id="show-grid"><span class="layer-key" aria-hidden="true"></span><span class="layer-name">Coordinate grid (RA, Dec)</span></label><span class="layer-count" data-count="grid"></span></li>
+          <li class="layer" data-layer="scalebar"><label class="check"><input type="checkbox" id="show-scalebar" checked><span class="layer-key" aria-hidden="true"></span><span class="layer-name">Scale bar</span></label><span class="layer-count" data-count="scalebar"></span></li>
+        </ul>
+        <details class="layer-settings" id="layer-settings">
+          <summary>Opacity and order</summary>
+          <p class="muted small">The first row is drawn on top of the others. Move a layer with the arrows; a lower opacity lets the picture show through it.</p>
+          <ol class="layer-order" id="layer-order"></ol>
+        </details>
+      </fieldset>
       <!-- Filled when a test object is in the field: how far it should move, in pixels -->
       <p class="track-info" id="track-info" aria-live="polite"></p>
       <!-- Filled when "Catalogue stars" is ticked: what SIMBAD lists in this field -->
@@ -222,11 +286,16 @@
       <div class="movers" id="movers">
         <div class="movers-head">
           <button type="button" class="btn btn-primary btn-small" id="find-movers-btn" disabled>Find movers</button>
+          <button type="button" class="btn btn-small" id="cancel-search-btn" hidden>Cancel search</button>
           <button type="button" class="btn btn-small" id="find-distant-btn" disabled title="Planet X mode: looks for a body in the outer Solar System. It swings back and forth as the Earth goes round the Sun (parallax), so its path is not a straight line, and the size of the swing gives its distance. Needs a wide field (about 30 arcmin).">Look for a distant body</button>
           <label class="check movers-all"><input type="checkbox" id="movers-all-det" checked> Use all detectors</label>
           <p class="movers-status" id="movers-status" role="status" aria-live="polite">Compares the dots in all images and lists the ones that moved.</p>
         </div>
         <ol class="mover-list" id="mover-list" aria-label="Candidate movers" hidden></ol>
+        <details class="provenance" id="movers-provenance" hidden>
+          <summary>How this search was run</summary>
+          <p id="movers-provenance-text"></p>
+        </details>
         <div class="mover-export" id="mover-export" hidden>
           <button type="button" class="btn btn-small" id="export-csv-btn" title="One line per candidate: position, motion, significance, distance, known object, asteroid check, what the data is, and a link back to this view">Save list (CSV)</button>
           <button type="button" class="btn btn-small" id="export-json-btn" title="The same, as JSON, with the field, the date and a reminder that candidates are not discoveries">Save list (JSON)</button>
@@ -234,25 +303,48 @@
         <div class="mover-detail" id="mover-detail" hidden>
           <p id="mover-detail-text"></p>
           <p id="mover-colour" class="mover-colour" role="status" aria-live="polite" hidden></p>
+          <button type="button" class="btn btn-small" id="mover-centre-btn" title="Zoom the picture in on this candidate and put it in the middle (where it is on the image shown; in Stack and Trail, the middle of its path)">Centre the picture on it</button>
+          <button type="button" class="btn btn-small" id="mover-follow-btn" aria-pressed="false" title="Keep the candidate in the middle of the picture while the images change (Blink and Difference). Moving the picture by hand, or Fit, stops it">Follow it</button>
           <button type="button" class="btn btn-small" id="mover-map-btn">Check in sky map</button>
           <button type="button" class="btn btn-small" id="mover-spectrum-btn" title="Measure the candidate in every image, where it is on that image's date, and plot flux against wavelength">Spectrum along its path</button>
         </div>
       </div>
 
+      <!-- Find everything: every source in the images, vetted, checked against catalogues and ranked (js/features/discovery.js, discoverPanel.js) -->
+      <div class="discover" id="discover">
+        <div class="discover-head">
+          <button type="button" class="btn btn-primary btn-small" id="discover-btn" disabled>Find everything</button>
+          <p class="discover-status" id="discover-status" role="status" aria-live="polite"></p>
+        </div>
+        <ul class="discover-notes" id="discover-notes" aria-label="Problems and limits of this search" hidden></ul>
+        <ul class="discover-chips" id="discover-chips" aria-label="Summary" hidden></ul>
+        <details class="provenance" id="discover-provenance" hidden>
+          <summary>How this search was run</summary>
+          <p id="discover-provenance-text"></p>
+        </details>
+        <div class="discover-views" id="discover-views" role="group" aria-label="How to list the sources" hidden>
+          <button type="button" class="btn btn-small" id="discover-view-cards" aria-pressed="true">Cards</button>
+          <button type="button" class="btn btn-small" id="discover-view-table" aria-pressed="false" title="A table you can sort by any column, filter, search and page, with a plot of support against signal-to-noise">Table and plot</button>
+        </div>
+        <div class="discover-controls" id="discover-controls" hidden>
+          <label>Show <select id="discover-filter"></select></label>
+          <label>Sort by <select id="discover-sort"></select></label>
+        </div>
+        <ol class="discover-list" id="discover-list" aria-label="Sources found" hidden></ol>
+        <div id="discover-explorer" hidden></div>
+        <div class="discover-export" id="discover-export" hidden>
+          <button type="button" class="btn btn-small" id="discover-csv-btn" title="One line per source: position, motion, class, support score, best catalogue match, flags, colour, flux">Save table (CSV)</button>
+          <button type="button" class="btn btn-small" id="discover-json-btn" title="The same, as full dossiers in JSON, with the field, the date and a reminder that candidates are not discoveries">Save dossiers (JSON)</button>
+        </div>
+        <article class="discover-detail" id="discover-detail" hidden></article>
+      </div>
+
       <div class="tools" role="group" aria-label="Save and share">
-        <button type="button" class="btn btn-small" id="save-png-btn" disabled>Save image</button>
+        <button type="button" class="btn btn-small" id="save-png-btn" disabled><span class="btn-ico" data-icon="save" aria-hidden="true"></span>Save image</button>
         <button type="button" class="btn btn-small" id="record-btn" disabled>Record video</button>
         <button type="button" class="btn btn-small" id="copy-link-btn">Copy link</button>
         <button type="button" class="btn btn-small" id="copy-embed-btn" title="HTML to put this view on another web page">Embed code</button>
       </div>
-
-      <!-- Metadata of the current frame -->
-      <dl class="meta" id="frame-meta">
-        <div><dt>Detector</dt><dd id="meta-det">—</dd></div>
-        <div><dt>Wavelength</dt><dd id="meta-wl">—</dd></div>
-        <div><dt>MJD</dt><dd id="meta-mjd">—</dd></div>
-        <div><dt>Flags</dt><dd id="meta-flags">—</dd></div>
-      </dl>
 
       <!-- "All" detectors: one averaged image per detector. Click one to blink it. -->
       <details class="detector-pair" id="detector-pair" hidden>
@@ -269,6 +361,36 @@
       </div>
     </section>
 
+    <!-- ============ RIGHT: inspector (can be hidden: button, or the key ]) ============ -->
+    <!-- On a wide screen the description of the selected candidate (#mover-detail, #discover-detail) is moved in here by features/workspaceView.js; on a narrower one it stays under its list. -->
+    <aside class="panel inspector" id="inspector" aria-labelledby="inspector-title">
+      <div class="panel-head">
+        <h2 id="inspector-title">Inspector</h2>
+        <button type="button" class="panel-toggle panel-toggle-right" id="panel-right-btn" aria-expanded="true" aria-controls="inspector-body" aria-keyshortcuts="]" title="Hide the inspector (])"><span class="panel-toggle-icon" aria-hidden="true"></span><span class="sr-only">Hide the inspector</span></button>
+      </div>
+      <div class="panel-body" id="inspector-body">
+        <section class="insp-sec" aria-labelledby="insp-image-title">
+          <h3 id="insp-image-title">Image on screen</h3>
+          <!-- Metadata of the current frame -->
+          <dl class="meta" id="frame-meta">
+            <div><dt>Detector</dt><dd id="meta-det">—</dd></div>
+            <div><dt>Wavelength</dt><dd id="meta-wl">—</dd></div>
+            <div><dt>MJD</dt><dd id="meta-mjd">—</dd></div>
+            <div><dt>Flags</dt><dd id="meta-flags">—</dd></div>
+          </dl>
+        </section>
+        <section class="insp-sec" aria-labelledby="insp-mark-title">
+          <h3 id="insp-mark-title">Marked position</h3>
+          <p class="insp-mark" id="insp-mark" aria-live="polite"></p>
+        </section>
+        <section class="insp-sec" aria-labelledby="insp-sel-title">
+          <h3 id="insp-sel-title">Selected candidate</h3>
+          <p class="muted small" id="inspector-empty"></p>
+          <div class="insp-slot" id="inspector-slot"></div>
+        </section>
+      </div>
+    </aside>
+
     <!-- ============ 3. Measure (spectrum + light curve) ============ -->
     <section class="panel measure" aria-labelledby="measure-title">
       <h2 id="measure-title">Source inspector</h2>
@@ -278,6 +400,14 @@
         <strong>light curve</strong> = brightness vs. date (one colour per detector).
       </p>
       <p class="measure-pos" id="measure-pos" aria-live="polite"></p>
+      <div class="measure-tools" id="measure-tools" hidden>
+        <fieldset class="chart-style" id="measure-style">
+          <legend>Uncertainty of the spectrum</legend>
+          <label class="check"><input type="radio" name="measure-style" value="bars" checked> Error bars</label>
+          <label class="check"><input type="radio" name="measure-style" value="band"> Band (breaks where no image covers a wavelength)</label>
+        </fieldset>
+        <p class="muted small" id="measure-missing" aria-live="polite"></p>
+      </div>
       <div class="charts" id="charts" hidden>
         <figure class="chart">
           <figcaption id="spectrum-caption">Spectrum at the marked position</figcaption>
@@ -322,6 +452,140 @@
         <p class="muted small" id="aladin-status" aria-live="polite"></p>
         <p class="muted small" id="sky-geo-note" hidden></p>
       </div>
+    </section>
+
+    <!-- ============ 5. Planet X Lab (features/planetLab.js, planetLabView.js, planetLabWorker.js) ============ -->
+    <section class="panel lab" id="planet-lab" aria-labelledby="lab-title">
+      <h2 id="lab-title">5. Planet X Lab</h2>
+      <p class="muted">Two questions about a distant body. <strong>Which motion fits</strong> the positions of a candidate: standing still, a straight line, or a straight drift plus the swing of the Earth's orbit? And <strong>how likely is this search to find</strong> a body of a given distance and brightness in the images on screen? The second one adds <strong>synthetic</strong> bodies to the real images: it measures the search, it does not find anything.</p>
+
+      <h3 id="lab-models-title">Which motion fits?</h3>
+      <p class="muted small" id="lab-models-hint" aria-live="polite">Select a candidate in the list (Find movers, or Look for a distant body), then compare.</p>
+      <p><button type="button" class="btn btn-small" id="lab-compare-btn" disabled>Compare the motions of the selected candidate</button></p>
+      <div id="lab-models-out" aria-live="polite"></div>
+
+      <h3 id="lab-inject-title">How likely is a distant body to be found?</h3>
+      <form id="lab-form" class="lab-form" novalidate aria-labelledby="lab-inject-title">
+        <label>Distances, AU <input id="lab-distances" type="text" inputmode="decimal" autocomplete="off" value="400, 800, 1600, 3200"></label>
+        <label>Brightness, mJy <input id="lab-fluxes" type="text" inputmode="decimal" autocomplete="off" value="2, 5, 10, 25, 60"></label>
+        <label>Tries per cell <select id="lab-trials"><option>2</option><option selected>3</option><option>5</option><option>10</option></select></label>
+        <button type="submit" class="btn btn-small btn-primary" id="lab-run-btn" disabled>Run the injection test</button>
+        <button type="button" class="btn btn-small" id="lab-cancel-btn" hidden>Cancel</button>
+      </form>
+      <p class="error-text" id="lab-input-error" role="alert"></p>
+      <progress id="lab-progress" class="lab-progress" max="1" value="0" hidden></progress>
+      <p class="muted small" id="lab-status" role="status" aria-live="polite">Needs images of one detector from at least 3 survey passes with real pixels. A body that starts in the middle of the field stays inside it, over a year, beyond about 300 AU in a 30′ field and beyond about 1700 AU in a 5′ field (the column headings of the map give the swing for these images).</p>
+      <div id="lab-map-wrap" hidden>
+        <div class="table-scroll"><table id="lab-map" class="lab-map"></table></div>
+        <p class="muted small" id="lab-map-note"></p>
+        <p><button type="button" class="btn btn-small" id="lab-csv-btn">Save the map (CSV)</button></p>
+        <details class="provenance"><summary>How this map was made</summary><p id="lab-provenance"></p></details>
+      </div>
+    </section>
+
+    <!-- ============ 6. Where the image files are on the sky (features/skyExplorer.js, skyExplorerView.js, backend /api/footprints) ============ -->
+    <section class="panel sky" id="sky-explorer" aria-labelledby="sky-title">
+      <h2 id="sky-title">6. Where the image files are on the sky</h2>
+      <p class="muted">An all-sky map of the <strong>image files this backend has</strong> (with real data: the author's SPHEREx cutouts). These are the footprints of files, <strong>not of the SPHEREx survey</strong>, which maps the whole sky: each circle is a <em>field</em>, the images of nearly the same place, read from the files themselves; nothing is drawn that was not read. The dashed line is the ecliptic (the path a distant planet of the Solar System follows), the dotted one the plane of the Milky Way. Right ascension grows to the left, as on a sky chart.</p>
+      <p><button type="button" class="btn btn-small" id="sky-refresh-btn">Read the footprints</button></p>
+      <p class="muted small" id="sky-status" role="status" aria-live="polite">Needs the backend with real files (<code>?data=api</code>). The synthetic demo has no files, so it has no footprints, and none are invented.</p>
+      <div id="sky-map-wrap" hidden>
+        <div class="chart sky-map" id="sky-map"></div>
+        <ol class="sky-list" id="sky-list" aria-label="Fields of image files, the same as the circles on the map"></ol>
+      </div>
+      <div class="sky-detail" id="sky-detail" hidden></div>
+
+      <h3 id="survey-title">Which survey images cover a place?</h3>
+      <p class="muted">A <strong>live search of IRSA</strong>, the archive of the SPHEREx survey (its table <code>spherex.plane</code>), through the backend: the survey's images whose footprint touches a circle around a position, with the dates and detectors. It downloads no image and it is <strong>not</strong> the list of files on this computer (the map above). <em>Find movers</em> needs a place covered in at least 3 survey passes about 6 months apart; this tells you before you fetch anything.</p>
+      <form id="survey-form" class="lab-form" novalidate aria-labelledby="survey-title">
+        <label>Right ascension <input id="survey-ra" type="text" inputmode="decimal" autocomplete="off" value="269.4462"></label>
+        <label>Declination <input id="survey-dec" type="text" inputmode="decimal" autocomplete="off" value="4.769"></label>
+        <label>Radius <select id="survey-radius"><option value="0.1">6′</option><option value="0.25">15′</option><option value="0.5" selected>30′</option><option value="1">1°</option><option value="2">2°</option></select></label>
+        <label>Detector <select id="survey-det"><option value="all">All</option><option>D1</option><option>D2</option><option>D3</option><option>D4</option><option>D5</option><option>D6</option></select></label>
+        <label>Up to <select id="survey-limit"><option value="200">200 images</option><option value="500">500 images</option><option value="1000" selected>1000 images</option></select></label>
+        <button type="submit" class="btn btn-small btn-primary" id="survey-btn">Search IRSA</button>
+        <button type="button" class="btn btn-small" id="survey-field-btn">Use the field on screen</button>
+      </form>
+      <p class="error-text" id="survey-error" role="alert"></p>
+      <p class="muted small" id="survey-status" role="status" aria-live="polite">Type a position (degrees, or 17h57m47s / +04°46′) and press Search IRSA. The values above are Barnard's Star, one of the test objects.</p>
+      <div id="survey-result" hidden>
+        <p id="survey-summary"></p>
+        <div class="chart survey-chart" id="survey-plot"></div>
+        <p class="muted small">At true scale, east to the left, north up. The dashed circle is the search; the dot is its centre. <strong>Solid outlines cover the centre</strong>, faint ones only touch the circle.</p>
+        <p><button type="button" class="btn btn-small" id="survey-open-btn">Open this position in the viewer (5′ field)</button> <span class="muted small">The viewer shows only images the backend holds as files; the survey's images are not downloaded.</span></p>
+        <details class="table-view"><summary>Show the images as a table</summary><div class="table-scroll"><table id="survey-table"></table></div></details>
+      </div>
+    </section>
+
+    <!-- ============ 7. The Solar System, seen from above (features/solarSystem.js, solarSystemView.js) ============ -->
+    <section class="panel ss" id="solar-system" aria-labelledby="ss-title">
+      <h2 id="ss-title">7. The Solar System, seen from above</h2>
+      <p class="muted">Why would a distant body seem to swing? Because the Earth goes round the Sun: from two places of its orbit the same body is seen in two directions. Move the date, add a body in the direction of the field on screen and see the lines of sight from the Earth on the dates of the survey passes. Two modes, each named for what it is.</p>
+      <fieldset class="ss-modes">
+        <legend>Mode</legend>
+        <label class="check"><input type="radio" name="ss-mode" value="true" checked> <span><strong>Scientific</strong>: to scale; the planets from JPL's table of approximate positions, checked against JPL Horizons; the Earth the one the Planet X search uses</span></label>
+        <label class="check"><input type="radio" name="ss-mode" value="educational"> <span><strong>Educational</strong>: distances compressed and planets enlarged so that all can be seen: <strong>not to scale</strong></span></label>
+      </fieldset>
+      <div class="ss-controls">
+        <label>Range <select id="ss-range"><option value="inner">Inner Solar System (2 AU)</option><option value="giants" selected>To Jupiter (6 AU)</option><option value="all">To Neptune (35 AU)</option><option value="far">Far away (1000 AU)</option></select></label>
+        <label class="ss-date">Date <input type="range" id="ss-date" min="60800" max="61500" step="1" value="61000" aria-label="Date"> <output id="ss-date-label" for="ss-date"></output></label>
+        <label>Speed <select id="ss-speed"><option value="1">1 day per step</option><option value="3">3 days</option><option value="10" selected>10 days</option><option value="30">30 days</option></select></label>
+        <button type="button" class="btn btn-small" id="ss-play" aria-pressed="false">Play</button>
+      </div>
+      <div class="ss-body-controls">
+        <label class="check"><input type="checkbox" id="ss-body"> A distant body in the direction of the field on screen</label>
+        <label>at <input type="number" id="ss-distance" value="500" min="50" max="20000" step="50"> AU</label>
+      </div>
+      <p class="muted small" id="ss-swing" aria-live="polite"></p>
+      <div class="chart ss-map" id="ss-map"></div>
+      <p class="muted small" id="ss-mode-note"></p>
+      <details class="table-view"><summary>Show the positions as a table</summary><div class="table-scroll"><table class="ss-table" id="ss-table"></table></div></details>
+    </section>
+
+    <!-- ============ 8. Explain the selected candidate (features/assistant.js, assistantView.js) ============ -->
+    <section class="panel assistant" id="assistant" aria-labelledby="assistant-title">
+      <h2 id="assistant-title">8. Explain the selected candidate</h2>
+      <p class="muted">An explainer that says only what was measured. Every sentence is followed by the ids of the measured values it is made of, and a check refuses any sentence that holds a number that is not one of them. <strong>No language model is used</strong>: the sentences are written by rules from the numbers, so it works without a key or a network and sends nothing anywhere.</p>
+      <div class="assistant-buttons" role="group" aria-label="Questions">
+        <button type="button" class="btn btn-small" data-kind="why" disabled>Why is it a candidate?</button>
+        <button type="button" class="btn btn-small" data-kind="wrong" disabled>What could make it wrong?</button>
+        <button type="button" class="btn btn-small" data-kind="next" disabled>What should I check next?</button>
+      </div>
+      <p class="muted small" id="assistant-status" role="status" aria-live="polite"></p>
+      <ol class="assistant-out" id="assistant-out" aria-live="polite"></ol>
+      <details class="table-view" id="assistant-evidence-wrap" hidden><summary>The measured values it can use (the evidence)</summary><div class="table-scroll"><table class="ss-table" id="assistant-evidence"></table></div></details>
+    </section>
+
+    <!-- ============ 9. Text analysis: the same data as tables, no picture (features/textAnalysis.js, textAnalysisView.js) ============ -->
+    <section class="panel textan" id="text-analysis" aria-labelledby="ta-title">
+      <h2 id="ta-title">9. Text analysis: the images, the dots and the candidates as tables</h2>
+      <p class="muted">The same data as the picture, with <strong>no picture</strong>: every image, every dot the search found (position, S/N, the error of the position, warnings) and every candidate with its status. It is for a screen reader and the keyboard, and for anyone who wants to cite or check a number. Each table can be saved as CSV, with a first line that says whether the data are real or synthetic.</p>
+      <p><button type="button" class="btn btn-small btn-primary" id="ta-build-btn">Build the text analysis</button></p>
+      <p class="error-text" id="ta-error" role="alert"></p>
+      <p class="muted small" id="ta-status" role="status" aria-live="polite">Load a field first, then press the button. It finds the dots again with the same detector the searches use; it changes nothing on the picture.</p>
+      <div id="ta-out" hidden>
+        <h3 id="ta-prov-title" tabindex="-1">What the data are</h3>
+        <ul id="ta-prov"></ul>
+        <h3 id="ta-frames-title">Images</h3>
+        <div class="table-scroll"><table class="ss-table" id="ta-frames"></table></div>
+        <p><button type="button" class="btn btn-small" id="ta-frames-csv">Save the images (CSV)</button></p>
+        <h3 id="ta-sources-title">Dots</h3>
+        <p><label>Show the dots of <select id="ta-frame-filter"></select></label></p>
+        <p class="muted small" id="ta-sources-note"></p>
+        <div class="table-scroll"><table class="ss-table" id="ta-sources"></table></div>
+        <p><button type="button" class="btn btn-small" id="ta-sources-csv">Save the dots (CSV)</button></p>
+        <h3 id="ta-cands-title">Candidates</h3>
+        <p class="muted small" id="ta-cands-note"></p>
+        <div class="table-scroll"><table class="ss-table" id="ta-cands"></table></div>
+        <p><button type="button" class="btn btn-small" id="ta-cands-csv">Save the candidates (CSV)</button></p>
+      </div>
+
+      <h3 id="bundle-title">Reproducibility bundle</h3>
+      <p class="muted">A small JSON file that lets someone else check what was done: the field and detector, the version of every algorithm, the settings of the last search, a <strong>SHA-256 hash of the pixels of every image</strong> (it proves the same data without publishing a pixel), the images' dates and wavelengths, the candidates, and a link and a command to replay it. It holds no pixel, no file path and no address of this computer; a bundle that fails that check is not saved. It cannot say which IRSA product each cutout came from (the backend does not report it): that field is empty and says why.</p>
+      <p><button type="button" class="btn btn-small btn-primary" id="bundle-btn">Save the bundle (JSON)</button></p>
+      <p class="error-text" id="bundle-error" role="alert"></p>
+      <p class="muted small" id="bundle-status" role="status" aria-live="polite">Load a field, run Find movers if you want its settings in the file, then press the button.</p>
+      <div id="bundle-replay"></div>
     </section>
   </main>
 

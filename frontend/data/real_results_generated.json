@@ -1,0 +1,303 @@
+{
+ "generated": {
+  "on": "2026-11-10",
+  "sections": [1,2,3,4,5,6],
+  "command": "node scratch/make_results.mjs --write",
+  "runs": {
+   "barnard-d2": {
+    "imageCount": 15,
+    "passes": 4
+   },
+   "barnard-d6": {
+    "imageCount": 6,
+    "passes": 3
+   },
+   "barnard-all": {
+    "imageCount": 21,
+    "passes": 4
+   },
+   "eps-d2": {
+    "imageCount": 11,
+    "passes": 5
+   },
+   "eps-d6": {
+    "imageCount": 6,
+    "passes": 4
+   },
+   "eps-all": {
+    "imageCount": 17,
+    "passes": 5
+   }
+  },
+  "note": "Remade from the real images the backend holds on this date; the numbers of 7 Nov (15 images in Barnard D2) are in docs/VALIDATION.md section 2 as they were."
+ },
+ "summary": {
+  "recovered": [6,6],
+  "minDifference": 0.2,
+  "maxDifference": 0.8
+ },
+ "movers": {
+  "runs": [
+   {
+    "id": "barnard-d2",
+    "label": "Barnard's Star · D2",
+    "catalogue": [-0.8,10.36],
+    "measured": [-1.03,10.15],
+    "difference": 0.31,
+    "seen": [15,15],
+    "sigma": 15,
+    "chanceLines": 2e-21
+   },
+   {
+    "id": "barnard-d6",
+    "label": "Barnard's Star · D6",
+    "catalogue": [-0.8,10.36],
+    "measured": [-0.25,9.78],
+    "difference": 0.8,
+    "seen": [6,6],
+    "sigma": 10,
+    "chanceLines": 0.000008
+   },
+   {
+    "id": "barnard-all",
+    "label": "Barnard's Star · D2 + D6",
+    "catalogue": [-0.8,10.36],
+    "measured": [-0.91,10.19],
+    "difference": 0.2,
+    "seen": [21,21],
+    "sigma": 19,
+    "chanceLines": 2e-30
+   },
+   {
+    "id": "eps-d2",
+    "label": "Epsilon Indi B · D2",
+    "catalogue": [3.98,-2.47],
+    "measured": [3.59,-1.93],
+    "difference": 0.66,
+    "seen": [11,11],
+    "sigma": 16,
+    "chanceLines": 5e-15
+   },
+   {
+    "id": "eps-d6",
+    "label": "Epsilon Indi B · D6",
+    "catalogue": [3.98,-2.47],
+    "measured": [3.5,-2.74],
+    "difference": 0.56,
+    "seen": [6,6],
+    "sigma": 18,
+    "chanceLines": 0.00001
+   },
+   {
+    "id": "eps-all",
+    "label": "Epsilon Indi B · D2 + D6",
+    "catalogue": [3.98,-2.47],
+    "measured": [3.61,-2.36],
+    "difference": 0.39,
+    "seen": [15,17],
+    "sigma": 21,
+    "chanceLines": 5e-19
+   }
+  ],
+  "differencePixels": [0.03,0.13],
+  "maxChanceLines": 0.00001,
+  "realSupport": [[15,15],[6,6],[21,21],[11,11],[6,6],[17,17]],
+  "originalRule": {
+   "note": "Epsilon Indi B in D6 with the first version of the rule (a line needs dots in half of the images): the real line and three false ones.",
+   "realChanceLines": 0.00006,
+   "falseChanceLines": [17,17,17],
+   "falseSupportedImages": [[3,6],[2,6],[2,4]],
+   "reproducedNow": {
+    "on": "2026-11-10",
+    "candidates": 1,
+    "falseLines": 0,
+    "dotsNote": "fewer dots per image now (4-8 on Epsilon Indi B in D6), so no chance line has dots to join"
+   }
+  },
+  "barnardD2Mask": {
+   "before": 3.72,
+   "after": 0.31
+  }
+ },
+ "jansky": [
+  {
+   "label": "Barnard field · D2",
+   "stars": 3,
+   "measurements": 33,
+   "median": 0.967,
+   "scatter": 0.031,
+   "p16": 0.92,
+   "p84": 0.99
+  },
+  {
+   "label": "Barnard field · D6",
+   "stars": 5,
+   "measurements": 18,
+   "median": 0.895,
+   "scatter": 0.046,
+   "p16": 0.84,
+   "p84": 0.93
+  },
+  {
+   "label": "Epsilon Indi B field · D2",
+   "stars": 2,
+   "measurements": 15,
+   "median": 0.979,
+   "scatter": 0.053,
+   "p16": 0.93,
+   "p84": 1.02
+  },
+  {
+   "label": "Epsilon Indi B field · D6",
+   "stars": 1,
+   "measurements": 3,
+   "median": 0.932,
+   "scatter": 0.024,
+   "p16": 0.9,
+   "p84": 0.94
+  }
+ ],
+ "arosa": {
+  "hours": 19.5,
+  "movedArcsec": 563,
+  "arcsecPerHour": 28.8,
+  "skybotArcsecPerHour": 28.8,
+  "rows": [
+   {
+    "label": "Image of 00:10 UTC (1.21 µm), at the 00:10 position",
+    "fluxMilliJy": 8.66,
+    "err": 0.3
+   },
+   {
+    "label": "Image of 00:10 UTC (1.22 µm), at the 19:42 position",
+    "fluxMilliJy": 0.02,
+    "err": 0.95
+   },
+   {
+    "label": "Image of 19:42 UTC (1.34 µm), at the 19:42 position",
+    "fluxMilliJy": 8.56,
+    "err": 1.11
+   },
+   {
+    "label": "Image of 19:42 UTC (1.34 µm), at the 00:10 position",
+    "fluxMilliJy": null,
+    "err": null,
+    "note": "not in this cutout"
+   }
+  ],
+  "offsetArcsec": 1
+ },
+ "wise0855": {
+  "D6": {
+   "label": "D6 (4.5–5.0 µm)",
+   "unflagged": [4,6],
+   "stack": 0.415,
+   "err": 0.076,
+   "nominalSigma": 5.4,
+   "controlMedian": 0.025,
+   "controlRobustScatter": 0.091,
+   "controlPlainScatter": 1.214,
+   "timesRobust": 4.3,
+   "brighterThan": [15,16],
+   "controls": [-0.25,-0.22,-0.15,-0.09,-0.05,-0.04,-0.03,0.02,0.03,0.03,0.05,0.06,0.08,0.09,0.1,4.81]
+  },
+  "D2": {
+   "label": "D2 (1.1–1.6 µm)",
+   "unflagged": [5,6],
+   "stack": 0.635,
+   "err": 0.086,
+   "nominalSigma": 7.3,
+   "controlMedian": 0.022,
+   "controlRobustScatter": 0.129,
+   "controlPlainScatter": 0.162,
+   "timesRobust": 4.7,
+   "brighterThan": [16,16],
+   "controls": [-0.08,-0.08,-0.07,-0.07,-0.06,-0.05,0,0.01,0.04,0.06,0.07,0.11,0.13,0.14,0.4,0.46],
+   "blame": "a 2MASS star of J = 15.4, 7.5 arcsec away, inside the measurement"
+  },
+  "d6Images": [
+   {
+    "date": "2025-05-05",
+    "um": 4.961,
+    "fluxMilliJy": 0.156,
+    "err": 0.148,
+    "flagged": false
+   },
+   {
+    "date": "2025-11-10",
+    "um": 4.606,
+    "fluxMilliJy": 0.471,
+    "err": 0.126,
+    "flagged": true
+   },
+   {
+    "date": "2025-11-14",
+    "um": 4.94,
+    "fluxMilliJy": -0.699,
+    "err": 0.161,
+    "flagged": true
+   },
+   {
+    "date": "2026-04-22",
+    "um": 4.512,
+    "fluxMilliJy": 0.529,
+    "err": 0.11,
+    "flagged": false
+   },
+   {
+    "date": "2026-04-26",
+    "um": 4.781,
+    "fluxMilliJy": 0.458,
+    "err": 0.544,
+    "flagged": false
+   },
+   {
+    "date": "2026-05-11",
+    "um": 4.961,
+    "fluxMilliJy": 0.469,
+    "err": 0.158,
+    "flagged": false
+   }
+  ]
+ },
+ "origins": [
+  {
+   "section": 1,
+   "validation": "2",
+   "commands": ["node scratch/make_results.mjs --write (the six runs of Find movers)"],
+   "generated": "2026-11-10"
+  },
+  {
+   "section": 2,
+   "validation": "2, 10",
+   "commands": ["node scratch/make_results.mjs --write (the six runs and the original rule on Epsilon Indi B in D6)"],
+   "generated": "2026-11-10"
+  },
+  {
+   "section": 3,
+   "validation": "2",
+   "commands": ["node scratch/make_results.mjs --write (Barnard in D2 without and with the bad-pixel mask)"],
+   "generated": "2026-11-10"
+  },
+  {
+   "section": 4,
+   "validation": "3",
+   "commands": [
+    "node scratch/make_results.mjs --write (validate_photometry.py on four fields, IRSA TAP for the magnitudes)"
+   ],
+   "generated": "2026-11-10"
+  },
+  {
+   "section": 5,
+   "validation": "6",
+   "commands": ["node scratch/make_results.mjs --write (Arosa: SkyBoT positions and the backend's photometry)"],
+   "generated": "2026-11-10"
+  },
+  {
+   "section": 6,
+   "validation": "7",
+   "commands": ["node scratch/make_results.mjs --write (stack_wise0855.py, D6 and D2)"],
+   "generated": "2026-11-10"
+  }
+ ]
+}

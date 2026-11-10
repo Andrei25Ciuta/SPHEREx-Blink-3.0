@@ -1,0 +1,1309 @@
+{
+ "about": "Every source that 'Find everything' lists on six real SPHEREx fields (docs/VALIDATION.md §14), as derived numbers only: no pixel, no image, no FITS data. Each field carries how it was made (provenance: input, settings, algorithm version, time).",
+ "command": "node scratch/make_results_sources.mjs",
+ "measuredOn": "2026-11-10",
+ "fields": [
+  {
+   "id": "barnard-d2",
+   "label": "Barnard's Star field · D2",
+   "detector": "D2",
+   "raDeg": 269.4462,
+   "decDeg": 4.769,
+   "fovArcmin": 5,
+   "counts": {
+    "solar-system": 0,
+    "catalogued-moving": 1,
+    "catalogued": 7,
+    "unchecked": 0,
+    "artefact": 0,
+    "unknown": 0,
+    "unknown-weak": 0
+   },
+   "total": 8,
+   "provenance": {
+    "tool": "SPHEREx Blink (NASA Space Apps 2026)",
+    "analysis": "find-everything",
+    "algorithm": {
+     "name": "Find everything (every source: vetted, cross-matched, ranked)",
+     "version": "discovery-3"
+    },
+    "data": "real SPHEREx data (served by the project's backend)",
+    "isReal": true,
+    "ranAt": "2026-11-10T06:45:57.071Z",
+    "durationSeconds": 10.8,
+    "input": {
+     "field": {
+      "raDeg": 269.4462,
+      "decDeg": 4.769,
+      "fovArcmin": 5
+     },
+     "detector": "D2",
+     "images": {
+      "count": 15,
+      "detectors": [
+       "D2"
+      ],
+      "passes": 4,
+      "first": "2025-08-21T23:33:58Z",
+      "last": "2026-09-22T15:04:20Z",
+      "wavelengthUm": [
+       1.101,
+       1.658
+      ],
+      "ids": [
+       "D2@60908.9819",
+       "D2@60911.4951",
+       "D2@60912.7186",
+       "D2@60914.2807",
+       "D2@60916.6606",
+       "D2@61114.0350",
+       "D2@61114.1025",
+       "D2@61116.6802",
+       "D2@61120.5506",
+       "D2@61270.8671",
+       "D2@61271.3436",
+       "D2@61273.5134",
+       "D2@61273.6493",
+       "D2@61273.7897",
+       "D2@61305.6280"
+      ]
+     },
+     "pixels": "float32 pixels in the file's own unit (backend)"
+    },
+    "settings": {
+     "needsCheckingScore": 65,
+     "minPersistence": 0.3,
+     "minDetections": 3,
+     "staticRadiusPx": 1.2,
+     "aperturePx": 2,
+     "presentSnr": 3,
+     "astrometricFloorArcsec": 1,
+     "positionNoiseCoeff": 1.05,
+     "defaultPsfSigmaPx": 0.356,
+     "systematicSigmaPx": 0.04,
+     "maskedFitSigmaPx": 0.15,
+     "realApertureNoiseFactor": 1.7
+    },
+    "catalogues": {
+     "used": [
+      "simbad",
+      "2mass",
+      "allwise",
+      "gaia"
+     ],
+     "problems": []
+    },
+    "permalink": "",
+    "note": "Candidates are leads with their evidence, not discoveries. These settings and this input reproduce the search; they do not make it correct."
+   },
+   "rows": [
+    {
+     "id": "SPX-M-269.4461+4.7689",
+     "class": "catalogued-moving",
+     "classLabel": "In a catalogue, and moving",
+     "headline": "Gaia DR3: Gaia DR3 4472832130942575872 · moving 10″/yr",
+     "ra": 269.44613,
+     "dec": 4.76886,
+     "motion": 10.2,
+     "nDet": 15,
+     "nFrames": 15,
+     "passes": 4,
+     "snr": 1581.7,
+     "support": 84,
+     "fluxMilliJy": null,
+     "tags": [
+      "moving"
+     ],
+     "match": "Gaia DR3 Gaia DR3 4472832130942575872",
+     "field": "Barnard's Star field · D2"
+    },
+    {
+     "id": "SPX-S-269.4439+4.7963",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "SIMBAD: GAT 771",
+     "ra": 269.44385,
+     "dec": 4.7963,
+     "motion": null,
+     "nDet": 14,
+     "nFrames": 15,
+     "passes": 4,
+     "snr": 40.9,
+     "support": 100,
+     "fluxMilliJy": 153.6265,
+     "tags": [],
+     "match": "SIMBAD GAT 771",
+     "field": "Barnard's Star field · D2"
+    },
+    {
+     "id": "SPX-S-269.4253+4.7982",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "Gaia DR3: Gaia DR3 4472836327118455552",
+     "ra": 269.4253,
+     "dec": 4.79817,
+     "motion": null,
+     "nDet": 14,
+     "nFrames": 15,
+     "passes": 4,
+     "snr": 11.9,
+     "support": 96,
+     "fluxMilliJy": 44.9214,
+     "tags": [],
+     "match": "Gaia DR3 Gaia DR3 4472836327118455552",
+     "field": "Barnard's Star field · D2"
+    },
+    {
+     "id": "SPX-S-269.4226+4.7514",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "2MASS: 2MASS J17574151+0445044",
+     "ra": 269.42259,
+     "dec": 4.75139,
+     "motion": null,
+     "nDet": 9,
+     "nFrames": 15,
+     "passes": 3,
+     "snr": 5.6,
+     "support": 87,
+     "fluxMilliJy": 21.5548,
+     "tags": [],
+     "match": "2MASS 2MASS J17574151+0445044",
+     "field": "Barnard's Star field · D2"
+    },
+    {
+     "id": "SPX-S-269.4203+4.7316",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "AllWISE: AllWISE J175740.87+044353.8",
+     "ra": 269.42028,
+     "dec": 4.73165,
+     "motion": null,
+     "nDet": 15,
+     "nFrames": 15,
+     "passes": 4,
+     "snr": 14.4,
+     "support": 82,
+     "fluxMilliJy": 54.8583,
+     "tags": [],
+     "match": "AllWISE AllWISE J175740.87+044353.8",
+     "field": "Barnard's Star field · D2"
+    },
+    {
+     "id": "SPX-S-269.4792+4.7909",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "Gaia DR3: Gaia DR3 4472837495349546240",
+     "ra": 269.47921,
+     "dec": 4.79094,
+     "motion": null,
+     "nDet": 14,
+     "nFrames": 15,
+     "passes": 4,
+     "snr": 9.4,
+     "support": 79,
+     "fluxMilliJy": 35.7793,
+     "tags": [],
+     "match": "Gaia DR3 Gaia DR3 4472837495349546240",
+     "field": "Barnard's Star field · D2"
+    },
+    {
+     "id": "SPX-S-269.4500+4.8066",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "Gaia DR3: Gaia DR3 4472837770227463680",
+     "ra": 269.44998,
+     "dec": 4.80663,
+     "motion": null,
+     "nDet": 14,
+     "nFrames": 15,
+     "passes": 4,
+     "snr": 7.1,
+     "support": 78,
+     "fluxMilliJy": 25.7196,
+     "tags": [],
+     "match": "Gaia DR3 Gaia DR3 4472837770227463680",
+     "field": "Barnard's Star field · D2"
+    },
+    {
+     "id": "SPX-S-269.4387+4.7863",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "Gaia DR3: Gaia DR3 4472836047939582592",
+     "ra": 269.43872,
+     "dec": 4.78631,
+     "motion": null,
+     "nDet": 15,
+     "nFrames": 15,
+     "passes": 4,
+     "snr": 8.6,
+     "support": 49,
+     "fluxMilliJy": 32.1538,
+     "tags": [],
+     "match": "Gaia DR3 Gaia DR3 4472836047939582592",
+     "field": "Barnard's Star field · D2"
+    }
+   ]
+  },
+  {
+   "id": "barnard-d6",
+   "label": "Barnard's Star field · D6",
+   "detector": "D6",
+   "raDeg": 269.4462,
+   "decDeg": 4.769,
+   "fovArcmin": 5,
+   "counts": {
+    "solar-system": 0,
+    "catalogued-moving": 1,
+    "catalogued": 5,
+    "unchecked": 0,
+    "artefact": 0,
+    "unknown": 0,
+    "unknown-weak": 0
+   },
+   "total": 6,
+   "provenance": {
+    "tool": "SPHEREx Blink (NASA Space Apps 2026)",
+    "analysis": "find-everything",
+    "algorithm": {
+     "name": "Find everything (every source: vetted, cross-matched, ranked)",
+     "version": "discovery-3"
+    },
+    "data": "real SPHEREx data (served by the project's backend)",
+    "isReal": true,
+    "ranAt": "2026-11-10T06:46:02.023Z",
+    "durationSeconds": 5,
+    "input": {
+     "field": {
+      "raDeg": 269.4462,
+      "decDeg": 4.769,
+      "fovArcmin": 5
+     },
+     "detector": "D6",
+     "images": {
+      "count": 6,
+      "detectors": [
+       "D6"
+      ],
+      "passes": 3,
+      "first": "2025-08-15T20:45:11Z",
+      "last": "2026-08-20T21:44:53Z",
+      "wavelengthUm": [
+       4.501,
+       4.922
+      ],
+      "ids": [
+       "D6@60902.8647",
+       "D6@60912.0344",
+       "D6@61118.3785",
+       "D6@61122.6586",
+       "D6@61269.0379",
+       "D6@61272.9062"
+      ]
+     },
+     "pixels": "float32 pixels in the file's own unit (backend)"
+    },
+    "settings": {
+     "needsCheckingScore": 65,
+     "minPersistence": 0.3,
+     "minDetections": 3,
+     "staticRadiusPx": 1.2,
+     "aperturePx": 2,
+     "presentSnr": 3,
+     "astrometricFloorArcsec": 1,
+     "positionNoiseCoeff": 1.05,
+     "defaultPsfSigmaPx": 0.356,
+     "systematicSigmaPx": 0.04,
+     "maskedFitSigmaPx": 0.15,
+     "realApertureNoiseFactor": 1.7
+    },
+    "catalogues": {
+     "used": [
+      "simbad",
+      "2mass",
+      "allwise",
+      "gaia"
+     ],
+     "problems": []
+    },
+    "permalink": "",
+    "note": "Candidates are leads with their evidence, not discoveries. These settings and this input reproduce the search; they do not make it correct."
+   },
+   "rows": [
+    {
+     "id": "SPX-M-269.4462+4.7687",
+     "class": "catalogued-moving",
+     "classLabel": "In a catalogue, and moving",
+     "headline": "Gaia DR3: Gaia DR3 4472832130942575872 · moving 9.8″/yr",
+     "ra": 269.44616,
+     "dec": 4.76867,
+     "motion": 9.786,
+     "nDet": 6,
+     "nFrames": 6,
+     "passes": 3,
+     "snr": 2961.2,
+     "support": 70,
+     "fluxMilliJy": null,
+     "tags": [
+      "moving"
+     ],
+     "match": "Gaia DR3 Gaia DR3 4472832130942575872",
+     "field": "Barnard's Star field · D6"
+    },
+    {
+     "id": "SPX-S-269.4439+4.7963",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "2MASS: 2MASS J17574653+0447466",
+     "ra": 269.44387,
+     "dec": 4.79627,
+     "motion": null,
+     "nDet": 6,
+     "nFrames": 6,
+     "passes": 3,
+     "snr": 24,
+     "support": 89,
+     "fluxMilliJy": 27.2314,
+     "tags": [],
+     "match": "2MASS 2MASS J17574653+0447466",
+     "field": "Barnard's Star field · D6"
+    },
+    {
+     "id": "SPX-S-269.4253+4.7981",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "Gaia DR3: Gaia DR3 4472836327118455552",
+     "ra": 269.42532,
+     "dec": 4.79813,
+     "motion": null,
+     "nDet": 6,
+     "nFrames": 6,
+     "passes": 3,
+     "snr": 7.8,
+     "support": 82,
+     "fluxMilliJy": 8.4169,
+     "tags": [],
+     "match": "Gaia DR3 Gaia DR3 4472836327118455552",
+     "field": "Barnard's Star field · D6"
+    },
+    {
+     "id": "SPX-S-269.4203+4.7315",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "Gaia DR3: Gaia DR3 4472832508888391168",
+     "ra": 269.42027,
+     "dec": 4.73151,
+     "motion": null,
+     "nDet": 6,
+     "nFrames": 6,
+     "passes": 3,
+     "snr": 8.8,
+     "support": 68,
+     "fluxMilliJy": 10.3433,
+     "tags": [],
+     "match": "Gaia DR3 Gaia DR3 4472832508888391168",
+     "field": "Barnard's Star field · D6"
+    },
+    {
+     "id": "SPX-S-269.4793+4.7910",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "2MASS: 2MASS J17575500+0447275",
+     "ra": 269.47927,
+     "dec": 4.79097,
+     "motion": null,
+     "nDet": 3,
+     "nFrames": 6,
+     "passes": 3,
+     "snr": 5.5,
+     "support": 57,
+     "fluxMilliJy": 6.4759,
+     "tags": [],
+     "match": "2MASS 2MASS J17575500+0447275",
+     "field": "Barnard's Star field · D6"
+    },
+    {
+     "id": "SPX-S-269.4389+4.7860",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "Gaia DR3: Gaia DR3 4472836047939582592",
+     "ra": 269.43895,
+     "dec": 4.78604,
+     "motion": null,
+     "nDet": 3,
+     "nFrames": 6,
+     "passes": 2,
+     "snr": 5.3,
+     "support": 21,
+     "fluxMilliJy": 5.7967,
+     "tags": [],
+     "match": "Gaia DR3 Gaia DR3 4472836047939582592",
+     "field": "Barnard's Star field · D6"
+    }
+   ]
+  },
+  {
+   "id": "epsilon-indi-b-d2",
+   "label": "Epsilon Indi B field · D2",
+   "detector": "D2",
+   "raDeg": 331.0965,
+   "decDeg": -56.8006,
+   "fovArcmin": 5,
+   "counts": {
+    "solar-system": 0,
+    "catalogued-moving": 1,
+    "catalogued": 6,
+    "unchecked": 0,
+    "artefact": 0,
+    "unknown": 0,
+    "unknown-weak": 0
+   },
+   "total": 7,
+   "provenance": {
+    "tool": "SPHEREx Blink (NASA Space Apps 2026)",
+    "analysis": "find-everything",
+    "algorithm": {
+     "name": "Find everything (every source: vetted, cross-matched, ranked)",
+     "version": "discovery-3"
+    },
+    "data": "real SPHEREx data (served by the project's backend)",
+    "isReal": true,
+    "ranAt": "2026-11-10T06:46:07.622Z",
+    "durationSeconds": 5.6,
+    "input": {
+     "field": {
+      "raDeg": 331.0965,
+      "decDeg": -56.8006,
+      "fovArcmin": 5
+     },
+     "detector": "D2",
+     "images": {
+      "count": 11,
+      "detectors": [
+       "D2"
+      ],
+      "passes": 5,
+      "first": "2025-04-26T05:09:43Z",
+      "last": "2026-10-02T11:28:25Z",
+      "wavelengthUm": [
+       1.108,
+       1.613
+      ],
+      "ids": [
+       "D2@60791.2151",
+       "D2@60799.7042",
+       "D2@60832.7254",
+       "D2@60949.7489",
+       "D2@60950.9016",
+       "D2@60958.2370",
+       "D2@60986.4898",
+       "D2@61155.2915",
+       "D2@61313.3071",
+       "D2@61314.2558",
+       "D2@61315.4781"
+      ]
+     },
+     "pixels": "float32 pixels in the file's own unit (backend)"
+    },
+    "settings": {
+     "needsCheckingScore": 65,
+     "minPersistence": 0.3,
+     "minDetections": 3,
+     "staticRadiusPx": 1.2,
+     "aperturePx": 2,
+     "presentSnr": 3,
+     "astrometricFloorArcsec": 1,
+     "positionNoiseCoeff": 1.05,
+     "defaultPsfSigmaPx": 0.356,
+     "systematicSigmaPx": 0.04,
+     "maskedFitSigmaPx": 0.15,
+     "realApertureNoiseFactor": 1.7
+    },
+    "catalogues": {
+     "used": [
+      "simbad",
+      "2mass",
+      "allwise",
+      "gaia"
+     ],
+     "problems": []
+    },
+    "permalink": "",
+    "note": "Candidates are leads with their evidence, not discoveries. These settings and this input reproduce the search; they do not make it correct."
+   },
+   "rows": [
+    {
+     "id": "SPX-M-331.0968-56.8009",
+     "class": "catalogued-moving",
+     "classLabel": "In a catalogue, and moving",
+     "headline": "Gaia DR3: Gaia DR3 6412596012146801152 · moving 4.1″/yr",
+     "ra": 331.09679,
+     "dec": -56.80086,
+     "motion": 4.064,
+     "nDet": 11,
+     "nFrames": 11,
+     "passes": 5,
+     "snr": 83.7,
+     "support": 100,
+     "fluxMilliJy": 30.9256,
+     "tags": [
+      "moving"
+     ],
+     "match": "Gaia DR3 Gaia DR3 6412596012146801152",
+     "field": "Epsilon Indi B field · D2"
+    },
+    {
+     "id": "SPX-S-331.1295-56.7749",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "Gaia DR3: Gaia DR3 6412596458823395328",
+     "ra": 331.12948,
+     "dec": -56.77486,
+     "motion": null,
+     "nDet": 11,
+     "nFrames": 11,
+     "passes": 5,
+     "snr": 97.5,
+     "support": 100,
+     "fluxMilliJy": 31.9734,
+     "tags": [],
+     "match": "Gaia DR3 Gaia DR3 6412596458823395328",
+     "field": "Epsilon Indi B field · D2"
+    },
+    {
+     "id": "SPX-S-331.0433-56.7995",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "Gaia DR3: Gaia DR3 6412596183945494144",
+     "ra": 331.0433,
+     "dec": -56.7995,
+     "motion": null,
+     "nDet": 11,
+     "nFrames": 11,
+     "passes": 5,
+     "snr": 13.4,
+     "support": 96,
+     "fluxMilliJy": 3.7855,
+     "tags": [],
+     "match": "Gaia DR3 Gaia DR3 6412596183945494144",
+     "field": "Epsilon Indi B field · D2"
+    },
+    {
+     "id": "SPX-S-331.0615-56.8002",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "AllWISE: AllWISE J220414.80-564800.3",
+     "ra": 331.06148,
+     "dec": -56.80023,
+     "motion": null,
+     "nDet": 10,
+     "nFrames": 11,
+     "passes": 5,
+     "snr": 10.1,
+     "support": 95,
+     "fluxMilliJy": 2.9546,
+     "tags": [],
+     "match": "AllWISE AllWISE J220414.80-564800.3",
+     "field": "Epsilon Indi B field · D2"
+    },
+    {
+     "id": "SPX-S-331.1510-56.8175",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "2MASS: 2MASS J22043633-5649034",
+     "ra": 331.15105,
+     "dec": -56.81749,
+     "motion": null,
+     "nDet": 10,
+     "nFrames": 11,
+     "passes": 5,
+     "snr": 8.1,
+     "support": 94,
+     "fluxMilliJy": 3.4881,
+     "tags": [],
+     "match": "2MASS 2MASS J22043633-5649034",
+     "field": "Epsilon Indi B field · D2"
+    },
+    {
+     "id": "SPX-S-331.0362-56.8147",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "Gaia DR3: Gaia DR3 6412594706476744832",
+     "ra": 331.03625,
+     "dec": -56.81472,
+     "motion": null,
+     "nDet": 11,
+     "nFrames": 11,
+     "passes": 5,
+     "snr": 8.2,
+     "support": 79,
+     "fluxMilliJy": 2.2375,
+     "tags": [],
+     "match": "Gaia DR3 Gaia DR3 6412594706476744832",
+     "field": "Epsilon Indi B field · D2"
+    },
+    {
+     "id": "SPX-S-331.0842-56.7647",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "Gaia DR3: Gaia DR3 6412596149585753472",
+     "ra": 331.08421,
+     "dec": -56.76472,
+     "motion": null,
+     "nDet": 9,
+     "nFrames": 11,
+     "passes": 4,
+     "snr": 6.6,
+     "support": 78,
+     "fluxMilliJy": 2.3042,
+     "tags": [],
+     "match": "Gaia DR3 Gaia DR3 6412596149585753472",
+     "field": "Epsilon Indi B field · D2"
+    }
+   ]
+  },
+  {
+   "id": "epsilon-indi-b-d6",
+   "label": "Epsilon Indi B field · D6",
+   "detector": "D6",
+   "raDeg": 331.0965,
+   "decDeg": -56.8006,
+   "fovArcmin": 5,
+   "counts": {
+    "solar-system": 0,
+    "catalogued-moving": 1,
+    "catalogued": 2,
+    "unchecked": 0,
+    "artefact": 0,
+    "unknown": 0,
+    "unknown-weak": 0
+   },
+   "total": 3,
+   "provenance": {
+    "tool": "SPHEREx Blink (NASA Space Apps 2026)",
+    "analysis": "find-everything",
+    "algorithm": {
+     "name": "Find everything (every source: vetted, cross-matched, ranked)",
+     "version": "discovery-3"
+    },
+    "data": "real SPHEREx data (served by the project's backend)",
+    "isReal": true,
+    "ranAt": "2026-11-10T06:46:11.503Z",
+    "durationSeconds": 3.9,
+    "input": {
+     "field": {
+      "raDeg": 331.0965,
+      "decDeg": -56.8006,
+      "fovArcmin": 5
+     },
+     "detector": "D6",
+     "images": {
+      "count": 6,
+      "detectors": [
+       "D6"
+      ],
+      "passes": 4,
+      "first": "2025-04-29T01:33:19Z",
+      "last": "2026-09-28T08:04:44Z",
+      "wavelengthUm": [
+       4.425,
+       4.912
+      ],
+      "ids": [
+       "D6@60794.0648",
+       "D6@60802.2182",
+       "D6@60949.0038",
+       "D6@61164.1170",
+       "D6@61308.9642",
+       "D6@61311.3366"
+      ]
+     },
+     "pixels": "float32 pixels in the file's own unit (backend)"
+    },
+    "settings": {
+     "needsCheckingScore": 65,
+     "minPersistence": 0.3,
+     "minDetections": 3,
+     "staticRadiusPx": 1.2,
+     "aperturePx": 2,
+     "presentSnr": 3,
+     "astrometricFloorArcsec": 1,
+     "positionNoiseCoeff": 1.05,
+     "defaultPsfSigmaPx": 0.356,
+     "systematicSigmaPx": 0.04,
+     "maskedFitSigmaPx": 0.15,
+     "realApertureNoiseFactor": 1.7
+    },
+    "catalogues": {
+     "used": [
+      "simbad",
+      "2mass",
+      "allwise",
+      "gaia"
+     ],
+     "problems": []
+    },
+    "permalink": "",
+    "note": "Candidates are leads with their evidence, not discoveries. These settings and this input reproduce the search; they do not make it correct."
+   },
+   "rows": [
+    {
+     "id": "SPX-M-331.0970-56.8009",
+     "class": "catalogued-moving",
+     "classLabel": "In a catalogue, and moving",
+     "headline": "Gaia DR3: Gaia DR3 6412596012146801152 · moving 4.1″/yr",
+     "ra": 331.097,
+     "dec": -56.8009,
+     "motion": 4.119,
+     "nDet": 6,
+     "nFrames": 6,
+     "passes": 4,
+     "snr": 146.5,
+     "support": 83,
+     "fluxMilliJy": 22.348,
+     "tags": [
+      "moving"
+     ],
+     "match": "Gaia DR3 Gaia DR3 6412596012146801152",
+     "field": "Epsilon Indi B field · D6"
+    },
+    {
+     "id": "SPX-S-331.1296-56.7749",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "Gaia DR3: Gaia DR3 6412596458823395328",
+     "ra": 331.12955,
+     "dec": -56.77486,
+     "motion": null,
+     "nDet": 5,
+     "nFrames": 6,
+     "passes": 3,
+     "snr": 33.6,
+     "support": 85,
+     "fluxMilliJy": 5.1874,
+     "tags": [],
+     "match": "Gaia DR3 Gaia DR3 6412596458823395328",
+     "field": "Epsilon Indi B field · D6"
+    },
+    {
+     "id": "SPX-S-331.1513-56.8176",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "2MASS: 2MASS J22043633-5649034",
+     "ra": 331.15133,
+     "dec": -56.81763,
+     "motion": null,
+     "nDet": 5,
+     "nFrames": 6,
+     "passes": 4,
+     "snr": 7.4,
+     "support": 84,
+     "fluxMilliJy": 1.4053,
+     "tags": [],
+     "match": "2MASS 2MASS J22043633-5649034",
+     "field": "Epsilon Indi B field · D6"
+    }
+   ]
+  },
+  {
+   "id": "wise-0855-d2",
+   "label": "WISE 0855 field · D2",
+   "detector": "D2",
+   "raDeg": 133.7598,
+   "decDeg": -7.2422,
+   "fovArcmin": 5,
+   "counts": {
+    "solar-system": 0,
+    "catalogued-moving": 0,
+    "catalogued": 14,
+    "unchecked": 0,
+    "artefact": 0,
+    "unknown": 0,
+    "unknown-weak": 0
+   },
+   "total": 14,
+   "provenance": {
+    "tool": "SPHEREx Blink (NASA Space Apps 2026)",
+    "analysis": "find-everything",
+    "algorithm": {
+     "name": "Find everything (every source: vetted, cross-matched, ranked)",
+     "version": "discovery-3"
+    },
+    "data": "real SPHEREx data (served by the project's backend)",
+    "isReal": true,
+    "ranAt": "2026-11-10T06:46:15.420Z",
+    "durationSeconds": 3.9,
+    "input": {
+     "field": {
+      "raDeg": 133.7598,
+      "decDeg": -7.2422,
+      "fovArcmin": 5
+     },
+     "detector": "D2",
+     "images": {
+      "count": 6,
+      "detectors": [
+       "D2"
+      ],
+      "passes": 4,
+      "first": "2025-05-06T02:33:29Z",
+      "last": "2026-05-14T06:53:35Z",
+      "wavelengthUm": [
+       1.127,
+       1.59
+      ],
+      "ids": [
+       "D2@60801.1066",
+       "D2@60986.2425",
+       "D2@60986.8552",
+       "D2@61021.0754",
+       "D2@61162.4030",
+       "D2@61174.2872"
+      ]
+     },
+     "pixels": "float32 pixels in the file's own unit (backend)"
+    },
+    "settings": {
+     "needsCheckingScore": 65,
+     "minPersistence": 0.3,
+     "minDetections": 3,
+     "staticRadiusPx": 1.2,
+     "aperturePx": 2,
+     "presentSnr": 3,
+     "astrometricFloorArcsec": 1,
+     "positionNoiseCoeff": 1.05,
+     "defaultPsfSigmaPx": 0.356,
+     "systematicSigmaPx": 0.04,
+     "maskedFitSigmaPx": 0.15,
+     "realApertureNoiseFactor": 1.7
+    },
+    "catalogues": {
+     "used": [
+      "simbad",
+      "2mass",
+      "allwise",
+      "gaia"
+     ],
+     "problems": []
+    },
+    "permalink": "",
+    "note": "Candidates are leads with their evidence, not discoveries. These settings and this input reproduce the search; they do not make it correct."
+   },
+   "rows": [
+    {
+     "id": "SPX-S-133.7541-7.2691",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "Gaia DR3: Gaia DR3 5756956163351495040",
+     "ra": 133.75412,
+     "dec": -7.26914,
+     "motion": null,
+     "nDet": 6,
+     "nFrames": 6,
+     "passes": 4,
+     "snr": 85.8,
+     "support": 93,
+     "fluxMilliJy": 11.9048,
+     "tags": [],
+     "match": "Gaia DR3 Gaia DR3 5756956163351495040",
+     "field": "WISE 0855 field · D2"
+    },
+    {
+     "id": "SPX-S-133.7475-7.2721",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "Gaia DR3: Gaia DR3 5756956163351495168",
+     "ra": 133.7475,
+     "dec": -7.27209,
+     "motion": null,
+     "nDet": 6,
+     "nFrames": 6,
+     "passes": 4,
+     "snr": 39.2,
+     "support": 93,
+     "fluxMilliJy": 5.6259,
+     "tags": [],
+     "match": "Gaia DR3 Gaia DR3 5756956163351495168",
+     "field": "WISE 0855 field · D2"
+    },
+    {
+     "id": "SPX-S-133.7554-7.2309",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "AllWISE: AllWISE J085501.29-071350.9",
+     "ra": 133.75541,
+     "dec": -7.23086,
+     "motion": null,
+     "nDet": 6,
+     "nFrames": 6,
+     "passes": 4,
+     "snr": 11.4,
+     "support": 89,
+     "fluxMilliJy": 1.691,
+     "tags": [],
+     "match": "AllWISE AllWISE J085501.29-071350.9",
+     "field": "WISE 0855 field · D2"
+    },
+    {
+     "id": "SPX-S-133.7329-7.2317",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "Gaia DR3: Gaia DR3 5756956468295793920",
+     "ra": 133.73288,
+     "dec": -7.23168,
+     "motion": null,
+     "nDet": 6,
+     "nFrames": 6,
+     "passes": 4,
+     "snr": 8.2,
+     "support": 87,
+     "fluxMilliJy": 1.1474,
+     "tags": [],
+     "match": "Gaia DR3 Gaia DR3 5756956468295793920",
+     "field": "WISE 0855 field · D2"
+    },
+    {
+     "id": "SPX-S-133.7581-7.2412",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "AllWISE: AllWISE J085501.95-071428.1",
+     "ra": 133.75809,
+     "dec": -7.24125,
+     "motion": null,
+     "nDet": 6,
+     "nFrames": 6,
+     "passes": 4,
+     "snr": 6.8,
+     "support": 87,
+     "fluxMilliJy": 0.9608,
+     "tags": [],
+     "match": "AllWISE AllWISE J085501.95-071428.1",
+     "field": "WISE 0855 field · D2"
+    },
+    {
+     "id": "SPX-S-133.7724-7.2714",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "AllWISE: AllWISE J085505.37-071617.0",
+     "ra": 133.7724,
+     "dec": -7.27139,
+     "motion": null,
+     "nDet": 6,
+     "nFrames": 6,
+     "passes": 4,
+     "snr": 7.1,
+     "support": 87,
+     "fluxMilliJy": 0.9629,
+     "tags": [],
+     "match": "AllWISE AllWISE J085505.37-071617.0",
+     "field": "WISE 0855 field · D2"
+    },
+    {
+     "id": "SPX-S-133.7634-7.2695",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "Gaia DR3: Gaia DR3 5756955441796052736",
+     "ra": 133.76344,
+     "dec": -7.26952,
+     "motion": null,
+     "nDet": 6,
+     "nFrames": 6,
+     "passes": 4,
+     "snr": 6.8,
+     "support": 87,
+     "fluxMilliJy": 0.9111,
+     "tags": [],
+     "match": "Gaia DR3 Gaia DR3 5756955441796052736",
+     "field": "WISE 0855 field · D2"
+    },
+    {
+     "id": "SPX-S-133.7275-7.2237",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "Gaia DR3: Gaia DR3 5756956541308616832",
+     "ra": 133.72753,
+     "dec": -7.22369,
+     "motion": null,
+     "nDet": 6,
+     "nFrames": 6,
+     "passes": 4,
+     "snr": 153.9,
+     "support": 79,
+     "fluxMilliJy": 20.5631,
+     "tags": [],
+     "match": "Gaia DR3 Gaia DR3 5756956541308616832",
+     "field": "WISE 0855 field · D2"
+    },
+    {
+     "id": "SPX-S-133.7595-7.2044",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "Gaia DR3: Gaia DR3 5756957056704690816",
+     "ra": 133.75949,
+     "dec": -7.20441,
+     "motion": null,
+     "nDet": 6,
+     "nFrames": 6,
+     "passes": 4,
+     "snr": 21.8,
+     "support": 78,
+     "fluxMilliJy": 2.9871,
+     "tags": [],
+     "match": "Gaia DR3 Gaia DR3 5756957056704690816",
+     "field": "WISE 0855 field · D2"
+    },
+    {
+     "id": "SPX-S-133.7308-7.2508",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "AllWISE: AllWISE J085455.36-071501.5",
+     "ra": 133.73079,
+     "dec": -7.25079,
+     "motion": null,
+     "nDet": 4,
+     "nFrames": 6,
+     "passes": 3,
+     "snr": 5.5,
+     "support": 75,
+     "fluxMilliJy": 0.8985,
+     "tags": [],
+     "match": "AllWISE AllWISE J085455.36-071501.5",
+     "field": "WISE 0855 field · D2"
+    },
+    {
+     "id": "SPX-S-133.7739-7.2099",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "Gaia DR3: Gaia DR3 5756956983689447552",
+     "ra": 133.77387,
+     "dec": -7.20987,
+     "motion": null,
+     "nDet": 6,
+     "nFrames": 6,
+     "passes": 4,
+     "snr": 7,
+     "support": 72,
+     "fluxMilliJy": 0.9261,
+     "tags": [],
+     "match": "Gaia DR3 Gaia DR3 5756956983689447552",
+     "field": "WISE 0855 field · D2"
+    },
+    {
+     "id": "SPX-S-133.7931-7.2222",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "Gaia DR3: Gaia DR3 5756956708811536128",
+     "ra": 133.79315,
+     "dec": -7.22215,
+     "motion": null,
+     "nDet": 6,
+     "nFrames": 6,
+     "passes": 4,
+     "snr": 6.8,
+     "support": 71,
+     "fluxMilliJy": 0.9971,
+     "tags": [],
+     "match": "Gaia DR3 Gaia DR3 5756956708811536128",
+     "field": "WISE 0855 field · D2"
+    },
+    {
+     "id": "SPX-S-133.7251-7.2670",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "AllWISE: AllWISE J085454.04-071600.9",
+     "ra": 133.72513,
+     "dec": -7.26702,
+     "motion": null,
+     "nDet": 6,
+     "nFrames": 6,
+     "passes": 4,
+     "snr": 6.6,
+     "support": 71,
+     "fluxMilliJy": 0.9423,
+     "tags": [],
+     "match": "AllWISE AllWISE J085454.04-071600.9",
+     "field": "WISE 0855 field · D2"
+    },
+    {
+     "id": "SPX-S-133.7980-7.2581",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "Gaia DR3: Gaia DR3 5756955785394371328",
+     "ra": 133.798,
+     "dec": -7.25814,
+     "motion": null,
+     "nDet": 6,
+     "nFrames": 6,
+     "passes": 4,
+     "snr": 138.8,
+     "support": 51,
+     "fluxMilliJy": null,
+     "tags": [],
+     "match": "Gaia DR3 Gaia DR3 5756955785394371328",
+     "field": "WISE 0855 field · D2"
+    }
+   ]
+  },
+  {
+   "id": "wise-0855-d6",
+   "label": "WISE 0855 field · D6",
+   "detector": "D6",
+   "raDeg": 133.7598,
+   "decDeg": -7.2422,
+   "fovArcmin": 5,
+   "counts": {
+    "solar-system": 0,
+    "catalogued-moving": 1,
+    "catalogued": 3,
+    "unchecked": 0,
+    "artefact": 0,
+    "unknown": 0,
+    "unknown-weak": 0
+   },
+   "total": 4,
+   "provenance": {
+    "tool": "SPHEREx Blink (NASA Space Apps 2026)",
+    "analysis": "find-everything",
+    "algorithm": {
+     "name": "Find everything (every source: vetted, cross-matched, ranked)",
+     "version": "discovery-3"
+    },
+    "data": "real SPHEREx data (served by the project's backend)",
+    "isReal": true,
+    "ranAt": "2026-11-10T06:46:19.585Z",
+    "durationSeconds": 4.2,
+    "input": {
+     "field": {
+      "raDeg": 133.7598,
+      "decDeg": -7.2422,
+      "fovArcmin": 5
+     },
+     "detector": "D6",
+     "images": {
+      "count": 6,
+      "detectors": [
+       "D6"
+      ],
+      "passes": 3,
+      "first": "2025-05-05T16:48:02Z",
+      "last": "2026-05-11T02:18:44Z",
+      "wavelengthUm": [
+       4.512,
+       4.961
+      ],
+      "ids": [
+       "D6@60800.7000",
+       "D6@60989.3678",
+       "D6@60993.5787",
+       "D6@61152.7573",
+       "D6@61156.1542",
+       "D6@61171.0963"
+      ]
+     },
+     "pixels": "float32 pixels in the file's own unit (backend)"
+    },
+    "settings": {
+     "needsCheckingScore": 65,
+     "minPersistence": 0.3,
+     "minDetections": 3,
+     "staticRadiusPx": 1.2,
+     "aperturePx": 2,
+     "presentSnr": 3,
+     "astrometricFloorArcsec": 1,
+     "positionNoiseCoeff": 1.05,
+     "defaultPsfSigmaPx": 0.356,
+     "systematicSigmaPx": 0.04,
+     "maskedFitSigmaPx": 0.15,
+     "realApertureNoiseFactor": 1.7
+    },
+    "catalogues": {
+     "used": [
+      "simbad",
+      "2mass",
+      "allwise",
+      "gaia"
+     ],
+     "problems": []
+    },
+    "permalink": "",
+    "note": "Candidates are leads with their evidence, not discoveries. These settings and this input reproduce the search; they do not make it correct."
+   },
+   "rows": [
+    {
+     "id": "SPX-S-133.7972-7.2578",
+     "class": "catalogued-moving",
+     "classLabel": "In a catalogue, and moving",
+     "headline": "Gaia DR3: Gaia DR3 5756955785394371328 · moving 6.3″/yr",
+     "ra": 133.79721,
+     "dec": -7.25778,
+     "motion": 6.255,
+     "nDet": 6,
+     "nFrames": 6,
+     "passes": 3,
+     "snr": 14.9,
+     "support": 70,
+     "fluxMilliJy": 2.7517,
+     "tags": [
+      "moving"
+     ],
+     "match": "Gaia DR3 Gaia DR3 5756955785394371328",
+     "field": "WISE 0855 field · D6"
+    },
+    {
+     "id": "SPX-S-133.7541-7.2691",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "Gaia DR3: Gaia DR3 5756956163351495040",
+     "ra": 133.75415,
+     "dec": -7.26911,
+     "motion": null,
+     "nDet": 6,
+     "nFrames": 6,
+     "passes": 3,
+     "snr": 14.5,
+     "support": 86,
+     "fluxMilliJy": 2.5328,
+     "tags": [],
+     "match": "Gaia DR3 Gaia DR3 5756956163351495040",
+     "field": "WISE 0855 field · D6"
+    },
+    {
+     "id": "SPX-S-133.7275-7.2236",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "Gaia DR3: Gaia DR3 5756956541308616832",
+     "ra": 133.72749,
+     "dec": -7.22363,
+     "motion": null,
+     "nDet": 6,
+     "nFrames": 6,
+     "passes": 3,
+     "snr": 29.7,
+     "support": 73,
+     "fluxMilliJy": 5.3352,
+     "tags": [],
+     "match": "Gaia DR3 Gaia DR3 5756956541308616832",
+     "field": "WISE 0855 field · D6"
+    },
+    {
+     "id": "SPX-S-133.7479-7.2722",
+     "class": "catalogued",
+     "classLabel": "In a catalogue",
+     "headline": "Gaia DR3: Gaia DR3 5756956163351495168",
+     "ra": 133.7479,
+     "dec": -7.27223,
+     "motion": null,
+     "nDet": 4,
+     "nFrames": 6,
+     "passes": 2,
+     "snr": 6.9,
+     "support": 70,
+     "fluxMilliJy": 1.4062,
+     "tags": [],
+     "match": "Gaia DR3 Gaia DR3 5756956163351495168",
+     "field": "WISE 0855 field · D6"
+    }
+   ]
+  }
+ ]
+}

@@ -138,3 +138,45 @@ def test_a_deleted_file_disappears_from_the_index(write_frame, tmp_path):
     assert len(archive.find(150.0, 20.0)) == 1
     path.unlink()
     assert archive.find(150.0, 20.0) == []
+
+
+# ---------------------------------------------------------------- the same exposure fetched twice
+def test_a_file_that_is_a_byte_for_byte_copy_of_another_is_not_used_and_is_reported(write_frame, tmp_path):
+    """On the author's machine three exposures of Barnard's Star were in two files each (identical sha1): every fit counted them twice."""
+    import shutil
+    first, _ = write_frame(name="spherex_D2_60900.0_2.fits", mjd=60900.0)
+    shutil.copy(first, tmp_path / "spherex_D2_60900.0_6.fits")                # the same bytes under another name
+    write_frame(name="other.fits", mjd=60950.0)
+    archive = LocalArchive(tmp_path)
+    found = archive.find(150.0, 20.0)
+    assert [f.path.name for f in found] == ["spherex_D2_60900.0_2.fits", "other.fits"]            # the first by name is kept, one copy is gone
+    assert {k.name: v.name for k, v in archive.duplicates.items()} == {"spherex_D2_60900.0_6.fits": "spherex_D2_60900.0_2.fits"}
+    assert len(archive.frames()) == 2 and len(archive._index) == 3                                  # all three files are indexed, two frames are used
+
+
+def test_two_files_of_the_same_time_with_different_pixels_are_both_kept(write_frame, tmp_path):
+    write_frame(name="a.fits", mjd=60900.0, background=100.0)
+    write_frame(name="b.fits", mjd=60900.0, background=250.0)                 # same detector, same time, same size: but not the same image
+    archive = LocalArchive(tmp_path)
+    assert len(archive.find(150.0, 20.0)) == 2 and archive.duplicates == {}
+
+
+def test_when_the_file_that_was_kept_is_deleted_its_copy_is_used(write_frame, tmp_path):
+    import shutil
+    first, _ = write_frame(name="a.fits", mjd=60900.0)
+    shutil.copy(first, tmp_path / "b.fits")
+    archive = LocalArchive(tmp_path)
+    assert [f.path.name for f in archive.find(150.0, 20.0)] == ["a.fits"]
+    first.unlink()
+    assert [f.path.name for f in archive.find(150.0, 20.0)] == ["b.fits"] and archive.duplicates == {}
+
+
+def test_the_health_and_footprints_endpoints_count_a_copy_once(write_frame, tmp_path, monkeypatch):
+    import shutil
+    import app as backend_app
+    first, _ = write_frame(name="a.fits", mjd=60900.0)
+    shutil.copy(first, tmp_path / "b.fits")
+    monkeypatch.setattr(backend_app, "archive", LocalArchive(tmp_path))
+    health = backend_app.health()
+    assert health["indexedFiles"] == 2 and health["usedFrames"] == 1 and health["duplicateFiles"] == {"b.fits": "a.fits"}
+    assert len(backend_app.footprints_endpoint(det="all")["footprints"]) == 1

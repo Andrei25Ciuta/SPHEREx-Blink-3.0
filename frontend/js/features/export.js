@@ -9,16 +9,13 @@ export const COLUMNS = [
   "position_angle_deg", "detections", "images", "significance_sigma", "false_alarm_expected", "path_support_images", "path_images", "rms_px", "known_object",
   "distance_au", "distance_range_lo_au", "distance_range_hi_au", "own_velocity_kms", "bound_to_sun",
   "asteroid_match", "asteroid_dates", "detector", "field_ra_deg", "field_dec_deg", "field_fov_arcmin", "data", "permalink",
+  ...PROVENANCE_CSV_COLUMNS,                       // how the search was run: analysis, algorithm version, time, images used, settings (provenance.js)
 ];
 
-/** What the data behind a file is: the sentence that must travel with it. */
-export const dataLabel = (source) => source === "synthetic"
-  ? "SYNTHETIC FITS data (served by the backend, NOT SPHEREx observations)"
-  : source === "unverified" || source === "mixed"
-    ? "FITS data with unverified or mixed provenance (served by the backend)"
-    : source === true || source === "spherex_header"
-      ? "SPHEREx-format FITS data (served by the backend; verify archive provenance)"
-      : "SYNTHETIC demo data (invented in the browser, NOT SPHEREx observations)";
+import { dataLabel, provenanceColumns, PROVENANCE_CSV_COLUMNS } from "./provenance.js";
+
+/** What the data behind a file is: the sentence that must travel with it (defined in provenance.js, which every export also uses). */
+export { dataLabel };
 
 /** One CSV cell. Text starting with = + - @ would be run as a formula by a spreadsheet: it gets a leading apostrophe. */
 function cell(value) {
@@ -60,7 +57,8 @@ export function candidateRecords(candidates, ctx) {
       asteroid_match: top ? top.name : (m.asteroids ? "none within 20 arcsec" : "not checked"),
       asteroid_dates: top ? top.hits : null,
       detector: ctx.detector, field_ra_deg: round(ctx.query.ra, 5), field_dec_deg: round(ctx.query.dec, 5), field_fov_arcmin: ctx.query.fov,
-      data: dataLabel(ctx.provenance ?? ctx.isReal), permalink: ctx.permalink,
+      data: dataLabel(ctx.dataSource ?? ctx.isReal), permalink: ctx.permalink,
+      ...(ctx.provenance ? provenanceColumns(ctx.provenance) : Object.fromEntries(PROVENANCE_CSV_COLUMNS.map((k) => [k, ""]))),
     };
   });
 }
@@ -87,9 +85,10 @@ export function candidatesToJson(candidates, ctx, { generated = new Date().toISO
     tool: "SPHEREx Blink (NASA Space Apps 2026)",
     schema_version: 2,
     generated,
-    data: dataLabel(ctx.provenance ?? ctx.isReal),
+    data: dataLabel(ctx.dataSource ?? ctx.isReal),
     field: { ra_deg: ctx.query.ra, dec_deg: ctx.query.dec, fov_arcmin: ctx.query.fov, detector: ctx.detector },
     permalink: ctx.permalink,
+    provenance: ctx.provenance ?? null,            // input, settings, algorithm version and the time of the run (provenance.js)
     note: "Candidates are not discoveries: each needs checking against the other detectors and the catalogues.",
     candidates: records,
   }, null, 2) + "\n";
@@ -97,7 +96,7 @@ export function candidatesToJson(candidates, ctx, { generated = new Date().toISO
 
 /** A file name that says what is inside: spherex-blink_candidates_<ra>_<dec>_<detector>[_synthetic].csv */
 export function exportFileName(ctx, extension) {
-  const suffix = ctx.provenance === "synthetic" || ctx.isReal === false ? "_synthetic"
-    : ctx.provenance === "unverified" || ctx.provenance === "mixed" ? "_unverified" : "";
+  const suffix = ctx.dataSource === "synthetic" || ctx.isReal === false ? "_synthetic"
+    : ctx.dataSource === "unverified" || ctx.dataSource === "mixed" ? "_unverified" : "";
   return `spherex-blink_candidates_${ctx.query.ra.toFixed(4)}_${ctx.query.dec.toFixed(4)}_${ctx.detector}${suffix}.${extension}`;
 }

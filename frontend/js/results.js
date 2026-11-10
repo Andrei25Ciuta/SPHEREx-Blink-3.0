@@ -5,6 +5,9 @@
 // repeated in a real table under each chart for screen readers. The builders below are pure functions (they return
 // strings), so scratch/test_results.mjs tests them without a browser.
 
+import { setupThemeSwitcher } from "./features/theme.js";
+import { createExplorer } from "./features/candidateExplorerView.js";
+import { provenanceText, missingProvenance } from "./features/provenance.js";
 import { setupExplorer } from "./features/resultsExplorer.js";
 
 // ---------- small pure helpers ----------
@@ -74,6 +77,7 @@ export function fmtBy(spec, v) {
   if (kind === "signed") return signed(v, Number(arg ?? 2));
   if (kind === "thousands") return Math.round(v).toLocaleString("en-US");
   if (kind === "ofn") return `${v[0]} of ${v[1]}`;
+  if (kind === "date") return fmtDate(v);
   return String(v);
 }
 
@@ -253,9 +257,47 @@ export function buildCharts(data) {
 
 // ---------- the page ----------
 
-/** Fill the page: charts into [data-chart], numbers into [data-n], the limits list into [data-limits]. */
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+/** "2026-11-07" -> "7 Nov 2026"; anything else is returned as it is. */
+export function fmtDate(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso));
+  return m ? `${Number(m[3])} ${MONTHS[Number(m[2]) - 1]} ${m[1]}` : String(iso);
+}
+
+const VALIDATION_URL = "https://github.com/mateibut/SPHEREx/blob/main/docs/VALIDATION.md";
+
+/**
+ * The line under the heading of sections 1-10: which command made the numbers of the section and where VALIDATION.md reports it.
+ * Honest about the way: these numbers were typed into the data file from the printed report of the command (on the date of the measurement);
+ * the page cannot remake them by itself. Section 11 is different: a command writes its file.
+ */
+export function originHtml(origin, measuredOn) {
+  const cmds = origin.commands.map((c) => `<code>${esc(c)}</code>`).join("; ");
+  if (origin.generated) {                                    // made by a script from the images the backend held that day: remade every time the command is run
+    return `<strong>Where these numbers come from.</strong> <span class="rmade">Made by a command, not typed:</span> ${cmds}. It ran on ${esc(fmtDate(origin.generated))} on the real images the backend held that day `
+      + `and wrote them into this page's data file (<code>real_results_generated.json</code>); running it again remakes them. The report of that day is in <a href="${VALIDATION_URL}">VALIDATION.md &sect;${esc(origin.validation)}</a>.`;
+  }
+  return `<strong>Where these numbers come from.</strong> ${cmds}. Reported in <a href="${VALIDATION_URL}">VALIDATION.md &sect;${esc(origin.validation)}</a>. `
+    + `Measured on ${esc(fmtDate(measuredOn))} and typed into this page's data file from the report of that command; this page does not remake them (the list in section 11 is made by a command).`;
+}
+
+/**
+ * The numbers of the page: the typed file (sections 4-10, copied from the reports of 7 Nov) with the generated file (sections 1-3, made by scratch/make_results.mjs from the real
+ * images) laid over it. A generated key replaces the typed one; the origins of the generated sections replace the typed origins of the same sections.
+ */
+export function mergeResults(typed, generated) {
+  const made = new Set((generated.origins ?? []).map((o) => o.section));
+  const { origins: _o, ...rest } = generated;
+  return { ...typed, ...rest, origins: [...(typed.origins ?? []).filter((o) => !made.has(o.section)), ...(generated.origins ?? [])].sort((a, b) => a.section - b.section) };
+}
+
+/** Fill the page: charts into [data-chart], numbers into [data-n], the origin lines into [data-origin], the limits list into [data-limits]. */
 export function renderPage(data, root = document) {
   const charts = buildCharts(data);
+  for (const el of root.querySelectorAll("[data-origin]")) {
+    const origin = (data.origins ?? []).find((o) => String(o.section) === el.dataset.origin);
+    el.innerHTML = origin ? originHtml(origin, data.measuredOn) : "";
+  }
   for (const el of root.querySelectorAll("[data-chart]")) {
     const html = charts[el.dataset.chart];
     if (html) el.innerHTML = html;
@@ -264,15 +306,74 @@ export function renderPage(data, root = document) {
   for (const el of root.querySelectorAll("[data-limits]")) el.innerHTML = data.limits.map((t) => `<li>${esc(t)}</li>`).join("");
 }
 
+// ---------- every source on the six real fields (data/real_sources.json): the candidate explorer, with the provenance of each run ----------
+
+/** The rows of one field, or of all of them ("all"). Every row says which field it came from. */
+export function sourceRows(file, fieldId = "all") {
+  return file.fields.filter((f) => fieldId === "all" || f.id === fieldId).flatMap((f) => f.rows.map((r) => ({ ...r, field: r.field ?? f.label })));
+}
+
+/** The numbers above the table, all counted from the rows (nothing is typed in): how many sources, in how many fields, how many of each class. */
+export function sourcesSummary(file) {
+  const rows = sourceRows(file);
+  const by = {};
+  for (const r of rows) by[r.class] = (by[r.class] ?? 0) + 1;
+  const known = (by.catalogued ?? 0) + (by["catalogued-moving"] ?? 0) + (by["solar-system"] ?? 0);
+  return { total: rows.length, fields: file.fields.length, byClass: by, known, needChecking: by.unknown ?? 0, weak: by["unknown-weak"] ?? 0, artefacts: by.artefact ?? 0, unchecked: by.unchecked ?? 0 };
+}
+
+/** The verdict under the table, from the counts: nothing left unexplained says that this test cannot show the tool would find something new; sources left over are leads. */
+export function sourcesVerdict(s) {
+  const left = s.needChecking + s.weak + s.artefacts + s.unchecked;
+  return left === 0
+    ? "Every source was explained by a catalogue or a known body: it found nothing new, and this test cannot say whether it would."
+    : `${left} source${left === 1 ? " is" : "s are"} not explained by a catalogue or a known body: leads to check, not discoveries.`;
+}
+
+/** One sentence from those counts. It claims no discovery; it says what the catalogues explained and what is left. */
+export function sourcesSentence(s) {
+  const left = s.needChecking + s.weak + s.artefacts + s.unchecked;
+  return `${s.total} source${s.total === 1 ? "" : "s"} in ${s.fields} field${s.fields === 1 ? "" : "s"}: ${s.known} in a catalogue or a known Solar System body` +
+    (left === 0 ? "; none is left unexplained." : `; ${left} not explained (${s.needChecking} need checking, ${s.weak} weakly supported, ${s.artefacts} possible artefacts, ${s.unchecked} not checked).`);
+}
+
+function renderSources(file, root = document) {
+  const section = root.getElementById("sources-section");
+  if (!section) return;
+  const select = root.getElementById("sources-field");
+  select.replaceChildren(new Option("All fields", "all"), ...file.fields.map((f) => new Option(`${f.label} (${f.total})`, f.id)));
+  const summary = sourcesSummary(file);
+  root.getElementById("sources-summary").textContent = sourcesSentence(summary);
+  root.getElementById("sources-verdict").textContent = sourcesVerdict(summary);
+  const explorer = createExplorer({ root: root.getElementById("sources-explorer"), threshold: file.fields[0]?.provenance?.settings?.needsCheckingScore ?? null, showField: true,
+    onSelect: (id) => { const r = sourceRows(file).find((x) => x.id === id && (select.value === "all" || x.field === file.fields.find((f) => f.id === select.value)?.label)); root.getElementById("sources-detail").textContent = r ? `${r.id} · ${r.field} · ${r.headline}${r.match ? ` · match: ${r.match}` : ""}` : ""; } });
+  explorer.setRows(sourceRows(file));
+  select.addEventListener("change", () => { explorer.reset(); explorer.setRows(sourceRows(file, select.value)); root.getElementById("sources-detail").textContent = ""; });
+  const prov = root.getElementById("sources-provenance");
+  prov.replaceChildren(...file.fields.map((f) => {
+    const d = document.createElement("details");
+    d.className = "provenance";
+    const missing = missingProvenance(f.provenance);
+    d.innerHTML = `<summary>${esc(f.label)}: how it was made</summary><p>${esc(provenanceText(f.provenance))}${missing.length ? ` <strong>Missing from this record: ${esc(missing.join(", "))}.</strong>` : ""}</p>`;
+    return d;
+  }));
+  root.getElementById("sources-command").textContent = file.command;
+  root.getElementById("sources-date").textContent = file.measuredOn;
+  section.hidden = false;
+}
+
 async function main() {
   const status = document.getElementById("results-status");
   const loadArchive = setupExplorer();
   try {
-    const r = await fetch("data/real_results.json");
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const data = await r.json();
-    renderPage(data);
-    loadArchive(data);
+    const [typed, generated] = await Promise.all(["data/real_results.json", "data/real_results_generated.json"].map(async (url) => {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`);
+      return r.json();
+    }));
+    const merged = mergeResults(typed, generated);
+    renderPage(merged);
+    loadArchive(merged);                         // the candidate explorer of the other Blink 2.0 line reads the archived mover validation (sections 1-3)
     if (status) status.hidden = true;
   } catch (err) {
     if (status) {
@@ -282,5 +383,16 @@ async function main() {
         : `The numbers could not be loaded (${err.message}).`;
     }
   }
+  // The sources table is a separate file: if it fails, say so in its own place and leave the rest of the page as it is.
+  const note = document.getElementById("sources-status");
+  try {
+    const r = await fetch("data/real_sources.json");
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    renderSources(await r.json());
+    if (note) note.hidden = true;
+  } catch (err) {
+    if (note) { note.hidden = false; note.textContent = `The list of sources could not be loaded (${err.message}).`; }
+  }
 }
 if (typeof document !== "undefined" && document.getElementById("results-status")) main();
+if (typeof document !== "undefined" && document.getElementById("theme-select")) setupThemeSwitcher(document.getElementById("theme-select"));

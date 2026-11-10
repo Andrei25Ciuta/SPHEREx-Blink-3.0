@@ -18,7 +18,12 @@ const csv = candidatesToCsv([distant, linear], ctx);
 const lines = csv.trimEnd().split("\r\n");
 check("CSV: a header and one line per candidate", lines.length === 3 && lines[0] === COLUMNS.join(","), `${lines.length} lines`);
 check("CSV: ends with a line break (spreadsheets expect it)", csv.endsWith("\r\n"));
-check("CSV: every data line has as many cells as the header (commas inside quotes do not count)", lines.slice(1).every((l) => l.match(/("(?:[^"]|"")*"|[^,]*)(,|$)/g).length - 1 === COLUMNS.length), lines.slice(1).map((l) => l.length).join("/"));
+// Splits one CSV line into its cells (commas inside quotes do not count). The earlier check counted cells with a regular expression that miscounts a line ending in an
+// empty cell, which the provenance columns now produce when a file is made without a recorded search; the counting was wrong, not the files.
+const splitCsv = (line) => { const cells = []; let cur = "", quoted = false; for (let i = 0; i < line.length; i++) { const ch = line[i];
+  if (quoted) { if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; } else if (ch === '"') quoted = false; else cur += ch; }
+  else if (ch === '"') quoted = true; else if (ch === ",") { cells.push(cur); cur = ""; } else cur += ch; } cells.push(cur); return cells; };
+check("CSV: every data line has as many cells as the header (commas inside quotes do not count)", lines.slice(1).every((l) => splitCsv(l).length === COLUMNS.length), lines.slice(1).map((l) => splitCsv(l).length).join("/") + ` of ${COLUMNS.length}`);
 check("CSV: each row says the data is SYNTHETIC and carries the permalink", lines.slice(1).every((l) => l.includes("SYNTHETIC demo data") && l.includes("https://mateibut.github.io/SPHEREx/?ra=136.5")));
 check("CSV: a real-data export says so instead", candidatesToCsv([linear], { ...ctx, isReal: true }).includes("SPHEREx-format FITS data") && !candidatesToCsv([linear], { ...ctx, isReal: true }).includes("SYNTHETIC"));
 check("CSV: text that a spreadsheet would run as a formula gets an apostrophe", lines[1].includes("'=cmd") && !/,=cmd/.test(lines[1]));

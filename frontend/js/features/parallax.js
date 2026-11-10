@@ -186,14 +186,20 @@ function solve(A, b) {
  * = the STRAIGHT-DRIFT part, shifts[k] = how far the body is displaced on image k, points) and, in addition,
  *   distanceAU, distanceRangeAU: [lo, hi], parallaxSigma (how much better than a straight line), rmsLinear.
  */
+/** Name of this version of the parallax search (provenance.js writes it into every result). Change it whenever a change may alter what the search finds. First written 8 Nov 2026. */
+export const VERSION = "parallax-1";
+
+/** The options of findDistantMovers (the ones of findMovers, `DEFAULTS` in movers.js, apply too); exported so that a result can say what it was run with. */
+export const DISTANT_DEFAULTS = { minDistanceAU: 50, maxDistanceAU: 5000, minParallaxSigma: 6, seedResidualPx: 2, maxSeedDots: 80, maxTriples: 4e7,
+  maxEscapeFactor: 1.5,       // the body must be bound to the Sun: own speed at most this times the escape speed (Infinity = no limit)
+  minParallaxFraction: 0.6,   // a body must be found at this fraction of the distinct dates (0.5 for the faint real one of VALIDATION.md)
+  minPerPass: 2,              // ... and have at least this many dots in each survey pass it uses (1 for a faint body seen once per pass)
+  maxParallaxRmsPx: 0.6,      // rms of its dots about the model; real faint sources need about 1.5 (centroid error of S/N 4-8 sources).
+                              // The effective limit is the smaller of this and maxRmsPx (0.8 from findMovers): pass both to loosen it.
+};
+
 export function findDistantMovers(frames, geo, options = {}) {
-  const o = { minDistanceAU: 50, maxDistanceAU: 5000, minParallaxSigma: 6, seedResidualPx: 2, maxSeedDots: 80, maxTriples: 4e7,
-    maxEscapeFactor: 1.5,       // the body must be bound to the Sun: own speed at most this times the escape speed (Infinity = no limit)
-    minParallaxFraction: 0.6,   // a body must be found at this fraction of the distinct dates (0.5 for the faint real one of VALIDATION.md)
-    minPerPass: 2,              // ... and have at least this many dots in each survey pass it uses (1 for a faint body seen once per pass)
-    maxParallaxRmsPx: 0.6,      // rms of its dots about the model; real faint sources need about 1.5 (centroid error of S/N 4-8 sources).
-                                // The effective limit is the smaller of this and maxRmsPx (0.8 from findMovers): pass both to loosen it.
-    ...DEFAULTS, ...options };
+  const o = { ...DISTANT_DEFAULTS, ...DEFAULTS, ...options };
   const N = frames.length;
   const stats = { frames: N, passes: 0, dotsPerFrame: frames.map((f) => f.sources.length), movingDots: 0, seeds: 0, triples: 0, truncated: false };
   if (N < 3) return { candidates: [], stats, reason: "needs at least 3 images" };

@@ -11,14 +11,35 @@ import { TARGETS, positionAtEpoch, SPHEREX_REF_EPOCH, targetsInField, totalPrope
 import { skyToCanvas, tanCanvasToSky, mjdToYear } from "./geometry.js";
 import { readUrlState, writeUrlState } from "./urlState.js";
 import { getCutouts, listDetectors } from "./data/getCutouts.js";
-import { DATA_SOURCE, CAN_USE_LOCAL_BACKEND } from "./config.js";
+import { DATA_SOURCE, API_BASE, CAN_USE_LOCAL_BACKEND } from "./config.js";
 import { BlinkPlayer, MODES, loadImage, meanImageData } from "./player.js";
-import { canvasToSky, measureAndPlot, clearMeasurement, APERTURE_RADIUS_PX } from "./features/measure.js";
+import { canvasToSky, measureAndPlot, clearMeasurement, setSpectrumStyle, APERTURE_RADIUS_PX } from "./features/measure.js";
+import { setupViewer } from "./features/viewerControls.js";
+import { setupWorkspace } from "./features/workspaceView.js";
+import { setupPlanetLab } from "./features/planetLabView.js";
+import { setupSkyExplorer } from "./features/skyExplorerView.js";
+import { setupSurveySearch } from "./features/surveyView.js";
+import { setupTextAnalysis } from "./features/textAnalysisView.js";
+import { setupBundle } from "./features/bundleView.js";
+import { fetchSurvey as askSurvey } from "./features/surveyCoverage.js";
+import { setupSolarSystem } from "./features/solarSystemView.js";
+import { setupAssistant } from "./features/assistantView.js";
+import { runTask, isCancelled } from "./features/workerClient.js";
+import { estimateSearch, describeEstimate } from "./features/searchCost.js";
+import { runSearchTask } from "./features/searchTasks.js";
+import { MARK_IDLE, markText } from "./features/workspace.js";
+import { detectorCoverage, coverageText } from "./features/spectral.js";
+import { setupTooltips } from "./features/tooltip.js";
+import { applyIcons } from "./features/ui.js";
+import { openDialog, shortcutsHtml } from "./features/dialog.js";
+import { setupTimeline } from "./features/timelineView.js";
+import { FLAGGED_LIMIT } from "./features/timeline.js";
 import { SkyContext } from "./features/skyContext.js";
 import { setupFullscreen } from "./features/fullscreen.js";
-import { findMoversAcrossDetectors, detectSources, describeMover, matchKnownObject, moverPositionAtMjd, passIndices, trackSupport, blendWarning } from "./features/movers.js";
+import { detectSources, describeMover, matchKnownObject, moverPositionAtMjd, passIndices, trackSupport, blendWarning, VERSION as MOVERS_VERSION, DEFAULTS as MOVER_DEFAULTS, ERROR_MODEL } from "./features/movers.js";
+import { buildProvenance, provenanceText, pictureCaption } from "./features/provenance.js";
 import { colourHint } from "./features/spectrum.js";
-import { findDistantMovers, describeDistant, classifyApparentMotion } from "./features/parallax.js";
+import { describeDistant, classifyApparentMotion, VERSION as PARALLAX_VERSION, DISTANT_DEFAULTS } from "./features/parallax.js";
 import { candidatesToCsv, candidatesToJson, exportFileName } from "./features/export.js";
 import { startTour, WORKSPACE_STEPS } from "./features/tour.js";
 import { PLANET_X_DEMO } from "./data/mockSource.js";
@@ -27,6 +48,8 @@ import { fetchCatalogue, catalogueTracks } from "./features/catalogue.js";
 import { fetchSkybotForFrames, asteroidPoints, matchAsteroids } from "./features/skybot.js";
 import { setComparisonFrames } from "./features/detectorPair.js";
 import { savePng, recordBlink, canRecord, copyLink } from "./features/exporters.js";
+import { setupDiscoverPanel } from "./features/discoverPanel.js";
+import { setupThemeSwitcher } from "./features/theme.js";
 
 // Small helper: document.getElementById is long, so we alias it.
 const $ = (id) => document.getElementById(id);
@@ -38,7 +61,7 @@ const fovInput = $("fov-input");
 const speedInput = $("speed-input");
 const detSelect = $("det-select");
 const canvas = $("blink-canvas");
-const observations = $("observation-select");
+const observations = $("observation-select");        // a plain list of the images, beside the timeline (from the other Blink 2.0 line)
 $("data-source").value = DATA_SOURCE;
 $("data-source").querySelector('option[value="api"]').disabled = !CAN_USE_LOCAL_BACKEND;
 $("data-source-help").hidden = CAN_USE_LOCAL_BACKEND;
@@ -55,7 +78,7 @@ let requestedDetector = null;
 // FOV limits – must match min/max of the slider in index.html.
 const FOV_MIN = 1, FOV_MAX = 30;
 // "Skip flagged frames" threshold.
-const MAX_FLAGGED_FRACTION = 0.01;
+const MAX_FLAGGED_FRACTION = FLAGGED_LIMIT;       // "Skip frames with > 1 % flagged pixels": the same limit marks a diamond on the timeline
 
 // ---------------------------------------------------------------
 // Data state
@@ -66,6 +89,7 @@ let currentDetector = null;
 let currentQuery = null;  // { ra, dec, fov } of the loaded data
 let loadToken = 0;        // increases on every load; protects against out-of-order responses
 let lastQuery = null;     // remembered so "Try again" can repeat the failed request
+let discoverPanel = null; // the "Find everything" panel (set up further down)
 
 // ---------------------------------------------------------------
 // Slider labels
@@ -258,10 +282,77 @@ const player = new BlinkPlayer(canvas, {
 });
 player.setFps(speedInput.value);
 
+// Zoom, pan, the readout under the pointer and the layer list (features/viewerControls.js). Set up BEFORE the click handler that measures:
+// a click that ends a drag must stop in the viewer's own handler and never reach the measuring.
+/** The pixel values of one frame as real numbers (backend `dataUrl`, float32), for the readout. Rejects when they cannot be had. */
+async function loadFloatFrame(frame) {
+  const response = await fetch(frame.dataUrl);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return new Float32Array(await response.arrayBuffer());
+}
+const viewer = setupViewer({
+  player, canvas, crosshair: $("crosshair"),
+  zoomEls: { inBtn: $("zoom-in-btn"), outBtn: $("zoom-out-btn"), fitBtn: $("zoom-fit-btn"), level: $("zoom-level") },
+  skyFn: DATA_SOURCE === "api" ? tanCanvasToSky : canvasToSky,           // real data: the north-up TAN grid of the backend (the same mapping as the click that measures)
+  readoutEls: { root: $("readout"), pixel: $("ro-pixel"), sky: $("ro-sky"), offset: $("ro-offset"), value: $("ro-value"), announce: $("readout-announce") },
+  layersRoot: $("layers"),
+  getGeo: () => (currentQuery && currentFrames.length && player.naturalSize ? currentGeo() : null),
+  loadFloat: loadFloatFrame,
+});
+
+// The inspector (features/workspaceView.js): the side panels that close, the description of a selected candidate beside its list on a wide screen,
+// and the marked position, which follows the measuring circle wherever it is set or cleared.
+const markEl = $("insp-mark");
+function updateMarkedPosition() {
+  const m = player.marker;
+  const parts = m ? viewer.describeAt(m.fx, m.fy) : null;
+  markEl.textContent = parts ? markText(parts) : MARK_IDLE;
+  markEl.classList.toggle("has-mark", Boolean(parts));
+}
+player.onMarkerChange = updateMarkedPosition;
+updateMarkedPosition();
+setupWorkspace({
+  root: $("workspace"), leftBtn: $("panel-left-btn"), rightBtn: $("panel-right-btn"),
+  slot: $("inspector-slot"), empty: $("inspector-empty"), details: [$("mover-detail"), $("discover-detail")],
+});
+
+// Shared interface pieces (features/tooltip.js, ui.js, dialog.js): tooltips for the keyboard too, the icons, and the list of keyboard shortcuts.
+setupTooltips();
+applyIcons();
+function showShortcuts() { openDialog({ title: "Keyboard shortcuts", html: shortcutsHtml(), opener: $("shortcuts-btn") }); }
+$("shortcuts-btn").addEventListener("click", showShortcuts);
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "?" || e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented) return;
+  if (e.target?.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName ?? "")) return;      // typing a question mark is not a command
+  if (document.querySelector("dialog[open]")) return;
+  e.preventDefault();
+  showShortcuts();
+});
+
+// The timeline (features/timelineView.js): one button per image by time and wavelength, survey-pass switches and a wavelength window. Its filter tells the
+// player which images the blink visits and which ones Stack, Trail and Difference use; the searches always use all of them.
+const timeline = setupTimeline({
+  root: $("timeline"), player,
+  onFilterChange: () => {
+    if (!player.length) return;
+    setPlayerEnabled(true);                                  // Play needs two images that pass the filter
+    updateFrameInfo(player.index, player.frames[player.index]);
+  },
+});
+
 const fmtDate = (iso) => iso.slice(0, 16).replace("T", " ") + " UTC";
+
+/** Tell a screen reader which image is now shown (a live region), unless the blink is playing: then the user chose to watch it change, and speech every half second would be noise. */
+let announceTimer = 0;
+function announceFrame(text) {
+  if (player.playing) return;
+  clearTimeout(announceTimer);
+  announceTimer = setTimeout(() => { $("frame-announce").textContent = text; }, 250);          // the last of a quick run of key presses is the one said
+}
 
 /** Update counter, date, slider and metadata for the frame being shown. */
 function updateFrameInfo(i, frame) {
+  timeline.setCurrent(i);
   observations.value = String(i);
   frameSlider.value = String(i);
   frameSlider.setAttribute("aria-valuetext", `Frame ${i + 1} of ${player.length}, ${frame.dateISO.slice(0, 10)}`);
@@ -276,6 +367,8 @@ function updateFrameInfo(i, frame) {
       : frame.flags.anyFlagged ? `⚠ ${(frame.flags.fractionFlagged * 100).toFixed(1)} % px` : "Clean";
     canvas.setAttribute("aria-label",
       `SPHEREx ${frame.detector} ${player.mode === "diff" ? "difference image" : "image"} taken ${frame.dateISO.slice(0, 10)}, frame ${i + 1} of ${player.length}`);
+    announceFrame(`Frame ${i + 1} of ${player.length}: ${frame.detector}, ${frame.dateISO.slice(0, 10)}, ${frame.wavelengthMinUm.toFixed(2)} to ${frame.wavelengthMaxUm.toFixed(2)} micrometres`
+      + `${frame.flags?.anyFlagged ? `, ${(frame.flags.fractionFlagged * 100).toFixed(1)} percent of pixels flagged` : ""}.`);
   } else if (player.mode === "compare" && compareState) {
     // Compare: A − B or A + B of the images / passes you picked.
     const { a, b, op } = compareState;
@@ -290,27 +383,37 @@ function updateFrameInfo(i, frame) {
     canvas.setAttribute("aria-label",
       `SPHEREx ${frame.detector} ${op === "sub" ? "difference" : "sum"} image: ${shortLabel(a, player.frames)} ${sign} ${shortLabel(b, player.frames)}`);
   } else {
-    // Stack / trail: one image made from all frames.
-    const f0 = player.frames[0], f1 = player.frames.at(-1);
-    const wlMin = Math.min(...player.frames.map((f) => f.wavelengthMinUm));
-    const wlMax = Math.max(...player.frames.map((f) => f.wavelengthMaxUm));
-    $("frame-counter").textContent = `${player.mode === "mean" ? "Stack" : "Trail"} of ${player.length}`;
+    // Stack / trail: one image made from the images the timeline filter lets through (all of them without a filter).
+    const used = player.activeIndices.map((k) => player.frames[k]);
+    const total = player.length, of = used.length === total ? `${total}` : `${used.length} of ${total}`;
+    const name = player.mode === "mean" ? "Stack" : "Trail";
+    if (!used.length) {
+      $("frame-counter").textContent = `${name}: no image passes the timeline filter`;
+      $("frame-date").textContent = "—";
+      canvas.setAttribute("aria-label", `SPHEREx ${frame.detector} ${name.toLowerCase()}: no image passes the timeline filter, showing the plain image`);
+      return;
+    }
+    const f0 = used[0], f1 = used.at(-1);
+    const wlMin = Math.min(...used.map((f) => f.wavelengthMinUm));
+    const wlMax = Math.max(...used.map((f) => f.wavelengthMaxUm));
+    $("frame-counter").textContent = `${name} of ${of}`;
     $("frame-date").textContent = `${f0.dateISO.slice(0, 10)} → ${f1.dateISO.slice(0, 10)}`;
     $("meta-wl").textContent = `${wlMin.toFixed(2)}–${wlMax.toFixed(2)} µm`;
-    const flagged = player.frames.filter((f) => f.flags?.anyFlagged).length;
-    $("meta-flags").textContent = flagged ? `⚠ ${flagged} of ${player.length} frames` : "Clean";
+    const flagged = used.filter((f) => f.flags?.anyFlagged).length;
+    $("meta-flags").textContent = flagged ? `⚠ ${flagged} of ${used.length} frames` : "Clean";
     $("meta-mjd").textContent = `${f0.mjd.toFixed(1)}–${f1.mjd.toFixed(1)}`;
     canvas.setAttribute("aria-label",
-      `SPHEREx ${f0.detector} ${player.mode === "mean" ? "average" : "maximum (trail)"} of ${player.length} images, ${f0.dateISO.slice(0, 10)} to ${f1.dateISO.slice(0, 10)}`);
+      `SPHEREx ${f0.detector} ${player.mode === "mean" ? "average" : "maximum (trail)"} of ${of} images, ${f0.dateISO.slice(0, 10)} to ${f1.dateISO.slice(0, 10)}`);
   }
 }
 
 /** Enable/disable the player controls according to frames + mode. */
 function setPlayerEnabled(enabled) {
   const animated = enabled && player.isAnimated && player.length > 1;
-  observations.disabled = !enabled || !player.isAnimated;
-  playBtn.disabled = !animated;
+  playBtn.disabled = !animated || player.activeCount < 2;     // the timeline filter may leave fewer than two images to step through
+  if (playBtn.disabled && player.playing) player.pause();
   frameSlider.disabled = !animated;
+  observations.disabled = !enabled || !player.isAnimated;
   speedInput.disabled = !animated;
   $("save-png-btn").disabled = !enabled;
   $("record-btn").disabled = !animated || !canRecord();
@@ -318,8 +421,11 @@ function setPlayerEnabled(enabled) {
   document.querySelectorAll('#mode-switch input:not([value="blink"])')
     .forEach((r) => { r.disabled = !enabled || player.length < 2; });
   $("show-flags").disabled = !enabled || !player.hasFlagMasks;
+  viewer.refresh();                                  // the zoom buttons follow whether there is a picture
   $("find-movers-btn").disabled = !enabled || !canFindMovers();
   $("find-distant-btn").disabled = !enabled || !canFindMovers();
+  planetLab?.refresh();
+  if (discoverPanel) { if (enabled) discoverPanel.refresh(); else $("discover-btn").disabled = true; }
 }
 
 observations.addEventListener("change", () => {
@@ -340,6 +446,7 @@ frameSlider.addEventListener("input", () => {
 document.addEventListener("keydown", (e) => {
   if (!(e.target instanceof Element) || e.target.closest("input, select, textarea, summary, .skymap") || !player.length) return;
   if (e.ctrlKey || e.metaKey || e.altKey) return;    // leave browser shortcuts alone
+  if (e.shiftKey && e.key.startsWith("Arrow")) return;   // Shift + arrows move a zoomed picture (viewerControls.js)
   if (e.key === "Escape" && player.marker) { clearMarker(); return; }
   if (!player.isAnimated) return;
   const onButton = !!e.target.closest("button");
@@ -489,12 +596,13 @@ async function showDetector(detector) {
   currentFrames = frames;
   observations.replaceChildren(...frames.map((f, i) =>
     new Option(`${fmtDate(f.dateISO)} · ${f.detector} · ${f.wavelengthMinUm.toFixed(2)}–${f.wavelengthMaxUm.toFixed(2)} µm`, i)));
-  $("pixel-readout").value = "";
   player.setTracks([]);                  // old track has the wrong number of points
   clearMovers();                         // so do the movers found in the old frames
+  discoverPanel?.clear();                // and the sources listed by "Find everything"
   compareState = null;                   // and the A / B choices of the Compare mode
   player.pause();
   setPlayerEnabled(false);
+  timeline.setFrames([]);                // the old images are gone: hide the timeline until the new ones are in
   markOverview(detector);
   setStatus(skipped ? `${skipped} ${detector} frame(s) hidden because more than 1 % of their pixels are flagged.` : "");
 
@@ -505,13 +613,17 @@ async function showDetector(detector) {
   }
   const n = currentFrames.length;
   // Preload all images; the bar shows how many are ready.
+  solarSystem?.refresh();                                  // the dates of the survey passes and the direction of the field
   await player.setFrames(currentFrames, (done) => {
     if (current()) showOverlay("Preparing frames…", `${done} / ${n} ${detector} images ready`, { progress: done / n });
   }, current);
   if (!current()) return;
 
   setupCompare();
+  timeline.setFrames(currentFrames);     // the timeline of the images now in the player
   frameSlider.max = String(currentFrames.length - 1);
+  player.setField({ ra: currentQuery.ra, dec: currentQuery.dec,                                              // for the scale bar and the grid
+    scaleArcsec: currentFrames[0].pixelScaleArcsec ?? (currentQuery.fov * 60) / player.naturalSize });
   hideOverlay();
   setPlayerEnabled(true);
   updateTracks();
@@ -523,6 +635,7 @@ async function showDetector(detector) {
   $("movers-status").textContent = moversHint();
   $("find-movers-btn").disabled = !canFindMovers();
   $("find-distant-btn").disabled = !canFindMovers();
+  discoverPanel?.refresh();
 
   if (currentFrames.length === 1) {
     setStatus(`Only one ${detector} image here – nothing to blink. Try another detector.`);
@@ -538,20 +651,32 @@ async function showDetector(detector) {
 async function renderOverview(frames, token) {
   const box = $("overview"), grid = $("overview-grid");
   grid.innerHTML = "";
-  const detectors = listDetectors(frames);
-  if (detectors.length < 2) { box.hidden = true; return; }
+  if (!frames.length) { box.hidden = true; return; }
   box.hidden = false;
 
-  for (const d of detectors) {
+  // All six detectors side by side (features/spectral.js): the ones that have images here show their average; the others are shown as MISSING, with the band they would cover.
+  for (const row of detectorCoverage(frames)) {
+    const words = coverageText(row);
+    if (row.status === "none") {
+      const tile = document.createElement("div");
+      tile.className = "overview-item is-missing";
+      tile.dataset.det = row.id;
+      tile.setAttribute("role", "group");
+      tile.setAttribute("aria-label", `${row.id}: no images of this field. ${words.line2}.`);
+      tile.innerHTML = `<span class="ov-blank" aria-hidden="true"></span><span class="ov-name">${row.id}</span><span class="ov-sub">${words.line1}</span><span class="ov-sub">${words.line2}</span>`;
+      grid.appendChild(tile);
+      continue;
+    }
+    const d = { detector: row.id };
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "overview-item";
     btn.dataset.det = d.detector;
     btn.setAttribute("aria-pressed", String(d.detector === currentDetector));
-    btn.setAttribute("aria-label", `${d.detector}, ${d.wlMin.toFixed(2)} to ${d.wlMax.toFixed(2)} micrometres, ${d.count} frames. Show in the player.`);
+    btn.setAttribute("aria-label", `${row.id}, ${row.wlMin.toFixed(2)} to ${row.wlMax.toFixed(2)} micrometres, ${row.count} images, ${words.line2}. Show in the player.`);
     btn.innerHTML = `<canvas width="1" height="1" aria-hidden="true"></canvas>
-      <span class="ov-name">${d.detector}</span>
-      <span class="ov-sub">${d.wlMin.toFixed(2)}–${d.wlMax.toFixed(2)} µm · ${d.count}×</span>`;
+      <span class="ov-name">${row.id}</span>
+      <span class="ov-sub">${words.line1}</span><span class="ov-sub">${words.line2}</span>`;
     btn.addEventListener("click", () => selectDetector(d.detector));
     grid.appendChild(btn);
 
@@ -581,41 +706,28 @@ const measureEls = {
   tableWrap: $("measure-table-wrap"), table: $("measure-table"),
   spectrum: $("spectrum-chart"), lightcurve: $("lightcurve-chart"),
   spectrumCaption: $("spectrum-caption"), lightcurveCaption: $("lightcurve-caption"),
+  tools: $("measure-tools"), missing: $("measure-missing"),
 };
+// how the uncertainty of the spectrum is drawn (features/measure.js, spectral.js): error bars, or a band that breaks where no image covers a wavelength
+document.querySelectorAll('input[name="measure-style"]').forEach((r) => r.addEventListener("change", () => { if (r.checked) setSpectrumStyle(r.value); }));
 let measureToken = 0;
 
-const inspectionPosition = DATA_SOURCE === "api" ? tanCanvasToSky : canvasToSky;
-const plane = canvas.parentElement;
-const viewport = plane.parentElement;
+const inspectionPosition = DATA_SOURCE === "api" ? tanCanvasToSky : canvasToSky;       // the mapping the click that measures uses
+// Image display (from the other Blink 2.0 line): brightness and contrast of the picture on screen and the centre crosshair. Screen only: the saved PNG and every measurement use the pixels as they are.
 function adjustDisplay() {
-  plane.style.setProperty("--zoom", Number($("image-zoom").value) * 100 + "%");
-  plane.style.setProperty("--brightness", Number($("image-brightness").value) / 100);
-  plane.style.setProperty("--contrast", Number($("image-contrast").value) / 100);
-  plane.querySelector(".crosshair").hidden = !$("centre-crosshair").checked;
+  canvas.style.filter = `brightness(${Number($("image-brightness").value) / 100}) contrast(${Number($("image-contrast").value) / 100})`;
+  $("crosshair").hidden = !$("centre-crosshair").checked;
 }
-for (const id of ["image-zoom", "image-brightness", "image-contrast", "centre-crosshair"])
-  $(id).addEventListener("input", adjustDisplay);
+for (const id of ["image-brightness", "image-contrast", "centre-crosshair"]) $(id).addEventListener("input", adjustDisplay);
 $("reset-view").addEventListener("click", () => {
-  $("image-zoom").value = "1";
   $("image-brightness").value = $("image-contrast").value = "100";
   $("centre-crosshair").checked = true;
   adjustDisplay();
-  viewport.scrollTo(0, 0);
 });
-canvas.addEventListener("pointermove", e => {
-  if (!currentQuery || !player.length || !overlay.classList.contains("hidden")) return;
-  const rect = canvas.getBoundingClientRect();
-  const fx = (e.clientX - rect.left) / rect.width, fy = (e.clientY - rect.top) / rect.height;
-  const geo = currentGeo();
-  const pos = inspectionPosition(fx, fy, geo);
-  $("pixel-readout").value = `Pixel (${Math.floor(fx * geo.n)}, ${Math.floor(fy * geo.n)}) · RA ${formatRA(pos.ra)} · Dec ${formatDec(pos.dec)}`;
-});
-canvas.addEventListener("pointerleave", () => { $("pixel-readout").value = ""; });
 canvas.addEventListener("click", async (e) => {
   if (!player.length || !currentQuery) return;
-  const rect = canvas.getBoundingClientRect();
-  const fx = (e.clientX - rect.left) / rect.width;
-  const fy = (e.clientY - rect.top) / rect.height;
+  const { fx, fy } = player.pointToFrac(e.clientX, e.clientY);       // image fractions, whatever the zoom and pan
+  if (fx < 0 || fx >= 1 || fy < 0 || fy >= 1) return;
   const n = player.naturalSize;
   const scaleArcsec = currentFrames[0].pixelScaleArcsec ?? (currentQuery.fov * 60) / n;
   const sky = inspectionPosition(fx, fy, { ra: currentQuery.ra, dec: currentQuery.dec, n, scaleArcsec });
@@ -779,9 +891,13 @@ $("show-asteroids").addEventListener("change", updateAsteroids);
 // ---------------------------------------------------------------
 const MOVERS_HINT = "Compares the dots in all images and lists the ones that moved.";
 const MIN_PASSES = 3;                      // same rule as in movers.js: a third pass proves a line
+let textAnalysis = null;                   // the text analysis (section 9), set up below; its candidate table is refreshed when the list changes
 let movers = [];                           // candidates for the detector on screen, best first
 let selectedMover = -1;
+let assistant = null;                      // the explainer (features/assistantView.js), set up further down
+let planetLab = null;                      // the Planet X Lab (features/planetLabView.js), set up further down
 let moversCatalogueChecked = false;        // was SIMBAD consulted for the list on screen?
+let moversRun = null;                      // how the list on screen was made (features/provenance.js): input, settings, algorithm version, time of the run
 
 const countPasses = (frames) => (frames.length ? passIndices(frames.map((f) => f.mjd)).at(-1) + 1 : 0);
 
@@ -789,6 +905,39 @@ const countPasses = (frames) => (frames.length ? passIndices(frames.map((f) => f
 // (different wavelengths do not matter): 3-6 times more images and passes than one detector has. On real data the
 // blind test went from 0.62 to 0.52 arcsec/yr (Epsilon Indi B) and 0.80 to 0.28 (Barnard) off the catalogue.
 const frameId = (f) => `${f.detector}@${f.mjd}`;
+
+/**
+ * A search that can keep the page busy for seconds runs in a worker (js/searchWorker.js), so that the page stays usable; with no worker it runs here and gives the same answer
+ * (features/workerClient.js, searchTasks.js). The worker gets a copy of the data.
+ */
+async function searchInWorker(kind, payload, { signal = null, onStart = null } = {}) {
+  const { result, inWorker } = await runTask(kind, payload, {
+    makeWorker: () => new Worker(new URL("./searchWorker.js", import.meta.url), { type: "module" }),
+    fallback: () => runSearchTask(kind, payload),
+    signal, onStart,
+  });
+  $("movers").dataset.lastSearch = `${kind}:${inWorker ? "worker" : "page"}`;       // where the last search really ran (the end-to-end test reads it: a worker that failed to load must not pass as one that ran)
+  return result;
+}
+
+// Cancel and elapsed time for the long searches. The Cancel button is shown only while a worker runs the search (a search on the page is one call that cannot be stopped; the status line says so).
+let searchAbort = null, searchTicker = null;
+function beginSearch(text) {
+  searchAbort = new AbortController();
+  const status = $("movers-status"), t0 = performance.now();
+  status.textContent = text;
+  clearInterval(searchTicker);
+  searchTicker = setInterval(() => { const s = Math.round((performance.now() - t0) / 1000); if (s >= 2) status.textContent = `${text} (${s} s)`; }, 1000);
+  return { signal: searchAbort.signal, onStart: ({ cancellable }) => { $("cancel-search-btn").hidden = !cancellable; if (!cancellable) status.textContent = `${text} This runs on the page itself and cannot be cancelled.`; } };
+}
+function endSearch() { clearInterval(searchTicker); searchTicker = null; searchAbort = null; $("cancel-search-btn").hidden = true; }
+$("cancel-search-btn").addEventListener("click", () => { searchAbort?.abort(); });
+
+/** The date of every dot of every candidate (for the Planet X Lab's comparison of motions): a dot says which image of the search it is in, a candidate of several detectors says which image by its frameIds. */
+function attachDotDates(candidates, frames) {
+  const mjdById = new Map(frames.map((f) => [frameId(f), f.mjd]));
+  for (const c of candidates) c.dotDates = (c.points ?? []).map((p) => (c.frameIds ? mjdById.get(c.frameIds[p.frame]) : frames[p.frame]?.mjd) ?? null);
+}
 const hasSeveralDetectors = () => new Set(allFrames.map((f) => f.detector)).size > 1;
 const useAllDetectors = () => $("movers-all-det").checked && hasSeveralDetectors();
 const searchFrames = () => (useAllDetectors() ? allFrames : player.frames);
@@ -806,13 +955,17 @@ function moversHint() {
 }
 $("movers-all-det").addEventListener("change", () => {
   clearMovers();
+  discoverPanel?.clear();
   $("movers-status").textContent = moversHint();
   $("find-movers-btn").disabled = !player.length || !canFindMovers();
   $("find-distant-btn").disabled = !player.length || !canFindMovers();
+  discoverPanel?.refresh();
 });
 
 function clearMovers() {
   movers = [];
+  moversRun = null;
+  $("movers-provenance").hidden = true;
   selectedMover = -1;
   player.setCandidates([]);
   $("mover-list").hidden = true;
@@ -820,6 +973,7 @@ function clearMovers() {
   $("mover-export").hidden = true;
   $("mover-detail").hidden = true;
   $("movers-status").textContent = MOVERS_HINT;
+  planetLab?.refresh();
 }
 
 /** Grey values (0..255) of one image from its PNG URL (for images the player does not hold), or null if the browser refuses. */
@@ -915,6 +1069,7 @@ $("find-movers-btn").addEventListener("click", async () => {
   const token = loadToken;
   const status = $("movers-status");
   const frames = searchFrames();
+  const startedAt = performance.now();
   $("find-movers-btn").disabled = true;
   clearMovers();
   status.textContent = `Searching… comparing the dots in ${describeSearchSet(frames)}.`;
@@ -928,22 +1083,43 @@ $("find-movers-btn").addEventListener("click", async () => {
     }
     if (token !== loadToken) return;
     // every detector together AND each alone, merged (a candidate knows which image each entry of its shifts belongs to)
-    const result = findMoversAcrossDetectors(frames.map((f, i) => ({ mjd: f.mjd, detector: f.detector, id: frameId(f), grey: arrays[i], mask: masks?.[i] ?? null })),
-      player.naturalSize, isFloat ? { sigmaFloor: 1e-9 } : {});
+    const run = beginSearch(`Searching… ${describeEstimate(estimateSearch(frames.length, player.naturalSize))}`);
+    const result = await searchInWorker("movers", { frames: frames.map((f, i) => ({ mjd: f.mjd, detector: f.detector, id: frameId(f), grey: arrays[i], mask: masks?.[i] ?? null })),
+      n: player.naturalSize, options: isFloat ? { sigmaFloor: 1e-9 } : {} }, run);
+    endSearch();
+    if (token !== loadToken) return;
     addSupport(result.candidates, frames, arrays, player.naturalSize, { ...(isFloat ? { sigmaFloor: 1e-9 } : {}) });
+    attachDotDates(result.candidates, frames);
     // Known objects: the test list always, and real SIMBAD objects too when we have real data.
     if (DATA_SOURCE === "api") status.textContent = "Checking SIMBAD and SkyBoT for known objects…";
     const [objects] = await Promise.all([ensureCatalogue(), ensureAsteroids()]);        // each answers null if it cannot: never blocks
     if (token !== loadToken) return;
     showMovers(result, objects);
+    // the options the search ran with: the defaults of movers.js, with the noise floor of real (float) pixels when it was used
+    moversRun = recordRun("find-movers", MOVERS_VERSION, frames, { ...MOVER_DEFAULTS, ...ERROR_MODEL, ...(isFloat ? { sigmaFloor: 1e-9 } : {}), allDetectors: useAllDetectors() }, startedAt, isFloat);
   } catch (err) {
+    endSearch();
+    if (isCancelled(err)) { status.textContent = "The search was cancelled. No candidate was kept (the list was cleared when the search started); the images are unchanged."; return; }
     console.error(err);
     status.textContent = `The search failed: ${err.message}`;
   } finally {
+    endSearch();
     $("find-movers-btn").disabled = !canFindMovers();
     $("find-distant-btn").disabled = !canFindMovers();
   }
 });
+
+/** The record of a search that has just finished (features/provenance.js): its input, its settings, the algorithm version, the time it finished and how long it took. */
+function recordRun(analysis, version, frames, settings, startedAt, isFloat) {
+  const record = buildProvenance({
+    analysis, algorithm: { version }, frames, settings, ranAt: new Date(), durationMs: performance.now() - startedAt,
+    ctx: { ...exportContext(), detector: useAllDetectors() ? "all" : currentDetector },
+    pixels: isFloat ? "float32 pixels in the file's own unit (backend)" : "8-bit pictures (no float pixels: synthetic data)",
+  });
+  $("movers-provenance-text").textContent = provenanceText(record);          // the same sentence as in the files, for the page
+  $("movers-provenance").hidden = false;
+  return record;
+}
 
 /** The cutout the pixels belong to: centre, size and pixel scale. */
 const currentGeo = () => {
@@ -958,6 +1134,7 @@ $("find-distant-btn").addEventListener("click", async () => {
   const token = loadToken;
   const status = $("movers-status");
   const frames = searchFrames();
+  const startedAt = performance.now();
   $("find-movers-btn").disabled = true;
   $("find-distant-btn").disabled = true;
   clearMovers();
@@ -975,15 +1152,23 @@ $("find-distant-btn").addEventListener("click", async () => {
     const detected = frames.map((f, i) => ({ mjd: f.mjd, sources: detectSources(arrays[i], n, { ...(isFloat ? { sigmaFloor: 1e-9 } : {}), mask: masks?.[i] ?? null }) }));
     await ensureAsteroids();                                                              // (a swinging body could also be a known one)
     if (token !== loadToken) return;
-    const result = findDistantMovers(detected, currentGeo());
+    const run = beginSearch(`Searching for a distant body… ${describeEstimate(estimateSearch(frames.length, n))}`);
+    const result = await searchInWorker("distant", { detected, geo: currentGeo() }, run);
+    endSearch();
+    if (token !== loadToken) return;
     const ids = frames.map(frameId);
     for (const c of result.candidates) c.frameIds = ids;
+    attachDotDates(result.candidates, frames);
     addSupport(result.candidates, frames, arrays, n, isFloat ? { sigmaFloor: 1e-9 } : {});
     showMovers(result, null, { distant: true });
+    moversRun = recordRun("find-distant", PARALLAX_VERSION, frames, { ...DISTANT_DEFAULTS, ...MOVER_DEFAULTS, ...(isFloat ? { sigmaFloor: 1e-9 } : {}), allDetectors: useAllDetectors() }, startedAt, isFloat);
   } catch (err) {
+    endSearch();
+    if (isCancelled(err)) { status.textContent = "The search was cancelled. No candidate was kept (the list was cleared when the search started); the images are unchanged."; return; }
     console.error(err);
     status.textContent = `The search failed: ${err.message}`;
   } finally {
+    endSearch();
     $("find-movers-btn").disabled = !canFindMovers();
     $("find-distant-btn").disabled = !canFindMovers();
   }
@@ -1000,6 +1185,8 @@ function showMovers({ candidates, stats, reason }, catalogueObjects = null, { di
   movers = candidates.map((c, k) => ({
     ...c, ...describeMover(c, geo),
     fitPoints: c.points,
+    dots: c.points,                                   // the raw dots of the fit, before `points` below becomes the places on the images (the Planet X Lab compares motions on them)
+    dotDates: c.dotDates ?? null,                     // the date of each dot (attachDotDates)
     label: `#${k + 1}`,
     known: distant ? null : matchKnownObject(c, geo, pool)?.target.label ?? null,
     distant: distant ? describeDistant(c, geo) : null,
@@ -1057,6 +1244,7 @@ function showMovers({ candidates, stats, reason }, catalogueObjects = null, { di
   list.hidden = false;
   $("mover-export").hidden = false;
   player.setCandidates(movers, -1);
+  textAnalysis?.refreshCandidates();
 }
 
 // Save the candidates as CSV / JSON. Every file says what the data is and links back to this view.
@@ -1073,7 +1261,7 @@ function exportContext() {
   link.searchParams.set("data", DATA_SOURCE);                // a link must not carry the address of a backend on this computer
   link.searchParams.delete("api");
   link.hash = "";
-  return { isReal: DATA_SOURCE === "api", provenance: dataProvenance(), detector: currentDetector, query: currentQuery, permalink: link.href };
+  return { isReal: DATA_SOURCE === "api", dataSource: dataProvenance(), detector: currentDetector, query: currentQuery, permalink: link.href };
 }
 
 function dataProvenance() {
@@ -1099,18 +1287,21 @@ function updateSourceLabels() {
 }
 $("export-csv-btn").addEventListener("click", () => {
   if (!movers.length || !currentQuery) return;
-  const ctx = exportContext();
+  const ctx = { ...exportContext(), provenance: moversRun };
   downloadText("﻿" + candidatesToCsv(movers, ctx), exportFileName(ctx, "csv"), "text/csv;charset=utf-8");   // BOM: Excel reads UTF-8
 });
 $("export-json-btn").addEventListener("click", () => {
   if (!movers.length || !currentQuery) return;
-  const ctx = exportContext();
+  const ctx = { ...exportContext(), provenance: moversRun };
   downloadText(candidatesToJson(movers, ctx), exportFileName(ctx, "json"), "application/json");
 });
 
 /** Highlight one candidate on the image (ring + path) and describe it; -1 = none. */
 function selectMover(k) {
+  player.stopFollow();                              // the view followed the one selected before
   selectedMover = k;
+  planetLab?.refresh();                             // the lab compares the motions of the one selected
+  assistant?.refresh();
   document.querySelectorAll("#mover-list .mover-item").forEach((b) =>
     b.setAttribute("aria-pressed", String(Number(b.dataset.index) === k)));
   player.setCandidates(movers, k);
@@ -1186,6 +1377,27 @@ $("planetx-demo-btn").addEventListener("click", () => {
   form.requestSubmit();
 });
 
+/** Bring the picture to a candidate: zoom in on it, centred, and make sure the picture is on screen (the button may be far below it). */
+function centrePictureOn(candidateIndex) {
+  if (!player.centreOnCandidate(candidateIndex)) return false;
+  $("stage").scrollIntoView({ block: "nearest", behavior: prefersReducedMotion ? "auto" : "smooth" });
+  return true;
+}
+$("mover-centre-btn").addEventListener("click", () => {
+  if (!centrePictureOn(selectedMover)) $("mover-detail-text").textContent += " (It has no position on these images to centre on.)";
+});
+
+// The co-moving view: the candidate stays in the middle of the picture while the images change (player.setFollow). Moving the picture by hand, or Fit, stops it.
+$("mover-follow-btn").addEventListener("click", () => {
+  if (player.following !== null) { player.stopFollow(); return; }
+  if (!player.setFollow(selectedMover)) $("mover-detail-text").textContent += " (It has no position on these images to follow.)";
+});
+player.onFollowChange = (i) => {
+  const b = $("mover-follow-btn");
+  b.setAttribute("aria-pressed", String(i !== null));
+  b.textContent = i !== null ? "Stop following" : "Follow it";
+};
+
 $("mover-map-btn").addEventListener("click", async () => {
   const m = movers[selectedMover];
   if (!m || !currentQuery) return;
@@ -1226,6 +1438,41 @@ $("mover-spectrum-btn").addEventListener("click", async () => {
   }
 });
 
+// Colour theme (features/theme.js): the choice is kept in this browser; ?theme=light overrides it for one visit
+setupThemeSwitcher($("theme-select"));
+
+// ---------------------------------------------------------------
+// Find everything: every source in the images, checked against the catalogues (features/discoverPanel.js)
+// ---------------------------------------------------------------
+discoverPanel = setupDiscoverPanel({
+  $, player, isReal: DATA_SOURCE === "api", apiBase: DATA_SOURCE === "api" ? API_BASE : "", skybotCache, prefersReducedMotion,
+  getField: () => {
+    if (!player.length || !currentQuery || !currentFrames.length) return null;
+    return { token: loadToken, query: currentQuery, geo: currentGeo(), detector: useAllDetectors() ? "all" : currentDetector, frames: searchFrames(), n: player.naturalSize, playerFrames: player.frames };
+  },
+  isCurrent: (token) => token === loadToken,
+  loadPixels: detectionPixels, frameId,
+  plotSpectrum: async (c) => {
+    player.setMarker(null);
+    const token = ++measureToken;
+    try {
+      await measureAndPlot({ query: currentQuery, els: measureEls, isCurrent: () => token === measureToken, sky: { ra: c.ra, dec: c.dec, eastArcsec: 0, northArcsec: 0 },
+        motion: { epochMjd: c.epochMjd, pmEast: c.motionIsReal ? c.pmEast : 0, pmNorth: c.motionIsReal ? c.pmNorth : 0 }, title: c.id });
+      if (token === measureToken) $("measure-title").scrollIntoView({ block: "start", behavior: prefersReducedMotion ? "auto" : "smooth" });
+    } catch (err) {
+      if (token === measureToken) measureEls.pos.textContent = `Could not measure: ${err.message}`;
+      throw err;
+    }
+  },
+  centre: () => centrePictureOn(0),                    // the dossier's source is the one candidate the player holds (index 0)
+  openMap: async (c) => {
+    await openSkyMap({ ra: c.ra, dec: c.dec, fov: currentQuery.fov });
+    $("sky-frame").scrollIntoView({ block: "center", behavior: prefersReducedMotion ? "auto" : "smooth" });
+  },
+  download: downloadText, exportContext,
+});
+discoverPanel.refresh();
+
 // ---------------------------------------------------------------
 // Save / record / share
 // ---------------------------------------------------------------
@@ -1234,7 +1481,9 @@ const fileBase = () => {
   const tag = player.isAnimated ? `${player.mode}_${f.dateISO.slice(0, 10)}` : player.mode;
   return `spherex-blink_${currentQuery.ra.toFixed(4)}_${currentQuery.dec.toFixed(4)}_${f.detector}_${tag}`;
 };
-$("save-png-btn").addEventListener("click", () => { if (player.length) savePng(player, fileBase()); });
+/** The lines printed into a saved picture or video (features/provenance.js pictureCaption). */
+const exportCaption = () => pictureCaption({ isReal: DATA_SOURCE === "api", query: currentQuery, frame: player.frames[player.index], mode: player.mode });
+$("save-png-btn").addEventListener("click", () => { if (player.length) savePng(player, fileBase(), exportCaption()); });
 
 $("record-btn").addEventListener("click", async () => {
   const btn = $("record-btn");
@@ -1243,7 +1492,7 @@ $("record-btn").addEventListener("click", async () => {
   btn.disabled = true;
   try {
     await recordBlink(player, fileBase().replace(/_\d{4}-\d{2}-\d{2}$/, ""), {
-      onTick: (s) => { btn.textContent = `Recording… ${s}s`; },
+      onTick: (s) => { btn.textContent = `Recording… ${s}s`; }, caption: exportCaption(),
     });
     setStatus("Video saved to your downloads.");
   } catch (err) {
@@ -1287,6 +1536,124 @@ $("copy-link-btn").addEventListener("click", async () => {
 });
 
 // ---------------------------------------------------------------
+// Planet X Lab (features/planetLab.js, planetLabView.js, planetLabWorker.js): which motion fits the selected candidate, and how likely a distant body is to be found
+// ---------------------------------------------------------------
+planetLab = setupPlanetLab({
+  els: {
+    compareBtn: $("lab-compare-btn"), modelsHint: $("lab-models-hint"), modelsOut: $("lab-models-out"), form: $("lab-form"), distances: $("lab-distances"), fluxes: $("lab-fluxes"),
+    trials: $("lab-trials"), runBtn: $("lab-run-btn"), cancelBtn: $("lab-cancel-btn"), inputError: $("lab-input-error"), progress: $("lab-progress"), status: $("lab-status"),
+    mapWrap: $("lab-map-wrap"), map: $("lab-map"), mapNote: $("lab-map-note"), csvBtn: $("lab-csv-btn"), provenance: $("lab-provenance"),
+  },
+  canRun: () => canFindMovers(),
+  getContext: async () => {
+    if (!player.length || !currentQuery) return null;
+    const frames = searchFrames();
+    const { arrays, masks, isFloat } = await detectionPixels(frames);
+    if (!arrays) return null;
+    const dets = [...new Set(frames.map((f) => f.detector))].join(", ");
+    return { arrays, masks, isFloat, mjds: frames.map((f) => f.mjd), geo: currentGeo(), dataText: `${isFloat ? "REAL SPHEREx pixels (float, MJy/sr)" : "8-bit pictures"}, detector${dets.includes(",") ? "s" : ""} ${dets}, the same flux in every image` };
+  },
+  getSelection: () => {
+    const m = movers[selectedMover];
+    if (!m || !m.dots?.length || !m.dotDates || !currentQuery) return null;
+    const usable = m.dots.map((p, i) => ({ frame: i, x: p.x, y: p.y, mjd: m.dotDates[i] })).filter((p) => Number.isFinite(p.mjd));
+    return { candidate: m, dots: usable.map((p, i) => ({ frame: i, x: p.x, y: p.y })), mjds: usable.map((p) => p.mjd), geo: currentGeo() };
+  },
+  download: downloadText,
+});
+
+// ---------------------------------------------------------------
+// Sky explorer (features/skyExplorer.js, skyExplorerView.js; the backend's /api/footprints): where the image files are on the sky
+// ---------------------------------------------------------------
+setupSkyExplorer({
+  els: { refreshBtn: $("sky-refresh-btn"), status: $("sky-status"), mapWrap: $("sky-map-wrap"), map: $("sky-map"), list: $("sky-list"), detail: $("sky-detail") },
+  fetchFootprints: async () => {
+    if (DATA_SOURCE !== "api") throw new Error("these images are synthetic: there are no files, so no footprints.");
+    const response = await fetch(`${API_BASE}/api/footprints`);
+    if (!response.ok) throw new Error(`the backend answered HTTP ${response.status}.`);
+    return response.json();
+  },
+  // open a field: the form is filled in and sent, as if the author had typed it (so the address, the history and the checks are the usual ones)
+  openField: ({ ra, dec, fov }) => {
+    $("ra-input").value = ra.toFixed(4);
+    $("dec-input").value = dec.toFixed(4);
+    $("fov-input").value = String(fov);
+    $("fov-input").dispatchEvent(new Event("input", { bubbles: true }));
+    $("search-form").requestSubmit();
+    $("workspace").scrollIntoView({ block: "start", behavior: prefersReducedMotion ? "auto" : "smooth" });
+  },
+});
+
+// Text analysis (features/textAnalysis.js, textAnalysisView.js): the images, the dots and the candidates as tables, no picture
+textAnalysis = setupTextAnalysis({
+  els: { button: $("ta-build-btn"), error: $("ta-error"), status: $("ta-status"), out: $("ta-out"), prov: $("ta-prov"), provTitle: $("ta-prov-title"), frames: $("ta-frames"), filter: $("ta-frame-filter"),
+    sources: $("ta-sources"), sourcesNote: $("ta-sources-note"), cands: $("ta-cands"), candsNote: $("ta-cands-note"), framesCsv: $("ta-frames-csv"), sourcesCsv: $("ta-sources-csv"), candsCsv: $("ta-cands-csv") },
+  getContext: () => (currentQuery && currentFrames.length && player.length
+    ? { isReal: DATA_SOURCE === "api", query: currentQuery, detector: currentDetector, frames: currentFrames, geo: currentGeo(), unit: currentFrames[0].unit ?? null, n: player.naturalSize } : null),
+  getPixels: (frames) => detectionPixels(frames),
+  getCandidates: () => movers,
+  download: downloadText,
+});
+
+// Reproducibility bundle (features/bundle.js, bundleView.js): the field, the versions, the settings, the hash of every image, the candidates, how to replay.
+// Its images are the ones the searches use (every detector with "Use all detectors"): a replay must find exactly these.
+setupBundle({
+  els: { button: $("bundle-btn"), error: $("bundle-error"), status: $("bundle-status"), replay: $("bundle-replay") },
+  getContext: () => (currentQuery && currentFrames.length && player.length
+    ? { isReal: DATA_SOURCE === "api", query: currentQuery, detector: useAllDetectors() ? "all" : currentDetector, frames: searchFrames(), geo: currentGeo(), unit: currentFrames[0].unit ?? null, n: player.naturalSize, href: location.href, mode: player.mode } : null),
+  getPixels: (frames) => detectionPixels(frames),
+  getCandidates: () => movers,
+  getRun: () => moversRun,
+  versions: { movers: MOVERS_VERSION, parallax: PARALLAX_VERSION },
+  download: downloadText,
+});
+
+// Which survey images cover a place (features/surveyCoverage.js, surveyView.js; the backend's /api/survey = a live query of IRSA's table spherex.plane)
+setupSurveySearch({
+  els: { form: $("survey-form"), ra: $("survey-ra"), dec: $("survey-dec"), radius: $("survey-radius"), det: $("survey-det"), limit: $("survey-limit"), button: $("survey-btn"), fieldBtn: $("survey-field-btn"),
+    error: $("survey-error"), status: $("survey-status"), result: $("survey-result"), summary: $("survey-summary"), plot: $("survey-plot"), table: $("survey-table"), openBtn: $("survey-open-btn") },
+  hasBackend: DATA_SOURCE === "api",
+  fetchSurvey: (params) => askSurvey(API_BASE, params),
+  currentField: () => currentQuery,
+  openField: ({ ra, dec, fov }) => {
+    $("ra-input").value = ra.toFixed(4);
+    $("dec-input").value = dec.toFixed(4);
+    $("fov-input").value = String(fov);
+    $("fov-input").dispatchEvent(new Event("input", { bubbles: true }));
+    $("search-form").requestSubmit();
+    $("workspace").scrollIntoView({ block: "start", behavior: prefersReducedMotion ? "auto" : "smooth" });
+  },
+});
+
+// ---------------------------------------------------------------
+// Solar System simulator (features/solarSystem.js, solarSystemView.js): the planets, and why a distant body seems to swing
+// ---------------------------------------------------------------
+const solarSystem = setupSolarSystem({
+  els: {
+    modes: [...document.querySelectorAll('input[name="ss-mode"]')], range: $("ss-range"), date: $("ss-date"), dateLabel: $("ss-date-label"), speed: $("ss-speed"), playBtn: $("ss-play"),
+    body: $("ss-body"), distance: $("ss-distance"), swing: $("ss-swing"), map: $("ss-map"), table: $("ss-table"), modeNote: $("ss-mode-note"),
+  },
+  getField: () => (currentQuery && currentFrames.length ? { ra: currentQuery.ra, dec: currentQuery.dec, mjds: currentFrames.map((f) => f.mjd) } : null),
+});
+
+// ---------------------------------------------------------------
+// Explainer (features/assistant.js, assistantView.js): the selected candidate in words, every sentence citing the measured values it is made of
+// ---------------------------------------------------------------
+assistant = setupAssistant({
+  els: { buttons: [...document.querySelectorAll("#assistant [data-kind]")], status: $("assistant-status"), out: $("assistant-out"), wrap: $("assistant-evidence-wrap"), table: $("assistant-evidence"), details: $("assistant-evidence-wrap") },
+  getContext: () => {
+    const m = movers[selectedMover];
+    if (!m || !currentQuery) return null;
+    const fr = searchFrames();
+    return { candidate: m, ctx: {
+      scaleArcsec: currentGeo().scaleArcsec, fieldRa: currentQuery.ra, fieldDec: currentQuery.dec, fovArcmin: currentQuery.fov, images: fr.length, passes: countPasses(fr),
+      runVersion: moversRun?.algorithm?.version, ranAt: moversRun?.ranAt, realData: DATA_SOURCE === "api",
+      catalogues: moversCatalogueChecked ? "SIMBAD, SkyBoT" : "not consulted", models: planetLab?.comparisonFor(m.label) ?? null,
+    } };
+  },
+});
+
+// ---------------------------------------------------------------
 // Loading data
 // ---------------------------------------------------------------
 /** Fetch frames for a query and show them. */
@@ -1299,8 +1666,6 @@ async function loadData(query) {
   currentDetector = null;
   currentQuery = null;
   detSelect.disabled = true;
-  observations.replaceChildren();
-  $("pixel-readout").value = "";
   lastQuery = query;
   setLoading(true);
   setStatus("");
@@ -1309,6 +1674,7 @@ async function loadData(query) {
   clearMarker();
   player.setTracks([]);
   clearMovers();
+  discoverPanel?.clear();
   $("track-info").textContent = "";
   if (!$("show-catalogue").checked) $("catalogue-info").textContent = "";
   $("overview").hidden = true;

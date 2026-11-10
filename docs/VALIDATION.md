@@ -60,6 +60,9 @@ candidate is kept only if that number is below 1.
   match.** Searching both detectors together uses all images in one line fit: more images (21 and 17) and the
   smallest differences for Barnard.
 - 0.2-0.8 ″/yr is 0.03-0.13 pixel per year.
+- **The significance column is from the version before Phase 4** (the error of the velocity was a floor of 0.15 px, 2-4 times too large: §15.3). Re-run on 8 Nov with the propagated
+  error, on the same data (more images now: Barnard D2 has 18), the same six candidates come out with the same motions, chance numbers and path support, and the faint Epsilon Indi B
+  at **15 / 11 / 18 σ** (D2 / D6 / both) instead of 8 / 7 / 11; Barnard's Star, saturated, stays at 16 / 10 / 20 σ.
 - **The two D6 differences got a little worse** than in the previous version of this file (0.55 → 0.80 and
   0.54 → 0.65 ″/yr) after the bad-pixel mask and the other changes below; D2 got much better (next subsection).
 - **A failure, and the change it caused.** The first run on Epsilon Indi B in D6 (6 images, about 9 dots each) listed
@@ -80,6 +83,27 @@ candidate is kept only if that number is below 1.
   bright star into a flat-topped blob whose centre jumps) and **image registration** (every exposure has its own
   pointing error, up to about 0.7 px between passes, which over a one-year baseline looks like a motion of several
   arcsec/yr). Both are covered by synthetic tests (`scratch/test_movers.mjs`), not only by these fields.
+
+### 2.1 Remade on 10 Nov 2026 by a command (and a correction: three exposures were counted twice)
+
+`node scratch/make_results.mjs [--write]` (backend on the real files, port 8003; SIMBAD for the catalogue motion) runs the six blind searches above with the code of the app and writes
+`frontend/data/real_results_generated.json`, which sections 1-6 of the results page read. Epsilon Indi B is searched at RA 331.0634, Dec -56.7893 (the command's own centre: the centre used on 7 Nov was not recorded).
+
+| Field, detector | Candidates | Catalogue match | Catalogue motion | Measured motion | Difference | Seen in | Significance | Chance lines expected |
+|---|---|---|---|---|---|---|---|---|
+| Barnard's Star, D2 | 1 | Barnard's Star | (−0.80, +10.36) | (−1.03, +10.15) | **0.31 ″/yr** | 15 of 15 | 15 σ | 2e-21 |
+| Barnard's Star, D6 | 1 | Barnard's Star | (−0.80, +10.36) | (−0.25, +9.78) | **0.80 ″/yr** | 6 of 6 | 10 σ | 8e-6 |
+| Barnard's Star, **D2 + D6** | 1 | Barnard's Star | (−0.80, +10.36) | (−0.91, +10.19) | **0.20 ″/yr** | 21 of 21 | 19 σ | 2e-30 |
+| Epsilon Indi B, D2 | 1 | Epsilon Indi B | (+3.98, −2.47) | (+3.59, −1.93) | **0.66 ″/yr** | 11 of 11 | 16 σ | 5e-15 |
+| Epsilon Indi B, D6 | 1 | Epsilon Indi B | (+3.98, −2.47) | (+3.50, −2.74) | **0.56 ″/yr** | 6 of 6 | 18 σ | 1e-5 |
+| Epsilon Indi B, **D2 + D6** | 1 | Epsilon Indi B | (+3.98, −2.47) | (+3.61, −2.36) | **0.39 ″/yr** | 15 of 17 | 21 σ | 5e-19 |
+
+- **Barnard's Star: the numbers of 7 Nov are reproduced exactly** (0.31, 0.80, 0.20 ″/yr; 15, 6 and 21 images). Still recovered in every run with no other candidate; both detectors together give the smallest difference for each star; every real line is supported in every image that could be measured; the range is 0.20-0.80 ″/yr (0.03-0.13 pixel per year).
+- **Epsilon Indi B differs from the table above** (0.66, 0.56, 0.39 against 0.62, 0.65, 0.53 ″/yr; 16, 18, 21 σ against 8, 7, 11): the significance is the Phase 4 change (15 / 11 / 18 σ on 8 Nov, section 15.3), the motions move by 0.04-0.14 ″/yr with the centre of the field, and the D2 + D6 line is now seen in 15 of 17 images (the search asks for 60 %), not all.
+- **A correction made on the way.** The first run of this command, the same day, gave Barnard D2 **0.61 ″/yr in "18 images"** (and D2 + D6 0.42, the mask 3.56 → 0.61). It was wrong: the backend held **three exposures twice** (the files `..._2.fits` and `..._6.fits`, `..._3` and `..._11`, `..._4` and `..._16`: byte for byte identical, the same sha1), so each of them counted as two measurements in every search, fit and count of images. It was found when the reproducibility bundle (item 3) listed the same image id and the same SHA-256 twice. The backend now skips a file that is an exact copy of one already used and reports it in `/api/health` (`duplicateFiles`): 75 files, **72 frames**. With the copies out, the numbers of 7 Nov come back (15 / 6 / 21 images, **3.72 without the mask**). The 0.61, 0.42 and 3.56 that the page showed for some hours were artefacts of the copies.
+- **What else is affected.** Every real-data result made while those copies were in the set counted Barnard D2 as "18 images" instead of 15: section 10 (the injection and empty-sky calibrations), 14 (every source, support), 16 (the Planet X Lab map) and the Barnard D2 parts of their tables. They were **not re-run** (sections 8 and 9 of the results page are typed from them): see the notice at the head of each of those sections.
+- **The failure of the original rule cannot be remade by the code of today.** `--relaxed 1` (the rule that listed Epsilon Indi B in D6 and three false lines on 7 Nov) now lists only the real line: the dots found per image are 4-8 (they were about 9), so there are no chance matches to join. The numbers of the failure in the section above (6e-5 for the real line, about 17 for the false ones, 3 of 6, 2 of 6 and 2 of 4 images) are a record of the code of 7 Nov, and the page says so. The sentence above, "re-running ... reproduces the failure", was true then and is not now.
+- **Barnard in D2 without and with the bad-pixel mask**: **3.72 → 0.31 ″/yr** (the same code with `mask: null` is the code before the mask), reproduced.
 
 ### Barnard in D2: from 3.7 to 0.3 ″/yr in RA
 
@@ -344,6 +368,10 @@ each detector were taken from a fresh run of `scratch/stack_wise0855.py` on 7 No
 Makemake with its **negative blind-search result written next to the successful fit**. Charts are HTML + CSS (no library, no
 canvas), so text keeps its size on a phone, and every chart is followed by a real table (the chart itself is hidden from
 screen readers). The numbers in the prose are filled in from the JSON (`data-n`), so they cannot drift from the charts.
+Since 8 Nov 2026 the JSON also has `origins`: for each of sections 1-10 the command (or commands) and the section of this file that
+reports it, shown as a line under the heading. **These numbers were typed into the JSON from the printed reports of those commands on the
+day of the measurement; no script writes the file** (only section 11 of the page, `real_sources.json`, is made by a command), and the page says
+so. `test_results.mjs` checks that every named script and every cited section of this file exists, and that the headline numbers stand here.
 
 `node scratch/test_results.mjs` (47 checks): the helpers (ticks, scales, lane spreading, number formats); the JSON agrees
 with itself (every stated difference is the distance between its measured and catalogue vectors; the control median, the
@@ -393,6 +421,8 @@ text says how far the nearest coast is ("water, about 850 km from Brazil").
   panning on a real phone, and the full-screen mode.
 
 ## 10. How good is *Find movers*? Calibration on real frames (added 7 Nov 2026, night)
+
+> **Notice of 10 Nov 2026.** This is the calibration on the real fields (the fake movers and the empty-sky copies). Until 10 Nov the backend held **three exposures of Barnard's Star in D2 twice** (byte-identical files; section 2.1), so "Barnard D2, 18 images" below was 15 distinct images plus 3 copies. The numbers of this section that rest on Barnard D2 were measured with the copies in and **have not been re-run**; read them as probably slightly optimistic for that field (an exposure counted twice is not an independent measurement). The other fields (Barnard D6, Epsilon Indi B, WISE 0855, Makemake) have no copies.
 
 `scratch/calibrate_real.mjs` (the header of the script explains every step). Two experiments on the real cutouts, **no new download**:
 (1) **injection and recovery**: a fake mover (a star with the PSF of the FITS headers, FWHM 5.15″ in D2 and 6.61″ in D6, integrated
@@ -596,3 +626,430 @@ epochs 1997-2001) and AllWISE (`allwise_p3as_psd`, 2010) within 8″ (1.3 pixel)
 - So **"not in 2MASS or AllWISE" is not a useful definition of "unknown"** on its own: it needs at least a check of the quality flags
   and of bright-star halos, the proper motion from SIMBAD carried to the image date, and a detection in three or more images.
   The same dots could be seen in the other bands, too: a "see anything" mode is a larger piece of work than a new button.
+  (That work is §14.)
+
+## 14. "Find everything": every source, checked against four catalogues (added 8 Nov 2026)
+
+The §13 conclusion was that "not in 2MASS or AllWISE" is not a useful definition of "unknown". **Find everything** (the button under *Find movers*)
+is the larger piece of work that §13 called for. For the images on screen it (1) finds the dots in every image and links them into
+**sources** (the same dot in 3 or more images: fixed; a straight line: mover), (2) measures each source in **every** image, with that
+image's wavelength, (3) **vets** it (edge, flagged core, halo of a much brighter star, blend, scatter, too few detections), (4) **cross-matches**
+it with SIMBAD, **Gaia DR3**, 2MASS and AllWISE, each **at the catalogue's own epoch** (Gaia and SIMBAD objects are moved to the image date
+with their proper motion; a candidate with a real motion is carried back to 1999 and 2010 for 2MASS and AllWISE), and with SkyBoT, (5) gives it
+a **support score** (0-100, a sum of documented terms, not a probability) and a **class**: known, known and moving, Solar System body, possible
+artefact, **unknown: needs checking** (support at least 65 and present in at least 30 % of the images of its passes), unknown but weakly
+supported, or *not checked* when no deep catalogue could be asked (synthetic data; backend down). Every source is listed; the filter only
+chooses what to look at. Code: `frontend/js/features/{discovery,vetting,crossmatch,dossier,catalogueRelay,discoverPanel}.js` and
+`backend/spherex/catalogues.py` (`GET /api/catalogue`, a relay for 2MASS, AllWISE and Gaia, which send no CORS headers; SIMBAD and SkyBoT are
+asked by the browser itself). `node scratch/validate_discovery.mjs --mode real|control|inject --field "Barnard D2"` re-runs everything below; it
+needs the real-only backend (`SPHEREX_DATA_DIR=backend/data/real`, port 8003) and internet.
+
+Tests that run without any of that: `scratch/test_discovery.mjs` (60 checks on a synthetic field with a known answer: 12 catalogued stars, a
+bright star, a catalogued fast star, an uncatalogued faint star, an uncatalogued mover, a halo ghost, an edge artefact, a one-pass transient and
+a SkyBoT asteroid; exactly three sources come out "needs checking"), `test_catalogue_relay.mjs` (26), `test_discover_panel.mjs` (31) and
+`backend/tests/test_catalogues.py` (31, network replaced). **They show that the code does what it says; they do not show that it finds new
+objects.** The three measurements below are the real-data part.
+
+### Test 1: the six real fields (`--mode real`, each detector alone)
+
+| field | images | dots per image | sources | in a catalogue (moving ones) | **unexplained** |
+|---|---|---|---|---|---|
+| Barnard's Star D2 | 15 | 3-9 | 8 | 8 (1) | **0** |
+| Barnard's Star D6 | 6 | 6-9 | 6 | 6 (1) | **0** |
+| Epsilon Indi B D2 | 11 | 4-8 | 7 | 7 (1) | **0** |
+| Epsilon Indi B D6 | 6 | 7-10 | 3 | 3 (1) | **0** |
+| WISE 0855 D2 | 6 | 14-15 | 14 | 14 (0) | **0** |
+| WISE 0855 D6 | 6 | 5-9 | 4 | 4 (1) | **0** |
+| total | | | 42 | 42 | **0** |
+
+- **All 42 sources are explained**, every one of them by **Gaia DR3** (G down to about 21), most also by 2MASS and AllWISE. Barnard's Star is
+  found as a mover at 10.1″/yr and matched to its Gaia entry with a consistent proper motion. No source was classed as an artefact and none as
+  unknown.
+- **Repeated and written to a file (8 Nov 2026, 12:51 local).** `node scratch/make_results_sources.mjs` ran the same six fields again (real-only backend, the four catalogues and SkyBoT asked again) and
+  wrote every source, as derived numbers, to `frontend/data/real_sources.json` (the results page's section 11). It reproduced the table above field by field (8, 6, 7, 3, 14 and 4 sources = 42,
+  every one in a catalogue, the moving ones 1, 1, 1, 1, 0 and 1; the images 18, 6, 11, 6, 6 and 6); all four catalogues answered, no problem was noted. The run took 4-11 s per field. `scratch/test_results.mjs`
+  compares the file with this table and fails if the file was made by another version of the algorithm (`discovery-2`) or other thresholds than the code has.
+- **The honest reading: in these six small (5′) fields the detector shows only stars that the catalogues already hold.** It says nothing about
+  how many *new* objects the tool would find, because there were none to find. The test does show that the cross-match, with proper motion and
+  epochs, does not leave real stars unexplained (§13 had 21 of 60 dots "in neither 2MASS nor AllWISE").
+
+### Test 2: empty-sky control for the threshold (`--mode control`)
+
+Every image of a real field is rotated/mirrored at random and moved by a random whole number of pixels, independently, which destroys every
+correspondence between images; the catalogues are passed as "checked, and empty". Every source that survives is false by construction.
+200 such copies of each of the six fields (1200 in all). False "needs checking" sources for several thresholds of the support score (a source
+must also be present in 30 % of the images of its passes):
+
+| support threshold | 40 | 50 | 60 | **65** (used) | 70 | 80 |
+|---|---|---|---|---|---|---|
+| false leads per empty field, all six fields | 0.24 | 0.17 | 0.084 | **0.047** | 0.011 | 0 |
+
+- **At the chosen 65 about 1 empty field in 21 shows a false lead, and it varies a lot with the field**: 0.005 (Barnard D6, 6 images) to 0.16
+  (WISE 0855 D2, 14 dots per image: one empty copy in 6). Crowded fields and fields with many images give more.
+- Almost all false leads are the **minimum case**: 3 detections (a chance alignment of 3 dots of different images) in 2-3 survey passes. A
+  person dismisses them in seconds from the small pictures, which show nothing at that place in the other images.
+- The first control (before the persistence term of the score, 60 copies per field) gave 0.083 per field at 60; with it, 0.084. **The
+  persistence term did not make the control cleaner**: in a field with structured background (the halo of a bright star) a chance position is
+  3 sigma in many images too. It stays because injected real sources score high with it (below). **The threshold is what controls the false
+  rate.**
+- Not covered: real variable stars, real clustering of faint sources, and everything the scrambling keeps in common between images.
+
+### Test 3: injected sources (`--mode inject`, catalogues "checked, and empty")
+
+Fake point sources (the PSF of the FITS headers, integrated over the pixels) are added to the real images at a known place; the flux is in
+units of the detector's own noise (5 sigma per image is the detection limit, as in §10). **Fixed sources**, 60 trials per cell, how many are
+listed as a source:
+
+| field | flux 16 | 22 | **32** | 50 | 80 | 32 in mJy | classed "possible artefact" (at 50) |
+|---|---|---|---|---|---|---|---|
+| Barnard D2 | 0 | 6 | 55 | 60 | 60 | 19 | 25 of 60 (halo of the saturated star) |
+| Barnard D6 | 0 | 0 | 43 | 59 | 59 | 5.5 | 38 of 60 |
+| Epsilon Indi B D2 | 1 | 4 | 55 | 60 | 60 | 1.5 | 0 |
+| Epsilon Indi B D6 | 0 | 0 | 33 | 60 | 60 | 0.69 | 5 |
+| WISE 0855 D2 | 1 | 1 | 50 | 60 | 60 | 0.67 | 0 |
+| WISE 0855 D6 | 0 | 0 | 40 | 60 | 60 | 0.81 | 12 |
+
+- **The cliff is steep: nothing below 22 times the noise, almost everything from 32.** In a clean field that is **0.7-1.5 mJy** for a fixed
+  source; around the saturated star of Barnard's field 5-19 mJy. Fixed sources need 3 individual detections, so this is about **1.5 times worse
+  than the single-image limit of §10** (0.6-0.9 mJy). Stacking all images would go deeper; it is not done.
+- In the clean fields most listed sources score 80 or more (e.g. Epsilon Indi B D2: all 60 at 50 times the noise).
+- **In Barnard's fields 35-65 % of the injected sources are classed "possible artefact"** (the halo flag: a 20-times brighter source within 14
+  pixels). The rule is conservative there on purpose; they are still listed, with the reason.
+- **Moving sources** (12 trials per cell, 6-image D6 fields): at 22 times the noise none is listed; at 32 times 1-10 of 12 (the slower, 4″/yr,
+  are found more often than 30″/yr); at **50 times (1.1-1.3 mJy in the clean fields, 8.6 mJy in Barnard's) 11-12 of 12**; most of the listed
+  ones come out "needs checking" (their scores are 60-79: the chance-line term is the main part, and a 5′ field gives it little room).
+
+### What real data taught (defects found and fixed during this work)
+
+1. **`apertureSnr` rejected one pixel grid in fifty**: its "no holes" test compared the pixel count with 0.8 x pi x r^2 = 10.05, but a circle of
+   radius 2 pixels centred at some positions holds only 10 pixel centres. Fixed in `movers.js` (it now compares with the number of geometric
+   centres); `scratch/test_movers.mjs` holds the regression check, shown to fail on the old rule.
+2. **A "mover" that was a bright star** near the picture edge: four of its dots formed a line of 12″/yr (6 sigma), while the same star was also
+   linked as a fixed source in all 12 images; its Gaia entry says 0.02″/yr. Two rules came out of it: a mover whose dots are within 1.5 pixels
+   of a fixed source with at least as many detections is dropped (`isShadowOf`), and a catalogue match whose own proper motion disagrees with
+   the measured one is not "known": the source becomes a *possible artefact* with the flag `motion-disagrees`.
+3. **Cutouts of `det=all` and of one detector are not the same pixels** (about 2100 of 2401 pixels differ: the backend resamples all detectors
+   onto a common grid for the first). The mover finder is sensitive to that for marginal lines: the line of item 2 appeared with `det=all` and
+   not with a single detector. All numbers above use single-detector cutouts, so **they do not describe the page's default "Use all detectors"
+   exactly**; the page runs the same code and showed the same classes on Barnard's and WISE 0855's fields.
+4. A fixed source seen in only 3 of 18 images scored 57-66 in the first version of the score; the persistence term and the minimum
+   persistence for "unknown" came from that.
+5. The answers of IRSA and Gaia can be cut short in a dense field (limit 20 000 rows): such a list is marked `truncated`, counts for the sources
+   it matched, and **does not count as "not in the catalogue"**. Without a deep catalogue (Gaia, 2MASS, AllWISE) nothing is called unknown.
+
+### Limits, in one list
+
+- **Nothing new was found, and nothing here says the tool would find it**: Test 1 has no unexplained source; Test 3 measures sensitivity with
+  artificial sources of a flat spectrum (the variable filter changes a real source's brightness from image to image).
+- Depth: fixed sources 1.5 times worse than a single image, movers need about 50 times the noise; around a saturated star 20-30 times worse
+  still. A brown dwarf like WISE 0855 (about 0.4 mJy in a stack, §7) is **below** the limit of this button.
+- The score is a sum, not a probability; the threshold (65) comes from six small real fields; the false rate depends strongly on the field.
+- 2MASS and AllWISE dates are approximations (2MASS: a date per source from the catalogue; AllWISE: the mean epoch of the W1 exposures);
+  the carry-back of a moving candidate adds at most 12″ of search radius.
+- Gaia was reachable for all six fields in the last run; from this network a plain GET to the ESA service hangs, so the relay uses POST (some
+  answers still took over a minute). The page waits up to 130 s per catalogue and says what failed.
+- The positions CSV of a source is **not** an MPC/ADES report: the observatory code and the spacecraft position were not verified, so it is
+  not called that.
+- Not checked by a person on a phone; script checks only (see docs/ACCESSIBILITY.md).
+
+## 15. Are the positions, the motions and the fluxes right, and are their errors? (Phase 4, added 8 Nov 2026)
+
+The question is not only "is the value right" but "is the **error** that goes with it right": a velocity of 10.2 ± 0.3 ″/yr is worth something only if
+the real spread of such velocities is 0.3. Two kinds of check, one command each:
+
+- **Injected stars** (`node scratch/calibrate_astrometry.mjs`, about a minute; `node scratch/test_astrometry.mjs` is the same code with fixed seeds and
+  assertions, in CI): point sources with a **pixel-integrated Gaussian PSF** (the PSF of SPHEREx is smaller than a pixel: σ 0.356 px = FWHM 5.15″ in D2,
+  0.457 px = 6.61″ in D6, from the headers' median `PSF_FWHM`) on white noise.
+- **Real fixed stars and empty sky** (`node scratch/check_astrometry_real.mjs`, needs the real-only backend): the six real fields of §14.
+
+### 15.1 The position of a star (`detectSources`, a windowed centroid)
+
+| PSF σ | flux / pixel noise | found | bias | rms per axis | best possible (Cramér–Rao) | rms / best |
+|---|---|---|---|---|---|---|
+| 0.356 px (5.15″) | 12 | 78 % | 0.002 | 0.176 px | 0.120 | 1.47 |
+| | 20 | 100 % | 0.001 | 0.110 | 0.067 | 1.64 |
+| | 40 | 100 % | 0.002 | 0.064 | 0.034 | 1.87 |
+| | 80 | 100 % | 0.001 | 0.045 | 0.017 | 2.65 |
+| | 200 | 100 % | 0.002 | 0.037 | 0.007 | 5.5 |
+| | 600 | 100 % | 0.001 | 0.036 | 0.002 | 16 |
+| 0.457 px (6.61″) | 20 | 100 % | 0.001 | 0.117 | 0.080 | 1.47 |
+| | 200 | 100 % | 0.001 | 0.018 | 0.008 | 2.3 |
+| | 600 | 100 % | 0.000 | 0.015 | 0.003 | 5.5 |
+
+- **No bias on average, but a pixel-phase bias.** An undersampled star pulls the centroid towards the centre of its pixel: in x, for σ = 0.356 and a bright
+  star, +0.017 / +0.042 / +0.049 / +0.038 / +0.015 px in the five tenths of the pixel before its centre and the same with the opposite sign after it. Up to
+  0.05 px = 0.3″. Because of it the error **stops falling at about 0.036 px** however bright the star is (16 times the best possible at flux 600):
+  a fit of the PSF could do 5-10 times better for bright stars; it was **not done** (the real PSF is not a Gaussian, and the real floor is larger anyway, §15.5).
+- For faint stars (flux 20-40 times the pixel noise) the centroid is within 1.5-1.9 times the best possible error, and 0.4-0.5 px is the worst error found at flux 20.
+
+### 15.2 The error model, and the error that was reported before
+
+The error of a dot's position follows **σ² = (A / S/N)² + B²** per axis (S/N = the dot's own, from `detectSources`): fitted on 14 000 stars of flux 8-900
+(`sigmaPx` of every dot, `centroidSigmaPx` in `movers.js`):
+
+| PSF σ | fitted A | fitted B | in the code | spread of z on 4 000 other stars | inside 1σ / 2σ |
+|---|---|---|---|---|---|
+| 0.356 | 1.059 px | 0.036 px | 1.05, 0.036 | **1.00** | 61 % / 98 % |
+| 0.400 | 1.037 | 0.024 | 1.05, 0.024 | 0.98 | 64 % / 98 % |
+| 0.457 | 1.050 | 0.014 | 1.05, 0.014 | 0.98 | 67 % / 97 % |
+
+z = (measured − true) / σ of the dot. 61-67 % rather than 68 % inside 1σ because the error at high S/N is the (bounded) pixel-phase bias, not a Gaussian.
+The code assumes the cautious PSF width (0.356, the largest B) unless the caller gives one; on a wider PSF that is conservative (spread of z 0.71).
+
+### 15.3 The velocity of a mover (`findMovers`), and the error that was reported before
+
+18 images in 4 survey passes (the cadence of Barnard's Star in D2), a star in a random direction, 150 trials per row, all found:
+
+| speed | flux / noise | spread of the fitted velocity | **error reported now** | spread of z | inside 1σ / 2σ |
+|---|---|---|---|---|---|
+| 1.7 px/yr | 40 | 0.048 px/yr | 0.053 | 0.89 | 75 % / 98 % |
+| 1.7 | 80 | 0.030 | 0.041 | 0.74 | 83 % / 99 % |
+| 1.7 | 200 | 0.026 | 0.037 | 0.70 | 86 % / 99 % |
+| 5 | 40 | 0.049 | 0.053 | 0.92 | 73 % / 96 % |
+| 5 | 80 | 0.037 | 0.041 | 0.91 | 68 % / 99 % |
+| 5 | 200 | 0.036 | 0.037 | 0.96 | 64 % / 98 % |
+
+- **Before Phase 4 the error was a floor**: 0.15 px / √Σdt² = **0.101 px/yr for every star**, 2-4 times the real spread (spread of z 0.26-0.48; 96-100 % of the
+  fitted velocities inside "1σ"). So the "significance" of a mover was 2-4 times too low.
+- Now the error is propagated from the errors of the dots: for the ordinary least-squares line the velocity has the exact error √(Σ dt²σ²) / Σ dt² (checked:
+  6 000 simulated lines, spread of z 1.01, 67.6 % inside 1σ), multiplied by max(1, scatter / modelled scatter) and combined in quadrature with a
+  **systematic floor of 0.04 px per dot** (found on real stars, §15.5). Faint stars: the error is the spread (z 0.89-0.92). Bright ones: cautious (z 0.70-0.74), because of that floor.
+- **On the six real runs** (`node scratch/validate_real.mjs`): the same candidate, the same motion, the same chance-line number and the same path support
+  as before in every one; the significance of the faint Epsilon Indi B went from 8 / 7 / 11 σ to **15 / 11 / 18 σ**, the saturated Barnard's Star stays at 16 / 10 / 20 σ (a
+  star positioned by the masked fit keeps an error of 0.15 px). Compared with the catalogue: Barnard's Star is 0.2-0.8″/yr off, **0.4-0.8 of its error**;
+  Epsilon Indi B is 0.5-0.65″/yr off in RA in D2, D6 and both, **1.7-2.3 of its error**: the same offset in both detectors, so a systematic: the catalogue
+  motion of a binary brown dwarf (its photocentre moves with the orbit) or the instrument; not decided here.
+- **Nothing else moved.** Same seeds, old code against new: the empty-sky control (200 copies of each of the six fields) gives 316 / 225 / 86 / 12 / 0
+  false "needs checking" sources at support 40 / 50 / 60 / 70 / 80 with the old code and 315 / 225 / 86 / 12 / 0 with the new one; the injection table of §14 (Barnard D6) is
+  identical cell by cell; the 42 sources of the six fields are the same in class, position, motion, support, flux and match.
+
+### 15.4 The flux in an aperture (`apertureSnr`, radius 2 px)
+
+White noise, 3 000 stars per row: the flux is unbiased (0.991-0.999 of the injected), and the old error (`err`: the scatter of the ring times √N) is 8-13 % too small
+(spread of z 1.08-1.13) because it leaves out the error of the background level; with that term (`errTotal`) the spread is 0.99-1.04. `snr` (flux / `err`) is left as it was:
+the thresholds of §10-§14 were tuned with it. The error to **report** is `calibratedFluxErr`: `errTotal` for synthetic data, and for real cutouts `err` × 1.7 (next).
+
+### 15.5 The same errors on the real images (`node scratch/check_astrometry_real.mjs`)
+
+> **Notice of 10 Nov 2026.** These are the errors checked on the real fields. Until 10 Nov the backend held **three exposures of Barnard's Star in D2 twice** (byte-identical files; section 2.1), so "Barnard D2, 18 images" below was 15 distinct images plus 3 copies. The numbers of this section that rest on Barnard D2 were measured with the copies in and **have not been re-run**; read them as probably slightly optimistic for that field (an exposure counted twice is not an independent measurement). The other fields (Barnard D6, Epsilon Indi B, WISE 0855, Makemake) have no copies.
+
+- **Positions of fixed stars** (a dot at the same place in at least 6 images, after the registration, a star that moves removed; the saturated stars, positioned by the masked fit, are outside the model and left out): 183 dots. Pooled spread of z
+  **0.85**. By S/N of the dot:
+
+| dot S/N | dots | modelled error | real rms residual | spread of z | floor needed |
+|---|---|---|---|---|---|
+| 3-8 | 51 | 0.164 px | 0.087 | 0.55 | 0 |
+| 8-20 | 70 | 0.099 | 0.060 | 0.65 | 0 |
+| 20-60 | 37 | 0.050 | 0.046 | **0.97** | 0 |
+| above 60 | 25 | 0.038 | 0.055 | 1.48 | **0.040** |
+
+  The model is right where most of the information is (S/N 20-60), **too cautious for faint dots** (by 1.5-1.8 times: linking dots within 1.2 px keeps the less scattered ones, and the
+  real noise is correlated) and **too optimistic for bright ones** by 0.04 px: that is `SYSTEMATIC_SIGMA_PX`. Stars positioned by the masked fit (saturated cores) are outside the model and get 0.15 px.
+- **Flux in empty sky** (7 950 apertures of radius 2 px far from every dot): the robust spread (1.4826 × MAD) of flux / `err` is **1.68** (1.47-1.85 per field), the plain
+  spread 13 (sources below the detection threshold and the wings of bright stars sit in some "empty" apertures; WISE 0855 D2 gives 37). The cutouts are resampled, so their noise is correlated between pixels:
+  a sum over an aperture scatters more than the pixel scatter says. `REAL_APERTURE_NOISE_FACTOR = 1.7`; it is an upper-ish figure (part of it is real faint sources).
+
+### 15.6 What this does not settle
+
+- White noise and a Gaussian PSF in the injections; real noise and the real PSF only in the two checks of §15.5, on 6 small fields (183 dots, 7 950 apertures).
+- The centroid is not a PSF fit: bright stars are limited by the pixel-phase floor, and the real floor (0.055 px = 0.34″) is larger still.
+- The astrometric floor of 1″ (`ASTROMETRIC_FLOOR_ARCSEC`, from the Arosa test) still dominates the position error that is reported for a candidate.
+- The **parallax search** (Planet X mode) still uses the old floor of 0.15 px for its fits: not changed, and not re-validated.
+- Versions: `movers-2` and `discovery-3` (the numbers of the errors changed; the classes and thresholds did not).
+
+### 15.7 A PSF-fit centroid, and the error of the backend's photometry (8 Nov 2026, the remainder of Phase 4)
+
+**A PSF fit.** `fitPsfCentroid` (movers.js) fits, by least squares, a Gaussian of the true PSF width **integrated over each pixel** (centre and total flux free, background fixed at the
+measured median) in a 7 x 7 window; `detectSources(..., { psfFit: true })` uses it to refine every dot whose core is intact (a saturated, masked star keeps the masked fit; a fit that does
+not converge keeps the windowed centroid). `node scratch/compare_centroids.mjs` (800 injected stars per row, white noise, PSF integrated over pixels, the star at a random place inside its pixel):
+
+| PSF sigma (px) | total flux / pixel noise | windowed centroid, rms per axis (px) | PSF fit, rms (px) | Cramér-Rao limit (px) | fit / limit | pixel-phase bias, windowed / fit (px) |
+|---|---|---|---|---|---|---|
+| 0.356 | 20 | 0.110 | 0.074 | 0.063 | 1.17 | 0.073 / 0.014 |
+| 0.356 | 80 | 0.044 | 0.018 | 0.016 | 1.11 | 0.049 / 0.001 |
+| 0.356 | 320 | 0.037 | 0.004 | 0.004 | 1.08 | 0.048 / 0.001 |
+| 0.457 | 20 | 0.119 | 0.085 | 0.079 | 1.08 | 0.026 / 0.013 |
+| 0.457 | 80 | 0.032 | 0.020 | 0.020 | 1.01 | 0.023 / 0.004 |
+| 0.457 | 320 | 0.015 | 0.005 | 0.005 | 1.04 | 0.017 / 0.000 |
+
+On ideal stars the fit reaches the best any estimator can do (1.01-1.17 times the limit) and has no pixel-phase bias. Its error model, fitted with the **same method** as §15.2 (the windowed rows of the
+script reproduce the A and B written in movers.js: A 1.00-1.02, B 0.036 / 0.024 / 0.014): sigma^2 = (0.73 / S/N)^2 + 0.005^2 per axis (A 0.715-0.729, B 0.001; `PSF_FIT_NOISE_COEFF`, `PSF_FIT_FLOOR_PX`).
+
+**On the real images it is NOT better, so it is off by default.** `node scratch/check_astrometry_real.mjs [--psf 1] [--s2 W --s6 W]`: the same fixed stars as §15.5, the rms of each dot about the
+mean position of its star (a measure of repeatability from one image to another):
+
+| dot S/N | windowed centroid (183 dots) | PSF fit, the header's PSF width (223 dots) | PSF fit, a wider model (D2 0.9 px, D6 1.0 px; 215 dots) |
+|---|---|---|---|
+| 3-8 | 0.087 px | 0.111 | 0.089 |
+| 8-20 | 0.060 | 0.090 | 0.069 |
+| 20-60 | 0.046 | 0.061 | 0.056 |
+| above 60 | 0.055 | 0.102 | 0.072 |
+
+The fit with the PSF of the headers scatters MORE than the windowed centroid (0.061 against 0.046 px at S/N 20-60, 0.102 against 0.055 above 60) and the error it reports (0.027 px in the S/N 20-60 bin, 0.009 px above 60)
+is far too small there (sd(z) 3.45 pooled, 11.8 above S/N 60): the real PSF of the resampled cutouts is not a Gaussian of the header width, and a fit that trusts the model moves with the pixel phase of each
+image. A wider model gets closer and is still not better. **The windowed centroid stays the default**; the PSF fit is available (`psfFit`) for ideal or better-modelled data, with its tests
+(`test_astrometry.mjs`, +9). A real PSF (the file's PSF extension) was not tried: that is the next step if a better position is needed. Not changed: the systematic floor of 0.04 px.
+
+**The error of the backend's photometry (`photometry.py`).** `backend/.venv/Scripts/python.exe -I scratch/check_photometry_noise.py`: 7 950 apertures of radius 2 px at random places of the real cutouts of
+the six fields, z = flux / error, robust spread (1.4826 x MAD):
+
+| error taken from | pooled robust spread of z | by field (D2 / D6 of Barnard, Epsilon Indi B, WISE 0855) |
+|---|---|---|
+| the scatter of the ring, as `photometry.py` always did (`fluxErr`) | **0.44**: too LARGE by 2.3 times | 0.28, 0.27, 0.53, 0.66, 0.63, 0.82 |
+| the robust scatter of the ring (1.4826 x MAD) | 2.11: too small by 2.1 times | 2.19, 2.25, 2.02, 1.89, 2.23, 1.67 |
+
+The plain scatter of the ring is inflated by the faint stars and the wings in it; the robust one is the noise, and a sum over a circle of resampled (correlated) pixels scatters 2.1 times more than that
+noise says. The backend now also sends `fluxErrCal` / `fluxJyErrCal`: robust ring scatter x sqrt(pixels inside) x `REAL_NOISE_FACTOR` = 2.1 for real cutouts (BUNIT MJy/sr), 1 for synthetic ones. By
+construction the pooled robust spread of z is 1; by field it is 0.8-1.1 (1.67-2.25 divided by 2.1), so a single factor is right to about 20 %, not better. The spectrum and light-curve error bars use
+`fluxErrCal`. The old `fluxErr` is unchanged (nothing that consumed it broke): `scratch/stack_wise0855.py`'s "nominal" error still comes from it, so the WISE 0855 numbers of §7 are as they were.
+
+**Epsilon Indi B, 0.5″/yr from the catalogue** (§15.5, still unexplained). A possible cause, **from memory and not checked here**: Epsilon Indi B is a close pair of brown dwarfs (Ba and Bb, about 0.6″ apart,
+orbit of about 11 years), unresolved in a 6.14″ pixel, so what is measured is the motion of their light centre, which has the orbital motion on top of the proper motion that SIMBAD lists. A test would
+need the orbit; none was made.
+
+## 16. The Planet X Lab: which motion fits, and how likely is a distant body to be found (Phase 5, 8 Nov 2026)
+
+> **Notice of 10 Nov 2026.** This is the Planet X Lab's map on the real Barnard D2 field (its injections went into the real images, copies included). Until 10 Nov the backend held **three exposures of Barnard's Star in D2 twice** (byte-identical files; section 2.1), so "Barnard D2, 18 images" below was 15 distinct images plus 3 copies. The numbers of this section that rest on Barnard D2 were measured with the copies in and **have not been re-run**; read them as probably slightly optimistic for that field (an exposure counted twice is not an independent measurement). The other fields (Barnard D6, Epsilon Indi B, WISE 0855, Makemake) have no copies.
+
+Section 5 of the page (`planetLab.js`, `planetLabView.js`, `planetLabWorker.js`; version `planetlab-1`) has two parts.
+
+**Which motion fits?** For the dots of one candidate (positions on the dates of their images) three models are fitted by least squares: *stationary* (2 parameters), *straight line* (4) and
+*straight drift + Earth parallax* (5: the same and the distance; the straight line is its limit at an infinite distance, so it can never fit worse: a first version showed it doing so on real
+Barnard's Star, found in the browser, fixed, test added). They are compared with **BIC = χ² + k ln N** (N = 2 numbers per position; the words for ΔBIC are Kass & Raftery's, **from memory**). The
+distance is quoted **only when it is constrained**: the parallax model must beat the straight line by ΔBIC ≥ 10 and its 95 % range (χ² within 4 of the best, one parameter) must be closed on both
+sides inside the 20-20 000 AU that are tried and no wider than a factor of 3; otherwise the answer is "no distance claimed", a lower limit, an upper limit or "not constrained". The ranges come from a
+second, fine scan around the minimum (the coarse grid has steps of 3 %, wider than the 1σ range of good data). `node scratch/test_planetlab.mjs` (57): on 60 simulated bodies at 500 AU
+(positions good to 3″) the 95 % range holds the true distance in **58 of 60** and the 68 % range in **37 of 60**; a stationary object is called stationary in at least 54 of 60 noise realisations
+(noise alone favours a line about 4 % of the time) and never gets a distance. **In the browser on real Barnard's Star** (Barnard D2 + D6, 24 dots, error 0.15 px per axis): stationary χ² 560 (ΔBIC +499),
+straight line χ² 54.0 (χ²/dof 1.23), parallax χ² 54.0 (ΔBIC +3.9): a straight line, no distance claimed. This one is an observation, not a command: the 0.15 px is the floor the parallax search gives a dot and
+was not calibrated on real dots (§15.6), so χ²/dof near 1 here is a coincidence of that choice, not a validation of it.
+
+**How likely is a distant body to be found?** A **synthetic** body (a Gaussian PSF of σ 0.4 px integrated over the pixels, a drift of 0.5-1.0 times the circular speed in a random direction, a random place
+in the middle half of the field, the same flux in every image) is added to the **real** images of the field on screen where a real body would be (the Earth's swing from `parallaxOffsetArcsec`, and the
+pointing shift of each exposure from `registerShifts` of the uninjected images), the dots are detected with `detectSources` and `findDistantMovers` is run with its default options. A try succeeds when a
+candidate lies within 3 px of the body on at least half of the images; "distance right" when it is also within a factor 1.5. The page runs it in a module worker (the page stays usable) and draws the map
+(tries, found, the word, the share as colour, the swing of each distance against the field); `node scratch/planet_lab_map.mjs --trials 20 --distances 2500,3500,5000 --fluxes 50,150,400` is the same from
+the command line (4 s here), against the real-only backend, on the Barnard D2 field (5′, 49 × 49 px, 18 real images, 4 survey passes, 60909-61306 MJD), seed 1:
+
+| flux (mJy) | 2500 AU (swing 2.7′: leaves the 5′ field) | 3500 AU (swing 1.9′) | 5000 AU (swing 1.4′) |
+|---|---|---|---|
+| 400 | 12 / 20 (95 %: 39-78 %) | 17 / 20 (64-95 %) | 6 / 20 (15-52 %) |
+| 150 | 8 / 20 (22-61 %) | 17 / 20 (64-95 %) | 6 / 20 (15-52 %) |
+| 50 | 7 / 20 (18-57 %) | 14 / 20 (48-85 %), distance right in 13 | 4 / 20 (8-42 %) |
+
+Reading it: in this field the search finds a body of 50-400 mJy at 3500 AU in 70-85 % of the tries and at 5000 AU in 20-30 % (a swing of 1.4′ is 14 pixels at most: little lever arm); at 2500 AU the body often
+leaves the 5′ field, which is why a 30′ field is needed for nearer bodies. Above about 150 mJy more light adds nothing at 3500 and 5000 AU (17 / 20 and 6 / 20 for both 400 and 150 mJy): there the limit is not the
+brightness. A fact that is measured here and a cause that is **a hypothesis**: (`planet_lab_map.mjs` also prints it) the swing alone puts a body 0.3-0.5 px apart on pass 1 and pass 3 (362 days: the Earth is back at the same point), 1.9-3.7 px apart on passes 1 and 4,
+2.1-4.2 px on passes 3 and 4, and 13-25 px away only on pass 2 (distances 5000-2500 AU): of the four passes only one carries a large swing; the search wants three well-separated ones. That would be a property of this observing cadence, not of the
+code; it was not tested by changing the cadence. Rms of the dots of the 91 bodies that were found about their model: **median 0.037 px**, 10th-90th percentile 0.030-0.206 px, against the 0.15 px floor the
+parallax search gives every dot: for ideal (Gaussian) bodies the floor is 4 times cautious; for real ones nothing is known (§15.6, and the real PSF is not Gaussian, §15.7).
+
+**What it does not show.** The images are real, the bodies are synthetic: it measures this search on these images, not any real object. The PSF is Gaussian; the flux is the same in every image (a body with a
+spectrum would be brighter in some images than in others); one field at a time; 20 tries give wide intervals (the Wilson 95 % intervals are in the table); the flux is a total flux in mJy from the image's own unit and
+the pixel's solid angle. Detection is judged against the images' own noise, so the same map on another field differs. Not done: a map on a 30′ real field of the same patch (the author's 30′ Makemake cutouts lie on
+different bits of sky: §12), a body with a spectrum, the real PSF.
+
+## 17. The Solar System simulator: are the planets where JPL Horizons puts them? (Phase 8, 8 Nov 2026)
+
+Section 7 of the page (`solarSystem.js`, `solarSystemView.js`): a top-down view of the ecliptic with the planets on a date, and a distant body in the direction of the field with the lines of
+sight from the Earth on the dates of the survey passes. **Scientific mode** is to scale (linear in AU); **educational mode** compresses the distances (square root), enlarges the planets and says it
+is NOT TO SCALE. The planets come from the six Keplerian elements and their rates of JPL's table of approximate positions (Standish; valid 1800-2050), **written from memory and therefore checked**;
+the Earth is not taken from that table but is the Earth of `parallax.js` (`earthPositionAU`, the Sun formula of Meeus), turned into ecliptic axes, so the simulator and the parallax of the Planet X
+search can never disagree (`test_solarsystem.mjs`: the two Earths are the same to 1e-12 AU).
+
+`node scratch/check_planets.mjs` asks JPL Horizons (an ephemeris query: heliocentric vectors, ecliptic J2000, one request per planet, no file downloaded) for the same positions on five dates (MJD 60909, 61114,
+61271, 61306 = the survey passes of the Barnard D2 field, and 61041 = 1 Jan 2026) and prints the largest difference:
+
+| planet | distance from the Sun (AU) | largest difference (AU) | largest difference seen from the Sun (arcsec) |
+|---|---|---|---|
+| Mercury | 0.32 | 0.00002 | 11 |
+| Venus | 0.72 | 0.00003 | 8 |
+| Earth (Meeus) | 1.01 | 0.00015 | 29 |
+| Mars | 1.59 | 0.00042 | 58 |
+| Jupiter | 5.16 | 0.00310 | 74 |
+| Saturn | 9.56 | 0.01278 | 267 |
+| Uranus | 19.51 | 0.00741 | 21 |
+| Neptune | 29.89 | 0.00591 | 34 |
+
+So the elements recalled from memory are right (a wrong constant would put a planet whole AU away, not hundredths), and the differences are those of an approximate table, largest for Saturn (4.5 arcmin, 0.013 AU).
+They are far too small to be seen at any range of the simulator. `test_solarsystem.mjs` keeps the Horizons numbers (fetched on 8 Nov 2026) and checks every planet against a bound about 1.5 times the difference
+measured, so a change that worsens a position fails without a network. The swing of a body that does not move (the angle between the lines of sight from two Earths) equals the parallax the search uses
+(`parallaxOffsetArcsec`) to 0.3 % on the dates of the Barnard passes (angles of several hundred arcsec). Found by the tests: a Kepler solver that started at pi for high eccentricities ran away for negative mean
+anomalies (residuals of 3e5); it is now confined to [M - e, M + e]. Found while writing the check: Horizons does not return the dates in the order they are asked, so the rows are matched by their Julian date.
+
+**What it does not show.** Only the eight planets (no moons, asteroids, comets or dwarf planets; Pluto is not in the table), 1800-2050 (the table's range), an ecliptic top view (not 3D), and no orbit of a
+hypothetical Planet X (only a body that does not move, to show the geometry of the swing). The periods are derived from the semi-major axis by Kepler's third law, not looked up.
+
+## 18. Which survey images cover a place: does the page agree with IRSA? (10 Nov 2026)
+
+The sky explorer can ask which images of the SPHEREx **survey** (not the files on this computer) touch a circle around a position: the backend asks IRSA's table `spherex.plane` (a catalogue query: no FITS file is downloaded) and the page draws each footprint and counts the images that **cover the centre**. The footprints are spherical polygons; the page projects them on the tangent plane (gnomonic), where their edges are straight lines, and tests whether the centre is inside.
+
+The check is IRSA's own answer to the same question: `SELECT COUNT(*) FROM spherex.plane WHERE 1=CONTAINS(POINT('ICRS', ra, dec), poly)` against the number of images of a 6′ circle (backend `/api/survey`, limit 1000) whose footprint contains the point by the page's test. Command (needs the network and a running backend, any of them): `node scratch/check_survey_live.mjs` (`--api http://localhost:8003`).
+
+| position | RA, Dec (deg) | IRSA: images covering the point | page | passes (30-day rule) | same |
+|---|---|---|---|---|---|
+| Barnard's Star | 269.452, 4.693 | 364 | 364 | 3 | yes |
+| Epsilon Indi B | 331.044, -56.783 | 449 | 449 | 4 | yes |
+| WISE 0855 | 133.819, -7.247 | 259 | 259 | 3 | yes |
+| RW Aurigae | 76.957, 30.401 | 333 | 333 | 3 | yes |
+| R Draconis | 248.168, 66.755 | 2483 | 919 (list cut off at 1000) | 2 | not compared |
+| across RA 0 | 0.300, 10.000 | 373 | 373 | 3 | yes |
+| near the north pole | 100.000, 85.000 | 356 | 356 | 3 | yes |
+| on the ecliptic | 90.000, 23.400 | 327 | 327 | 3 | yes |
+
+**7 of 7 comparable positions agree exactly**, including a footprint across RA 0 and one near the pole. Also, around Barnard's Star (269.4462, +4.769) a 30′ circle has 559 images touching it and 359 covering its centre by both IRSA's `COUNT` and the page. The passes are counted with the rule of Find movers (images 30 days or more apart are different passes; `passIndices`): Barnard D2 has 61 covering images in 3 passes (2025-08-21 to 2025-08-30, 2026-03-15 to 2026-03-22, 2026-08-18 to 2026-09-22).
+
+What it does not show. "Covers" means the footprint contains the point, not that the pixel there has valid data (an edge, a flagged pixel). Where the survey is dense (R Draconis, near the ecliptic pole, has 2483 images over its position) the list of 1000 images is cut off, the page says so and does not claim a number of passes. The test is of the geometry against IRSA's, on eight positions; it does not test IRSA's table itself, which changes weekly (the answers above are of 10 Nov 2026). Found while building it: IRSA refuses `INTERSECTS(CIRCLE(...), poly)` as "Invalid or unsupported ADQL query string" and accepts the polygon first, `INTERSECTS(poly, CIRCLE(...))`; the polygon comes as EWKB hex with longitude in [-180, 180].
+
+## 19. Sections 4-6 of the results page remade by a command (10 Nov 2026)
+
+`node scratch/make_results.mjs [--write]` (backend on the real files; IRSA TAP and SkyBoT for the catalogue magnitudes and the asteroid positions) remakes the Jansky scale (section 3 of this file), the asteroid Arosa (section 6) and the WISE 0855 stack (section 7) and writes them to `frontend/data/real_results_generated.json`; the tables of those sections stay as measured on 7 Nov. The fields and the code are the same, so most numbers did not move.
+
+**Jansky scale** (`validate_photometry.py`, aperture of 2 pixels, isolated unsaturated stars, 2MASS J/H or AllWISE W2). "Stars" is the number of stars with at least two usable measurements (3 of the 5 isolated stars in Barnard D2): the table of 7 Nov counted the isolated stars of the field, which is a different number.
+
+| Field, detector | Stars | Measurements | Median measured / catalogue | Scatter | 16th-84th percentile |
+|---|---|---|---|---|---|
+| Barnard field · D2 | 3 | 33 | **0.967** | 0.031 | 0.92-0.99 |
+| Barnard field · D6 | 5 | 18 | **0.895** | 0.046 | 0.84-0.93 |
+| Epsilon Indi B field · D2 | 2 | 15 | **0.979** | 0.053 | 0.93-1.02 |
+| Epsilon Indi B field · D6 | 1 | 3 | **0.932** | 0.024 | 0.90-0.94 |
+
+The medians, the scatter and the number of measurements are **the same as on 7 Nov** (after the copies were removed: a first run of the same day counted 38 measurements and a median of 0.968 for Barnard D2, because it counted three exposures twice, see 2.1); D6 is still lower than D2 in both fields. The zero points are still written from memory (section 3).
+
+**Arosa**: SkyBoT gives its position at each time, the backend measures the flux there: it moved **563″ in 19.5 hours** (28.8″/hour; SkyBoT says 28.8″/hour, it said 29.0 on 7 Nov: the average of its two dates, not one).
+
+| Image | Flux |
+|---|---|
+| Image of 00:10 UTC (1.21 µm), at the 00:10 position | 8.66 ± 0.30 mJy |
+| Image of 00:10 UTC (1.22 µm), at the 19:42 position | 0.02 ± 0.95 mJy |
+| Image of 19:42 UTC (1.34 µm), at the 19:42 position | 8.56 ± 1.11 mJy |
+| Image of 19:42 UTC (1.34 µm), at the 00:10 position | not in this cutout |
+
+The fluxes are the same as on 7 Nov to 0.02 mJy (8.67, 0.02, 8.56; two runs of the command a minute apart gave 8.66 and 8.68 for the first, because SkyBoT answers a slightly different position each time); the errors are 10-30 % larger (0.27 → 0.30, 0.84 → 0.95, 0.98 → 1.11) because the backend's flux error was changed in Phase 4 (15.7). The centre offset of the source (1.0″) is still the typed value of 7 Nov: the script does not measure it.
+
+**WISE 0855** (`stack_wise0855.py`): **identical to 7 Nov**: D6 stack 0.415 ± 0.076 mJy, 4.3 times the robust scatter of the controls, brighter than 15 of 16 controls, one control at +4.81 mJy on a field star; D2 stack 0.635 ± 0.086 mJy, brighter than 16 of 16 (the 2MASS star inside the aperture). The explanation of the D2 excess is text, not measured by the script.
+
+## 20. Is the reported error of a velocity right on real frames, and how often does a search fail? (10 Nov 2026)
+
+`node scratch/validate_uncertainty_real.mjs --api http://localhost:8003 --field "<field>" --trials 100 --nulls 300 --seed 1` (backend on the real files; a few seconds per field; no download). Fake movers (a Gaussian star with the header's FWHM, integrated over the pixels, as `calibrate_real.mjs`) are added to the real frames along straight paths of **known velocity**, at three brightnesses (15, 26 and 50 times the detector's own noise) and three speeds (4, 10 and 30 ″/yr), 100 per cell, 900 per field; the unchanged detector runs; for each recovered fake `z = (measured − true) / error` per axis. If the error is right, 68 % of the z are inside ±1, 95 % inside ±2 and the median of |z| is 0.67. Then the empty-field control: 300 copies of the field with every frame rotated/mirrored and shifted at random, so no correspondence is left and any candidate is false by construction. The error budget itself (`features/uncertainty.js`): the reported error is the quadrature sum of a statistical part (S/N of the dots), an excess-scatter part (the dots scatter more than their errors say) and the systematic floor of 15.1; `test_uncertainty.mjs` checks that the three parts rebuild the reported number.
+
+**Bright fakes only (50 × noise; the fainter ones are mostly "found" by a chance line near their path):**
+
+| Field | Images (passes) | Found, 10″/yr | Found, 30″/yr | Inside 1σ | Inside 2σ | Median \|z\| | Beyond 3σ (all brightnesses, one axis) | Empty copies that list a candidate |
+|---|---|---|---|---|---|---|---|---|
+| Barnard D2 | 15 (4) | 85 % | 82 % | **61 %** | **83 %** | 0.77 | **13 %** | 0 % (0/300) |
+| Barnard D6 | 6 (3) | 84 % | 82 % | 82 % | 91 % | 0.30 | 7 % | **11 %** (34/300) |
+| Epsilon Indi B D2 | 11 (5) | 87 % | 89 % | 75 % | 90 % | 0.54 | 8 % | 0 % (0/300) |
+| Epsilon Indi B D6 | 6 (4) | 73 % | 72 % | 75 % | 93 % | 0.60 | 3 % | 1 % (4/300) |
+| WISE 0855 D2 | 6 (4) | 86 % | 82 % | 72 % | 89 % | 0.58 | 6 % | 2 % (6/300) |
+| WISE 0855 D6 | 6 (3) | 81 % | 88 % | 75 % | 95 % | 0.55 | 1 % | **13 %** (40/300) |
+
+What this says:
+
+- **In the core the error is about right in four of six fields:** Epsilon Indi B D2 and D6 and WISE 0855 D2 and D6 have a median |z| of 0.54-0.60 (0.67 expected) and 72-75 % of bright fakes inside 1σ. In **Barnard D6 it is too large** (median |z| 0.30, 82 % inside 1σ).
+- **In Barnard D2 it is too small:** 61 % inside 1σ, 83 % inside 2σ, 13 % of all axes beyond 3σ, and a fake that is found at all is found more than 3σ (both axes together) from the true velocity 22 % of the time. Barnard D2 is the field with a saturated star and 15 images; the cause was **not** found, so the error of a candidate there should be read as optimistic. The error model was **not changed** by this test.
+- **The tails are heavy everywhere** (1-13 % of axes beyond 3σ, rms of z 1.0-2.2 for bright fakes against 1 expected): a Gaussian error bar understates the chance of a large miss. Using only the statistical part of the error (the "nominal" error of the budget) is worse still in every field (rms of z 1.3-10 over all recovered fakes, against 1.0-5.6 with the calibrated error), so the added parts are needed, but they are not enough for the tails.
+- **Failure rates are large for faint and slow movers, by design of the grid:** 77-80 % of all 900 fakes per field are not found (0-2 % at 15 × noise; 0-20 % at 26 × noise; at 4″/yr almost none unless the fake is bright and the field has 5 passes: Epsilon Indi B D2 65 %, D6 37 %, the others 1-12 %). A false candidate besides the fake appears in 0-2 % of the runs.
+- **The empty-field control agrees with section 10** (same method, a different seed offset): 0, 0, 1, 2, 11 and 13 % of empty copies list a candidate with the default rule, the two bad fields being the two with only 3 survey passes and 6 images. **The "significance" of such a false candidate is not small: up to 143σ** (Barnard D6), 108σ (WISE 0855 D6), 72σ, 57σ. A significance in σ says how far the line is from a still star; it says nothing about whether the line is real. That is what the "chance lines expected" number is for.
+
+Limits: Gaussian fakes with the header's FWHM, not the real PSF; the stars supply their own pointing shifts; no real variable stars or clustering in the empty copies (they are destroyed); 49 × 49 px cutouts of six field-detector pairs; one seed; Barnard D2 de-duplicated (15 images). A found fake counts when its path is within 1.5 px of the truth, which at 4″/yr (0.65 px/yr) lets a chance line near the path pass for it, so the 4″/yr "found" cells say little.

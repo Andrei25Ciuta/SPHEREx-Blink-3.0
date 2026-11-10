@@ -1,16 +1,18 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="nebula">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Results and candidate explorer – SPHEREx Blink</title>
+  <meta name="theme-color" content="#0C0919">
+  <!-- Colour theme, applied before the first paint (js/features/theme.js does the same and handles the switch; keep the key and the names in step) -->
+  <script>try{var t=new URLSearchParams(location.search).get("theme")||localStorage.getItem("spherex-blink-theme");if(/^(nebula|deep-space|observatory|light|classic)$/.test(t))document.documentElement.dataset.theme=t}catch(e){}</script>
+  <title>Real-data results and candidate explorer – SPHEREx Blink</title>
   <meta name="description" content="What the SPHEREx Blink detector did on real SPHEREx images: numbers and charts only, with the failures shown next to the successes.">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Oswald:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
-  <script src="js/theme.js"></script>
-  <link rel="stylesheet" href="css/styles.css?v=14">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Oswald:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css?v=20">
   <link rel="stylesheet" href="css/results.css?v=3">
 </head>
 <body>
@@ -19,8 +21,8 @@
 
   <header class="rhead">
     <a class="rhead-logo" href="index.html"><span class="brand-logo" aria-hidden="true"></span><span>SPHEREx Blink</span></a>
+    <label class="theme-switch"><span class="sr-only">Colour theme</span><select id="theme-select" aria-label="Colour theme"></select></label>
     <nav aria-label="Pages"><a href="index.html">&larr; Back to the app</a></nav>
-    <label class="theme-picker">Theme <select data-theme-picker></select></label>
   </header>
 
   <main id="results" class="rmain" tabindex="-1">
@@ -87,7 +89,8 @@
       <h2 id="results-title">What the detector did on real images</h2>
       <p class="rlead">On 7 November 2026 the detector of this app was run on <strong><span data-n="data.files"></span> real SPHEREx cutouts</strong>
         (<span data-n="data.megabytes"></span> MB) of <span data-n="data.fields"></span> sky patches. This page shows what came out,
-        <strong>the failures next to the successes</strong>.</p>
+        <strong>the failures next to the successes</strong>. <strong>Sections 1&ndash;6 were remade by a command on <span data-n="generated.on" data-fmt="date"></span></strong> from the images the backend holds now
+        (Barnard's Star in D2 has <span data-n="generated.runs.barnard-d2.imageCount"></span> images, as on 7 November; the backend had counted three exposures twice for a few hours and now skips copies); sections 7&ndash;10 are still the numbers of 7 November, typed from the report of each command.</p>
       <p class="rnotice"><strong>No SPHEREx image or pixel is published on this page.</strong> The images stay on the author's computer; only
         numbers measured from them are shown. Every number is copied from <a href="https://github.com/mateibut/SPHEREx/blob/main/docs/VALIDATION.md">docs/VALIDATION.md</a>,
         which gives the command that produced it. The charts on the rest of the site (blink, difference, spectrum) run on <strong>synthetic</strong> data unless the backend is connected.</p>
@@ -106,6 +109,7 @@
     <!-- 1 -->
     <section class="panel rsec" aria-labelledby="r1">
       <h2 id="r1">1. A blind search for fast movers</h2>
+      <p class="rorigin" data-origin="1"></p>
       <p>The detector (<em>Find movers</em>) was <strong>not told what to look for</strong>. Afterwards its candidates were compared with SIMBAD.
         Each field has exactly one catalogued fast mover: Barnard's Star (10.4″ a year) and Epsilon Indi B (4.7″ a year).
         The chart shows how far the measured motion is from the catalogue motion.</p>
@@ -114,14 +118,15 @@
         <div data-chart="moversDifference"></div>
       </figure>
       <p><strong>Both objects were found in every run, and nothing else was reported</strong> (no candidate without a catalogue match).
-        The differences are 0.03&ndash;0.13 pixel per year. Searching both detectors together gave the smallest difference for each star
+        The differences are <span data-n="movers.differencePixels.0" data-fmt="fixed:2"></span>&ndash;<span data-n="movers.differencePixels.1" data-fmt="fixed:2"></span> pixel per year. Searching both detectors together gave the smallest difference for each star
         (<span data-n="movers.runs.2.difference" data-fmt="fixed:2"></span> and <span data-n="movers.runs.5.difference" data-fmt="fixed:2"></span>″/yr).
-        The two D6 differences got a little worse than in an earlier version of the code; that is in VALIDATION.md too.</p>
+        Remade on 10 November, Barnard's Star gives the numbers of 7 November (D2 <span data-n="movers.runs.0.difference" data-fmt="fixed:2"></span>″/yr); Epsilon Indi B's significance is higher than then because the error of the positions was corrected in the meantime (VALIDATION.md §2.1).</p>
     </section>
 
     <!-- 2 -->
     <section class="panel rsec" aria-labelledby="r2">
       <h2 id="r2">2. How many of the lines are chance?</h2>
+      <p class="rorigin" data-origin="2"></p>
       <p>A candidate is a line through dots in several images. In a crowded field some lines happen by chance, so the detector
         estimates how many lines <em>this good</em> the dots of that field would make by chance, and keeps a candidate only if that number is below 1.
         Epsilon Indi B in D6 shows why: with the first version of the rule it listed the real star <strong>and three false lines</strong>.</p>
@@ -129,15 +134,18 @@
         <figcaption>Lines expected by chance, for the kept lines and for the false lines of the original rule</figcaption>
         <div data-chart="chanceLines"></div>
       </figure>
-      <p>The real lines have at most <span data-n="movers.runs.4.chanceLines" data-fmt="chance"></span> chance lines expected; the three false ones about
-        <span data-n="movers.originalRule.falseChanceLines.0" data-fmt="chance"></span> each. The false ones are also supported by dots in only 2&ndash;3 of the images
+      <p>The real lines have at most <span data-n="movers.maxChanceLines" data-fmt="chance"></span> chance lines expected; the three false ones <strong>on 7 November</strong> about
+        <span data-n="movers.originalRule.falseChanceLines.0" data-fmt="chance"></span> each. The false ones were also supported by dots in only 2&ndash;3 of the images
         where the position could be measured, the real ones in all of them.</p>
-      <p class="rcaveat"><strong>Not an independent test.</strong> The rule was tightened <em>after</em> this failure was seen on these images. A new field would be needed to test it.</p>
+      <p class="rcaveat"><strong>Not an independent test, and no longer something this page can remake.</strong> The rule was tightened <em>after</em> this failure was seen on these images. Run again today with the original rule,
+        the same field in D6 lists <span data-n="movers.originalRule.reproducedNow.candidates"></span> candidate (the real one) and <span data-n="movers.originalRule.reproducedNow.falseLines"></span> false lines: the dots found in each image are fewer now,
+        so the failure belongs to the code of 7 November and its numbers above are kept as they were. A new field would be needed to test the rule.</p>
     </section>
 
     <!-- 3 -->
     <section class="panel rsec" aria-labelledby="r3">
       <h2 id="r3">3. A bright star and the bad-pixel mask</h2>
+      <p class="rorigin" data-origin="3"></p>
       <p>Barnard's Star is so bright that the core of its image is flagged as saturated in every exposure. The centre of a partly flagged core
         moves from date to date, which looks like a wrong proper motion. Fitting the star only to the unflagged pixels fixed it.</p>
       <figure class="rfig">
@@ -151,6 +159,7 @@
     <!-- 4 -->
     <section class="panel rsec" aria-labelledby="r4">
       <h2 id="r4">4. Are the brightnesses on the right scale?</h2>
+      <p class="rorigin" data-origin="4"></p>
       <p>For isolated, unsaturated stars the measured flux (a small aperture, in Jansky) was divided by the flux expected from the star's 2MASS or AllWISE magnitude at the wavelength of that image.</p>
       <figure class="rfig">
         <figcaption>Measured flux divided by catalogue flux</figcaption>
@@ -165,6 +174,7 @@
     <!-- 5 -->
     <section class="panel rsec" aria-labelledby="r5">
       <h2 id="r5">5. An asteroid that moved between two images</h2>
+      <p class="rorigin" data-origin="5"></p>
       <p>The main-belt asteroid Arosa (V = 14.6) lies in two images of the same survey pass, <span data-n="arosa.hours"></span> hours apart.
         The ephemeris service SkyBoT says where it is at each time. The chart shows the flux at those two positions in each image.</p>
       <figure class="rfig">
@@ -180,6 +190,7 @@
     <!-- 6 -->
     <section class="panel rsec" aria-labelledby="r6">
       <h2 id="r6">6. WISE 0855, the namesake object</h2>
+      <p class="rorigin" data-origin="6"></p>
       <p>WISE 0855 is the coldest known brown dwarf and far too faint to show as a dot in one exposure, so a blind search cannot find it.
         The weaker question: is there flux at the position its catalogue motion predicts, when all the images are added up?
         The same stack was made at 16 control places (the same path shifted 40 and 60 arcseconds), where nothing is expected.</p>
@@ -203,6 +214,7 @@
     <!-- 7 -->
     <section class="panel rsec" aria-labelledby="r7">
       <h2 id="r7">7. Planet X mode on a real dwarf planet</h2>
+      <p class="rorigin" data-origin="7"></p>
       <p>Planet X mode looks for a body so far away that it swings across the sky as the Earth goes round the Sun, and reads its distance from that swing.
         Makemake (a dwarf planet at 52 AU) is in <span data-n="makemake.imageCount"></span> real images. Each cutout was centred on the position the ephemeris gives, and the ephemeris was otherwise used only for grading.</p>
       <figure class="rfig">
@@ -229,6 +241,8 @@
     <!-- 8 -->
     <section class="panel rsec" aria-labelledby="r8">
       <h2 id="r8">8. How faint can it go? Fake movers in real images</h2>
+      <p class="rorigin" data-origin="8"></p>
+      <p class="rcaveat"><strong>Notice of 10 November.</strong> This section was measured on 7 November with three exposures of Barnard's Star in D2 counted twice (the backend held byte-identical copies; VALIDATION.md &sect;2.1), so its Barnard D2 numbers rest on 15 images plus 3 copies and have not been re-run. The other fields are not affected.</p>
       <p>To learn what the detector can and cannot see, fake moving stars of known brightness and speed were added to the <strong>real</strong> images
         (with the star shape given in the FITS headers) and the unchanged detector was run: <span data-n="calibration.fakesPerCell"></span> fakes for every brightness and
         speed, 2400 per field. The chart shows the total flux at which <em>one image</em> finds the fake half of the time and nine times in ten.</p>
@@ -247,6 +261,8 @@
     <!-- 9 -->
     <section class="panel rsec" aria-labelledby="r9">
       <h2 id="r9">9. Is the &ldquo;chance lines&rdquo; number honest? Empty-sky test</h2>
+      <p class="rorigin" data-origin="9"></p>
+      <p class="rcaveat"><strong>Notice of 10 November.</strong> This section was measured on 7 November with three exposures of Barnard's Star in D2 counted twice (the backend held byte-identical copies; VALIDATION.md &sect;2.1), so its Barnard D2 numbers rest on 15 images plus 3 copies and have not been re-run. The other fields are not affected.</p>
       <p>Every real image was rotated or mirrored at random and moved by a random number of pixels, independently of the others, <span data-n="calibration.emptySky.copies"></span> times per field. Real noise and real star counts stay,
         but nothing links one image to the next, so <strong>any candidate is false by construction</strong>. The chart shows how often the detector would still list one.</p>
       <figure class="rfig">
@@ -263,6 +279,7 @@
     <!-- 10 -->
     <section class="panel rsec" aria-labelledby="r10">
       <h2 id="r10">10. Could SPHEREx see a &ldquo;Planet X&rdquo;?</h2>
+      <p class="rorigin" data-origin="10"></p>
       <p>A distant planet shines only by reflected sunlight. From the limit of section 8, one image shows stars down to about V = <span data-n="planetX.oneImageV.0" data-fmt="fixed:1"></span>&ndash;<span data-n="planetX.oneImageV.1" data-fmt="fixed:1"></span>.
         The chart compares that with what a planet of 2 to 4 Earth radii would be at 300, 500 and 1000 AU.</p>
       <figure class="rfig">
@@ -275,9 +292,25 @@
       <p class="rcaveat"><strong>From memory, not checked:</strong> the relation between brightness, size and albedo, the colour of the Sun, and the size and orbit of Planet Nine. Makemake itself, measured in the real images, comes out about one magnitude fainter than that formula says: the scale is right to the order of magnitude.</p>
     </section>
 
-    <!-- 11 -->
-    <section class="panel rsec" aria-labelledby="r11">
-      <h2 id="r11">11. What this does not show</h2>
+    <!-- 11: the candidate explorer on the six real fields, from data/real_sources.json (hidden until the file is loaded) -->
+    <section class="panel rsec" id="sources-section" aria-labelledby="r11" hidden>
+      <h2 id="r11">11. Every source <em>Find everything</em> lists on the six real fields</h2>
+      <p id="sources-summary"></p>
+      <p>This is the list behind the real fields of the sections above (<a href="https://github.com/mateibut/SPHEREx/blob/main/docs/VALIDATION.md">VALIDATION.md &sect;14</a>): every source the images show, each checked against SIMBAD, Gaia DR3, 2MASS and AllWISE at that
+        catalogue's own date. Click a column to sort; filter, search and open a row. Derived numbers only (no pixels). A source nothing explains would be a <strong>lead</strong>, never a discovery.</p>
+      <label class="rfield">Field <select id="sources-field"></select></label>
+      <div id="sources-explorer"></div>
+      <p id="sources-detail" class="rcaveat" role="status"></p>
+      <h3>How each field's list was made</h3>
+      <div id="sources-provenance"></div>
+      <p class="rcaveat">Made by <code id="sources-command"></code> on <span id="sources-date"></span>, from the author's copy of the real images (not published). Each record above says what it was run with: input, settings, algorithm version and the time of the run.
+        <strong id="sources-verdict"></strong> How faint a source must be to be missed is in <a href="https://github.com/mateibut/SPHEREx/blob/main/docs/VALIDATION.md">VALIDATION.md &sect;14</a>.</p>
+    </section>
+    <p id="sources-status" class="rstatus" role="status" hidden></p>
+
+    <!-- 12 -->
+    <section class="panel rsec" aria-labelledby="r12">
+      <h2 id="r12">12. What this does not show</h2>
       <ul class="rlimits" data-limits></ul>
       <h3>Reproduce it</h3>
       <p>The commands are in <a href="https://github.com/mateibut/SPHEREx/blob/main/docs/VALIDATION.md">docs/VALIDATION.md</a>. They need the real cutouts, which are not published
