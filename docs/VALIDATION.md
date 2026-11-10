@@ -84,25 +84,26 @@ candidate is kept only if that number is below 1.
   pointing error, up to about 0.7 px between passes, which over a one-year baseline looks like a motion of several
   arcsec/yr). Both are covered by synthetic tests (`scratch/test_movers.mjs`), not only by these fields.
 
-### 2.1 Remade on 10 Nov 2026 by a command, on the images the backend holds now
+### 2.1 Remade on 10 Nov 2026 by a command (and a correction: three exposures were counted twice)
 
 `node scratch/make_results.mjs [--write]` (backend on the real files, port 8003; SIMBAD for the catalogue motion) runs the six blind searches above with the code of the app and writes
-`frontend/data/real_results_generated.json`, which sections 1-3 of the results page read; the table above stays as it was measured on 7 Nov. The images are more now (Barnard D2 has 18, it had 15; the other
-runs have the same images) and the code changed in Phase 4, so the numbers moved:
+`frontend/data/real_results_generated.json`, which sections 1-6 of the results page read. Epsilon Indi B is searched at RA 331.0634, Dec -56.7893 (the command's own centre: the centre used on 7 Nov was not recorded).
 
 | Field, detector | Candidates | Catalogue match | Catalogue motion | Measured motion | Difference | Seen in | Significance | Chance lines expected |
 |---|---|---|---|---|---|---|---|---|
-| Barnard's Star, D2 | 1 | Barnard's Star | (−0.80, +10.36) | (−1.36, +10.12) | **0.61 ″/yr** | 18 of 18 | 16 σ | 2e-26 |
+| Barnard's Star, D2 | 1 | Barnard's Star | (−0.80, +10.36) | (−1.03, +10.15) | **0.31 ″/yr** | 15 of 15 | 15 σ | 2e-21 |
 | Barnard's Star, D6 | 1 | Barnard's Star | (−0.80, +10.36) | (−0.25, +9.78) | **0.80 ″/yr** | 6 of 6 | 10 σ | 8e-6 |
-| Barnard's Star, **D2 + D6** | 1 | Barnard's Star | (−0.80, +10.36) | (−1.17, +10.16) | **0.42 ″/yr** | 24 of 24 | 20 σ | 1e-35 |
+| Barnard's Star, **D2 + D6** | 1 | Barnard's Star | (−0.80, +10.36) | (−0.91, +10.19) | **0.20 ″/yr** | 21 of 21 | 19 σ | 2e-30 |
 | Epsilon Indi B, D2 | 1 | Epsilon Indi B | (+3.98, −2.47) | (+3.59, −1.93) | **0.66 ″/yr** | 11 of 11 | 16 σ | 5e-15 |
 | Epsilon Indi B, D6 | 1 | Epsilon Indi B | (+3.98, −2.47) | (+3.50, −2.74) | **0.56 ″/yr** | 6 of 6 | 18 σ | 1e-5 |
 | Epsilon Indi B, **D2 + D6** | 1 | Epsilon Indi B | (+3.98, −2.47) | (+3.61, −2.36) | **0.39 ″/yr** | 15 of 17 | 21 σ | 5e-19 |
 
-- Still **recovered in every run, with no candidate besides the known mover**; both detectors together still give the smallest difference for each star; the differences are 0.39-0.80 ″/yr (0.06-0.13 pixel per year); every real line is supported in every image that could be measured (18 of 18, 6 of 6, 24 of 24, 11 of 11, 6 of 6, 17 of 17).
-- **What changed.** Barnard D2 went from 0.31 to **0.61 ″/yr** with three more images (so the 0.31 of 7 Nov was partly luck of that set of 15), and Barnard D2 + D6 from 0.20 to 0.42. Epsilon Indi B D6 improved (0.65 to 0.56) and D2 + D6 too (0.53 to 0.39). The line of Epsilon Indi B D2 + D6 is now seen in **15 of 17** images, not all of them: the search asks for 60 %. The headline range of the page is now 0.39-0.80, not 0.2-0.8.
-- **The failure of the original rule cannot be remade by the code of today.** `--relaxed 1` (the rule that listed Epsilon Indi B in D6 and three false lines on 7 Nov) now lists only the real line: the dots found per image are 4-8 (they were about 9), so there are no chance matches to join. The numbers of the failure in the section above (6e-5 for the real line, about 17 for the false ones, 3 of 6, 2 of 6 and 2 of 4 images) are therefore a record of the code of 7 Nov, and the page says so. The sentence above, "re-running ... reproduces the failure", was true then and is not now.
-- **Barnard in D2 without and with the bad-pixel mask**: **3.56 → 0.61 ″/yr** on these 18 images (the same code with `mask: null` is the code before the mask), so the mask still removes most of the error, and the 3.72 → 0.31 of 7 Nov (15 images) is the same effect on the old set.
+- **Barnard's Star: the numbers of 7 Nov are reproduced exactly** (0.31, 0.80, 0.20 ″/yr; 15, 6 and 21 images). Still recovered in every run with no other candidate; both detectors together give the smallest difference for each star; every real line is supported in every image that could be measured; the range is 0.20-0.80 ″/yr (0.03-0.13 pixel per year).
+- **Epsilon Indi B differs from the table above** (0.66, 0.56, 0.39 against 0.62, 0.65, 0.53 ″/yr; 16, 18, 21 σ against 8, 7, 11): the significance is the Phase 4 change (15 / 11 / 18 σ on 8 Nov, section 15.3), the motions move by 0.04-0.14 ″/yr with the centre of the field, and the D2 + D6 line is now seen in 15 of 17 images (the search asks for 60 %), not all.
+- **A correction made on the way.** The first run of this command, the same day, gave Barnard D2 **0.61 ″/yr in "18 images"** (and D2 + D6 0.42, the mask 3.56 → 0.61). It was wrong: the backend held **three exposures twice** (the files `..._2.fits` and `..._6.fits`, `..._3` and `..._11`, `..._4` and `..._16`: byte for byte identical, the same sha1), so each of them counted as two measurements in every search, fit and count of images. It was found when the reproducibility bundle (item 3) listed the same image id and the same SHA-256 twice. The backend now skips a file that is an exact copy of one already used and reports it in `/api/health` (`duplicateFiles`): 75 files, **72 frames**. With the copies out, the numbers of 7 Nov come back (15 / 6 / 21 images, **3.72 without the mask**). The 0.61, 0.42 and 3.56 that the page showed for some hours were artefacts of the copies.
+- **What else is affected.** Every real-data result made while those copies were in the set counted Barnard D2 as "18 images" instead of 15: section 10 (the injection and empty-sky calibrations), 14 (every source, support), 16 (the Planet X Lab map) and the Barnard D2 parts of their tables. They were **not re-run** (sections 8 and 9 of the results page are typed from them): see the notice at the head of each of those sections.
+- **The failure of the original rule cannot be remade by the code of today.** `--relaxed 1` (the rule that listed Epsilon Indi B in D6 and three false lines on 7 Nov) now lists only the real line: the dots found per image are 4-8 (they were about 9), so there are no chance matches to join. The numbers of the failure in the section above (6e-5 for the real line, about 17 for the false ones, 3 of 6, 2 of 6 and 2 of 4 images) are a record of the code of 7 Nov, and the page says so. The sentence above, "re-running ... reproduces the failure", was true then and is not now.
+- **Barnard in D2 without and with the bad-pixel mask**: **3.72 → 0.31 ″/yr** (the same code with `mask: null` is the code before the mask), reproduced.
 
 ### Barnard in D2: from 3.7 to 0.3 ″/yr in RA
 
@@ -405,6 +406,8 @@ text says how far the nearest coast is ("water, about 850 km from Brazil").
 
 ## 10. How good is *Find movers*? Calibration on real frames (added 7 Nov 2026, night)
 
+> **Notice of 10 Nov 2026.** This is the calibration on the real fields (the fake movers and the empty-sky copies). Until 10 Nov the backend held **three exposures of Barnard's Star in D2 twice** (byte-identical files; section 2.1), so "Barnard D2, 18 images" below was 15 distinct images plus 3 copies. The numbers of this section that rest on Barnard D2 were measured with the copies in and **have not been re-run**; read them as probably slightly optimistic for that field (an exposure counted twice is not an independent measurement). The other fields (Barnard D6, Epsilon Indi B, WISE 0855, Makemake) have no copies.
+
 `scratch/calibrate_real.mjs` (the header of the script explains every step). Two experiments on the real cutouts, **no new download**:
 (1) **injection and recovery**: a fake mover (a star with the PSF of the FITS headers, FWHM 5.15″ in D2 and 6.61″ in D6, integrated
 over the pixels, so 100 % of its light falls in the 2-pixel aperture) is added to the real frames along a straight path of known
@@ -635,7 +638,7 @@ objects.** The three measurements below are the real-data part.
 
 | field | images | dots per image | sources | in a catalogue (moving ones) | **unexplained** |
 |---|---|---|---|---|---|
-| Barnard's Star D2 | 18 | 3-9 | 8 | 8 (1) | **0** |
+| Barnard's Star D2 | 15 | 3-9 | 8 | 8 (1) | **0** |
 | Barnard's Star D6 | 6 | 6-9 | 6 | 6 (1) | **0** |
 | Epsilon Indi B D2 | 11 | 4-8 | 7 | 7 (1) | **0** |
 | Epsilon Indi B D6 | 6 | 7-10 | 3 | 3 (1) | **0** |
@@ -812,6 +815,8 @@ the thresholds of §10-§14 were tuned with it. The error to **report** is `cali
 
 ### 15.5 The same errors on the real images (`node scratch/check_astrometry_real.mjs`)
 
+> **Notice of 10 Nov 2026.** These are the errors checked on the real fields. Until 10 Nov the backend held **three exposures of Barnard's Star in D2 twice** (byte-identical files; section 2.1), so "Barnard D2, 18 images" below was 15 distinct images plus 3 copies. The numbers of this section that rest on Barnard D2 were measured with the copies in and **have not been re-run**; read them as probably slightly optimistic for that field (an exposure counted twice is not an independent measurement). The other fields (Barnard D6, Epsilon Indi B, WISE 0855, Makemake) have no copies.
+
 - **Positions of fixed stars** (a dot at the same place in at least 6 images, after the registration, a star that moves removed; the saturated stars, positioned by the masked fit, are outside the model and left out): 183 dots. Pooled spread of z
   **0.85**. By S/N of the dot:
 
@@ -887,6 +892,8 @@ orbit of about 11 years), unresolved in a 6.14″ pixel, so what is measured is 
 need the orbit; none was made.
 
 ## 16. The Planet X Lab: which motion fits, and how likely is a distant body to be found (Phase 5, 8 Nov 2026)
+
+> **Notice of 10 Nov 2026.** This is the Planet X Lab's map on the real Barnard D2 field (its injections went into the real images, copies included). Until 10 Nov the backend held **three exposures of Barnard's Star in D2 twice** (byte-identical files; section 2.1), so "Barnard D2, 18 images" below was 15 distinct images plus 3 copies. The numbers of this section that rest on Barnard D2 were measured with the copies in and **have not been re-run**; read them as probably slightly optimistic for that field (an exposure counted twice is not an independent measurement). The other fields (Barnard D6, Epsilon Indi B, WISE 0855, Makemake) have no copies.
 
 Section 5 of the page (`planetLab.js`, `planetLabView.js`, `planetLabWorker.js`; version `planetlab-1`) has two parts.
 
@@ -986,22 +993,22 @@ What it does not show. "Covers" means the footprint contains the point, not that
 
 | Field, detector | Stars | Measurements | Median measured / catalogue | Scatter | 16th-84th percentile |
 |---|---|---|---|---|---|
-| Barnard field · D2 | 3 | 38 | **0.968** | 0.034 | 0.93-1.00 |
+| Barnard field · D2 | 3 | 33 | **0.967** | 0.031 | 0.92-0.99 |
 | Barnard field · D6 | 5 | 18 | **0.895** | 0.046 | 0.84-0.93 |
 | Epsilon Indi B field · D2 | 2 | 15 | **0.979** | 0.053 | 0.93-1.02 |
 | Epsilon Indi B field · D6 | 1 | 3 | **0.932** | 0.024 | 0.90-0.94 |
 
-The medians are the same as on 7 Nov to 0.001 (0.967 → 0.968 for Barnard D2, with three more images); D6 is still lower than D2 in both fields. The zero points are still written from memory (section 3).
+The medians, the scatter and the number of measurements are **the same as on 7 Nov** (after the copies were removed: a first run of the same day counted 38 measurements and a median of 0.968 for Barnard D2, because it counted three exposures twice, see 2.1); D6 is still lower than D2 in both fields. The zero points are still written from memory (section 3).
 
 **Arosa**: SkyBoT gives its position at each time, the backend measures the flux there: it moved **563″ in 19.5 hours** (28.8″/hour; SkyBoT says 28.8″/hour, it said 29.0 on 7 Nov: the average of its two dates, not one).
 
 | Image | Flux |
 |---|---|
-| Image of 00:10 UTC (1.21 µm), at the 00:10 position | 8.68 ± 0.30 mJy |
-| Image of 00:10 UTC (1.22 µm), at the 19:42 position | 0.01 ± 0.95 mJy |
+| Image of 00:10 UTC (1.21 µm), at the 00:10 position | 8.66 ± 0.30 mJy |
+| Image of 00:10 UTC (1.22 µm), at the 19:42 position | 0.02 ± 0.95 mJy |
 | Image of 19:42 UTC (1.34 µm), at the 19:42 position | 8.56 ± 1.11 mJy |
 | Image of 19:42 UTC (1.34 µm), at the 00:10 position | not in this cutout |
 
-The fluxes are the same as on 7 Nov (8.67, 0.02, 8.56); the errors are 10-30 % larger (0.27 → 0.30, 0.84 → 0.95, 0.98 → 1.11) because the backend's flux error was changed in Phase 4 (15.7). The centre offset of the source (1.0″) is still the typed value of 7 Nov: the script does not measure it.
+The fluxes are the same as on 7 Nov to 0.02 mJy (8.67, 0.02, 8.56; two runs of the command a minute apart gave 8.66 and 8.68 for the first, because SkyBoT answers a slightly different position each time); the errors are 10-30 % larger (0.27 → 0.30, 0.84 → 0.95, 0.98 → 1.11) because the backend's flux error was changed in Phase 4 (15.7). The centre offset of the source (1.0″) is still the typed value of 7 Nov: the script does not measure it.
 
 **WISE 0855** (`stack_wise0855.py`): **identical to 7 Nov**: D6 stack 0.415 ± 0.076 mJy, 4.3 times the robust scatter of the controls, brighter than 15 of 16 controls, one control at +4.81 mJy on a field star; D2 stack 0.635 ± 0.086 mJy, brighter than 16 of 16 (the 2MASS star inside the aperture). The explanation of the D2 excess is text, not measured by the script.

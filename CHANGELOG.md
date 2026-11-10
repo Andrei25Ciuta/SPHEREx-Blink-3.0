@@ -9,6 +9,10 @@ published until the author decides ([docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)).
 The reference is `main` at `3f1e538` (7 Nov 2026). Status per phase: [docs/IMPLEMENTATION_ROADMAP.md](docs/IMPLEMENTATION_ROADMAP.md); feature by feature,
 with what was and was not checked: [docs/FEATURE_STATUS.md](docs/FEATURE_STATUS.md).
 
+### Reproducibility bundle, and a correction found by it (10 Nov 2026)
+- Section 9: "Save the bundle (JSON)": the field, the versions, the settings of the last search, a SHA-256 of every image the search used, the candidates, a replay link and a command; `scratch/replay_bundle.mjs` reads the same images from a backend, compares the hashes and runs the same search (REPRODUCED or what differs). Item 3 of the ten improvements.
+- **Correction:** the bundle listed the same image twice: the backend held three exposures of Barnard's Star in D2 twice (byte-identical files), so they counted as two measurements. The backend now skips exact copies (`/api/health` lists them: 75 files, 72 frames). Sections 1-6 of the results page were remade (Barnard reproduces the numbers of 7 Nov; the first run of the day, with the copies, had wrongly given 0.61 ″/yr); sections 8-9 and VALIDATION 10, 14, 16 were made with the copies in and carry a notice.
+
 ### Keyboard and screen-reader audit (10 Nov 2026)
 - `scratch/a11y_audit.mjs`: 18 checks with real key presses in headless Chrome (also a CI job). It found and fixed: the image change was not announced (a live region now says it), measuring a position needed a mouse (the picture takes focus, the centre of the view is read out, Enter measures there), two targets under 24 px. Not listened to with a real screen reader. Item 2 of the ten improvements.
 
@@ -28,7 +32,7 @@ with what was and was not checked: [docs/FEATURE_STATUS.md](docs/FEATURE_STATUS.
   (`searchTasks.js`, `workerClient.js`, `searchWorker.js`; `test_workers.mjs`). The page records where the last search ran (`data-last-search`). `0c67f0d`
 - `scratch/benchmark.mjs`: three deterministic scenarios with golden digests of their output; a test fails when a search gives another answer
   (`test_benchmark.mjs`). [docs/BENCHMARKS.md](docs/BENCHMARKS.md)
-- `scratch/e2e_smoke.mjs`: the page in headless Chrome over the DevTools Protocol with Node only (no Playwright, no npm): 14 checks on the synthetic demo; a
+- `scratch/e2e_smoke.mjs`: the page in headless Chrome over the DevTools Protocol with Node only (no Playwright, no npm): 15 checks on the synthetic demo; a
   separate job in `tests.yml` (green in CI on PR 2, 10 Nov 2026; the golden digests are identical on Node 20 / Linux).
 - Documents: BENCHMARKS, DEPLOYMENT, CONTRIBUTING, this file.
 - Measured and said: no search got faster; Find movers no longer stops the page (longest gap between frames 15-28 ms against 396-499 ms), the Planet X search

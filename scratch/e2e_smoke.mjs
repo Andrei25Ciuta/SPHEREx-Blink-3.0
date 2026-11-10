@@ -173,6 +173,17 @@ async function main() {
       if (!info.dots || !info.cands || !info.captions || info.focused !== "ta-prov-title" || info.canvases) throw new Error(JSON.stringify(info));
       return info.status;
     });
+    await step("the reproducibility bundle is saved: it says the data are SYNTHETIC, and gives a replay link without any backend address", async () => {
+      await evaluate(`window.__bundle = null; const orig = URL.createObjectURL; URL.createObjectURL = (b) => { b.text().then((t) => { window.__bundle = t; }); return orig(b); };`);
+      await click("#bundle-btn");
+      await waitFor(`window.__bundle`, "the bundle file", 20000);
+      const info = await evaluate(`(() => { const b = JSON.parse(window.__bundle); return { kind: b.data.kind, label: b.data.label, images: b.images.length, hashes: b.images.every((i) => /^[0-9a-f]{64}$/.test(i.sha256)), link: b.replay.link, command: b.replay.command, search: b.searches.length, status: document.getElementById("bundle-status").textContent, err: document.getElementById("bundle-error").textContent }; })()`);
+      if (info.err) throw new Error(info.err);
+      if (info.kind !== "synthetic" || !/SYNTHETIC/.test(info.label)) throw new Error(`the bundle says ${info.kind}: ${info.label}`);
+      if (!info.images || !info.hashes) throw new Error("the images have no hash");
+      if (/[?&](data|api)=/.test(info.link) || info.command !== null) throw new Error(`replay: ${info.link} ${info.command}`);
+      return `${info.images} hashed images, ${info.search} search record`;
+    });
     await step("the Solar System view is drawn", async () => {
       await waitFor(`document.getElementById("ss-map").innerHTML.length > 200`, "solar system map");
       return (await text("#ss-swing")).trim().slice(0, 100) || "map drawn";

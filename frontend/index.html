@@ -550,6 +550,13 @@
         <div class="table-scroll"><table class="ss-table" id="ta-cands"></table></div>
         <p><button type="button" class="btn btn-small" id="ta-cands-csv">Save the candidates (CSV)</button></p>
       </div>
+
+      <h3 id="bundle-title">Reproducibility bundle</h3>
+      <p class="muted">A small JSON file that lets someone else check what was done: the field and detector, the version of every algorithm, the settings of the last search, a <strong>SHA-256 hash of the pixels of every image</strong> (it proves the same data without publishing a pixel), the images' dates and wavelengths, the candidates, and a link and a command to replay it. It holds no pixel, no file path and no address of this computer; a bundle that fails that check is not saved. It cannot say which IRSA product each cutout came from (the backend does not report it): that field is empty and says why.</p>
+      <p><button type="button" class="btn btn-small btn-primary" id="bundle-btn">Save the bundle (JSON)</button></p>
+      <p class="error-text" id="bundle-error" role="alert"></p>
+      <p class="muted small" id="bundle-status" role="status" aria-live="polite">Load a field, run Find movers if you want its settings in the file, then press the button.</p>
+      <div id="bundle-replay"></div>
     </section>
   </main>
 

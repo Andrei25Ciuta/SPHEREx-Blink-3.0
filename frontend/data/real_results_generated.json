@@ -5,7 +5,7 @@
   "command": "node scratch/make_results.mjs --write",
   "runs": {
    "barnard-d2": {
-    "imageCount": 18,
+    "imageCount": 15,
     "passes": 4
    },
    "barnard-d6": {
@@ -13,7 +13,7 @@
     "passes": 3
    },
    "barnard-all": {
-    "imageCount": 24,
+    "imageCount": 21,
     "passes": 4
    },
    "eps-d2": {
@@ -33,7 +33,7 @@
  },
  "summary": {
   "recovered": [6,6],
-  "minDifference": 0.39,
+  "minDifference": 0.2,
   "maxDifference": 0.8
  },
  "movers": {
@@ -42,11 +42,11 @@
     "id": "barnard-d2",
     "label": "Barnard's Star · D2",
     "catalogue": [-0.8,10.36],
-    "measured": [-1.36,10.12],
-    "difference": 0.61,
-    "seen": [18,18],
-    "sigma": 16,
-    "chanceLines": 2e-26
+    "measured": [-1.03,10.15],
+    "difference": 0.31,
+    "seen": [15,15],
+    "sigma": 15,
+    "chanceLines": 2e-21
    },
    {
     "id": "barnard-d6",
@@ -62,11 +62,11 @@
     "id": "barnard-all",
     "label": "Barnard's Star · D2 + D6",
     "catalogue": [-0.8,10.36],
-    "measured": [-1.17,10.16],
-    "difference": 0.42,
-    "seen": [24,24],
-    "sigma": 20,
-    "chanceLines": 1e-35
+    "measured": [-0.91,10.19],
+    "difference": 0.2,
+    "seen": [21,21],
+    "sigma": 19,
+    "chanceLines": 2e-30
    },
    {
     "id": "eps-d2",
@@ -99,9 +99,9 @@
     "chanceLines": 5e-19
    }
   ],
-  "differencePixels": [0.06,0.13],
+  "differencePixels": [0.03,0.13],
   "maxChanceLines": 0.00001,
-  "realSupport": [[18,18],[6,6],[24,24],[11,11],[6,6],[17,17]],
+  "realSupport": [[15,15],[6,6],[21,21],[11,11],[6,6],[17,17]],
   "originalRule": {
    "note": "Epsilon Indi B in D6 with the first version of the rule (a line needs dots in half of the images): the real line and three false ones.",
    "realChanceLines": 0.00006,
@@ -115,19 +115,19 @@
    }
   },
   "barnardD2Mask": {
-   "before": 3.56,
-   "after": 0.61
+   "before": 3.72,
+   "after": 0.31
   }
  },
  "jansky": [
   {
    "label": "Barnard field · D2",
    "stars": 3,
-   "measurements": 38,
-   "median": 0.968,
-   "scatter": 0.034,
-   "p16": 0.93,
-   "p84": 1
+   "measurements": 33,
+   "median": 0.967,
+   "scatter": 0.031,
+   "p16": 0.92,
+   "p84": 0.99
   },
   {
    "label": "Barnard field · D6",
@@ -165,12 +165,12 @@
   "rows": [
    {
     "label": "Image of 00:10 UTC (1.21 µm), at the 00:10 position",
-    "fluxMilliJy": 8.68,
+    "fluxMilliJy": 8.66,
     "err": 0.3
    },
    {
     "label": "Image of 00:10 UTC (1.22 µm), at the 19:42 position",
-    "fluxMilliJy": 0.01,
+    "fluxMilliJy": 0.02,
     "err": 0.95
    },
    {

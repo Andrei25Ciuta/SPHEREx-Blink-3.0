@@ -52,6 +52,8 @@ checked by `validateFrame` in `getCutouts.js`.
 | `skyExplorer.js` | the sky explorer (pure): the Hammer map and its inverse, the ecliptic and the galactic plane, great circles cut at the map's edge, images grouped into fields, a field's images as arcminute offsets |
 | `skyExplorerView.js` | the DOM side of the explorer (not pure): the SVG map, the list of fields, a field at true scale, open a field |
 | `textAnalysis.js` | the images, the dots and the candidates as plain rows (pure): frame rows with survey passes and flag warnings, dot rows with RA/Dec, S/N, position error and warnings, candidate rows with a status in words, the provenance lines, CSV with the provenance first |
+| `bundle.js` | the reproducibility bundle (pure; the hash function is injected): SHA-256 of an array, the replay link, the manifest, the validation (no pixel, path or local address), a signature of the candidates |
+| `bundleView.js` | the DOM side of the bundle (not pure): hashes the pixels the searches use, builds and validates the manifest, saves it, shows the replay link and command |
 | `textAnalysisView.js` | the DOM side of the text analysis (not pure): real tables with captions and scope, the live status, the focus on the result, the selector of one image, the CSV buttons |
 | `surveyCoverage.js` | which SURVEY images (IRSA `spherex.plane`, via the backend's `/api/survey`) cover a place (pure): the gnomonic projection of a footprint, point in polygon, the survey passes by the rule of `passIndices`, the coverage in words, the request and its errors |
 | `surveyView.js` | the DOM side of "Which survey images cover a place?" (not pure): the form, the footprints at true scale, the table; the button is disabled, with the reason, when there is no backend |

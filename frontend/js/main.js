@@ -20,6 +20,7 @@ import { setupPlanetLab } from "./features/planetLabView.js";
 import { setupSkyExplorer } from "./features/skyExplorerView.js";
 import { setupSurveySearch } from "./features/surveyView.js";
 import { setupTextAnalysis } from "./features/textAnalysisView.js";
+import { setupBundle } from "./features/bundleView.js";
 import { fetchSurvey as askSurvey } from "./features/surveyCoverage.js";
 import { setupSolarSystem } from "./features/solarSystemView.js";
 import { setupAssistant } from "./features/assistantView.js";
@@ -1501,6 +1502,19 @@ textAnalysis = setupTextAnalysis({
     ? { isReal: DATA_SOURCE === "api", query: currentQuery, detector: currentDetector, frames: currentFrames, geo: currentGeo(), unit: currentFrames[0].unit ?? null, n: player.naturalSize } : null),
   getPixels: (frames) => detectionPixels(frames),
   getCandidates: () => movers,
+  download: downloadText,
+});
+
+// Reproducibility bundle (features/bundle.js, bundleView.js): the field, the versions, the settings, the hash of every image, the candidates, how to replay.
+// Its images are the ones the searches use (every detector with "Use all detectors"): a replay must find exactly these.
+setupBundle({
+  els: { button: $("bundle-btn"), error: $("bundle-error"), status: $("bundle-status"), replay: $("bundle-replay") },
+  getContext: () => (currentQuery && currentFrames.length && player.length
+    ? { isReal: DATA_SOURCE === "api", query: currentQuery, detector: useAllDetectors() ? "all" : currentDetector, frames: searchFrames(), geo: currentGeo(), unit: currentFrames[0].unit ?? null, n: player.naturalSize, href: location.href, mode: player.mode } : null),
+  getPixels: (frames) => detectionPixels(frames),
+  getCandidates: () => movers,
+  getRun: () => moversRun,
+  versions: { movers: MOVERS_VERSION, parallax: PARALLAX_VERSION },
   download: downloadText,
 });
 

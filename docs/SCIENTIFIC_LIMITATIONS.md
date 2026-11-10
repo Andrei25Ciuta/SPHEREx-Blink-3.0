@@ -101,6 +101,12 @@ A candidate is a lead with its evidence, never a discovery. Nothing this applica
 - Sections 4-6 are remade too (VALIDATION 19): the Jansky scale uses zero points written from memory; the Arosa centre offset (1.0″) and the explanation of the WISE 0855 D2 excess are still typed; Arosa is one asteroid in two images.
 - Sections 7-10 (Makemake and the blind Planet X search, the fake-star calibration, the empty-sky test, the Planet X limits) are still the numbers of 7 Nov, typed from the reports of their commands; they do not move when the images do.
 
+## Duplicate files, and the reproducibility bundle
+
+- **Until 10 Nov the backend counted three exposures of Barnard's Star in D2 twice** (byte-identical files). Every real-data result made with them treated Barnard D2 as 18 images instead of 15. Sections 1-6 of the results page were remade without them and reproduce the numbers of 7 Nov; sections 8 and 9 (and VALIDATION 10, 14, 16, 15.5) were not re-run and say so. An exposure counted twice is not an independent measurement: those Barnard D2 numbers are probably slightly optimistic.
+- The backend now skips a file that is an exact copy of another (same detector, same time, same size, same SHA-1). It does not detect the same exposure saved with different pixels (another cutout, another resampling): two such files would both be used.
+- A **reproducibility bundle** proves that two people have the same *pixels* (a SHA-256 of each image) and the same *settings*; it does not prove the images are the right ones, that the archive product is the one claimed (the backend does not report the IRSA product id: `productId` is null), or that the result is correct. The hash is of the bytes as the backend serves them (float32), so a different backend or resampling gives a different hash. Only *Find movers* is replayed by the script.
+
 ## Which survey images cover a place (IRSA; VALIDATION §18)
 
 - The list is **metadata of what IRSA has published** (a live query of `spherex.plane`, retrieved at the time the page shows): it changes weekly as the survey adds images, and it says nothing about whether an image is good. A row with a quality flag is listed, not filtered.
@@ -120,7 +126,7 @@ A candidate is a lead with its evidence, never a discovery. Nothing this applica
 - The times in BENCHMARKS.md are medians of 3-5 runs on one machine; two runs of the same code differed by 20-25 %. They are for comparing a "before" and an "after" made the same way, not
   absolute figures.
 - The end-to-end test uses the **synthetic** demo only. It shows that the main path works in one browser (Chrome); it does not test real data, the backend, other browsers, a touch screen
-  or a screen reader, and it is a smoke test (14 checks), not a coverage of the page.
+  or a screen reader, and it is a smoke test (15 checks), not a coverage of the page.
 
 ## Spectra
 

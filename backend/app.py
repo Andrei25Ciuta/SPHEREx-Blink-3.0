@@ -50,7 +50,8 @@ archive = LocalArchive()
 @app.get("/api/health")
 def health():
     archive.refresh()
-    return {"dataDir": str(archive.root), "indexedFiles": len(archive._index),
+    return {"dataDir": str(archive.root), "indexedFiles": len(archive._index), "usedFrames": len(archive.frames()),
+            "duplicateFiles": {k.name: v.name for k, v in archive.duplicates.items()},          # exact copies of another file: not used, so that one exposure is not counted twice
             "unreadableFiles": {str(k): v for k, v in archive.errors.items()}}
 
 
@@ -58,7 +59,7 @@ def health():
 def footprints_endpoint(det: str = Query("all", description='"all" or a detector name like "D3"')):
     """Where the images on this machine are on the sky (the four corners of each, from its own WCS). No file names, no paths: see spherex/footprints.py."""
     archive.refresh()
-    return {"footprints": footprints(list(archive._index.values()), det),
+    return {"footprints": footprints(archive.frames(), det),
             "note": "The footprints of the image files this backend has, not of the SPHEREx survey."}
 
 

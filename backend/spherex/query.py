@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import os
 import re
+import hashlib
 import threading
 import warnings
 from dataclasses import dataclass
@@ -159,6 +160,8 @@ class LocalArchive:
         self.root = root
         self._index: dict[Path, FrameFile] = {}
         self._errors: dict[Path, str] = {}
+        self._dups: dict[Path, Path] = {}                 # a file that is a byte-for-byte copy of another -> the file that is used
+        self._digests: dict[Path, tuple[float, str]] = {}  # (mtime, sha1) so that a copy is recognised without reading the file again
         self._lock = threading.Lock()
 
     def refresh(self):
@@ -176,6 +179,42 @@ class LocalArchive:
                 except Exception as exc:  # noqa: BLE001 – a bad file must not break the API
                     self._errors[p] = str(exc)
                     self._index.pop(p, None)
+            self._find_duplicates()
+
+    def _sha1(self, p: Path) -> str:
+        mtime = p.stat().st_mtime
+        hit = self._digests.get(p)
+        if hit and hit[0] == mtime:
+            return hit[1]
+        digest = hashlib.sha1(p.read_bytes()).hexdigest()
+        self._digests[p] = (mtime, digest)
+        return digest
+
+    def _find_duplicates(self):
+        """Files that are exact copies of each other (the same exposure fetched twice): only the first (by name) is used. The same exposure counted twice would count one measurement as two in every fit."""
+        groups: dict[tuple, list[Path]] = {}
+        for p, f in self._index.items():
+            groups.setdefault((f.detector, round(f.mjd, 6), p.stat().st_size), []).append(p)
+        dups: dict[Path, Path] = {}
+        for paths in groups.values():
+            if len(paths) < 2:
+                continue
+            by_hash: dict[str, list[Path]] = {}
+            for p in sorted(paths):
+                by_hash.setdefault(self._sha1(p), []).append(p)
+            for same in by_hash.values():
+                for extra in same[1:]:
+                    dups[extra] = same[0]
+        self._dups = dups
+
+    @property
+    def duplicates(self) -> dict[Path, Path]:
+        return dict(self._dups)
+
+    def frames(self) -> list[FrameFile]:
+        """Every indexed frame that is not a copy of another one."""
+        self.refresh()
+        return [f for p, f in self._index.items() if p not in self._dups]
 
     @property
     def errors(self):
@@ -185,7 +224,9 @@ class LocalArchive:
         """Frames whose image contains (ra, dec), sorted by time."""
         self.refresh()
         hits = []
-        for f in self._index.values():
+        for p, f in self._index.items():
+            if p in self._dups:
+                continue                                  # an exact copy of a file already used
             if detector != "all" and f.detector != detector:
                 continue
             try:

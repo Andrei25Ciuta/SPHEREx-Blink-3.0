@@ -13,8 +13,8 @@
 // Section 6         WISE 0855: the stack along its predicted path against 16 control places (scratch/stack_wise0855.py, its report is parsed)
 // What is NOT remade (still typed from the report of 7 Nov, said so on the page): sections 7-10.
 //
-// The search is the one of the app (movers.js): the same function, the same options. The numbers differ from those of 7 Nov because the images the backend holds now are more
-// (Barnard D2 has 18 images, then 15) and the code has changed since (Phase 4); the old values are printed next to the new ones so that the change can be seen before it is written.
+// The search is the one of the app (movers.js): the same function, the same options. Barnard's numbers are those of 7 Nov (the backend skips the three exposures it held twice: VALIDATION 2.1); the old
+// values are printed next to the new ones so that a change can be seen before it is written.
 
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
@@ -124,7 +124,7 @@ const supports = results.filter((r) => r.real).map((r) => r.real.support);
 const generated = {
   on: localDate(), sections: [1, 2, 3, 4, 5, 6], command: "node scratch/make_results.mjs --write",
   runs: Object.fromEntries(results.map((r) => [r.id, { imageCount: r.images, passes: r.passes }])),         // (not called "images": the test of the data file forbids that key, it guards against pixel dumps)
-  note: "Remade from the real images the backend holds on this date; the numbers of 7 Nov (15 images in Barnard D2) are in docs/VALIDATION.md section 2 as they were.",
+  note: "Remade from the real images the backend holds on this date; the table of 7 Nov is in docs/VALIDATION.md section 2 as it was; section 2.1 compares them.",
 };
 const fresh = {
   summary: { recovered: [results.filter((r) => r.real).length, results.length], minDifference: Math.min(...diffs), maxDifference: Math.max(...diffs) },
