@@ -9,6 +9,9 @@ published until the author decides ([docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)).
 The reference is `main` at `3f1e538` (7 Nov 2026). Status per phase: [docs/IMPLEMENTATION_ROADMAP.md](docs/IMPLEMENTATION_ROADMAP.md); feature by feature,
 with what was and was not checked: [docs/FEATURE_STATUS.md](docs/FEATURE_STATUS.md).
 
+### Text analysis (10 Nov 2026)
+- Section 9: the images, the dots and the candidates as plain tables, no picture, for a screen reader and the keyboard; CSV with the provenance first; checked in the browser, not with a screen reader. The first of ten improvements the author listed on 10 Nov (accessibility, provenance, uncertainty, validation, bundles, failure behaviour, performance, interpretation, release checks); the others are not done.
+
 ### Results page: sections 1-6 made by a command (10 Nov 2026)
 - Sections 4-6 too (the Jansky scale, the asteroid Arosa, the WISE 0855 stack): most numbers did not move (WISE 0855 is identical to 7 Nov; the Jansky medians moved by 0.001; the Arosa flux errors are 10-30 % larger since the Phase 4 change of the flux error). VALIDATION 19.
 
@@ -22,7 +25,7 @@ with what was and was not checked: [docs/FEATURE_STATUS.md](docs/FEATURE_STATUS.
   (`searchTasks.js`, `workerClient.js`, `searchWorker.js`; `test_workers.mjs`). The page records where the last search ran (`data-last-search`). `0c67f0d`
 - `scratch/benchmark.mjs`: three deterministic scenarios with golden digests of their output; a test fails when a search gives another answer
   (`test_benchmark.mjs`). [docs/BENCHMARKS.md](docs/BENCHMARKS.md)
-- `scratch/e2e_smoke.mjs`: the page in headless Chrome over the DevTools Protocol with Node only (no Playwright, no npm): 13 checks on the synthetic demo; a
+- `scratch/e2e_smoke.mjs`: the page in headless Chrome over the DevTools Protocol with Node only (no Playwright, no npm): 14 checks on the synthetic demo; a
   separate job in `tests.yml` (green in CI on PR 2, 10 Nov 2026; the golden digests are identical on Node 20 / Linux).
 - Documents: BENCHMARKS, DEPLOYMENT, CONTRIBUTING, this file.
 - Measured and said: no search got faster; Find movers no longer stops the page (longest gap between frames 15-28 ms against 396-499 ms), the Planet X search

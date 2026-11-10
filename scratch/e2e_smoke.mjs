@@ -229,6 +229,15 @@ async function main() {
       if (/Not shown|defect/i.test(status)) throw new Error(status);
       return `${await evaluate(`document.querySelectorAll("#assistant-out li").length`)} sentences`;
     });
+    await step("the text analysis (tables, no picture) is built, lists the dots and the candidate, and its first line says the data are synthetic", async () => {
+      await click("#ta-build-btn");
+      await waitFor(`!document.getElementById("ta-out").hidden`, "text analysis tables");
+      const info = await evaluate(`({ status: document.getElementById("ta-status").textContent, first: document.querySelector("#ta-prov li")?.textContent ?? "", dots: document.querySelectorAll("#ta-sources tbody tr").length, cands: document.querySelectorAll("#ta-cands tbody tr").length,
+        captions: ["ta-frames", "ta-sources", "ta-cands"].every((id) => document.querySelector("#" + id + " caption")), focused: document.activeElement?.id, canvases: document.querySelectorAll("#text-analysis canvas").length })`);
+      if (!/^Data: SYNTHETIC/.test(info.first)) throw new Error(`the first line says: ${info.first}`);
+      if (!info.dots || !info.cands || !info.captions || info.focused !== "ta-prov-title" || info.canvases) throw new Error(JSON.stringify(info));
+      return info.status;
+    });
     await step("the Solar System view is drawn", async () => {
       await waitFor(`document.getElementById("ss-map").innerHTML.length > 200`, "solar system map");
       return (await text("#ss-swing")).trim().slice(0, 100) || "map drawn";

@@ -120,7 +120,7 @@ A candidate is a lead with its evidence, never a discovery. Nothing this applica
 - The times in BENCHMARKS.md are medians of 3-5 runs on one machine; two runs of the same code differed by 20-25 %. They are for comparing a "before" and an "after" made the same way, not
   absolute figures.
 - The end-to-end test uses the **synthetic** demo only. It shows that the main path works in one browser (Chrome); it does not test real data, the backend, other browsers, a touch screen
-  or a screen reader, and it is a smoke test (13 checks), not a coverage of the page.
+  or a screen reader, and it is a smoke test (14 checks), not a coverage of the page.
 
 ## Spectra
 

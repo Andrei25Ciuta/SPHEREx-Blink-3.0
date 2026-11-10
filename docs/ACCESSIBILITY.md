@@ -111,3 +111,11 @@ Checked with `scratch/audit_page.js` in the app's built-in browser (Chromium), p
 // in the console of the loaded page (resize the window first):
 // paste the content of scratch/audit_page.js
 ```
+
+## Text analysis (10 Nov 2026): the same data without the picture
+
+Section 9 of the page ("Text analysis") lists, as plain tables, every image (date, detector, wavelength, share of flagged pixels, survey pass), every dot the search found (position in pixels and in RA/Dec, S/N, the error of the position in arcseconds, warnings: near the edge, flagged core) and every candidate with its status in words. It exists for a screen reader and the keyboard, and so that a number can be cited and checked.
+
+What was built and checked (`scratch/test_textanalysis.mjs`, `e2e_smoke.mjs`, the built-in browser on real Barnard D2): real tables (caption, `scope="col"`, a row header), no canvas, image or SVG in the section, a polite live region that says what happened ("Text analysis ready: 18 images, 131 dots listed, 1 candidate."), an alert for a failure (nothing is shown in its place), the focus moved to the heading of the result, a selector to show the dots of one image, and a CSV of each table whose first lines say whether the data are real or synthetic.
+
+**Not checked with a real screen reader** (NVDA, JAWS, VoiceOver): the markup follows the usual patterns, but nobody has listened to it. Not done: flux in physical units in the table of dots (it is a separate aperture measurement), the rest of the page (the canvas picture, the maps) has no equivalent text yet, and the full keyboard and focus audit of the dialogs and panels is still to do.

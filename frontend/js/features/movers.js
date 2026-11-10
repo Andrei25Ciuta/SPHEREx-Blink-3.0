@@ -297,7 +297,7 @@ const MIN_BAD_CORE = 6;       // bad (or empty) pixels among the 25 of the 5 x 5
  * With one or two flagged pixels the plain centroid is better: on real Epsilon Indi B (faint, not saturated) a single flagged
  * core pixel moved the fixed-width fit by 0.4 px, because a Gaussian is not the real PSF.
  */
-function coreIsCompromised(image, mask, n, x, y) {
+export function coreIsCompromised(image, mask, n, x, y) {
   let bad = 0;
   for (let dy = -2; dy <= 2; dy++) {
     for (let dx = -2; dx <= 2; dx++) {

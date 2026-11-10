@@ -520,6 +520,31 @@
       <ol class="assistant-out" id="assistant-out" aria-live="polite"></ol>
       <details class="table-view" id="assistant-evidence-wrap" hidden><summary>The measured values it can use (the evidence)</summary><div class="table-scroll"><table class="ss-table" id="assistant-evidence"></table></div></details>
     </section>
+
+    <!-- ============ 9. Text analysis: the same data as tables, no picture (features/textAnalysis.js, textAnalysisView.js) ============ -->
+    <section class="panel textan" id="text-analysis" aria-labelledby="ta-title">
+      <h2 id="ta-title">9. Text analysis: the images, the dots and the candidates as tables</h2>
+      <p class="muted">The same data as the picture, with <strong>no picture</strong>: every image, every dot the search found (position, S/N, the error of the position, warnings) and every candidate with its status. It is for a screen reader and the keyboard, and for anyone who wants to cite or check a number. Each table can be saved as CSV, with a first line that says whether the data are real or synthetic.</p>
+      <p><button type="button" class="btn btn-small btn-primary" id="ta-build-btn">Build the text analysis</button></p>
+      <p class="error-text" id="ta-error" role="alert"></p>
+      <p class="muted small" id="ta-status" role="status" aria-live="polite">Load a field first, then press the button. It finds the dots again with the same detector the searches use; it changes nothing on the picture.</p>
+      <div id="ta-out" hidden>
+        <h3 id="ta-prov-title" tabindex="-1">What the data are</h3>
+        <ul id="ta-prov"></ul>
+        <h3 id="ta-frames-title">Images</h3>
+        <div class="table-scroll"><table class="ss-table" id="ta-frames"></table></div>
+        <p><button type="button" class="btn btn-small" id="ta-frames-csv">Save the images (CSV)</button></p>
+        <h3 id="ta-sources-title">Dots</h3>
+        <p><label>Show the dots of <select id="ta-frame-filter"></select></label></p>
+        <p class="muted small" id="ta-sources-note"></p>
+        <div class="table-scroll"><table class="ss-table" id="ta-sources"></table></div>
+        <p><button type="button" class="btn btn-small" id="ta-sources-csv">Save the dots (CSV)</button></p>
+        <h3 id="ta-cands-title">Candidates</h3>
+        <p class="muted small" id="ta-cands-note"></p>
+        <div class="table-scroll"><table class="ss-table" id="ta-cands"></table></div>
+        <p><button type="button" class="btn btn-small" id="ta-cands-csv">Save the candidates (CSV)</button></p>
+      </div>
+    </section>
   </main>
 
   <!-- ============ ABOUT THE PROJECT ============ -->

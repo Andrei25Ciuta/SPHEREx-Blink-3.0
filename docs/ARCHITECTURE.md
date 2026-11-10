@@ -51,6 +51,8 @@ checked by `validateFrame` in `getCutouts.js`.
 | `solarSystemView.js` | the DOM side of the simulator (not pure): the SVG view, the date and the range, the table of positions |
 | `skyExplorer.js` | the sky explorer (pure): the Hammer map and its inverse, the ecliptic and the galactic plane, great circles cut at the map's edge, images grouped into fields, a field's images as arcminute offsets |
 | `skyExplorerView.js` | the DOM side of the explorer (not pure): the SVG map, the list of fields, a field at true scale, open a field |
+| `textAnalysis.js` | the images, the dots and the candidates as plain rows (pure): frame rows with survey passes and flag warnings, dot rows with RA/Dec, S/N, position error and warnings, candidate rows with a status in words, the provenance lines, CSV with the provenance first |
+| `textAnalysisView.js` | the DOM side of the text analysis (not pure): real tables with captions and scope, the live status, the focus on the result, the selector of one image, the CSV buttons |
 | `surveyCoverage.js` | which SURVEY images (IRSA `spherex.plane`, via the backend's `/api/survey`) cover a place (pure): the gnomonic projection of a footprint, point in polygon, the survey passes by the rule of `passIndices`, the coverage in words, the request and its errors |
 | `surveyView.js` | the DOM side of "Which survey images cover a place?" (not pure): the form, the footprints at true scale, the table; the button is disabled, with the reason, when there is no backend |
 | `spectral.js` | the six detectors and what each field has of them (and what is missing), the spectrum's uncertainty as a band that breaks at gaps, the summary of what is missing at a position |

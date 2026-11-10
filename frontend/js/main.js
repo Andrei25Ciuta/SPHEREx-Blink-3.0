@@ -19,6 +19,7 @@ import { setupWorkspace } from "./features/workspaceView.js";
 import { setupPlanetLab } from "./features/planetLabView.js";
 import { setupSkyExplorer } from "./features/skyExplorerView.js";
 import { setupSurveySearch } from "./features/surveyView.js";
+import { setupTextAnalysis } from "./features/textAnalysisView.js";
 import { fetchSurvey as askSurvey } from "./features/surveyCoverage.js";
 import { setupSolarSystem } from "./features/solarSystemView.js";
 import { setupAssistant } from "./features/assistantView.js";
@@ -843,6 +844,7 @@ $("show-asteroids").addEventListener("change", updateAsteroids);
 // ---------------------------------------------------------------
 const MOVERS_HINT = "Compares the dots in all images and lists the ones that moved.";
 const MIN_PASSES = 3;                      // same rule as in movers.js: a third pass proves a line
+let textAnalysis = null;                   // the text analysis (section 9), set up below; its candidate table is refreshed when the list changes
 let movers = [];                           // candidates for the detector on screen, best first
 let selectedMover = -1;
 let assistant = null;                      // the explainer (features/assistantView.js), set up further down
@@ -1167,6 +1169,7 @@ function showMovers({ candidates, stats, reason }, catalogueObjects = null, { di
   list.hidden = false;
   $("mover-export").hidden = false;
   player.setCandidates(movers, -1);
+  textAnalysis?.refreshCandidates();
 }
 
 // Save the candidates as CSV / JSON. Every file says what the data is and links back to this view.
@@ -1478,6 +1481,17 @@ setupSkyExplorer({
     $("search-form").requestSubmit();
     $("workspace").scrollIntoView({ block: "start", behavior: prefersReducedMotion ? "auto" : "smooth" });
   },
+});
+
+// Text analysis (features/textAnalysis.js, textAnalysisView.js): the images, the dots and the candidates as tables, no picture
+textAnalysis = setupTextAnalysis({
+  els: { button: $("ta-build-btn"), error: $("ta-error"), status: $("ta-status"), out: $("ta-out"), prov: $("ta-prov"), provTitle: $("ta-prov-title"), frames: $("ta-frames"), filter: $("ta-frame-filter"),
+    sources: $("ta-sources"), sourcesNote: $("ta-sources-note"), cands: $("ta-cands"), candsNote: $("ta-cands-note"), framesCsv: $("ta-frames-csv"), sourcesCsv: $("ta-sources-csv"), candsCsv: $("ta-cands-csv") },
+  getContext: () => (currentQuery && currentFrames.length && player.length
+    ? { isReal: DATA_SOURCE === "api", query: currentQuery, detector: currentDetector, frames: currentFrames, geo: currentGeo(), unit: currentFrames[0].unit ?? null, n: player.naturalSize } : null),
+  getPixels: (frames) => detectionPixels(frames),
+  getCandidates: () => movers,
+  download: downloadText,
 });
 
 // Which survey images cover a place (features/surveyCoverage.js, surveyView.js; the backend's /api/survey = a live query of IRSA's table spherex.plane)
