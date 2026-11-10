@@ -108,6 +108,7 @@ cached on disk under `backend/cache/` (keys include the input files and an algor
 - `scratch/e2e_smoke.mjs`: the page in headless Chrome or Edge, driven over the DevTools Protocol with Node only (Node 22+ for the built-in WebSocket; no Playwright,
   no npm). It serves `frontend/` itself, loads the **synthetic** demo, walks the main path and fails on a console error, an exception or a request to any host but its own
   server (the web fonts are answered with an empty file). It is not in the `test_*.mjs` set because it needs a browser.
+- `scratch/a11y_audit.mjs`: the keyboard and screen-reader audit (real key presses in headless Chrome, 18 checks, four themes; `--theme`, `--verbose`), a separate CI job; it shares `scratch/lib_cdp.mjs` (server, browser, DevTools Protocol) with `e2e_smoke.mjs`.
 - `scratch/benchmark.mjs`: three deterministic scenarios and the digest of their output; `test_benchmark.mjs` fails when an output changes
   ([BENCHMARKS.md](BENCHMARKS.md)).
 - A long search is a task: `main.js` `searchInWorker(kind, payload)` → `workerClient.runTask` → `searchWorker.js` → `searchTasks.runSearchTask`, or the same

@@ -149,8 +149,9 @@
 
       <!-- The stage holds the image. aria-live announces status changes to screen readers. -->
       <div class="stage" id="stage">
-        <canvas id="blink-canvas" width="512" height="512" aria-label="Blink image" role="img"
-                title="Click a source to measure its brightness. Drag to move when zoomed in."></canvas>
+        <canvas id="blink-canvas" width="512" height="512" aria-label="Blink image" role="img" tabindex="0" aria-roledescription="image you can measure" aria-describedby="canvas-keys"
+                title="Click a source to measure its brightness. Drag to move when zoomed in. From the keyboard: Shift and the arrows move the view, plus and minus zoom, Enter measures at the centre of the view."></canvas>
+        <p id="canvas-keys" class="sr-only">With this picture focused: plus and minus zoom, Shift with the arrow keys moves the view, and Enter measures at the centre of the view. The position at the centre is read out below the picture. Escape clears the mark.</p>
         <div class="crosshair" id="crosshair" aria-hidden="true"></div>
         <!-- Zoom: Ctrl + scroll or pinch also work (js/features/viewerControls.js) -->
         <div class="stage-tools" id="stage-tools" role="group" aria-label="Zoom the image">
@@ -170,12 +171,17 @@
 
       <!-- Under the cursor: pixel, sky position, offset from the centre of the field, value (js/features/readout.js). Not a live region: it changes with every mouse move. -->
       <p class="readout" id="readout">
-        <span class="readout-idle" id="readout-idle">Move the pointer over the image to read the pixel and the sky position.</span>
+        <span class="readout-idle" id="readout-idle">Move the pointer over the image, or focus it with Tab, to read the pixel and the sky position (with the keyboard: at the centre of the view).</span>
         <span class="ro" id="ro-pixel"></span><span class="ro" id="ro-sky"></span><span class="ro" id="ro-offset"></span><span class="ro ro-value" id="ro-value"></span>
       </p>
 
+      <!-- The position at the centre of the view, said to a screen reader when the picture is focused and the view moves (the readout above changes with every mouse move, so it is not live) -->
+      <p id="readout-announce" class="sr-only" role="status" aria-live="polite"></p>
+
       <!-- Short, non-blocking notes (e.g. "D1 has no images here, showing D2") -->
       <p id="status-msg" class="status" role="status" aria-live="polite"></p>
+      <!-- Said to a screen reader when the user changes the image (arrow keys, slider, timeline); silent while the blink plays, or it would speak twice a second -->
+      <p id="frame-announce" class="sr-only" role="status" aria-live="polite"></p>
 
       <div class="player-controls" role="group" aria-label="Blink player controls">
         <button type="button" id="play-btn" class="btn btn-icon" aria-label="Play" disabled>

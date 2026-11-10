@@ -9,6 +9,9 @@ published until the author decides ([docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)).
 The reference is `main` at `3f1e538` (7 Nov 2026). Status per phase: [docs/IMPLEMENTATION_ROADMAP.md](docs/IMPLEMENTATION_ROADMAP.md); feature by feature,
 with what was and was not checked: [docs/FEATURE_STATUS.md](docs/FEATURE_STATUS.md).
 
+### Keyboard and screen-reader audit (10 Nov 2026)
+- `scratch/a11y_audit.mjs`: 18 checks with real key presses in headless Chrome (also a CI job). It found and fixed: the image change was not announced (a live region now says it), measuring a position needed a mouse (the picture takes focus, the centre of the view is read out, Enter measures there), two targets under 24 px. Not listened to with a real screen reader. Item 2 of the ten improvements.
+
 ### Text analysis (10 Nov 2026)
 - Section 9: the images, the dots and the candidates as plain tables, no picture, for a screen reader and the keyboard; CSV with the provenance first; checked in the browser, not with a screen reader. The first of ten improvements the author listed on 10 Nov (accessibility, provenance, uncertainty, validation, bundles, failure behaviour, performance, interpretation, release checks); the others are not done.
 

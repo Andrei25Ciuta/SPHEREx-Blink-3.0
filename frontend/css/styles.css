@@ -579,7 +579,7 @@ output { font-weight: 600; color: var(--accent); }
 .tl-dot:hover::after { border-color: var(--text); }
 .tl-passes { position: relative; height: 2rem; margin-top: .45rem; }
 .tl-pass {
-  position: absolute; top: 0; height: 100%; padding: 0 .15rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  position: absolute; top: 0; height: 100%; min-width: 24px; padding: 0 .15rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;      /* min-width: a target of at least 24 px (WCAG 2.2, 2.5.8) even for a pass of two images on a narrow screen */
   font: 600 .75rem/1 var(--font-body); cursor: pointer; color: var(--text-muted); background: transparent;
   border: 1px solid var(--control-border); border-radius: 6px;
 }
@@ -1083,7 +1083,7 @@ body::before {
 .ss-controls label, .ss-body-controls label { display: inline-flex; align-items: center; gap: .4rem; }
 .ss-date input[type="range"] { width: min(18rem, 60vw); }
 .ss-controls output { font-variant-numeric: tabular-nums; min-width: 6.5rem; }
-.ss-body-controls input[type="number"] { width: 6rem; }
+.ss-body-controls input[type="number"] { width: 6rem; min-height: 1.75rem; }      /* min-height: a target of at least 24 px (WCAG 2.2, 2.5.8); it was 21 px */
 .ss-map { max-width: 640px; margin: .6rem auto; }
 .ss-svg { display: block; width: 100%; height: auto; }
 .ss-edge { fill: none; stroke: var(--text-muted); stroke-width: .006; }

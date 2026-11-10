@@ -50,6 +50,19 @@ jobs:
       - name: Walk the main path in the browser
         run: node scratch/e2e_smoke.mjs
 
+  # The keyboard and screen-reader audit (scratch/a11y_audit.mjs): real Tab and key presses in headless Chrome on the synthetic demo, names, focus indicators, live announcements. Same needs
+  # as the e2e job (Node 22+, the runner's Chrome). It checks what a screen reader would be given; it does not replace listening with one.
+  a11y:
+    name: Keyboard and screen-reader audit (headless Chrome)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Audit the page with the keyboard
+        run: node scratch/a11y_audit.mjs
+
   backend:
     name: Backend (pytest)
     runs-on: ubuntu-latest

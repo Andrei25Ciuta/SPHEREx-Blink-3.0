@@ -14,6 +14,7 @@ export const SHORTCUTS = [
   { keys: ["←", "→"], does: "Show the previous or the next image" },
   { keys: ["+", "−"], does: "Zoom in or out" },
   { keys: ["0"], does: "Show the whole image" },
+  { keys: ["Enter"], does: "With the picture focused (Tab): measure at the centre of the view" },
   { keys: ["Shift", "←", "↑", "↓", "→"], does: "Move the picture when it is zoomed in" },
   { keys: ["Ctrl", "scroll"], does: "Zoom with the mouse wheel or a trackpad pinch" },
   { keys: ["["], does: "Hide or show the search panel" },

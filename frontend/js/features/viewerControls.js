@@ -115,6 +115,24 @@ export function setupViewer({ player, canvas, crosshair, zoomEls, readoutEls, la
   }, { passive: false });
 
   // ------------------------------------------------------------------ keyboard
+  // Aiming without a mouse: the CENTRE of the view is the place that is read out and measured. Zoom (+ and -) and move (Shift and the arrows) put the star there; Enter measures it, as a click would.
+  const centreOfCanvas = () => { const r = canvas.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+  let sayTimer = 0;
+  const showCentreReadout = () => {
+    const c = centreOfCanvas();
+    showReadout(c.x, c.y);
+    if (!readoutEls.announce) return;
+    clearTimeout(sayTimer);
+    sayTimer = setTimeout(() => { const r = readoutEls; r.announce.textContent = `Centre of the view: ${r.pixel.textContent}; ${r.sky.textContent}; ${r.offset.textContent}${r.value.textContent ? `; ${r.value.textContent}` : ""}.`; }, 400);       // the last of a run of key presses is the one said
+  };
+  canvas.addEventListener("focus", () => { if (player.length) showCentreReadout(); });
+  canvas.addEventListener("blur", () => hideReadout());
+  canvas.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" || e.ctrlKey || e.metaKey || e.altKey || !player.length) return;
+    e.preventDefault();
+    const c = centreOfCanvas();
+    canvas.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, clientX: c.x, clientY: c.y }));      // the same handler as a click: the mark, the measurement, the announcements
+  });
   document.addEventListener("keydown", (e) => {
     if (!(e.target instanceof Element) || e.target.closest("input, select, textarea, summary, .skymap") || !player.length) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;                // leave the browser's own shortcuts alone
@@ -125,6 +143,7 @@ export function setupViewer({ player, canvas, crosshair, zoomEls, readoutEls, la
       e.preventDefault();
       player.panByStep(e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0, e.key === "ArrowDown" ? 1 : e.key === "ArrowUp" ? -1 : 0);
     }
+    if (document.activeElement === canvas && ["+", "=", "-", "_", "0"].concat(e.shiftKey ? ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"] : []).includes(e.key)) showCentreReadout();     // the readout follows the centre
   });
 
   // ------------------------------------------------------------------ readout under the pointer

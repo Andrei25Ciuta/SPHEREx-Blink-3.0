@@ -281,7 +281,7 @@ async function loadFloatFrame(frame) {
 const viewer = setupViewer({
   player, canvas, crosshair: $("crosshair"),
   zoomEls: { inBtn: $("zoom-in-btn"), outBtn: $("zoom-out-btn"), fitBtn: $("zoom-fit-btn"), level: $("zoom-level") },
-  readoutEls: { root: $("readout"), pixel: $("ro-pixel"), sky: $("ro-sky"), offset: $("ro-offset"), value: $("ro-value") },
+  readoutEls: { root: $("readout"), pixel: $("ro-pixel"), sky: $("ro-sky"), offset: $("ro-offset"), value: $("ro-value"), announce: $("readout-announce") },
   layersRoot: $("layers"),
   getGeo: () => (currentQuery && currentFrames.length && player.naturalSize ? currentGeo() : null),
   loadFloat: loadFloatFrame,
@@ -329,6 +329,14 @@ const timeline = setupTimeline({
 
 const fmtDate = (iso) => iso.slice(0, 16).replace("T", " ") + " UTC";
 
+/** Tell a screen reader which image is now shown (a live region), unless the blink is playing: then the user chose to watch it change, and speech every half second would be noise. */
+let announceTimer = 0;
+function announceFrame(text) {
+  if (player.playing) return;
+  clearTimeout(announceTimer);
+  announceTimer = setTimeout(() => { $("frame-announce").textContent = text; }, 250);          // the last of a quick run of key presses is the one said
+}
+
 /** Update counter, date, slider and metadata for the frame being shown. */
 function updateFrameInfo(i, frame) {
   timeline.setCurrent(i);
@@ -345,6 +353,8 @@ function updateFrameInfo(i, frame) {
       : frame.flags.anyFlagged ? `⚠ ${(frame.flags.fractionFlagged * 100).toFixed(1)} % px` : "Clean";
     canvas.setAttribute("aria-label",
       `SPHEREx ${frame.detector} ${player.mode === "diff" ? "difference image" : "image"} taken ${frame.dateISO.slice(0, 10)}, frame ${i + 1} of ${player.length}`);
+    announceFrame(`Frame ${i + 1} of ${player.length}: ${frame.detector}, ${frame.dateISO.slice(0, 10)}, ${frame.wavelengthMinUm.toFixed(2)} to ${frame.wavelengthMaxUm.toFixed(2)} micrometres`
+      + `${frame.flags?.anyFlagged ? `, ${(frame.flags.fractionFlagged * 100).toFixed(1)} percent of pixels flagged` : ""}.`);
   } else if (player.mode === "compare" && compareState) {
     // Compare: A − B or A + B of the images / passes you picked.
     const { a, b, op } = compareState;

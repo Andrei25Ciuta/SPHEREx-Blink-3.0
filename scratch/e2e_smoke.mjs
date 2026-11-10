@@ -9,10 +9,7 @@
 //
 // It is NOT part of the scratch/test_*.mjs set (those need no browser and run on Node 20). If no browser is found it says SKIP and exits with 0 only
 // with --allow-skip; otherwise it exits with 2, so that a CI job cannot go green without having run.
-import http from "node:http";
-import { readFile, mkdtemp, rm } from "node:fs/promises";
-import { existsSync } from "node:fs";
-import { spawn } from "node:child_process";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -27,71 +24,9 @@ function check(name, ok, detail = "") {
   if (!ok) failed++;
 }
 
-// ---------------------------------------------------------------- a static server for frontend/
-const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".mjs": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".ico": "image/x-icon", ".woff2": "font/woff2", ".txt": "text/plain; charset=utf-8" };
-function startServer() {
-  const server = http.createServer(async (req, res) => {
-    try {
-      const url = new URL(req.url, "http://127.0.0.1");
-      let rel = decodeURIComponent(url.pathname);
-      if (rel.endsWith("/")) rel += "index.html";
-      const file = path.resolve(ROOT, "." + rel);
-      if (file !== ROOT && !file.startsWith(ROOT + path.sep)) { res.writeHead(403).end("no"); return; }
-      if (rel === "/favicon.ico" && !existsSync(file)) { res.writeHead(204).end(); return; }
-      const body = await readFile(file);
-      res.writeHead(200, { "Content-Type": MIME[path.extname(file)] ?? "application/octet-stream", "Cache-Control": "no-cache" }).end(body);
-    } catch { res.writeHead(404).end("not found"); }
-  });
-  return new Promise((resolve) => server.listen(0, "127.0.0.1", () => resolve({ server, port: server.address().port })));
-}
-
-// ---------------------------------------------------------------- find a browser
-function findBrowser() {
-  const candidates = [process.env.CHROME_PATH,
-    "C:/Program Files/Google/Chrome/Application/chrome.exe", "C:/Program Files (x86)/Google/Chrome/Application/chrome.exe",
-    "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe", "C:/Program Files/Microsoft/Edge/Application/msedge.exe",
-    "/usr/bin/google-chrome", "/usr/bin/google-chrome-stable", "/usr/bin/chromium", "/usr/bin/chromium-browser",
-    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"];
-  return candidates.find((p) => p && existsSync(p)) ?? null;
-}
-
-// ---------------------------------------------------------------- the DevTools Protocol, over one WebSocket (flat sessions)
-class Cdp {
-  constructor(ws) {
-    this.ws = ws; this.nextId = 1; this.pending = new Map(); this.handlers = new Map();
-    ws.addEventListener("message", (event) => {
-      const m = JSON.parse(event.data);
-      if (m.id !== undefined) {
-        const p = this.pending.get(m.id); this.pending.delete(m.id);
-        if (p) { if (m.error) p.reject(new Error(`${p.method}: ${m.error.message}`)); else p.resolve(m.result); }
-      } else (this.handlers.get(m.method) ?? []).forEach((fn) => fn(m.params, m.sessionId));
-    });
-  }
-  send(method, params = {}, sessionId) {
-    const id = this.nextId++;
-    return new Promise((resolve, reject) => { this.pending.set(id, { resolve, reject, method }); this.ws.send(JSON.stringify({ id, method, params, ...(sessionId ? { sessionId } : {}) })); });
-  }
-  on(method, fn) { this.handlers.set(method, [...(this.handlers.get(method) ?? []), fn]); }
-}
-
-function launch(browserPath, userDir) {
-  const args = ["--remote-debugging-port=0", `--user-data-dir=${userDir}`, "--no-first-run", "--no-default-browser-check", "--disable-extensions", "--disable-background-networking",
-    "--disable-sync", "--mute-audio", "--window-size=1400,900", ...(KEEP ? [] : ["--headless=new"]), ...(process.platform === "linux" ? ["--no-sandbox"] : []), "about:blank"];
-  const child = spawn(browserPath, args, { stdio: ["ignore", "ignore", "pipe"] });
-  return new Promise((resolve, reject) => {
-    let log = "";
-    const timer = setTimeout(() => reject(new Error(`the browser did not report a DevTools address in 20 s. Its output: ${log.slice(-400)}`)), 20000);
-    child.stderr.on("data", (d) => {
-      log += d;
-      const m = /DevTools listening on (ws:\/\/\S+)/.exec(log);
-      if (m) { clearTimeout(timer); resolve({ child, wsUrl: m[1] }); }
-    });
-    child.on("error", (err) => { clearTimeout(timer); reject(err); });
-    child.on("exit", (code) => { clearTimeout(timer); reject(new Error(`the browser exited with code ${code} before it was ready`)); });
-  });
-}
-
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+import { MIME, startServer as startStaticServer, findBrowser, Cdp, launch as launchBrowser, sleep } from "./lib_cdp.mjs";
+const startServer = () => startStaticServer(ROOT);
+const launch = (browserPath, userDir) => launchBrowser(browserPath, userDir, { keep: KEEP });
 
 async function main() {
   if (typeof WebSocket === "undefined") { console.log("SKIP  this Node has no built-in WebSocket (Node 22 or newer is needed)"); process.exitCode = ALLOW_SKIP ? 0 : 2; return true; }
