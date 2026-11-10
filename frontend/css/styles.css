@@ -1240,3 +1240,12 @@ body::before {
 .pair-grid figcaption { font-size: .85rem; font-variant-numeric: tabular-nums; }
 .observation-select { display: grid; gap: .3rem; margin: .7rem 0; font-size: .88rem; color: var(--text-muted); }
 .observation-select select { width: 100%; min-width: 0; }
+
+/* "About the project" sits in the workspace grid, to the right of the text analysis (which is one narrow column and left the row empty). On a narrow screen it is a full-width block under it. */
+.layout .info-aside { grid-column: 1 / -1; max-width: none; margin: 0; padding: 0; }
+@media (min-width: 861px) { .layout .info-aside { grid-column: 2 / -1; align-self: start; position: sticky; top: 1rem; } }      /* the text analysis beside it is long: About stays in view while it scrolls */
+/* Once the text analysis has built its tables it needs the whole row; About then takes the whole row below it */
+@media (min-width: 861px) {
+  .layout .textan:has(#ta-out:not([hidden])) { grid-column: 1 / -1; }
+  .layout .textan:has(#ta-out:not([hidden])) + .info-aside { grid-column: 1 / -1; position: static; }
+}
