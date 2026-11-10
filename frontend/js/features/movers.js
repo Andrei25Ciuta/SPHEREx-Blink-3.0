@@ -103,7 +103,8 @@ export function lineUncertainty(members, rms, { systematicPx = SYSTEMATIC_SIGMA_
   const vModel = sxx > 1e-12 ? Math.sqrt(wdt) / sxx : Infinity;
   return {
     sigmaPos, inflation, sxx,
-    vErr: Math.hypot(vModel * inflation, sxx > 1e-12 ? systematicPx / Math.sqrt(sxx) : 0),
+    vModel, modelRms, systematicPx,                  // the parts of vErr, for the uncertainty budget (uncertainty.js)
+    vErr:Math.hypot(vModel * inflation, sxx > 1e-12 ? systematicPx / Math.sqrt(sxx) : 0),
     posErr: Math.hypot((Math.sqrt(sumVar) / m) * inflation, systematicPx / Math.sqrt(m)),
   };
 }
@@ -541,7 +542,8 @@ function findMoversOnce(frames, o) {
       x: at.x, y: at.y, vx: line.vx, vy: line.vy, mjdRef,
       speedPx: speed, motionPx: motion,
       nDet: m, nFrames: N, rms, significance, snr: snrSum / m,
-      vErrPx: u.vErr, posErrPx: u.posErr,                        // error of each velocity component (px/yr) and of the position (px), from the errors of the dots
+      vModelPx: u.vModel, inflation: u.inflation, sxx: u.sxx, systematicPx: u.systematicPx,   // the parts of vErrPx (uncertainty.js budget)
+      vErrPx: u.vErr, posErrPx: u.posErr,                      // error of each velocity component (px/yr) and of the position (px), from the errors of the dots
       points: members.map((d) => ({ frame: d.k, x: d.x, y: d.y })),
     });
     return true;

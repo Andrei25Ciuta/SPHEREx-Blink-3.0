@@ -13,6 +13,7 @@
 import { canvasToSky } from "../geometry.js";
 import { formatRA, formatDec } from "../coords.js";
 import { passIndices, coreIsCompromised } from "./movers.js";
+import { velocityBudget, candidateWarnings } from "./uncertainty.js";
 
 export const EDGE_MARGIN_PX = 3;                 // a dot this close to the border of the cutout has half its surroundings missing
 export const MANY_FLAGS = 0.01;                  // an image with more than 1 % flagged pixels (the limit of the timeline, "Skip frames with > 1 % flagged pixels")
@@ -59,8 +60,13 @@ export function sourceRows(perFrame, n, geo, { limitPerFrame = SOURCE_LIMIT_PER_
 }
 
 /** The candidates as rows. The status says what the candidate is and what it is not. */
-export function candidateRows(movers) {
+export function candidateRows(movers, ctx = {}) {
   return (movers ?? []).map((m, k) => {
+    const budget = velocityBudget(m, ctx.scaleArcsec);
+    const warnings = candidateWarnings(m, ctx);
+    const unit = Number.isFinite(ctx.scaleArcsec) ? "″/yr" : "px/yr";
+    const v = (p) => (Number.isFinite(ctx.scaleArcsec) ? p.arcsec : p.px);
+    const sig = (x) => (x >= 0.1 ? x.toFixed(2) : x.toPrecision(2));
     const support = m.support?.measurable ? `${m.support.supported} of ${m.support.measurable}` : "not measured";
     let status;
     if (m.known) status = `matches the catalogued ${m.known}: a known object, not a discovery`;
@@ -75,6 +81,9 @@ export function candidateRows(movers) {
       significance: Number.isFinite(m.significance) ? Math.round(m.significance) : null,
       chance: Number.isFinite(m.falseAlarm) ? (m.falseAlarm < 0.01 ? m.falseAlarm.toExponential(1) : m.falseAlarm.toPrecision(2)) : null,       // 5.0e-19, not 17 digits
       support,
+      velocityError: budget ? `${sig(Number.isFinite(ctx.scaleArcsec) ? budget.calibratedArcsec : budget.calibratedPx)} ${unit} per axis (nominal ${sig(Number.isFinite(ctx.scaleArcsec) ? budget.nominalArcsec : budget.nominalPx)})` : "not available",
+      errorParts: budget ? budget.parts.map((p) => `${p.name} ${sig(v(p))}`).join(", ") : "",
+      warnings: warnings.join("; "),
       status,
     };
   });
@@ -110,4 +119,4 @@ export function toCsv(rows, columns, provenance = []) {
 
 export const FRAME_COLUMNS = [["number", "Image"], ["date", "Date (UTC)"], ["time", "Time (UTC)"], ["detector", "Detector"], ["pass", "Survey pass"], ["wavelength", "Wavelength (µm)"], ["flaggedPercent", "Flagged pixels (%)"], ["note", "Note"]];
 export const SOURCE_COLUMNS = [["frame", "Image"], ["date", "Date (UTC)"], ["detector", "Detector"], ["rank", "Rank by S/N"], ["x", "x (pixel)"], ["y", "y (pixel)"], ["raText", "RA"], ["decText", "Dec"], ["snr", "S/N"], ["sigmaArcsec", "Position error (″ per axis)"], ["flags", "Warnings"]];
-export const CANDIDATE_COLUMNS = [["label", "Candidate"], ["motion", "Motion"], ["distance", "Distance"], ["images", "Seen in"], ["significance", "Significance (σ)"], ["chance", "Chance lines expected"], ["support", "Path supported in"], ["status", "Status"]];
+export const CANDIDATE_COLUMNS = [["label", "Candidate"], ["motion", "Motion"], ["distance", "Distance"], ["images", "Seen in"], ["significance", "Significance (σ)"], ["chance", "Chance lines expected"], ["support", "Path supported in"], ["velocityError", "Velocity error, calibrated (nominal)"], ["errorParts", "Parts of the error"], ["warnings", "Warnings"], ["status", "Status"]];

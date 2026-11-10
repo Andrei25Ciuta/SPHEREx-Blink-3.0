@@ -8,7 +8,7 @@
 // For a screen reader and for the keyboard: real tables (caption, column headers with scope, the first cell of a row as a row header), a live status that says what happened, and the focus
 // moved to the heading of the result when it is ready, so that the user lands where the answer is and not at the button. No canvas, no colour that carries meaning.
 
-import { detectSources } from "./movers.js";
+import { detectSources, passIndices } from "./movers.js";
 import { frameRows, sourceRows, candidateRows, provenanceLines, analysisSummary, toCsv, FRAME_COLUMNS, SOURCE_COLUMNS, CANDIDATE_COLUMNS } from "./textAnalysis.js";
 
 const BOM = String.fromCharCode(0xfeff);                  // the mark Excel needs to read a UTF-8 CSV
@@ -35,10 +35,13 @@ export function setupTextAnalysis({ els, getContext, getPixels, getCandidates, d
   }
 
   function showCandidates() {
-    const rows = candidateRows(getCandidates());
+    const c = built.ctx, cands = getCandidates();
+    const sorted = [...c.frames].sort((a, b) => a.mjd - b.mjd);
+    const usable = cands.every((m) => m.nFrames === sorted.length);          // the candidates come from the same images as this table; if not, do not guess which image is which
+    const rows = candidateRows(cands, { scaleArcsec: c.geo.scaleArcsec, n: c.n, ...(usable ? { passOf: passIndices(sorted.map((f) => f.mjd)), perFrame: built.perFrame } : {}) });
     built.candidates = rows;
     els.cands.replaceChildren(...buildTable(rows.length ? `${rows.length} candidate${rows.length === 1 ? "" : "s"}, best first.` : "No candidates yet.", CANDIDATE_COLUMNS, rows));
-    els.candsNote.textContent = rows.length ? "A candidate is a lead, never a discovery. The status column says what is and is not known." : "Run Find movers (or Look for a distant body) in the search panel, then build this analysis again.";
+    els.candsNote.textContent = rows.length ? "A candidate is a lead, never a discovery. The status column says what is and is not known. The velocity error is the sum, in quadrature, of the parts shown; tested on real images with injected movers, the true velocity fell inside it for 61 to 82 % of bright fakes (68 % expected) and the tails are heavy, so a large miss is likelier than the error bar says (VALIDATION 20)." : "Run Find movers (or Look for a distant body) in the search panel, then build this analysis again.";
   }
 
   async function build() {
@@ -54,7 +57,7 @@ export function setupTextAnalysis({ els, getContext, getPixels, getCandidates, d
       const perFrame = ctx.frames.map((frame, k) => ({ frame, image: arrays[k], mask: masks?.[k] ?? null,
         sources: detectSources(arrays[k], ctx.n, { ...(isFloat ? { sigmaFloor: 1e-9 } : {}), mask: masks?.[k] ?? null }) }));
       const sources = sourceRows(perFrame, ctx.n, ctx.geo);
-      built = { frames: frameRows(ctx.frames), sources, candidates: [], provenance: provenanceLines({ ...ctx, scaleArcsec: ctx.geo.scaleArcsec }), ctx };
+      built = { frames: frameRows(ctx.frames), sources, candidates: [], provenance: provenanceLines({ ...ctx, scaleArcsec: ctx.geo.scaleArcsec }), ctx, perFrame };
       els.prov.replaceChildren(...built.provenance.map((l) => el("li", { textContent: l })));
       els.frames.replaceChildren(...buildTable(`${built.frames.length} image${built.frames.length === 1 ? "" : "s"} in time order.`, FRAME_COLUMNS, built.frames));
       els.filter.replaceChildren(el("option", { value: "all", textContent: "every image" }), ...built.frames.map((f) => el("option", { value: String(f.number), textContent: `image ${f.number}, ${f.date}, ${f.detector}` })));

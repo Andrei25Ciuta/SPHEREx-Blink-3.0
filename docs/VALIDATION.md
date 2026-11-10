@@ -1012,3 +1012,28 @@ The medians, the scatter and the number of measurements are **the same as on 7 N
 The fluxes are the same as on 7 Nov to 0.02 mJy (8.67, 0.02, 8.56; two runs of the command a minute apart gave 8.66 and 8.68 for the first, because SkyBoT answers a slightly different position each time); the errors are 10-30 % larger (0.27 → 0.30, 0.84 → 0.95, 0.98 → 1.11) because the backend's flux error was changed in Phase 4 (15.7). The centre offset of the source (1.0″) is still the typed value of 7 Nov: the script does not measure it.
 
 **WISE 0855** (`stack_wise0855.py`): **identical to 7 Nov**: D6 stack 0.415 ± 0.076 mJy, 4.3 times the robust scatter of the controls, brighter than 15 of 16 controls, one control at +4.81 mJy on a field star; D2 stack 0.635 ± 0.086 mJy, brighter than 16 of 16 (the 2MASS star inside the aperture). The explanation of the D2 excess is text, not measured by the script.
+
+## 20. Is the reported error of a velocity right on real frames, and how often does a search fail? (10 Nov 2026)
+
+`node scratch/validate_uncertainty_real.mjs --api http://localhost:8003 --field "<field>" --trials 100 --nulls 300 --seed 1` (backend on the real files; a few seconds per field; no download). Fake movers (a Gaussian star with the header's FWHM, integrated over the pixels, as `calibrate_real.mjs`) are added to the real frames along straight paths of **known velocity**, at three brightnesses (15, 26 and 50 times the detector's own noise) and three speeds (4, 10 and 30 ″/yr), 100 per cell, 900 per field; the unchanged detector runs; for each recovered fake `z = (measured − true) / error` per axis. If the error is right, 68 % of the z are inside ±1, 95 % inside ±2 and the median of |z| is 0.67. Then the empty-field control: 300 copies of the field with every frame rotated/mirrored and shifted at random, so no correspondence is left and any candidate is false by construction. The error budget itself (`features/uncertainty.js`): the reported error is the quadrature sum of a statistical part (S/N of the dots), an excess-scatter part (the dots scatter more than their errors say) and the systematic floor of 15.1; `test_uncertainty.mjs` checks that the three parts rebuild the reported number.
+
+**Bright fakes only (50 × noise; the fainter ones are mostly "found" by a chance line near their path):**
+
+| Field | Images (passes) | Found, 10″/yr | Found, 30″/yr | Inside 1σ | Inside 2σ | Median \|z\| | Beyond 3σ (all brightnesses, one axis) | Empty copies that list a candidate |
+|---|---|---|---|---|---|---|---|---|
+| Barnard D2 | 15 (4) | 85 % | 82 % | **61 %** | **83 %** | 0.77 | **13 %** | 0 % (0/300) |
+| Barnard D6 | 6 (3) | 84 % | 82 % | 82 % | 91 % | 0.30 | 7 % | **11 %** (34/300) |
+| Epsilon Indi B D2 | 11 (5) | 87 % | 89 % | 75 % | 90 % | 0.54 | 8 % | 0 % (0/300) |
+| Epsilon Indi B D6 | 6 (4) | 73 % | 72 % | 75 % | 93 % | 0.60 | 3 % | 1 % (4/300) |
+| WISE 0855 D2 | 6 (4) | 86 % | 82 % | 72 % | 89 % | 0.58 | 6 % | 2 % (6/300) |
+| WISE 0855 D6 | 6 (3) | 81 % | 88 % | 75 % | 95 % | 0.55 | 1 % | **13 %** (40/300) |
+
+What this says:
+
+- **In the core the error is about right in four of six fields:** Epsilon Indi B D2 and D6 and WISE 0855 D2 and D6 have a median |z| of 0.54-0.60 (0.67 expected) and 72-75 % of bright fakes inside 1σ. In **Barnard D6 it is too large** (median |z| 0.30, 82 % inside 1σ).
+- **In Barnard D2 it is too small:** 61 % inside 1σ, 83 % inside 2σ, 13 % of all axes beyond 3σ, and a fake that is found at all is found more than 3σ (both axes together) from the true velocity 22 % of the time. Barnard D2 is the field with a saturated star and 15 images; the cause was **not** found, so the error of a candidate there should be read as optimistic. The error model was **not changed** by this test.
+- **The tails are heavy everywhere** (1-13 % of axes beyond 3σ, rms of z 1.0-2.2 for bright fakes against 1 expected): a Gaussian error bar understates the chance of a large miss. Using only the statistical part of the error (the "nominal" error of the budget) is worse still in every field (rms of z 1.3-10 over all recovered fakes, against 1.0-5.6 with the calibrated error), so the added parts are needed, but they are not enough for the tails.
+- **Failure rates are large for faint and slow movers, by design of the grid:** 77-80 % of all 900 fakes per field are not found (0-2 % at 15 × noise; 0-20 % at 26 × noise; at 4″/yr almost none unless the fake is bright and the field has 5 passes: Epsilon Indi B D2 65 %, D6 37 %, the others 1-12 %). A false candidate besides the fake appears in 0-2 % of the runs.
+- **The empty-field control agrees with section 10** (same method, a different seed offset): 0, 0, 1, 2, 11 and 13 % of empty copies list a candidate with the default rule, the two bad fields being the two with only 3 survey passes and 6 images. **The "significance" of such a false candidate is not small: up to 143σ** (Barnard D6), 108σ (WISE 0855 D6), 72σ, 57σ. A significance in σ says how far the line is from a still star; it says nothing about whether the line is real. That is what the "chance lines expected" number is for.
+
+Limits: Gaussian fakes with the header's FWHM, not the real PSF; the stars supply their own pointing shifts; no real variable stars or clustering in the empty copies (they are destroyed); 49 × 49 px cutouts of six field-detector pairs; one seed; Barnard D2 de-duplicated (15 images). A found fake counts when its path is within 1.5 px of the truth, which at 4″/yr (0.65 px/yr) lets a chance line near the path pass for it, so the 4″/yr "found" cells say little.

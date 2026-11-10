@@ -107,6 +107,12 @@ A candidate is a lead with its evidence, never a discovery. Nothing this applica
 - The backend now skips a file that is an exact copy of another (same detector, same time, same size, same SHA-1). It does not detect the same exposure saved with different pixels (another cutout, another resampling): two such files would both be used.
 - A **reproducibility bundle** proves that two people have the same *pixels* (a SHA-256 of each image) and the same *settings*; it does not prove the images are the right ones, that the archive product is the one claimed (the backend does not report the IRSA product id: `productId` is null), or that the result is correct. The hash is of the bytes as the backend serves them (float32), so a different backend or resampling gives a different hash. Only *Find movers* is replayed by the script.
 
+## The error of a velocity (VALIDATION §20)
+
+- The error bar of a candidate's motion is a model: statistical + excess scatter + a systematic floor measured on stars. Tested with fake movers in the real images it is **too small in Barnard D2** (the true velocity inside 1σ for 61 % of bright fakes, 68 % expected), too large in Barnard D6, about right in four fields, and its **tails are heavy** (1-13 % of axes beyond 3σ). Read it as a guide to the size of the error, not as a probability.
+- A large "significance" (σ) is not evidence that a line is real: false candidates of empty copies of a field reach 57-143σ. The "chance lines expected" number answers that question; it lets a false candidate through in about 1 empty field in 8 when there are only 3 survey passes and 6 images.
+- Not in the budget: the pointing/WCS of each file, the PSF shape, confusion with a neighbour of the same brightness.
+
 ## Which survey images cover a place (IRSA; VALIDATION §18)
 
 - The list is **metadata of what IRSA has published** (a live query of `spherex.plane`, retrieved at the time the page shows): it changes weekly as the survey adds images, and it says nothing about whether an image is good. A row with a quality flag is listed, not filtered.
