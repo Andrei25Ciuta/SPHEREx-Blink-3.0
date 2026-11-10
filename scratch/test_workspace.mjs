@@ -51,7 +51,7 @@ const has = (id) => HTML.includes(`id="${id}"`);
   const ids = [...wired.matchAll(/\$\("([\w-]+)"\)/g)].map((m) => m[1]);
   check("main.js wires the workspace to ids that exist in index.html", ids.length >= 6 && ids.every(has), ids.filter((i) => !has(i)).join(", "));
 }
-check("the workspace root carries the open/closed state of both side panels", /<main class="layout" id="workspace" data-left="open" data-right="open">/.test(HTML));
+check("the focusable workspace root carries the open/closed state of both side panels", /<main class="layout" id="workspace" tabindex="-1" data-left="open" data-right="open">/.test(HTML));
 for (const [btn, body] of [["panel-left-btn", "controls-body"], ["panel-right-btn", "inspector-body"]]) {
   const tag = HTML.match(new RegExp(`<button[^>]*id="${btn}"[^>]*>`))?.[0] ?? "";
   check(`${btn}: a button with aria-expanded, aria-controls -> ${body}, a key and a text for screen readers`,
