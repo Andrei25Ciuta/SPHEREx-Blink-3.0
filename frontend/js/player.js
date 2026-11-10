@@ -186,6 +186,7 @@ export class BlinkPlayer {
     }
 
     for (const id of this.layerOrder) this._drawLayer(id);          // back to front (features/layers.js DRAW_ORDER, changed from the layer list)
+    if (this.caption) this._drawCaption();
     this.onDraw();
   }
 
@@ -712,6 +713,23 @@ export class BlinkPlayer {
     }
     ctx.textAlign = "left";
     if (g.raStep || g.decStep) ctx.fillText(`grid ${[g.raStep, g.decStep].filter(Boolean).join(" × ")}`, 5, 15);
+    ctx.restore();
+  }
+
+  /** Lines printed into the picture while it is being saved or recorded (null = none): what the data are and which image this is. */
+  setCaption(lines) { this.caption = lines && lines.length ? lines : null; this.draw(); }
+  _drawCaption() {
+    const { ctx, canvas } = this, size = Math.max(11, Math.round(canvas.width / 48)), pad = Math.round(size * 0.5), h = this.caption.length * (size + 4) + pad * 2;
+    ctx.save();
+    ctx.fillStyle = "rgba(0,0,0,0.78)"; ctx.fillRect(0, canvas.height - h, canvas.width, h);
+    ctx.textBaseline = "top";
+    this.caption.forEach((line, i) => {
+      ctx.font = `${i === 0 ? "700" : "500"} ${size}px Inter, system-ui, sans-serif`;
+      ctx.fillStyle = i === 0 && /SYNTHETIC/.test(line) ? "#ffb347" : "#ffffff";
+      let t = line;
+      while (t.length > 8 && ctx.measureText(t).width > canvas.width - 2 * pad) t = t.slice(0, -2);
+      ctx.fillText(t.length < line.length ? t.trimEnd() + "…" : t, pad, canvas.height - h + pad + i * (size + 4));
+    });
     ctx.restore();
   }
 

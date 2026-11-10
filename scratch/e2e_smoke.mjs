@@ -120,6 +120,24 @@ async function main() {
       if (ranIn !== "movers:worker") throw new Error(`the search ran as "${ranIn}", not in a worker (workers created: ${[...workers].join(", ") || "none"}; longest gap between two frames: ${gap} ms)`);
       return `longest gap between two frames while it ran: ${gap} ms. ${status.slice(0, 80)}`;
     });
+    await step("a saved picture says in the picture itself that the data are synthetic", async () => {
+      // catch the download instead of saving it, then look at the pixels of the strip at the bottom
+      await evaluate(`window.__saved = null; HTMLAnchorElement.prototype.__click = HTMLAnchorElement.prototype.click; HTMLAnchorElement.prototype.click = function () { if (this.download) { window.__saved = { name: this.download, href: this.href }; } else this.__click(); }; true`);
+      try {
+        await click("#save-png-btn");
+        await waitFor(`window.__saved !== null`, "the saved picture");
+        const r = await evaluate(`(async () => {
+          const img = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = window.__saved.href; });
+          const c = document.createElement("canvas"); c.width = img.width; c.height = img.height; const x = c.getContext("2d"); x.drawImage(img, 0, 0);
+          const h = Math.round(img.height * 0.12), d = x.getImageData(0, img.height - h, img.width, h).data; let amber = 0, dark = 0;
+          for (let i = 0; i < d.length; i += 4) { if (d[i] > 200 && d[i + 1] > 140 && d[i + 1] < 210 && d[i + 2] < 120) amber++; if (d[i] < 40 && d[i + 1] < 40 && d[i + 2] < 40) dark++; }
+          return { name: window.__saved.name, amber, dark, pixels: d.length / 4 };
+        })()`);
+        if (r.amber < 40) throw new Error(`no amber SYNTHETIC caption in the saved picture (${r.amber} amber pixels in the bottom strip of ${r.name})`);
+        const after = await evaluate(`(() => { const c = document.querySelector("canvas"); return c ? c.width : 0; })()`);
+        return `${r.amber} amber caption pixels in the bottom strip of ${r.name}; canvas width ${after}`;
+      } finally { await evaluate(`HTMLAnchorElement.prototype.click = HTMLAnchorElement.prototype.__click; true`); }
+    });
     await step("a search can be cancelled while it runs: the button appears, the status says it was cancelled, no candidate is kept", async () => {
       // make the worker slow on purpose (it only starts 3 s after the message), so there is time to press Cancel
       await evaluate(`window.__Worker = window.Worker; window.Worker = class extends window.__Worker { postMessage(m) { setTimeout(() => super.postMessage(m), 3000); } }; true`);

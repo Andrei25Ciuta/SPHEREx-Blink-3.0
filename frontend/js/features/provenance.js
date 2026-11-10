@@ -118,3 +118,17 @@ export function provenanceText(p) {
   return `${p.tool}: ${p.algorithm.name}, ${p.algorithm.version}. Run at ${p.ranAt}${p.durationSeconds !== null ? ` (took ${p.durationSeconds} s)` : ""} on ${used}, ${where}. ` +
     `${p.data}. Settings: ${settingsText(p.settings)}.${p.catalogues ? ` Catalogues used: ${p.catalogues.used.join(", ") || "none"}${p.catalogues.problems.length ? `; problems: ${p.catalogues.problems.join("; ")}` : ""}.` : ""}${p.permalink ? ` Reopen: ${p.permalink}.` : ""}`;
 }
+
+/**
+ * The lines printed INTO a saved picture or video (a picture travels without its file name, a screenshot without its page): what the data are, where, which image, how it was drawn.
+ * -> [line1, line2]; line 1 is the one that must never be missing (real or SYNTHETIC).
+ */
+export function pictureCaption({ isReal, query, frame, mode, when = new Date() }) {
+  const date = frame?.dateISO ? String(frame.dateISO).slice(0, 10) : "date unknown";
+  const wl = Number.isFinite(frame?.wavelengthMinUm) && Number.isFinite(frame?.wavelengthMaxUm) ? ` ${frame.wavelengthMinUm.toFixed(2)}–${frame.wavelengthMaxUm.toFixed(2)} µm` : "";
+  const where = query && Number.isFinite(query.ra) && Number.isFinite(query.dec) ? `RA ${query.ra.toFixed(4)}° Dec ${query.dec.toFixed(4)}°${Number.isFinite(query.fov) ? `, ${query.fov}′` : ""}` : "field unknown";
+  return [
+    isReal ? "Real SPHEREx data (pixels derived from the observations)" : "SYNTHETIC DEMO IMAGE: invented in the browser, NOT a SPHEREx observation",
+    `${TOOL} · ${where} · ${frame?.detector ?? "?"} · ${date}${wl} · ${mode ?? "?"} · saved ${when.toISOString().slice(0, 10)}`,
+  ];
+}

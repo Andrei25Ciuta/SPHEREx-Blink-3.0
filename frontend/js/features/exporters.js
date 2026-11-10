@@ -10,8 +10,9 @@ function download(url, filename) {
   a.remove();
 }
 
-export function savePng(player, baseName) {
-  download(player.snapshot(), `${baseName}.png`);
+/** caption: the lines printed into the picture (provenance.js pictureCaption); the picture on screen is not changed afterwards. */
+export function savePng(player, baseName, caption = null) {
+  try { player.setCaption(caption); download(player.snapshot(), `${baseName}.png`); } finally { player.setCaption(null); }
 }
 
 /** Pick a video format the browser can record. */
@@ -25,7 +26,7 @@ export const canRecord = () => !!pickMime() && !!HTMLCanvasElement.prototype.cap
  * Record `loops` full passes of the blink as a video file.
  * onTick(secondsLeft) lets the UI show a countdown. Resolves when the file is saved.
  */
-export async function recordBlink(player, baseName, { minSeconds = 3, maxSteps = 60, onTick = () => {} } = {}) {
+export async function recordBlink(player, baseName, { minSeconds = 3, maxSteps = 60, onTick = () => {}, caption = null } = {}) {
   const mime = pickMime();
   if (!mime) throw new Error("This browser cannot record video.");
   const fps = player.fps;
@@ -47,6 +48,7 @@ export async function recordBlink(player, baseName, { minSeconds = 3, maxSteps =
 
   const wasPlaying = player.playing;
   player.pause();
+  player.setCaption(caption);                        // printed into every frame of the video
   player.goTo(0);
   rec.start(250);                                    // hand over data every 250 ms
   pushFrame();
@@ -63,6 +65,7 @@ export async function recordBlink(player, baseName, { minSeconds = 3, maxSteps =
   });
   rec.stop();
   await stopped;
+  player.setCaption(null);
   stream.getTracks().forEach((t) => t.stop());
   if (wasPlaying) player.play();
   if (!chunks.length) throw new Error("The recording came out empty.");

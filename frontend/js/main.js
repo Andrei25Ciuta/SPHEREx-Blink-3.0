@@ -37,7 +37,7 @@ import { FLAGGED_LIMIT } from "./features/timeline.js";
 import { SkyContext } from "./features/skyContext.js";
 import { setupFullscreen } from "./features/fullscreen.js";
 import { detectSources, describeMover, matchKnownObject, moverPositionAtMjd, passIndices, trackSupport, blendWarning, VERSION as MOVERS_VERSION, DEFAULTS as MOVER_DEFAULTS, ERROR_MODEL } from "./features/movers.js";
-import { buildProvenance, provenanceText } from "./features/provenance.js";
+import { buildProvenance, provenanceText, pictureCaption } from "./features/provenance.js";
 import { colourHint } from "./features/spectrum.js";
 import { describeDistant, classifyApparentMotion, VERSION as PARALLAX_VERSION, DISTANT_DEFAULTS } from "./features/parallax.js";
 import { candidatesToCsv, candidatesToJson, exportFileName } from "./features/export.js";
@@ -1418,7 +1418,9 @@ const fileBase = () => {
   const tag = player.isAnimated ? `${player.mode}_${f.dateISO.slice(0, 10)}` : player.mode;
   return `spherex-blink_${currentQuery.ra.toFixed(4)}_${currentQuery.dec.toFixed(4)}_${f.detector}_${tag}`;
 };
-$("save-png-btn").addEventListener("click", () => { if (player.length) savePng(player, fileBase()); });
+/** The lines printed into a saved picture or video (features/provenance.js pictureCaption). */
+const exportCaption = () => pictureCaption({ isReal: DATA_SOURCE === "api", query: currentQuery, frame: player.frames[player.index], mode: player.mode });
+$("save-png-btn").addEventListener("click", () => { if (player.length) savePng(player, fileBase(), exportCaption()); });
 
 $("record-btn").addEventListener("click", async () => {
   const btn = $("record-btn");
@@ -1427,7 +1429,7 @@ $("record-btn").addEventListener("click", async () => {
   btn.disabled = true;
   try {
     await recordBlink(player, fileBase().replace(/_\d{4}-\d{2}-\d{2}$/, ""), {
-      onTick: (s) => { btn.textContent = `Recording… ${s}s`; },
+      onTick: (s) => { btn.textContent = `Recording… ${s}s`; }, caption: exportCaption(),
     });
     setStatus("Video saved to your downloads.");
   } catch (err) {

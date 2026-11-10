@@ -9,6 +9,9 @@ published until the author decides ([docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)).
 The reference is `main` at `3f1e538` (7 Nov 2026). Status per phase: [docs/IMPLEMENTATION_ROADMAP.md](docs/IMPLEMENTATION_ROADMAP.md); feature by feature,
 with what was and was not checked: [docs/FEATURE_STATUS.md](docs/FEATURE_STATUS.md).
 
+### Provenance in every saved picture (10 Nov 2026)
+- **Found:** the saved PNG and the recorded video carried no label. They now print a caption into the image (real, or SYNTHETIC and not an observation, plus field, detector, date, mode); `test_exportlabels.mjs` audits all 13 save points; 17th browser check. Item 6 of the ten; 7-10 not done.
+
 ### Cancel and size estimate (10 Nov 2026)
 - Find movers and the Planet X search show their size and a rough range before they start, the elapsed seconds while they run, and a Cancel button when a worker runs them (`workerClient.js` takes an AbortSignal; `searchCost.js`; `test_cancel.mjs`; a 16th check in `e2e_smoke.mjs`). No real progress bar; Find everything and the dot detection are not cancellable. Item 5 of the ten improvements; 6-10 not done.
 
