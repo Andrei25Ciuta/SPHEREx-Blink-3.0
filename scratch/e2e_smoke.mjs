@@ -120,6 +120,23 @@ async function main() {
       if (ranIn !== "movers:worker") throw new Error(`the search ran as "${ranIn}", not in a worker (workers created: ${[...workers].join(", ") || "none"}; longest gap between two frames: ${gap} ms)`);
       return `longest gap between two frames while it ran: ${gap} ms. ${status.slice(0, 80)}`;
     });
+    await step("a search can be cancelled while it runs: the button appears, the status says it was cancelled, no candidate is kept", async () => {
+      // make the worker slow on purpose (it only starts 3 s after the message), so there is time to press Cancel
+      await evaluate(`window.__Worker = window.Worker; window.Worker = class extends window.__Worker { postMessage(m) { setTimeout(() => super.postMessage(m), 3000); } }; true`);
+      try {
+        await click("#find-movers-btn");
+        await waitFor(`!document.getElementById("cancel-search-btn").hidden`, "the Cancel button");
+        const during = await text("#movers-status");
+        if (!/cancel/i.test(during)) throw new Error(`the status does not mention cancelling: ${during}`);
+        await click("#cancel-search-btn");
+        await waitFor(`/cancelled/.test(document.getElementById("movers-status").textContent) && !document.getElementById("find-movers-btn").disabled`, "the cancelled status");
+        const after = await text("#movers-status");
+        const hidden = await evaluate(`document.getElementById("cancel-search-btn").hidden`);
+        const listed = await evaluate(`document.getElementById("mover-list").children.length`);
+        if (!hidden || listed !== 0) throw new Error(`after cancelling: button hidden ${hidden}, candidates listed ${listed}`);
+        return after.slice(0, 90);
+      } finally { await evaluate(`window.Worker = window.__Worker; true`); }
+    });
     await step("the Planet X search finds the simulated body at about 600 AU (500–700), and says what it is", async () => {
       workers.clear();
       await startGapProbe();

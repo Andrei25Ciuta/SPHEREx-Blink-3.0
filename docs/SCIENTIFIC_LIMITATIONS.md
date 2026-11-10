@@ -113,6 +113,10 @@ A candidate is a lead with its evidence, never a discovery. Nothing this applica
 - A large "significance" (σ) is not evidence that a line is real: false candidates of empty copies of a field reach 57-143σ. The "chance lines expected" number answers that question; it lets a false candidate through in about 1 empty field in 8 when there are only 3 survey passes and 6 images.
 - Not in the budget: the pointing/WCS of each file, the PSF shape, confusion with a neighbour of the same brightness.
 
+## Cancelling a search
+
+- Cancel works only for the two searches that run in a worker (Find movers, the Planet X search). Find everything, the detection of dots (including the first stage of the Planet X search) and the text analysis run on the page and cannot be stopped. The time shown before a search is a range measured on synthetic images on one machine, not a promise.
+
 ## Which survey images cover a place (IRSA; VALIDATION §18)
 
 - The list is **metadata of what IRSA has published** (a live query of `spherex.plane`, retrieved at the time the page shows): it changes weekly as the survey adds images, and it says nothing about whether an image is good. A row with a quality flag is listed, not filtered.

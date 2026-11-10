@@ -82,3 +82,24 @@ It was checked to be able to fail: with the worker file removed, exactly the two
 Not covered: real data, the backend, a touch screen, other browsers than Chrome, a screen reader. Not part of the `test_*.mjs` set (it needs a browser);
 it has its own job in `.github/workflows/tests.yml`, which passed 12 of 12 in the run [42711017130](https://github.com/mateibut/SPHEREx/actions/runs/42711017130)
 (Node 22.23.4 on GitHub's `ubuntu-latest`; the runner's Chrome was found with no extra step).
+
+## 4. How long does Find movers take as the field grows? (10 Nov 2026)
+
+`node scratch/measure_search_cost.mjs` (synthetic images with about one star per 170 pixels, fixed stars and no mover; one run each on this machine, so a few tens of percent of noise; the first rows are dominated by start-up):
+
+| side (px) | images | pixels | stars | search time (ms) | ns per pixel |
+|---|---|---|---|---|---|
+| 49 | 6 | 14406 | 14 | 16 | 1082 |
+| 49 | 18 | 43218 | 14 | 22 | 510 |
+| 49 | 40 | 96040 | 14 | 36 | 373 |
+| 100 | 6 | 60000 | 59 | 26 | 428 |
+| 100 | 18 | 180000 | 59 | 85 | 471 |
+| 100 | 40 | 400000 | 59 | 179 | 447 |
+| 200 | 6 | 240000 | 235 | 62 | 260 |
+| 200 | 18 | 720000 | 235 | 177 | 246 |
+| 200 | 40 | 1600000 | 235 | 324 | 203 |
+| 293 | 6 | 515094 | 505 | 52 | 102 |
+| 293 | 18 | 1545282 | 505 | 200 | 129 |
+| 293 | 40 | 3433960 | 505 | 696 | 203 |
+
+The search took **0.2 to 1.1 microseconds per pixel** (images × side × side); that range is what the page shows before a search (`features/searchCost.js`, with "yours may differ"). It is NOT a prediction for a real field with many stars, a slower computer, or the Planet X search (its cost grows with the number of dots). The page warns above 5 million pixels and never refuses: Cancel is the safety net.

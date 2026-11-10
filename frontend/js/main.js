@@ -24,7 +24,8 @@ import { setupBundle } from "./features/bundleView.js";
 import { fetchSurvey as askSurvey } from "./features/surveyCoverage.js";
 import { setupSolarSystem } from "./features/solarSystemView.js";
 import { setupAssistant } from "./features/assistantView.js";
-import { runTask } from "./features/workerClient.js";
+import { runTask, isCancelled } from "./features/workerClient.js";
+import { estimateSearch, describeEstimate } from "./features/searchCost.js";
 import { runSearchTask } from "./features/searchTasks.js";
 import { MARK_IDLE, markText } from "./features/workspace.js";
 import { detectorCoverage, coverageText } from "./features/spectral.js";
@@ -874,14 +875,28 @@ const frameId = (f) => `${f.detector}@${f.mjd}`;
  * A search that can keep the page busy for seconds runs in a worker (js/searchWorker.js), so that the page stays usable; with no worker it runs here and gives the same answer
  * (features/workerClient.js, searchTasks.js). The worker gets a copy of the data.
  */
-async function searchInWorker(kind, payload) {
+async function searchInWorker(kind, payload, { signal = null, onStart = null } = {}) {
   const { result, inWorker } = await runTask(kind, payload, {
     makeWorker: () => new Worker(new URL("./searchWorker.js", import.meta.url), { type: "module" }),
     fallback: () => runSearchTask(kind, payload),
+    signal, onStart,
   });
   $("movers").dataset.lastSearch = `${kind}:${inWorker ? "worker" : "page"}`;       // where the last search really ran (the end-to-end test reads it: a worker that failed to load must not pass as one that ran)
   return result;
 }
+
+// Cancel and elapsed time for the long searches. The Cancel button is shown only while a worker runs the search (a search on the page is one call that cannot be stopped; the status line says so).
+let searchAbort = null, searchTicker = null;
+function beginSearch(text) {
+  searchAbort = new AbortController();
+  const status = $("movers-status"), t0 = performance.now();
+  status.textContent = text;
+  clearInterval(searchTicker);
+  searchTicker = setInterval(() => { const s = Math.round((performance.now() - t0) / 1000); if (s >= 2) status.textContent = `${text} (${s} s)`; }, 1000);
+  return { signal: searchAbort.signal, onStart: ({ cancellable }) => { $("cancel-search-btn").hidden = !cancellable; if (!cancellable) status.textContent = `${text} This runs on the page itself and cannot be cancelled.`; } };
+}
+function endSearch() { clearInterval(searchTicker); searchTicker = null; searchAbort = null; $("cancel-search-btn").hidden = true; }
+$("cancel-search-btn").addEventListener("click", () => { searchAbort?.abort(); });
 
 /** The date of every dot of every candidate (for the Planet X Lab's comparison of motions): a dot says which image of the search it is in, a candidate of several detectors says which image by its frameIds. */
 function attachDotDates(candidates, frames) {
@@ -1033,8 +1048,10 @@ $("find-movers-btn").addEventListener("click", async () => {
     }
     if (token !== loadToken) return;
     // every detector together AND each alone, merged (a candidate knows which image each entry of its shifts belongs to)
+    const run = beginSearch(`Searching… ${describeEstimate(estimateSearch(frames.length, player.naturalSize))}`);
     const result = await searchInWorker("movers", { frames: frames.map((f, i) => ({ mjd: f.mjd, detector: f.detector, id: frameId(f), grey: arrays[i], mask: masks?.[i] ?? null })),
-      n: player.naturalSize, options: isFloat ? { sigmaFloor: 1e-9 } : {} });
+      n: player.naturalSize, options: isFloat ? { sigmaFloor: 1e-9 } : {} }, run);
+    endSearch();
     if (token !== loadToken) return;
     addSupport(result.candidates, frames, arrays, player.naturalSize, { ...(isFloat ? { sigmaFloor: 1e-9 } : {}) });
     attachDotDates(result.candidates, frames);
@@ -1046,9 +1063,12 @@ $("find-movers-btn").addEventListener("click", async () => {
     // the options the search ran with: the defaults of movers.js, with the noise floor of real (float) pixels when it was used
     moversRun = recordRun("find-movers", MOVERS_VERSION, frames, { ...MOVER_DEFAULTS, ...ERROR_MODEL, ...(isFloat ? { sigmaFloor: 1e-9 } : {}), allDetectors: useAllDetectors() }, startedAt, isFloat);
   } catch (err) {
+    endSearch();
+    if (isCancelled(err)) { status.textContent = "The search was cancelled. No candidate was kept (the list was cleared when the search started); the images are unchanged."; return; }
     console.error(err);
     status.textContent = `The search failed: ${err.message}`;
   } finally {
+    endSearch();
     $("find-movers-btn").disabled = !canFindMovers();
     $("find-distant-btn").disabled = !canFindMovers();
   }
@@ -1097,7 +1117,9 @@ $("find-distant-btn").addEventListener("click", async () => {
     const detected = frames.map((f, i) => ({ mjd: f.mjd, sources: detectSources(arrays[i], n, { ...(isFloat ? { sigmaFloor: 1e-9 } : {}), mask: masks?.[i] ?? null }) }));
     await ensureAsteroids();                                                              // (a swinging body could also be a known one)
     if (token !== loadToken) return;
-    const result = await searchInWorker("distant", { detected, geo: currentGeo() });
+    const run = beginSearch(`Searching for a distant body… ${describeEstimate(estimateSearch(frames.length, n))}`);
+    const result = await searchInWorker("distant", { detected, geo: currentGeo() }, run);
+    endSearch();
     if (token !== loadToken) return;
     const ids = frames.map(frameId);
     for (const c of result.candidates) c.frameIds = ids;
@@ -1106,9 +1128,12 @@ $("find-distant-btn").addEventListener("click", async () => {
     showMovers(result, null, { distant: true });
     moversRun = recordRun("find-distant", PARALLAX_VERSION, frames, { ...DISTANT_DEFAULTS, ...MOVER_DEFAULTS, ...(isFloat ? { sigmaFloor: 1e-9 } : {}), allDetectors: useAllDetectors() }, startedAt, isFloat);
   } catch (err) {
+    endSearch();
+    if (isCancelled(err)) { status.textContent = "The search was cancelled. No candidate was kept (the list was cleared when the search started); the images are unchanged."; return; }
     console.error(err);
     status.textContent = `The search failed: ${err.message}`;
   } finally {
+    endSearch();
     $("find-movers-btn").disabled = !canFindMovers();
     $("find-distant-btn").disabled = !canFindMovers();
   }

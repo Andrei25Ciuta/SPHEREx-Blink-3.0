@@ -9,6 +9,9 @@ published until the author decides ([docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)).
 The reference is `main` at `3f1e538` (7 Nov 2026). Status per phase: [docs/IMPLEMENTATION_ROADMAP.md](docs/IMPLEMENTATION_ROADMAP.md); feature by feature,
 with what was and was not checked: [docs/FEATURE_STATUS.md](docs/FEATURE_STATUS.md).
 
+### Cancel and size estimate (10 Nov 2026)
+- Find movers and the Planet X search show their size and a rough range before they start, the elapsed seconds while they run, and a Cancel button when a worker runs them (`workerClient.js` takes an AbortSignal; `searchCost.js`; `test_cancel.mjs`; a 16th check in `e2e_smoke.mjs`). No real progress bar; Find everything and the dot detection are not cancellable. Item 5 of the ten improvements; 6-10 not done.
+
 ### Calibrated uncertainty and a broader blind check (10 Nov 2026)
 - `features/uncertainty.js`: the error of a velocity split into statistical, excess scatter and systematic parts (nominal beside calibrated), and warnings for what could make a candidate less reliable; three new columns in the text-analysis table and CSV. `scratch/validate_uncertainty_real.mjs` tests the error on the six real fields with injected movers and 300 empty copies each (VALIDATION 20): **the error is too small in Barnard D2 (61 % inside 1σ), too large in Barnard D6, about right in four fields, with heavy tails; a false candidate can show 143σ.** The error model was not changed. The movers benchmark digest was rewritten because candidates carry four more fields (the digest without them is unchanged). Item 4 of the ten improvements; 5-10 not done.
 
