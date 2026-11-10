@@ -122,7 +122,8 @@ async function main() {
     for (let i = 0; i < 700; i++) {
       await press("Tab");
       await evaluate(`new Promise((r) => { let y = scrollY, n = 0; const f = () => { if (scrollY === y) { if (++n >= 3) return r(); } else { y = scrollY; n = 0; } requestAnimationFrame(f); }; f(); })`);       // the page scrolls smoothly: measure when it has stopped
-      const d = await evaluate(describe);
+      let d = await evaluate(describe);
+      for (let w = 0; d && d.vis && !d.inView && w < 15; w++) { await sleep(100); d = await evaluate(describe); }          // a slow runner scrolls late: wait up to 1.5 s for the focused element to come into view
       if (!d) { sameCount++; if (sameCount > 3) break; continue; }
       if (d.key === last) { sameCount++; if (sameCount >= 3) { cycleAt = -2; break; } } else sameCount = 0;
       last = d.key;
