@@ -16,7 +16,7 @@
 
   <script>if (/[?&]embed=1(&|$)/.test(location.search)) document.documentElement.classList.add("embed");</script>   <!-- ?embed=1: workspace only, for an <iframe> -->
   <link rel="stylesheet" href="css/styles.css?v=20">
-  <link rel="stylesheet" href="css/nasa-inspired.css?v=1">
+  <link rel="stylesheet" href="css/nasa-inspired.css?v=2">
 </head>
 <body>
   <a class="skip-link" href="#workspace">Skip to the workspace</a>
@@ -58,24 +58,8 @@
         <button type="button" class="panel-toggle" id="panel-left-btn" aria-expanded="true" aria-controls="controls-body" aria-keyshortcuts="[" title="Hide the search panel ([)"><span class="panel-toggle-icon" aria-hidden="true"></span><span class="sr-only">Hide the search panel</span></button>
       </div>
       <div class="panel-body" id="controls-body">
-      <p class="tour-launch"><button type="button" class="btn btn-small" id="tour-btn">Take the 1-minute tour</button></p>
-      <details class="workspace-settings">
-        <summary>Settings and image display</summary>
-        <label>Data source <select id="data-source"><option value="mock">Synthetic demo</option><option value="api">Local FITS backend</option></select></label>
-        <p id="data-source-help" class="help" hidden>The local backend is available when you serve this workspace on your computer. This public site runs the synthetic demo.</p>
-        <div class="view-settings">
-          <label>Brightness <input type="range" id="image-brightness" min="50" max="200" value="100"></label>
-          <label>Contrast <input type="range" id="image-contrast" min="50" max="200" value="100"></label>
-          <label><input type="checkbox" id="centre-crosshair" checked> Centre crosshair</label>
-          <button type="button" class="btn btn-small" id="reset-view">Reset display</button>
-          <p class="muted small">Display adjustments affect the screen only: the saved picture and every measurement use the pixels as they are.</p>
-        </div>
-      </details>
-      <nav class="research-nav" aria-label="Standalone research pages">
-        <a href="results.html#candidate-explorer">Candidate Explorer</a>
-        <a href="planet-x.html">Planet X Lab (page)</a><a href="sky.html">Sky Explorer (page)</a><a href="simulator.html">Solar System Simulator (page)</a>
-      </nav>
-
+      <p class="workspace-kicker">1 · Define a field</p>
+      <p class="workspace-intro">Load a coordinate pair, then inspect the image sequence and run a search from the workspace.</p>
       <form id="search-form" novalidate>
         <div class="field">
           <label for="ra-input">Right Ascension (RA)</label>
@@ -124,7 +108,30 @@
         </div>
       </div>
 
-      <details class="hint" open>
+      <div class="control-support">
+        <p class="tour-launch"><button type="button" class="btn btn-small" id="tour-btn">Take the 1-minute tour</button></p>
+        <details class="workspace-settings">
+          <summary>Data and display settings</summary>
+          <label>Data source <select id="data-source"><option value="mock">Synthetic demo</option><option value="api">Local FITS backend</option></select></label>
+          <p id="data-source-help" class="help" hidden>The local backend is available when you serve this workspace on your computer. This public site runs the synthetic demo.</p>
+          <div class="view-settings">
+            <label>Brightness <input type="range" id="image-brightness" min="50" max="200" value="100"></label>
+            <label>Contrast <input type="range" id="image-contrast" min="50" max="200" value="100"></label>
+            <label><input type="checkbox" id="centre-crosshair" checked> Centre crosshair</label>
+            <button type="button" class="btn btn-small" id="reset-view">Reset display</button>
+            <p class="muted small">Display adjustments affect the screen only: the saved picture and every measurement use the pixels as they are.</p>
+          </div>
+        </details>
+        <details class="workspace-links">
+          <summary>Research tools</summary>
+          <nav class="research-nav" aria-label="Standalone research pages">
+            <a href="results.html#candidate-explorer">Candidate Explorer</a>
+            <a href="planet-x.html">Planet X Lab (page)</a><a href="sky.html">Sky Explorer (page)</a><a href="simulator.html">Solar System Simulator (page)</a>
+          </nav>
+        </details>
+      </div>
+
+      <details class="hint">
         <summary>How to spot a moving object</summary>
         <ol>
           <li>Quick way: press <strong>Find movers</strong> under the player &mdash; it lists the dots that changed position.</li>
@@ -141,7 +148,10 @@
 
     <!-- ============ RIGHT: blink player ============ -->
     <section class="panel player" aria-labelledby="player-title">
-      <h2 id="player-title">Image viewer</h2>
+      <div class="workspace-heading">
+        <div><p class="workspace-kicker">2 · Inspect and analyze</p><h2 id="player-title">Image workspace</h2></div>
+        <p class="workspace-summary">Blink, compare and measure one field without losing its provenance.</p>
+      </div>
 
       <!-- View modes. Native radio buttons = free keyboard support (arrow keys). -->
       <fieldset class="mode-switch" id="mode-switch">
@@ -221,6 +231,23 @@
         </div>
       </div>
 
+      <section class="analysis-deck" aria-label="Search commands">
+        <div class="analysis-deck-title"><p class="workspace-kicker">3 · Run a search</p><p>Use the first search for moving points. Use the distant-body search only for wide fields. Find everything creates a vetted source list.</p></div>
+        <div class="analysis-actions">
+          <div class="movers-head">
+            <button type="button" class="btn btn-primary btn-small" id="find-movers-btn" disabled>Find movers</button>
+            <button type="button" class="btn btn-small" id="cancel-search-btn" hidden>Cancel search</button>
+            <button type="button" class="btn btn-small" id="find-distant-btn" disabled title="Planet X mode: looks for a body in the outer Solar System. It swings back and forth as the Earth goes round the Sun (parallax), so its path is not a straight line, and the size of the swing gives its distance. Needs a wide field (about 30 arcmin).">Look for a distant body</button>
+            <label class="check movers-all"><input type="checkbox" id="movers-all-det" checked> Use all detectors</label>
+            <p class="movers-status" id="movers-status" role="status" aria-live="polite">Compares the dots in all images and lists the ones that moved.</p>
+          </div>
+          <div class="discover-head">
+            <button type="button" class="btn btn-primary btn-small" id="discover-btn" disabled>Find everything</button>
+            <p class="discover-status" id="discover-status" role="status" aria-live="polite"></p>
+          </div>
+        </div>
+      </section>
+
       <!-- Timeline: one button per image, time order across and wavelength up; survey-pass switches and a wavelength window (js/features/timelineView.js) -->
       <label class="observation-select">Observation <select id="observation-select" disabled></select></label>
       <section class="timeline" id="timeline" aria-labelledby="timeline-title" hidden>
@@ -284,14 +311,8 @@
       <p class="flags-legend" id="flags-legend" hidden><span class="swatch" aria-hidden="true"></span> Red = flagged as bad data: hot, cold or dead pixels, overflow, ghosts, transients. Flags that only say &ldquo;a known source is here&rdquo; are ignored. The &ldquo;Flags&rdquo; figure below is the share of red pixels.</p>
 
       <!-- Find movers: lists dots that change position between dates (js/features/movers.js) -->
+      <section class="analysis-results" aria-label="Search results">
       <div class="movers" id="movers">
-        <div class="movers-head">
-          <button type="button" class="btn btn-primary btn-small" id="find-movers-btn" disabled>Find movers</button>
-          <button type="button" class="btn btn-small" id="cancel-search-btn" hidden>Cancel search</button>
-          <button type="button" class="btn btn-small" id="find-distant-btn" disabled title="Planet X mode: looks for a body in the outer Solar System. It swings back and forth as the Earth goes round the Sun (parallax), so its path is not a straight line, and the size of the swing gives its distance. Needs a wide field (about 30 arcmin).">Look for a distant body</button>
-          <label class="check movers-all"><input type="checkbox" id="movers-all-det" checked> Use all detectors</label>
-          <p class="movers-status" id="movers-status" role="status" aria-live="polite">Compares the dots in all images and lists the ones that moved.</p>
-        </div>
         <ol class="mover-list" id="mover-list" aria-label="Candidate movers" hidden></ol>
         <details class="provenance" id="movers-provenance" hidden>
           <summary>How this search was run</summary>
@@ -313,10 +334,6 @@
 
       <!-- Find everything: every source in the images, vetted, checked against catalogues and ranked (js/features/discovery.js, discoverPanel.js) -->
       <div class="discover" id="discover">
-        <div class="discover-head">
-          <button type="button" class="btn btn-primary btn-small" id="discover-btn" disabled>Find everything</button>
-          <p class="discover-status" id="discover-status" role="status" aria-live="polite"></p>
-        </div>
         <ul class="discover-notes" id="discover-notes" aria-label="Problems and limits of this search" hidden></ul>
         <ul class="discover-chips" id="discover-chips" aria-label="Summary" hidden></ul>
         <details class="provenance" id="discover-provenance" hidden>
@@ -339,6 +356,7 @@
         </div>
         <article class="discover-detail" id="discover-detail" hidden></article>
       </div>
+      </section>
 
       <div class="tools" role="group" aria-label="Save and share">
         <button type="button" class="btn btn-small" id="save-png-btn" disabled><span class="btn-ico" data-icon="save" aria-hidden="true"></span>Save image</button>

@@ -1,6 +1,6 @@
 # Feature inventory at the navigation milestone
 
-The default Light research presentation now uses an editorial, NASA-inspired visual direction across the workspace and four companion pages. It uses the project's own generated illustration and an explicit illustration caption; it does not use NASA logos or imply NASA operates this project. The four alternate theme choices remain available. This is a visual change, not a change to scientific results.
+The default Light research presentation now uses an editorial, NASA-inspired visual direction across the workspace and four companion pages. It uses the project's own generated illustration and an explicit illustration caption; it does not use NASA logos or imply NASA operates this project. The workspace arranges the controls as a field definition panel, central image/player, immediate analysis command deck, and a persistent inspector. Settings, research links, and explanatory guidance are available through labelled disclosures. The four alternate theme choices remain available. These are interface changes, not changes to scientific results.
 
 | Area | Implementation and evidence | Remaining check or improvement |
 | --- | --- | --- |
