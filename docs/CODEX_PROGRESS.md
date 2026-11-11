@@ -6,6 +6,8 @@ Simplified the public Overview into a quieter research-note presentation: reduce
 
 Verification: the Overview contract test, responsive layout audit and primary-navigation browser test were rerun after the change.
 
+Follow-up: restored restrained motion requested for the Overview: a low-contrast scan over the synthetic IR figure, a slow field/marker pulse, staggered mode-card entrance and small directional button/card hover movement. Every animation and transition is disabled by the existing and extended `prefers-reduced-motion` rules.
+
 ## 2026-11-11 — Midnight dark theme
 
 Added an optional `Midnight / dark` palette beside the five Paper variants. The theme keeps the existing semantic tokens, URL/local-storage persistence, focus rings and dark image/chart islands while applying a dark surface, pale text and high-contrast rose signal colour to every public page, including Overview. The default remains Paper / signal red.
