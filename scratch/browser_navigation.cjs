@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const { chromium } = require("playwright");
 
 async function checkNavigation() {
-  const base = process.env.BLINK_URL || "http://127.0.0.1:8765/";
+  const base = process.env.BLINK_URL || "http://127.0.0.1:8765/?workspace=1";
   const browser = await chromium.launch({ channel: process.env.BLINK_BROWSER || undefined });
   try {
     const page = await browser.newPage({ reducedMotion: "reduce" });
@@ -11,6 +11,8 @@ async function checkNavigation() {
       return new URL(route.request().url()).origin === new URL(base).origin
         ? route.continue() : route.abort();
     });
+    await page.goto(new URL("index.html", base).href);
+    assert.ok((await page.url()).endsWith("/overview.html"), "a plain site visit opens Overview");
     for (const width of [320, 720, 721, 1280]) {
       await page.setViewportSize({ width, height: 800 });
       await page.goto(base);

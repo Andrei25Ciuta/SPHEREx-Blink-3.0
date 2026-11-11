@@ -4,7 +4,7 @@
 
 Added `frontend/overview.html`: a separate public entry page that introduces the Blink workflow and links to the existing workspace, Sky Explorer, Planet X Lab, Simulator and Results. It uses original HTML/CSS artwork and motion effects inspired only by the supplied visual direction: paper grid, restrained editorial hierarchy, a clearly labelled synthetic illustration, mode cards, documented challenge-target links and a reduced-motion fallback. It does not make a live-data claim or add analysis behavior. The existing workspace primary navigation now exposes Overview.
 
-Verification: `node scratch/test_overview.mjs` checks page navigation, provenance labelling, target URLs and the reduced-motion rule. The responsive layout audit now includes the new page; the navigation audit checks the Overview destination. Full browser verification is recorded with this release.
+Verification: `node scratch/test_overview.mjs` checks page navigation, provenance labelling, target URLs and the reduced-motion rule. The responsive layout audit now includes the new page; the navigation audit checks both the Overview default and explicit workspace return path. Full browser verification is recorded with this release.
 
 ## 2026-11-11 — paper-light interface and Sky Explorer atlas
 

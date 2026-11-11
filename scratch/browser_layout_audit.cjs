@@ -44,7 +44,7 @@ async function main() {
       for (const theme of ["deep-space", "observatory", "light-research"]) {
         for (const width of [320, 375, 768, 1280]) {
           await page.setViewportSize({ width, height: 800 });
-          await page.goto(base + name);
+          await page.goto(base + name + (name === "index.html" ? "?workspace=1" : ""));
           await page.evaluate(value => localStorage.setItem("spherex-blink.theme", value), theme);
           await page.reload();
           const audit = await page.evaluate(() => {
