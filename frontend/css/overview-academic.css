@@ -1,0 +1,23 @@
+/* A quiet research-note layer for the public overview. It only changes presentation. */
+.overview-header { position: static; gap: 1rem; padding-block: 1.1rem; background: var(--surface); backdrop-filter: none; }
+.overview-brand { font-size: 1.3rem; }.overview-header nav { gap: clamp(.45rem, 1.2vw, 1.1rem); }
+.overview-header nav a, .overview-open { font-size: .67rem; }.overview-open { min-height: 2.45rem; padding-inline: .8rem; }
+.overview-hero { max-width: 92rem; min-height: 0; gap: clamp(2rem, 5vw, 5rem); padding-top: clamp(3rem, 6vw, 5.5rem); padding-bottom: clamp(3rem, 6vw, 5.5rem); }
+.overview-copy { max-width: 38rem; }.overview-copy h1 { font-size: clamp(3.6rem, 7.2vw, 6.4rem); line-height: .93; letter-spacing: -.035em; }
+.overview-copy > p:not(.overview-kicker):not(.overview-meta) { margin-block: 1.5rem; font-size: 1.05rem; max-width: 33rem; }
+.overview-kicker { letter-spacing: .12em; }.overview-meta { margin-top: 2.25rem; }
+.overview-frame { min-height: 25rem; border-color: var(--border); box-shadow: none; background: var(--field); }
+.overview-frame-status { color: var(--text-muted); }.overview-frame-status span { background: var(--accent); }.overview-frame figcaption { color: var(--text-muted); }
+.overview-stars { opacity: .86; animation: none; filter: grayscale(1) contrast(1.04); }.overview-stars b { animation: none; border-color: var(--accent); box-shadow: none; }
+.overview-ticker { justify-content: flex-start; max-width: 92rem; margin: 0 auto; padding-inline: clamp(1.25rem, 5vw, 5.5rem); border-top: 0; font: .72rem var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
+.overview-section, .overview-method { max-width: 92rem; padding-top: clamp(4rem, 7vw, 6.5rem); padding-bottom: clamp(4rem, 7vw, 6.5rem); }
+.overview-section h2, .overview-method h2, .overview-callout h2 { font-size: clamp(2.45rem, 4.5vw, 4.3rem); max-width: 22ch; }
+.overview-modes { gap: 0; margin-top: 2.5rem; padding: 0; border-inline: 0; background: transparent; }.overview-modes article { padding: 1rem; border-right: 1px solid var(--border); }.overview-modes article:first-child { padding-left: 0; }.overview-modes article:last-child { border-right: 0; }
+.mode-image { aspect-ratio: 1.25; filter: grayscale(1); }.overview-modes article p { margin-top: .8rem; }
+.overview-method { max-width: none; background: var(--surface); border-top: 1px solid var(--border); }.overview-method ol { gap: 2rem; margin-top: 2.5rem; }.overview-method li { border-top-width: 1px; }
+.overview-preset-grid { gap: 0; margin-top: 2.5rem; border-top: 1px solid var(--border); border-left: 1px solid var(--border); }.overview-preset-grid a { min-height: 11.5rem; padding: 1.25rem; border: 0; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); background: transparent; transition: background-color .15s ease; }.overview-preset-grid a:hover { transform: none; box-shadow: none; background: var(--raised); }.overview-preset-grid h3 { font-size: 1.45rem; }
+.overview-callout { max-width: 92rem; margin-top: 0; margin-bottom: clamp(4rem, 7vw, 6.5rem); padding: clamp(2rem, 4vw, 3.5rem); border-left: 3px solid var(--accent); background: var(--raised); color: var(--text); }.overview-callout .overview-kicker,.overview-callout>p:not(.overview-kicker){ color: var(--text-muted); }.overview-callout .overview-secondary { border-color: var(--text); color: var(--text); }.overview-callout .overview-secondary:hover { background: var(--text); color: var(--surface); }
+.overview-footer { max-width: 92rem; margin: auto; padding-inline: 0; background: transparent; }
+html[data-theme="midnight"] .overview-frame { background: #080b11; } html[data-theme="midnight"] .overview-callout { background: var(--surface); }
+@media (max-width: 1100px) { .overview-modes { grid-template-columns: repeat(2, 1fr); }.overview-modes article:nth-child(2) { border-right: 0; }.overview-modes article:nth-child(3) { padding-left: 0; } }
+@media (max-width: 700px) { .overview-header { position: static; }.overview-modes { grid-template-columns: 1fr; }.overview-modes article,.overview-modes article:nth-child(2) { padding-inline: 0; border-right: 0; border-bottom: 1px solid var(--border); }.overview-modes article:last-child { border-bottom: 0; }.overview-ticker { overflow: auto; }.overview-footer { margin-inline: 1.25rem; }.overview-frame { min-height: 18rem; } }
