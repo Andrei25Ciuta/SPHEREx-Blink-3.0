@@ -72,7 +72,7 @@ for (const t of THEMES) {
 
 // Every palette is paper-light. Only data-bearing image and chart islands retain a
 // dark ground, so scientific images and the validated Plotly palette stay legible.
-check("all named palettes use a light browser colour scheme", THEMES.every((t) => /color-scheme:\s*light/.test(block(t.id === "classic" ? ":root" : `[data-theme="${t.id}"]`) ?? "")));
+check("the five Paper palettes use a light browser scheme and Midnight is deliberately dark", THEMES.filter((t) => t.id !== "midnight").every((t) => /color-scheme:\s*light/.test(block(t.id === "classic" ? ":root" : `[data-theme="${t.id}"]`) ?? "")) && /color-scheme:\s*dark/.test(block('[data-theme="midnight"]') ?? ""));
 check("dark image and chart islands are explicitly shared by all paper palettes", /html\[data-theme\] \.stage, html\[data-theme\] \.chart/.test(CSS));
 {
   const ground = "#0B0F19";
@@ -133,7 +133,7 @@ check("storage that throws (private window) is survived", readTheme({ search: ""
   const win = { localStorage: storage, location: { search: "" }, document: { createElement: () => ({}), documentElement: root, querySelector: () => null } };
   globalThis.document = win.document;                                    // applyTheme's default root and doc
   const res = setupThemeSwitcher(select, { win });
-  check("the switcher lists the five themes and shows the saved one", options.length === 5 && options.map((o) => o.value).join() === THEMES.map((t) => t.id).join() && select.value === "observatory" && res.active === "observatory");
+  check("the switcher lists the six themes and shows the saved one", options.length === 6 && options.map((o) => o.value).join() === THEMES.map((t) => t.id).join() && select.value === "observatory" && res.active === "observatory");
   select.value = "light"; listeners.change();
   check("choosing a theme applies it and saves it", root.dataset.theme === "light" && storage.data[STORAGE_KEY] === "light");
   win.location.search = "?theme=classic";

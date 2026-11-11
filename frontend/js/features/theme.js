@@ -9,6 +9,7 @@
 export const STORAGE_KEY = "spherex-blink-theme";
 export const DEFAULT_THEME = "light";
 export const THEMES = [
+  { id: "midnight", label: "Midnight / dark", scheme: "dark", themeColor: "#0B0F19" },
   { id: "nebula", label: "Paper / violet", scheme: "light", themeColor: "#FCFAFF" },
   { id: "deep-space", label: "Paper / blue", scheme: "light", themeColor: "#F8FBFE" },
   { id: "observatory", label: "Paper / green", scheme: "light", themeColor: "#F8FBF9" },

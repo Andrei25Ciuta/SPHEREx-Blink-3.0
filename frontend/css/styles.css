@@ -84,6 +84,17 @@
 
 [data-theme="light"] :is(.hero, .stage, .chart) { color-scheme: dark; color: var(--text); }
 
+/* MIDNIGHT: one intentionally dark alternative to the Paper palettes. */
+[data-theme="midnight"] {
+  color-scheme: dark;
+  --bg: #0B0F19; --bg-2: #111827; --surface: #151C2B; --raised: #1C2638; --field: #0E1522;
+  --border: #354156; --control-border: #758197; --text: #F3F5F9; --text-muted: #C1C9D8; --text-faint: #919CAF;
+  --accent: #FF7183; --accent-hi: #FF9AA7; --accent-text: #FF9AA7; --accent-rgb: 255 113 131; --accent-2: #C1C9D8; --alt-rgb: 193 201 216; --rust: #D85C74; --on-accent: #0B0F19;
+  --warn: #FFD17A; --warn-rgb: 255 209 122; --danger: #FF9AA7; --success: #76E0A9; --bg-rgb: 11 15 25; --surface-rgb: 21 28 43; --text-rgb: 243 245 249;
+  --panel-alpha: 1; --veil-top: 1; --veil-bottom: 1; --shadow: none; --display: "Georgia", "Times New Roman", serif; --font-head: "Georgia", "Times New Roman", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
 /* ---------- 2. Base ---------- */
 *, *::before, *::after { box-sizing: border-box; }
 

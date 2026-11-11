@@ -1,5 +1,11 @@
 # Development progress
 
+## 2026-11-11 — Midnight dark theme
+
+Added an optional `Midnight / dark` palette beside the five Paper variants. The theme keeps the existing semantic tokens, URL/local-storage persistence, focus rings and dark image/chart islands while applying a dark surface, pale text and high-contrast rose signal colour to every public page, including Overview. The default remains Paper / signal red.
+
+Verification: `node scratch/test_theme.mjs` passed completeness and contrast checks for all six themes; browser layout and navigation audits passed at their tested widths, including Overview.
+
 ## 2026-11-11 — public project overview
 
 Added `frontend/overview.html`: a separate public entry page that introduces the Blink workflow and links to the existing workspace, Sky Explorer, Planet X Lab, Simulator and Results. It uses original HTML/CSS artwork and motion effects inspired only by the supplied visual direction: paper grid, restrained editorial hierarchy, a clearly labelled synthetic illustration, mode cards, documented challenge-target links and a reduced-motion fallback. It does not make a live-data claim or add analysis behavior. The existing workspace primary navigation now exposes Overview.
