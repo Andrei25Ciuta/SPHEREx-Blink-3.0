@@ -1,6 +1,6 @@
 # Feature inventory at the navigation milestone
 
-All five retained theme identifiers now use paper-light presentations, each with a distinct signal colour, so saved preferences and `?theme=` links remain valid without retaining a dark application theme. The workspace arranges the controls as a field definition panel, central image/player, immediate analysis command deck, and a persistent inspector. Settings, research links, and explanatory guidance are available through labelled disclosures. These are interface changes, not changes to scientific results.
+All five retained theme identifiers now use paper-light presentations, each with a distinct signal colour, so saved preferences and `?theme=` links remain valid without retaining a dark application theme. The public Overview introduces the workspace, modes, documented test fields and model scope, then links into the existing tools. The workspace arranges the controls as a field definition panel, central image/player, immediate analysis command deck, and a persistent inspector. Settings, research links, and explanatory guidance are available through labelled disclosures. These are interface changes, not changes to scientific results.
 
 | Area | Implementation and evidence | Remaining check or improvement |
 | --- | --- | --- |

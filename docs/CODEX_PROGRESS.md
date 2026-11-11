@@ -1,5 +1,11 @@
 # Development progress
 
+## 2026-11-11 — public project overview
+
+Added `frontend/overview.html`: a separate public entry page that introduces the Blink workflow and links to the existing workspace, Sky Explorer, Planet X Lab, Simulator and Results. It uses original HTML/CSS artwork and motion effects inspired only by the supplied visual direction: paper grid, restrained editorial hierarchy, a clearly labelled synthetic illustration, mode cards, documented challenge-target links and a reduced-motion fallback. It does not make a live-data claim or add analysis behavior. The existing workspace primary navigation now exposes Overview.
+
+Verification: `node scratch/test_overview.mjs` checks page navigation, provenance labelling, target URLs and the reduced-motion rule. The responsive layout audit now includes the new page; the navigation audit checks the Overview destination. Full browser verification is recorded with this release.
+
 ## 2026-11-11 — paper-light interface and Sky Explorer atlas
 
 Reworked Blink 3.0's presentation without changing its analysis, archive-query, URL-state, data-source, or export behavior. Every retained theme identifier now uses a paper-light palette with a distinct signal colour (violet, blue, green, red, or earth); this preserves saved preferences and `?theme=` links while removing the former dark application themes. The workspace and companion pages use quiet hairlines, paper surfaces, serif hierarchy, monospace metadata and visible high-contrast focus treatment. The prior NASA-inspired override is no longer loaded, so it cannot make the Light variant visually inconsistent with the other paper themes.
