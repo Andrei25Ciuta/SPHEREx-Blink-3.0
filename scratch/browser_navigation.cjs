@@ -19,7 +19,9 @@ async function checkNavigation() {
       await page.keyboard.press("Enter");
       assert.equal(await page.locator(":focus").getAttribute("id"), "workspace");
       const links = page.locator(".hero-nav a");
-      assert.equal(await links.count(), 4);
+      assert.ok(await links.count() >= 6, "primary navigation should expose each project page");
+      for (const name of ["Workspace", "Sky Explorer", "Simulator", "Planet X Lab", "Real-data results", "About"])
+        assert.ok(await links.getByText(name, { exact: true }).count(), `missing ${name} navigation link`);
       for (const link of await links.all()) {
         const box = await link.boundingBox();
         assert.ok(box && box.x >= 0 && box.x + box.width <= width, "link outside viewport");
