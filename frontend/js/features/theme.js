@@ -9,11 +9,11 @@
 export const STORAGE_KEY = "spherex-blink-theme";
 export const DEFAULT_THEME = "light";
 export const THEMES = [
-  { id: "nebula", label: "Nebula (violet)", scheme: "dark", themeColor: "#0C0919" },
-  { id: "deep-space", label: "Deep Space", scheme: "dark", themeColor: "#080D18" },
-  { id: "observatory", label: "Observatory", scheme: "dark", themeColor: "#111827" },
-  { id: "light", label: "Light research", scheme: "light", themeColor: "#F5F7FB" },
-  { id: "classic", label: "Classic (teal)", scheme: "dark", themeColor: "#0E1C22" },
+  { id: "nebula", label: "Paper / violet", scheme: "light", themeColor: "#FCFAFF" },
+  { id: "deep-space", label: "Paper / blue", scheme: "light", themeColor: "#F8FBFE" },
+  { id: "observatory", label: "Paper / green", scheme: "light", themeColor: "#F8FBF9" },
+  { id: "light", label: "Paper / signal red", scheme: "light", themeColor: "#FBFBF9" },
+  { id: "classic", label: "Paper / earth", scheme: "light", themeColor: "#FCFAF5" },
 ];
 
 export const isTheme = (id) => THEMES.some((t) => t.id === id);

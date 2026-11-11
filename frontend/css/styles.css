@@ -12,32 +12,14 @@
    Tokens ending in -rgb are space-separated channels, for rgb(var(--x-rgb) / alpha). scratch/test_theme.mjs checks the contrast of
    every text/surface pair of every theme (WCAG 2.x, 4.5:1 for text). */
 :root {
-  color-scheme: dark;
-  --bg:          #0E1C22;                    /* page */
-  --bg-2:        #132830;
-  --surface:     #17303A;                    /* panels */
-  --raised:      #1E3D49;                    /* elevated: cards, list items */
-  --field:       #0F2027;                    /* inputs, small cells */
-  --border:      rgb(251 233 208 / .14);
-  --control-border: rgb(251 233 208 / .14);  /* borders of inputs and buttons (3:1 against the surface in the light theme) */
-  --text:        #FBE9D0;                    /* cream */
-  --text-muted:  #90AEAD;                    /* pale teal: secondary text */
-  --text-faint:  #6F8E8E;                    /* tertiary: placeholders, disabled; never essential small text */
-  --accent:      #EA4F39;                    /* brand orange: fills, dark text on it 4.7:1 */
-  --accent-hi:   #F4806A;                    /* lighter coral: text on panels 5.4:1, hover */
-  --accent-text: #FF9A86;                    /* accent used as small text on raised surfaces (4.48:1 with --accent-hi was just under 4.5:1) */
-  --accent-rgb:  234 79 57;
-  --accent-2:    #90AEAD;                    /* secondary accent */
-  --alt-rgb:     144 174 173;               /* secondary accent as channels: "real data" tint, hints */
-  --rust:        #874F41;
-  --on-accent:   #0E1C22;                    /* text on accent fills */
-  --warn:        #F2B07B;
-  --warn-rgb:    242 176 123;
-  --danger:      #FF8A75;
-  --success:     #90AEAD;
-  --bg-rgb:      14 28 34;
-  --surface-rgb: 23 48 58;
-  --text-rgb:    251 233 208;
+  color-scheme: light;
+  --bg: #FCFAF5; --bg-2: #F2EEE5; --surface: #FFFFFF; --raised: #F6F0E8; --field: #FFFFFF;
+  --border: #D8D0C3; --control-border: #75706A;
+  --text: #1A1917; --text-muted: #514C46; --text-faint: #736D65;
+  --accent: #A5482E; --accent-hi: #933A25; --accent-text: #933A25; --accent-rgb: 165 72 46;
+  --accent-2: #514C46; --alt-rgb: 81 76 70; --rust: #8E583C; --on-accent: #FFFFFF;
+  --warn: #7C4D00; --warn-rgb: 124 77 0; --danger: #A52323; --success: #28633B;
+  --bg-rgb: 252 250 245; --surface-rgb: 255 255 255; --text-rgb: 26 25 23;
   --panel-alpha: .86;                        /* panels let a little of the nebula through */
   --veil-top:    .30;                        /* how strongly the page colour covers the nebula picture, top and bottom */
   --veil-bottom: .78;
@@ -46,26 +28,22 @@
   --radius:      16px;
   --radius-sm:   10px;
   --shadow:      0 20px 50px -20px rgb(0 0 0 / .7);
-  --display:     "Oswald", "Space Grotesk", "Inter", sans-serif;
+  --display:     "Georgia", "Times New Roman", serif;
   --font-body:   "Inter", system-ui, sans-serif;
-  --font-head:   "Space Grotesk", "Inter", sans-serif;
-  --font-mono:   var(--font-body);           /* Classic keeps its proportional digits; the other themes use JetBrains Mono */
+  --font-head:   "Georgia", "Times New Roman", serif;
+  --font-mono:   "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --ease:        cubic-bezier(.2, .8, .2, 1);
 }
 
 /* NEBULA (default since 10 Nov 2026): indigo-black ground, orchid / magenta accent, cyan secondary. Also the palette of the dark "islands" (the photo banner, the
    image stage, the charts) inside the light theme: they stay dark so that the images and the validated chart colours keep their ground. */
-[data-theme="nebula"],
-[data-theme="light"] :is(.hero, .stage, .chart) {
-  --bg: #0C0919; --bg-2: #130E2B; --surface: #1A1438; --raised: #261D52; --field: #0F0A22;
-  --border: #35295F; --control-border: #7E72B8;
-  --text: #F2EEFF; --text-muted: #BCB3DE; --text-faint: #8D84B8;
-  --accent: #D56BFF; --accent-hi: #EAA8FF; --accent-text: #EAA8FF; --accent-rgb: 213 107 255; --on-accent: #14081F;
-  --accent-2: #56D6EE; --alt-rgb: 86 214 238; --rust: #A98BFF;
-  --warn: #F5B942; --warn-rgb: 245 185 66; --danger: #FF7C96; --success: #4FD6A0;
-  --bg-rgb: 12 9 25; --surface-rgb: 26 20 56; --text-rgb: 242 238 255;
-  --panel-alpha: .88; --veil-top: .55; --veil-bottom: .88;
-  --display: "Inter", system-ui, sans-serif; --font-head: "Inter", system-ui, sans-serif;
+[data-theme="nebula"] {
+  color-scheme: light;
+  --bg: #FCFAFF; --bg-2: #F4F0FA; --surface: #FFFFFF; --raised: #F7F3FC; --field: #FFFFFF;
+  --border: #D7CFE3; --control-border: #776C88; --text: #1D1728; --text-muted: #51495D; --text-faint: #746B80;
+  --accent: #643A94; --accent-hi: #583180; --accent-text: #583180; --accent-rgb: 100 58 148; --accent-2: #51495D; --alt-rgb: 81 73 93; --rust: #7650A1; --on-accent: #FFFFFF;
+  --warn: #734B00; --warn-rgb: 115 75 0; --danger: #A3214D; --success: #246442; --bg-rgb: 252 250 255; --surface-rgb: 255 255 255; --text-rgb: 29 23 40;
+  --panel-alpha: 1; --veil-top: 1; --veil-bottom: 1; --display: "Instrument Serif", Georgia, serif; --font-head: "Instrument Serif", Georgia, serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 /* The generated photo is orange and teal; in this theme it is tinted violet so that it belongs to the palette (the veil on top of it is near black, so the filter does not show there) */
@@ -74,45 +52,32 @@
 
 /* DEEP SPACE: blue-black ground, blue / violet / cyan accents (the former default) */
 [data-theme="deep-space"] {
-  --bg: #080D18; --bg-2: #101827; --surface: #151F30; --raised: #1B2940; --field: #0C1424;
-  --border: #29364B; --control-border: #60748F;
-  --text: #EDF3FC; --text-muted: #A6B5C9; --text-faint: #718198;
-  --accent: #64B5F6; --accent-hi: #8FCBFA; --accent-text: #8FCBFA; --accent-rgb: 100 181 246; --on-accent: #06101F;
-  --accent-2: #A99DFF; --alt-rgb: 54 214 208; --rust: #8B7CFF;
-  --warn: #F5B942; --warn-rgb: 245 185 66; --danger: #F16D78; --success: #45C98A;
-  --bg-rgb: 8 13 24; --surface-rgb: 21 31 48; --text-rgb: 237 243 252;
-  --panel-alpha: .9; --veil-top: .62; --veil-bottom: .9;
-  --display: "Inter", system-ui, sans-serif; --font-head: "Inter", system-ui, sans-serif;
+  color-scheme: light; --bg: #F8FBFE; --bg-2: #EEF4F9; --surface: #FFFFFF; --raised: #F1F6FA; --field: #FFFFFF;
+  --border: #CBD8E4; --control-border: #687B8D; --text: #152434; --text-muted: #485B6D; --text-faint: #6D8091;
+  --accent: #1C6096; --accent-hi: #15547F; --accent-text: #15547F; --accent-rgb: 28 96 150; --accent-2: #485B6D; --alt-rgb: 72 91 109; --rust: #3578AB; --on-accent: #FFFFFF;
+  --warn: #765000; --warn-rgb: 118 80 0; --danger: #A72C36; --success: #216442; --bg-rgb: 248 251 254; --surface-rgb: 255 255 255; --text-rgb: 21 36 52;
+  --panel-alpha: 1; --veil-top: 1; --veil-bottom: 1; --display: "Instrument Serif", Georgia, serif; --font-head: "Instrument Serif", Georgia, serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
 /* OBSERVATORY: softer slate ground */
 [data-theme="observatory"] {
-  --bg: #111827; --bg-2: #162033; --surface: #1F2937; --raised: #27364A; --field: #141C2B;
-  --border: #374357; --control-border: #6E8099;
-  --text: #F3F4F6; --text-muted: #B7C0CE; --text-faint: #8493A8;
-  --accent: #60A5FA; --accent-hi: #93C5FD; --accent-text: #93C5FD; --accent-rgb: 96 165 250; --on-accent: #08111F;
-  --accent-2: #B7A8FC; --alt-rgb: 54 214 208; --rust: #A78BFA;
-  --warn: #F5B942; --warn-rgb: 245 185 66; --danger: #F87F88; --success: #45C98A;
-  --bg-rgb: 17 24 39; --surface-rgb: 31 41 55; --text-rgb: 243 244 246;
-  --panel-alpha: .9; --veil-top: .6; --veil-bottom: .9;
-    --display: "Inter", system-ui, sans-serif; --font-head: "Inter", system-ui, sans-serif;
+  color-scheme: light; --bg: #F8FBF9; --bg-2: #EEF4F0; --surface: #FFFFFF; --raised: #F0F6F2; --field: #FFFFFF;
+  --border: #CADAD1; --control-border: #677B70; --text: #15261E; --text-muted: #496056; --text-faint: #6E8378;
+  --accent: #216B5A; --accent-hi: #185746; --accent-text: #185746; --accent-rgb: 33 107 90; --accent-2: #496056; --alt-rgb: 73 96 86; --rust: #477F72; --on-accent: #FFFFFF;
+  --warn: #755000; --warn-rgb: 117 80 0; --danger: #A52A32; --success: #1F6542; --bg-rgb: 248 251 249; --surface-rgb: 255 255 255; --text-rgb: 21 38 30;
+  --panel-alpha: 1; --veil-top: 1; --veil-bottom: 1; --display: "Instrument Serif", Georgia, serif; --font-head: "Instrument Serif", Georgia, serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
 /* LIGHT RESEARCH: white panels on a pale ground; images, banner and charts stay dark */
 [data-theme="light"] {
   color-scheme: light;
-  --bg: #F5F7FB; --bg-2: #EAEFF7; --surface: #FFFFFF; --raised: #F1F5FA; --field: #FFFFFF;
-  --border: #DCE3EC; --control-border: #77869C;
-  --text: #172033; --text-muted: #56657C; --text-faint: #8190A5;
-  --accent: #2563EB; --accent-hi: #1D4ED8; --accent-text: #1D4ED8; --accent-rgb: 37 99 235; --on-accent: #FFFFFF;
-  --accent-2: #5B4BC4; --alt-rgb: 14 116 144; --rust: #7C3AED;
-  --warn: #9A4A06; --warn-rgb: 154 74 6; --danger: #B42318; --success: #11743A;
-  --bg-rgb: 245 247 251; --surface-rgb: 255 255 255; --text-rgb: 23 32 51;
-  --panel-alpha: .94; --veil-top: .93; --veil-bottom: .97;
-  --shadow: 0 14px 34px -18px rgb(23 32 51 / .28);
-  --display: "Inter", system-ui, sans-serif; --font-head: "Inter", system-ui, sans-serif;
+  --bg: #FBFBF9; --bg-2: #F4F4EF; --surface: #FFFFFF; --raised: #F4F4EF; --field: #FFFFFF;
+  --border: #D4D5D0; --control-border: #6F7586; --text: #121316; --text-muted: #525866; --text-faint: #6B7280;
+  --accent: #C42A37; --accent-hi: #AD202D; --accent-text: #AD202D; --accent-rgb: 196 42 55; --accent-2: #525866; --alt-rgb: 82 88 102; --rust: #8B4550; --on-accent: #FFFFFF;
+  --warn: #7A4C00; --warn-rgb: 122 76 0; --danger: #B3261E; --success: #1D6B38; --bg-rgb: 251 251 249; --surface-rgb: 255 255 255; --text-rgb: 18 19 22;
+  --panel-alpha: 1; --veil-top: 1; --veil-bottom: 1; --shadow: none; --display: "Instrument Serif", Georgia, serif; --font-head: "Instrument Serif", Georgia, serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 [data-theme="light"] .sky-bg { display: none; }                    /* white stars on a pale page would be invisible noise */
@@ -1366,3 +1331,51 @@ h1, h2, h3 { letter-spacing: -.015em; }
   .ss-date { flex-wrap: wrap; min-width: 0; }
   .ss-date input[type="range"] { max-width: 100%; width: min(18rem, 100%); }
 }
+
+/* ---------- Paper presentation: shared by every named palette ---------- */
+html[data-theme] body { background: var(--bg) radial-gradient(rgb(var(--text-rgb) / .10) 1px, transparent 1px) 0 0 / 22px 22px; }
+html[data-theme] body::before, html[data-theme] .sky-bg { display: none; }
+html[data-theme] :is(h1, h2, h3) { font-family: var(--font-head); font-weight: 400; letter-spacing: -.018em; line-height: 1.08; }
+html[data-theme] .panel { box-shadow: none; border-radius: 2px; backdrop-filter: none; -webkit-backdrop-filter: none; }
+html[data-theme] :is(.btn, .btn-primary, .chip, .hero-cta) { border-radius: 0; font-family: var(--font-mono); letter-spacing: .08em; text-transform: uppercase; font-size: .76rem; }
+html[data-theme] .btn { background: var(--surface); border-color: var(--text); color: var(--text); }
+html[data-theme] .btn:hover:not(:disabled) { background: var(--raised); transform: none; }
+html[data-theme] .btn-primary { background: var(--text); border-color: var(--text); color: #fff; }
+html[data-theme] .btn-primary:hover:not(:disabled) { background: var(--accent); border-color: var(--accent); box-shadow: none; }
+html[data-theme] :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+html[data-theme] :is(input, select, textarea):focus { outline: 2px solid var(--accent); outline-offset: 1px; box-shadow: none; }
+html[data-theme] .hero { background: var(--bg); border-bottom: 1px solid var(--border); }
+html[data-theme] .hero::before { display: none; }
+html[data-theme] .hero-top { background: var(--surface); border-bottom: 1px solid var(--border); min-height: 4.35rem; }
+html[data-theme] .hero-logo { font-family: var(--font-head); font-size: 1.45rem; color: var(--text); }
+html[data-theme] .hero-nav a { color: var(--text-muted); text-decoration: none; font-family: var(--font-mono); font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; }
+html[data-theme] .hero-nav a:hover { color: var(--accent-text); }
+html[data-theme] .hero-title { background: transparent; color: var(--text); }
+html[data-theme] .hero h1 { font-family: var(--font-head); font-size: clamp(2.8rem, 6vw, 5.6rem); font-weight: 400; text-transform: none; color: var(--text); }
+html[data-theme] .hero h1 span { display: inline; }
+html[data-theme] .hero h1 span + span::before { content: " "; }
+html[data-theme] .hero-tag, html[data-theme] .hero-eyebrow { color: var(--text-muted); }
+html[data-theme] .hero-eyebrow, html[data-theme] .workspace-kicker, html[data-theme] .atlas-kicker { color: var(--accent-text); font-family: var(--font-mono); font-size: .72rem; letter-spacing: .13em; text-transform: uppercase; }
+html[data-theme] .hero-cta { background: var(--text); border-color: var(--text); color: #fff; }
+html[data-theme] .hero-cta:hover { background: var(--accent); }
+html[data-theme] .stage, html[data-theme] .chart { color-scheme: dark; --bg: #0B0F19; --bg-2: #101724; --surface: #141D2B; --raised: #1E2A3A; --field: #0B0F19; --border: #536070; --control-border: #8D9AAD; --text: #F6F7F9; --text-muted: #CDD4DF; --text-faint: #9CA8B7; --accent: #F4F6F8; --accent-hi: #F4F6F8; --accent-text: #F4F6F8; --accent-rgb: 244 246 248; --accent-2: #CDD4DF; --alt-rgb: 205 212 223; --warn: #F5C451; --warn-rgb: 245 196 81; --danger: #FF9A9A; --success: #68D4A0; --bg-rgb: 11 15 25; --surface-rgb: 20 29 43; --text-rgb: 246 247 249; }
+html[data-theme] .site-footer { border-top: 1px solid var(--border); background: var(--bg-2); }
+html[data-theme] .explore header, html[data-theme] .rhead { border-bottom: 1px solid var(--border); }
+
+/* Sky Explorer's orientation map is a navigator, not an observation or coverage claim. */
+.sky-atlas { padding: clamp(1rem, 2.5vw, 1.6rem); }
+.sky-atlas-heading { display: flex; justify-content: space-between; align-items: end; gap: 1rem 2rem; margin-bottom: 1rem; }
+.sky-atlas-heading p { max-width: 40ch; margin: 0; color: var(--text-muted); }
+.atlas-kicker { margin: 0 0 .35rem; }
+.sky-atlas-grid { display: grid; grid-template-columns: minmax(0, 2.5fr) minmax(13rem, .8fr); gap: 1rem; align-items: stretch; }
+#sky-atlas-map { display: block; width: 100%; min-height: 18rem; border: 1px solid var(--border); background: var(--bg-2); }
+.atlas-ground { fill: var(--raised); stroke: var(--border); stroke-width: 1.2; }
+.atlas-grid path { fill: none; stroke: var(--border); stroke-width: 1; opacity: .85; }
+.atlas-grid .atlas-ecliptic { stroke: var(--accent); stroke-width: 1.7; }
+.atlas-grid .atlas-galactic { stroke: var(--text-muted); stroke-width: 1.7; stroke-dasharray: 5 6; }
+.atlas-label { fill: var(--text-faint); font: 12px var(--font-mono); }
+.atlas-marker { cursor: pointer; outline: none; }.atlas-marker circle { fill: var(--accent); stroke: var(--surface); stroke-width: 2.5; transition: r .15s ease; }.atlas-marker text { fill: var(--text); font: 12px var(--font-mono); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }.atlas-marker:hover circle, .atlas-marker.is-selected circle { r: 10; fill: var(--accent-hi); }.atlas-marker:focus-visible circle { stroke: var(--text); stroke-width: 4px; }
+.sky-atlas figcaption { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: .55rem; color: var(--text-muted); font: .72rem var(--font-mono); text-transform: uppercase; letter-spacing: .08em; }
+.atlas-key::before { content: ""; display: inline-block; width: 1.7rem; margin-right: .4rem; border-top: 2px solid var(--accent); vertical-align: middle; }.atlas-key-galactic::before { border-color: var(--text-muted); border-top-style: dashed; }.atlas-key-target::before { width: .65rem; height: .65rem; border: 0; border-radius: 50%; background: var(--accent); }
+.atlas-note { display: flex; flex-direction: column; align-items: flex-start; padding: 1rem; border: 1px solid var(--border); background: var(--surface); }.atlas-note h3 { margin: .2rem 0 .7rem; }.atlas-note p:not(.atlas-kicker) { margin: 0; color: var(--text-muted); }.atlas-note .btn { margin-top: auto; }.atlas-target-list { display: flex; flex-wrap: wrap; gap: .4rem; margin: 1rem 0; }.atlas-target-list .btn { min-height: 2.5rem; font-size: .66rem; }.atlas-target-list .btn[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+@media (max-width: 700px) { .sky-atlas-heading, .sky-atlas-grid { grid-template-columns: 1fr; display: grid; }.sky-atlas-heading { align-items: start; }.atlas-note .btn { margin-top: 1rem; } }

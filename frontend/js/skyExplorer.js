@@ -2,6 +2,7 @@ import { parseRA, parseDec } from "./coords.js";
 import { API_BASE, CAN_USE_LOCAL_BACKEND } from "./config.js";
 import { tangentPoint } from "./features/explorerGeometry.js";
 import { SkyContext } from "./features/skyContext.js";
+import { TARGETS, positionAtEpoch } from "./targets.js";
 
 const $ = id => document.getElementById(id);
 $("workspace").hidden = !CAN_USE_LOCAL_BACKEND;
@@ -13,6 +14,40 @@ const map = new SkyContext($("aladin-box"), $("map-status"));
 const params = new URLSearchParams(location.search);
 const stateKeys = ["ra", "dec", "fov", "collection"];
 let current, selected, overlay, request;
+
+function projectAtlas(ra, dec) {
+  // A deliberately simple whole-sky orientation projection. It is not used for
+  // measurements or coverage; the archive query always receives the exact coordinates.
+  return [450 + ((180 - ra + 540) % 360 - 180) * 2.25, 240 - dec * 2.05];
+}
+
+function setupAtlas() {
+  const svg = $("sky-atlas-map");
+  const group = $("atlas-targets");
+  const choices = $("atlas-target-list");
+  if (!svg || !group || !choices) return;
+  const ns = svg.namespaceURI;
+  for (const target of TARGETS) {
+    const { ra, dec } = positionAtEpoch(target);
+    const [x, y] = projectAtlas(ra, dec);
+    const marker = document.createElementNS(ns, "g");
+    marker.classList.add("atlas-marker");
+    marker.innerHTML = `<circle cx="${x}" cy="${y}" r="7"></circle><text x="${x + 12}" y="${y + 5}">${target.label}</text>`;
+    const choose = () => {
+      $("ra").value = ra.toFixed(7); $("dec").value = dec.toFixed(7);
+      $("atlas-selected").textContent = target.label;
+      $("atlas-detail").textContent = `${target.kind}. Coordinates were propagated from its documented J2000 position to the Blink reference epoch; adjust the field diameter, then search IRSA.`;
+      $("atlas-search").hidden = false;
+      group.querySelectorAll(".is-selected").forEach(item => item.classList.remove("is-selected")); marker.classList.add("is-selected");
+      choices.querySelectorAll("[aria-pressed]").forEach(item => item.setAttribute("aria-pressed", String(item === choice)));
+    };
+    marker.addEventListener("click", choose);
+    const choice = Object.assign(document.createElement("button"), { type: "button", className: "btn btn-small", textContent: target.label });
+    choice.setAttribute("aria-pressed", "false"); choice.addEventListener("click", choose);
+    group.append(marker);
+    choices.append(choice);
+  }
+}
 
 function readQuery() {
   const ra = parseRA($("ra").value), dec = parseDec($("dec").value);
@@ -180,4 +215,5 @@ $("use-centre").addEventListener("click", () => {
   $("status").textContent = "Map centre copied. Search IRSA to update the products.";
 });
 for (const key of stateKeys) if (params.has(key)) $(key).value = params.get(key);
+setupAtlas();
 search(!stateKeys.some(key => params.has(key)));

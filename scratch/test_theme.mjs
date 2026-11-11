@@ -70,13 +70,13 @@ for (const t of THEMES) {
   else check(`${t.id} (the original look): input borders stay the original faint cream line, below 3:1: a known gap, kept so that Classic looks as it did`, t.id === "classic");
 }
 
-// The dark islands of the light theme (banner, image stage, charts) use the Deep Space tokens: that block must also carry their selector
-check("light theme: its dark islands (banner, image stage, charts) take the Nebula tokens", /\[data-theme="nebula"\],\s*\[data-theme="light"\] :is\(\.hero, \.stage, \.chart\) \{/.test(CSS));
+// Every palette is paper-light. Only data-bearing image and chart islands retain a
+// dark ground, so scientific images and the validated Plotly palette stay legible.
+check("all named palettes use a light browser colour scheme", THEMES.every((t) => /color-scheme:\s*light/.test(block(t.id === "classic" ? ":root" : `[data-theme="${t.id}"]`) ?? "")));
+check("dark image and chart islands are explicitly shared by all paper palettes", /html\[data-theme\] \.stage, html\[data-theme\] \.chart/.test(CSS));
 {
-  const k = themes["nebula"], bad = [];
-  for (const ground of ["#000000", "#0F2027", "#0E1C22"]) for (const fg of ["text", "text-muted", "accent-hi", "success", "warn"]) if (contrast(k[`--${fg}`], ground) < 4.5) bad.push(`${fg} on ${ground} ${contrast(k[`--${fg}`], ground).toFixed(2)}`);
-  check("the island ground colours (stage black, chart #0F2027, banner ink #0E1C22) carry the Nebula text, link, success and warning colours at 4.5:1", bad.length === 0, bad.join("; "));
-  check("the banner button (accent with banner-ink text) reaches 4.5:1 in every theme that fills it with its own accent", ["nebula", "deep-space", "observatory", "classic"].every((id) => contrast(themes[id]["--accent"], "#0E1C22") >= 4.5));
+  const ground = "#0B0F19";
+  check("the shared dark islands keep high-contrast text on their #0B0F19 ground", contrast("#F6F7F9", ground) >= 4.5 && contrast("#CDD4DF", ground) >= 4.5);
 }
 {
   // The Plotly charts (spectrum, light curve) are drawn with the colours written in measure.js, on a box whose ground is --chart-bg. Defined once, overridden by no theme,
@@ -118,7 +118,7 @@ check("storage that throws (private window) is survived", readTheme({ search: ""
 {
   const root = { dataset: {} }, meta = { c: "", setAttribute(k, v) { this.c = v; } }, doc = { querySelector: () => meta };
   const storage = memoryStorage();
-  check("applyTheme sets data-theme, the browser-bar colour, and saves", applyTheme("light", { root, storage, doc }) === "light" && root.dataset.theme === "light" && meta.c === "#F5F7FB" && storage.data[STORAGE_KEY] === "light");
+  check("applyTheme sets data-theme, the browser-bar colour, and saves", applyTheme("light", { root, storage, doc }) === "light" && root.dataset.theme === "light" && meta.c === "#FBFBF9" && storage.data[STORAGE_KEY] === "light");
   applyTheme("observatory", { root, storage, doc, persist: false });
   check("persist: false (a theme asked for in the address) is shown but not saved", root.dataset.theme === "observatory" && storage.data[STORAGE_KEY] === "light");
   check("an unknown theme falls back to the default instead of breaking the page", applyTheme("neon", { root, storage, doc }) === "light" && root.dataset.theme === "light");
@@ -147,7 +147,7 @@ for (const [name, html] of [["index.html", INDEX], ["results.html", RESULTS]]) {
   const m = /var t=new URLSearchParams\(location\.search\)\.get\("theme"\)\|\|localStorage\.getItem\("([^"]+)"\);if\(\/\^\(([^)]+)\)\$\/\.test\(t\)\)/.exec(html);
   check(`${name}: the inline script reads the same storage key and the same four names as theme.js`, Boolean(m) && m[1] === STORAGE_KEY && m[2].split("|").join() === THEMES.map((t) => t.id).join(), m ? `${m[1]} ${m[2]}` : "no inline theme script");
   check(`${name}: the default theme is on <html> (no flash and no JavaScript needed), there is a switch and a browser-bar colour`,
-    html.includes(`<html lang="en" data-theme="${DEFAULT_THEME}">`) && html.includes('id="theme-select"') && /<meta name="theme-color" content="#F5F7FB">/.test(html));
+    html.includes(`<html lang="en" data-theme="${DEFAULT_THEME}">`) && html.includes('id="theme-select"') && /<meta name="theme-color" content="#FBFBF9">/.test(html));
   check(`${name}: the monospace face is loaded with the other fonts`, /family=JetBrains\+Mono/.test(html) && /family=Inter:wght@400;500;600;700/.test(html));
 }
 
