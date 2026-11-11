@@ -10,6 +10,12 @@ Verification: all 43 `scratch/test_*.mjs` scripts passed, including the new atla
 
 Follow-up: the primary navigation now exposes direct links to Sky Explorer, Solar System Simulator, Planet X Lab, and Results rather than requiring visitors to know their file URLs. The original workspace and About anchors remain available. The navigation regression now asserts the named destinations instead of an obsolete fixed link count.
 
+## 2026-11-11 — Solar System Simulator presentation refresh
+
+Rebuilt the simulator's presentation around a two-step geometry workflow: a compact configuration panel, a larger observer-and-target scene, structured epoch/position/offset readouts, and a visible model-scope note. All existing form and output IDs, range controls, SVG rendering, Play/Pause behavior, calculations and science wording remain in place; this is a markup and CSS-only interface change. The layout collapses to one column at narrow widths, while camera controls remain available in a labelled disclosure.
+
+Verification: `node scratch/test_simulator_geometry.mjs`, `node scratch/test_theme.mjs`, `scratch/a11y_audit.mjs`, `scratch/browser_navigation.cjs`, and `scratch/browser_layout_audit.cjs` passed. The latter covers the simulator with the other public pages at its tested responsive widths. `git diff --check` passed.
+
 ## 2026-11-10 — research-workspace command layout
 
 Rearranged the workspace around the actual analysis sequence without changing any IDs, URLs, data sources, calculations, or action handlers. The field form and test objects now lead the left panel; its data/display settings, research links, and help are compact disclosure sections. The central panel now has a workspace heading, playback controls, and a dedicated command deck directly beneath the image for Find movers, distant-body search, and Find everything. Dynamic result lists retain their existing locations below the viewing controls, while export controls remain separate as secondary actions. The wide layout keeps the field panel and inspector available beside the image; the mobile layout preserves the same order without horizontal overflow. The synthetic badge and all real-versus-synthetic wording remain unchanged.
