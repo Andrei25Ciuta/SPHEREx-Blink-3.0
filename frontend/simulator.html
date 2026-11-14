@@ -3,7 +3,7 @@
 <title>Solar System Simulator · SPHEREx Blink</title>
 <script>try{var t=new URLSearchParams(location.search).get("theme")||localStorage.getItem("spherex-blink-theme");if(/^(midnight|nebula|deep-space|observatory|light|classic)$/.test(t))document.documentElement.dataset.theme=t}catch(e){}</script><link rel="stylesheet" href="css/styles.css?v=21"><link rel="stylesheet" href="css/exploration.css?v=2">
 <link rel="stylesheet" href="css/instrument.css?v=3">
-  <link rel="stylesheet" href="css/simulator-overview.css?v=5">
+  <link rel="stylesheet" href="css/simulator-overview.css?v=6">
   </head><body class="simulator-body">
 <a class="skip-link" href="#simulation">Skip to simulation</a>
 <header class="site-header" id="top" data-page="simulator">
@@ -13,10 +13,10 @@
   <script type="module" src="js/siteHeader.js"></script>
   <div class="explore">
 <main id="simulation" class="simulator-page" tabindex="-1"><header class="sim-intro"><p class="atlas-kicker">Orbit geometry lab</p><h1>Solar System Simulator</h1>
-<p>Move the observer through one year and inspect how Earth's orbit changes the apparent direction of a stationary, hypothetical target.</p></header>
+<p>Follow a symbolic SPHEREx satellite and compare synthetic snapshots of the same target over a year. See why its apparent position shifts at month 6 and nearly returns at month 12.</p></header>
 <form class="simulator-layout" id="controls">
-<section class="panel sim-stage"><div class="sim-panel-heading"><h2>Observer and target</h2><p>Earth, the Sun and the reference sightline in the selected projection.</p></div>
-<figure><svg viewBox="0 0 700 400" class="plot" id="scene" role="img" aria-label="Earth’s orbit, the Sun and sightlines from two dates to the same target">
+<section class="panel sim-stage"><div class="sim-panel-heading"><h2>Observer and target</h2><p>Earth, the Sun, a symbolic SPHEREx satellite, and the target sightline in the selected projection.</p></div>
+<figure><svg viewBox="0 0 700 400" class="plot" id="scene" role="img" aria-label="Earth’s orbit, the Sun, a symbolic SPHEREx satellite and sightlines from two dates to the same target">
   <defs>
     <radialGradient id="sun-glow">
       <stop stop-color="#efaa47" stop-opacity=".48"/><stop offset=".45" stop-color="#d88132" stop-opacity=".25"/><stop offset="1" stop-color="#d88132" stop-opacity="0"/>
@@ -36,11 +36,39 @@
       <path d="M5 18q8-4 14-4m2 9 6-4M9 9l6-2" fill="none" stroke="#d7ecef" stroke-linecap="round" opacity=".6"/>
     </symbol>
   </defs>
-  <g id="scene-bodies"></g>
+  <symbol id="spherex-symbol" viewBox="0 0 40 40">
+      <rect x="16" y="14" width="14" height="12" rx="2" fill="#e8b855" stroke="#ffe4a4" stroke-width="1.5"/>
+      <path d="M13 7h19l-3 8H16z" fill="#6c5928" stroke="#f9d17a" stroke-width="1.5"/>
+      <rect x="0" y="14" width="14" height="12" rx="1" fill="#286b93" stroke="#8fc9e8" stroke-width="1.5"/>
+      <path d="M7 14v12M0 20h14" stroke="#a9dded" stroke-opacity=".7"/>
+      <path d="M30 20h7m-1-3v6" stroke="#f3d69e" stroke-width="1.5" stroke-linecap="round"/>
+    </symbol>
+    <g id="scene-bodies"></g>
 </svg><figcaption id="scale"></figcaption></figure>
-<fieldset class="sim-time"><legend>Observer epoch</legend><label class="range-label"><span>Days since reference</span><output for="day" id="day-label">145</output><input type="range" id="day" min="0" max="365" value="145"></label><button type="button" id="play" class="btn btn-primary">Play year</button></fieldset>
+<fieldset class="sim-time"><legend>Observer epoch</legend><label class="range-label"><span>Days since reference</span><output for="day" id="day-label">0</output><input type="range" id="day" min="0" max="365" value="0"></label><button type="button" id="play" class="btn btn-primary">Play year</button></fieldset>
+<div class="sim-month-presets" role="group" aria-label="Jump to a simulated observation month">
+  <span class="sim-presets-label">Compare observations:</span>
+  <button type="button" data-sim-day="0">Month 0</button>
+  <button type="button" data-sim-day="183">Month 6</button>
+  <button type="button" data-sim-day="365">Month 12 ≈ 0</button>
+  <output id="sim-month-label" aria-live="polite">Month 0</output>
+</div>
+<section class="sim-captures" aria-labelledby="sim-captures-title">
+  <div class="sim-captures-header">
+    <div><p class="sim-captures-kicker">Synthetic observation lab</p><h3 id="sim-captures-title">What SPHEREx would see (illustration)</h3></div>
+    <button type="button" id="align-frames" aria-pressed="false">Align &amp; blend images</button>
+  </div>
+  <p class="sim-captures-intro">Two drawings of the same field. The target moves against fixed background stars due to parallax; the second frame also has an artificial pointing offset. These are not real SPHEREx images.</p>
+  <div class="sim-frames">
+    <figure><figcaption>Reference · month 0</figcaption><canvas id="sim-frame-reference" width="320" height="200" role="img" aria-label="Synthetic reference star field at month zero"></canvas></figure>
+    <figure><figcaption id="sim-frame-date">Current · selected month</figcaption><canvas id="sim-frame-current" width="320" height="200" role="img" aria-label="Synthetic current star field showing target parallax and pointing offset"></canvas></figure>
+    <figure><figcaption id="sim-frame-comparison-title">Raw overlay · 50/50</figcaption><canvas id="sim-frame-overlay" width="320" height="200" role="img" aria-label="Comparison of the two synthetic frames, before star alignment"></canvas></figure>
+  </div>
+  <div class="sim-blend-controls"><label for="sim-blend">Second exposure in overlay <output id="sim-blend-value" for="sim-blend">50%</output></label><input type="range" id="sim-blend" min="0" max="100" value="50" step="5"></div>
+  <p class="sim-alignment-caption" id="sim-alignment-caption" aria-live="polite">Before alignment: the reference stars appear doubled because the camera points slightly differently.</p>
+</section>
 <dl class="tool-output sim-readouts"><div><dt>Observer epoch</dt><dd id="epoch"></dd></div><div><dt>Earth position</dt><dd id="earth"></dd></div><div><dt>Apparent offset</dt><dd id="offset"></dd></div><div><dt>Target distance</dt><dd id="range"></dd></div></dl>
-<p class="sim-note"><strong>Model scope.</strong> Earth-centred observer; approximate heliocentric Earth ephemeris on J2000 equatorial axes. Offsets are gnomonic tangent-plane arcseconds relative to the reference date. This is an educational geometric model, not a predicted source position; it omits spacecraft and target motion, aberration and light-travel time.</p>
+<p class="sim-note"><strong>Model scope.</strong> The SPHEREx icon is symbolic, not a spacecraft orbit at scale. Calculations still use an Earth-centred observer and approximate heliocentric Earth ephemeris on J2000 equatorial axes; offsets are tangent-plane arcseconds relative to the reference date. Synthetic exposure stars, pointing error, brightness and apparent image scale are illustrations, not detector pixels or actual SPHEREx observations. The target is stationary in this model; spacecraft motion, target orbital motion, aberration and light-travel time are omitted.</p>
 <p id="status" role="status"></p></section>
 <section class="panel sim-inputs sim-controls"><div class="sim-panel-heading"><h2>Geometry</h2><p>Set the reference target, time and camera. Every input updates the model immediately.</p></div>
 <fieldset><legend>Target reference</legend><label>View <select id="mode"><option value="educational">Educational visualization</option><option value="scientific">Scientific geometry</option></select></label>
@@ -50,4 +78,4 @@
 <details class="sim-camera"><summary>Camera controls</summary><label>Azimuth <span class="field-unit">degrees</span><input type="range" id="az" min="-180" max="180" value="10"></label><label>Elevation <span class="field-unit">degrees</span><input type="range" id="el" min="-90" max="90" value="45"></label></details>
 </section>
 </form>
-</main></div><script type="module" src="js/simulator.js?v=2"></script><script type="module" src="js/features/highContrast.js"></script></body></html>
+</main></div><script type="module" src="js/simulator.js?v=3"></script><script type="module" src="js/features/highContrast.js"></script></body></html>

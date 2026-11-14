@@ -1,9 +1,98 @@
 import { earthPositionAU } from "./features/parallax.js";
 import { orbitScene, cameraPoint } from "./features/orbitScene.js";
+import { FRAME_WIDTH, FRAME_HEIGHT, MONTH_PRESETS, syntheticStars, exposureGeometry } from "./features/simulatorFrames.js";
 
 const $ = id => document.getElementById(id);
 const svg = $("scene-bodies"), controls = $("controls");
 let timer, lastEpoch, orbit;
+
+const stars = syntheticStars();
+const referenceExposure = { stars: {x: 0, y: 0}, target: {x: 160, y: 100} };
+let registered = false;
+
+function paintBackground(ctx) {
+  ctx.clearRect(0, 0, FRAME_WIDTH, FRAME_HEIGHT);
+  ctx.fillStyle = "#071321";
+  ctx.fillRect(0, 0, FRAME_WIDTH, FRAME_HEIGHT);
+  ctx.strokeStyle = "rgba(114,163,187,.15)";
+  ctx.strokeRect(8.5, 8.5, FRAME_WIDTH - 17, FRAME_HEIGHT - 17);
+}
+
+function paintExposure(ctx, exposure, strength, showLabel = false) {
+  if (strength <= 0) return;
+  for (const star of stars) {
+    const x = star.x + exposure.stars.x, y = star.y + exposure.stars.y;
+    const halo = ctx.createRadialGradient(x, y, 0, x, y, 5 + star.radius * 2);
+    halo.addColorStop(0, "rgba(231,245,255," + (star.brightness * strength) + ")");
+    halo.addColorStop(.2, "rgba(157,208,240," + (.5 * star.brightness * strength) + ")");
+    halo.addColorStop(1, "rgba(116,173,225,0)");
+    ctx.fillStyle = halo;
+    ctx.beginPath();
+    ctx.arc(x, y, 5 + star.radius * 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  const x = exposure.target.x, y = exposure.target.y;
+  const glow = ctx.createRadialGradient(x, y, 0, x, y, 16);
+  glow.addColorStop(0, "rgba(255,238,183," + (.95 * strength) + ")");
+  glow.addColorStop(.25, "rgba(255,185,84," + (.6 * strength) + ")");
+  glow.addColorStop(1, "rgba(255,150,47,0)");
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(x, y, 16, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "rgba(255,225,148," + strength + ")";
+  ctx.beginPath();
+  ctx.arc(x, y, 2.8, 0, Math.PI * 2);
+  ctx.fill();
+  if (showLabel) {
+    ctx.font = "bold 10px sans-serif";
+    ctx.fillStyle = "#fbd18b";
+    ctx.fillText("TARGET", Math.min(x + 12, FRAME_WIDTH - 59), Math.max(14, y - 10));
+  }
+}
+
+function paintCanvas(id, layers) {
+  const canvas = $(id), ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  paintBackground(ctx);
+  for (const [exposure, fraction, label] of layers) paintExposure(ctx, exposure, fraction, label);
+}
+
+function paintSyntheticFrames(model, day) {
+  const currentRaw = exposureGeometry(model.offset, $("distance").valueAsNumber, false);
+  const currentAligned = exposureGeometry(model.offset, $("distance").valueAsNumber, true);
+  const mix = $("sim-blend").valueAsNumber / 100;
+  paintCanvas("sim-frame-reference", [[referenceExposure, 1, true]]);
+  paintCanvas("sim-frame-current", [[currentRaw, 1, true]]);
+  paintCanvas("sim-frame-overlay", [
+    [referenceExposure, 1 - mix, false],
+    [registered ? currentAligned : currentRaw, mix, false]
+  ]);
+  const months = Math.round(day * 12 / 365);
+  $("sim-frame-date").textContent = "Current · month " + months;
+  $("sim-month-label").textContent = "Month " + months + " · day " + day;
+  $("sim-blend-value").textContent = $("sim-blend").value + "%";
+  for (const preset of MONTH_PRESETS) {
+    const button = document.querySelector('[data-sim-day="' + preset.day + '"]');
+    if (button) button.setAttribute("aria-pressed", String(day === preset.day));
+  }
+  const alignButton = $("align-frames");
+  alignButton.disabled = false;
+  alignButton.setAttribute("aria-pressed", String(registered));
+  alignButton.textContent = registered ? "Show unaligned frames" : "Align & blend images";
+  $("sim-frame-comparison-title").textContent = (registered ? "Aligned blend" : "Raw overlay") + " · " + $("sim-blend").value + "% current";
+  const shift = currentAligned.relativeTargetShift;
+  const shiftArcsec = Math.hypot(model.offset.east, model.offset.north);
+  const displaced = Math.hypot(shift.x, shift.y) > .3;
+  $("sim-alignment-caption").textContent = registered
+    ? "Aligned on the background stars: pointing jitter is removed. " +
+      (displaced ? "The target still appears in two places because of parallax (" + shiftArcsec.toFixed(1) + " arcsec)." : "The target nearly overlaps its reference position.") +
+      " Adjust the blend slider to balance the two synthetic exposures."
+    : "Before alignment: pointing jitter makes the background stars appear doubled. Select Align & blend images to register them on the fixed stars.";
+  $("sim-frame-overlay").setAttribute("aria-label", registered
+    ? "Aligned synthetic exposures; fixed stars overlap, while target parallax remains visible."
+    : "Unaligned synthetic exposures; field stars are doubled by pointing jitter.");
+}
 
 function stop() {
   clearInterval(timer);
@@ -16,6 +105,7 @@ function draw() {
     stop(); svg.replaceChildren();
     for (const id of ["epoch","earth","offset","range","scale"]) $(id).textContent = "—";
     $("status").textContent = "Enter valid coordinates, distance and reference date to calculate the simulation.";
+    $("align-frames").disabled = true;
     return;
   }
   $("status").textContent = "";
@@ -67,6 +157,12 @@ function draw() {
   const overlap = Math.hypot(refX - obsX, refY - obsY) < 32;
   if (!overlap) earth(model.reference, "Reference Earth", "reference-earth", -22);
   earth(model.observer, overlap ? "Earth · both views" : "Observer Earth", "observer-earth", 30);
+  // The spacecraft marker is deliberately much larger than the actual low-Earth orbit on this AU diagram.
+  shape("circle", { cx: obsX, cy: obsY, r: 25, class: "spherex-orbit" });
+  const side = obsX > 535 ? -1 : 1;
+  const craftX = obsX + side * 23, craftY = obsY - 15;
+  shape("use", { href: "#spherex-symbol", x: craftX - 15, y: craftY - 15, width: 30, height: 30 });
+  shape("text", { x: craftX + side * 18, y: craftY - 13, "text-anchor": side === 1 ? "start" : "end", class: "spherex-label" }, "SPHEREx");
   const [targetX, targetY] = project(target);
   shape("circle", { cx: targetX, cy: targetY, r: 15, fill: "url(#target-glow)" });
   shape("circle", { cx: targetX, cy: targetY, r: 3, fill: "#f5f8ff" });
@@ -81,7 +177,20 @@ function draw() {
   $("scale").textContent = educational
     ? "Target distance compressed to 3 AU in the drawing. The readouts use the entered distance. Amber dashed line marks the reference date. Teal marks the observer date."
     : `Uniform spatial scale · 100 drawing units = ${(100 / pixelsPerAU).toPrecision(3)} AU. Body markers are enlarged. Amber dashed line marks the reference date. Teal marks the observer date.`;
+  paintSyntheticFrames(model, day);
 }
+for (const button of document.querySelectorAll("[data-sim-day]")) {
+  button.addEventListener("click", () => {
+    stop();
+    $("day").value = button.dataset.simDay;
+    draw();
+  });
+}
+$("align-frames").addEventListener("click", () => {
+  if (!controls.reportValidity()) return;
+  registered = !registered;
+  draw();
+});
 controls.addEventListener("submit", e => e.preventDefault());
 controls.addEventListener("input", draw);
 $("play").addEventListener("click", () => {
