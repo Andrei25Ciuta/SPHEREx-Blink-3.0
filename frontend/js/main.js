@@ -43,6 +43,7 @@ import { colourHint } from "./features/spectrum.js";
 import { describeDistant, classifyApparentMotion, VERSION as PARALLAX_VERSION, DISTANT_DEFAULTS } from "./features/parallax.js";
 import { candidatesToCsv, candidatesToJson, exportFileName } from "./features/export.js";
 import { startTour, WORKSPACE_STEPS } from "./features/tour.js";
+import { drawTrack, candidateTrackPoints, datedTrackPoints } from "./features/labTrackView.js";
 import { PLANET_X_DEMO } from "./data/mockSource.js";
 import { compareChoices, membersFor, defaultChoice, shortLabel, OPERATIONS } from "./features/compare.js";
 import { fetchCatalogue, catalogueTracks } from "./features/catalogue.js";
@@ -1017,6 +1018,7 @@ function clearMovers() {
   moversRun = null;
   $("movers-provenance").hidden = true;
   selectedMover = -1;
+  updateObservationTrack(null);
   player.setCandidates([]);
   $("mover-list").hidden = true;
   $("mover-list").replaceChildren();
@@ -1347,9 +1349,25 @@ $("export-json-btn").addEventListener("click", () => {
 });
 
 /** Highlight one candidate on the image (ring + path) and describe it; -1 = none. */
+function updateObservationTrack(candidate) {
+  const summary = $("observation-track-summary");
+  const figure = $("observation-track-figure");
+  const points = candidate?.distant ? candidateTrackPoints(candidate) : [];
+  const size = player.naturalSize;
+  figure.hidden = !points.length || !size;
+  if (figure.hidden) {
+    $("observation-track-plot").replaceChildren();
+    summary.textContent = "Run Look for a distant body and select a result to see its trajectory.";
+    return;
+  }
+  summary.textContent = `Candidate ${candidate.label} · fitted distance ${candidate.distanceAU.toFixed(1)} AU · ${points.length} supporting detections`;
+  drawTrack($("observation-track-plot"), datedTrackPoints(points), size);
+}
+
 function selectMover(k) {
   player.stopFollow();                              // the view followed the one selected before
   selectedMover = k;
+  updateObservationTrack(movers[k]);
   planetLab?.refresh();                             // the lab compares the motions of the one selected
   assistant?.refresh();
   document.querySelectorAll("#mover-list .mover-item").forEach((b) =>
@@ -1452,9 +1470,7 @@ player.onFollowChange = (i) => {
 $("mover-lab-btn").addEventListener("click", () => {
   const candidate = movers[selectedMover];
   if (!candidate?.distant) return;
-  const points = candidate.dots.map((p, i) => ({ x: p.x, y: p.y, mjd: candidate.dotDates?.[i] }))
-    .filter(p => [p.x, p.y, p.mjd].every(Number.isFinite))
-    .sort((a, b) => a.mjd - b.mjd);
+  const points = candidateTrackPoints(candidate);
   try {
     sessionStorage.setItem("spherex-lab-candidate", JSON.stringify({
       label: candidate.label, distance: candidate.distanceAU, range: candidate.distant.rangeText,

@@ -18,6 +18,7 @@
   <script>if (/[?&]embed=1(&|$)/.test(location.search)) document.documentElement.classList.add("embed");</script>   <!-- ?embed=1: workspace only, for an <iframe> -->
   <link rel="stylesheet" href="css/styles.css?v=21">
   <link rel="stylesheet" href="css/instrument.css">
+  <link rel="stylesheet" href="css/lab-track.css">
   <link rel="stylesheet" href="css/contact-sheet.css">
 </head>
 <body>
@@ -393,6 +394,14 @@
 
     <section class="panel sequence-controls" id="observation-tools" aria-labelledby="observation-tools-title">
       <h2 id="observation-tools-title">Observation tools</h2>
+      <section class="observation-track" aria-labelledby="observation-track-title">
+        <h3 id="observation-track-title">Planet X trajectory</h3>
+        <p id="observation-track-summary" role="status">Run Look for a distant body and select a result to see its trajectory.</p>
+        <figure id="observation-track-figure" hidden>
+          <svg class="recovery-plot" id="observation-track-plot" viewBox="0 0 420 420" role="img" aria-label="Supporting detections of the selected distant-body candidate"></svg>
+          <figcaption>Positions are shown in the registered image plane. Background stars are illustrative.</figcaption>
+        </figure>
+      </section>
       <details class="detector-pair" id="detector-pair" hidden>
         <summary>Compare two observations side by side</summary>
         <p class="muted small">Each cutout is labelled with its own observation time and wavelength range. Use the source inspector for flux measurements.</p>
@@ -728,6 +737,6 @@
     <div class="dlg-head"><h2 id="simulation-note-title">About the simulation</h2><form method="dialog"><button class="btn btn-small">Close</button></form></div>
     <p class="dlg-body">The Planet X preset uses a simulated body 600 AU away. Its position is invented for testing the distant-body search.</p>
   </dialog>
-  <script type="module" src="js/main.js?v=6"></script>
+  <script type="module" src="js/main.js?v=7"></script>
 </body>
 </html>
