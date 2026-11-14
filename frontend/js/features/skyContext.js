@@ -13,6 +13,7 @@
 import { SKY_TILES, API_BASE } from "../config.js";
 import { WORLD_URL, decodeCountries, overheadAt } from "./skyGeo.js";
 import { fieldCorners } from "./explorerGeometry.js";
+import { aladinSkyAt, selectionText, copySkySelection } from "./skyContextClick.js";
 
 const ALADIN_URL = "https://cdn.jsdelivr.net/npm/aladin-lite@3.6.5/dist/aladin.js";
 const SIMBAD_TAP = "https://simbad.harvard.edu/simbad/sim-tap/sync";
@@ -109,10 +110,13 @@ function loadWorld() {
 }
 
 export class SkyContext {
-  constructor(container, statusEl, noteEl = null, { matchField = false } = {}) {
+  constructor(container, statusEl, noteEl = null, { matchField = false, onSelectPosition = null, selectionStatusEl = null } = {}) {
     this.container = container;
     this.statusEl = statusEl;
     this.matchField = matchField;
+    this.onSelectPosition = onSelectPosition;
+    this.selectionStatusEl = selectionStatusEl;
+    this.coordinateHint = null;
     this.noteEl = noteEl;               // the paragraph that explains the country in brackets
     this.aladin = null;
     this.A = null;
@@ -141,14 +145,44 @@ export class SkyContext {
     const c = this.aladin.getRaDec();                                  // always ICRS, whatever frame the map shows
     if (Number.isFinite(c?.[0]) && Number.isFinite(c?.[1])) this.setReadout(c[0], c[1], "Centre");
   }
+  showPointerCoordinates(sky, x, y) {
+    if (!this.coordinateHint || !Number.isFinite(x) || !Number.isFinite(y)) return;
+    const { raText, decText } = selectionText(sky);
+    this.coordinateHint.textContent = `RA ${raText}° · Dec ${decText}° · Click to open in Blink`;
+    this.coordinateHint.hidden = false;
+    const width = this.container.clientWidth, height = this.container.clientHeight;
+    const left = Math.max(8, Math.min(x + 14, width - this.coordinateHint.offsetWidth - 8));
+    const top = Math.max(8, Math.min(y - this.coordinateHint.offsetHeight - 12, height - this.coordinateHint.offsetHeight - 8));
+    this.coordinateHint.style.left = left + "px";
+    this.coordinateHint.style.top = top + "px";
+  }
+  hidePointerCoordinates() {
+    if (this.coordinateHint) this.coordinateHint.hidden = true;
+  }
   onHover(e) {
     const now = performance.now();
     if (now - this.lastMove < 60) return;                              // a few updates per second are enough
     this.lastMove = now;
-    const p = this.aladin.pix2world(e.x, e.y, "icrs");                 // the event's own ra/dec are in the frame being shown; this is always ICRS
-    if (!Number.isFinite(p?.[0]) || !Number.isFinite(p?.[1])) return;
+    const sky = aladinSkyAt(this.aladin, e);                             // ICRS even if the display frame changes
+    if (!sky) { this.hidePointerCoordinates(); return; }
     this.hovering = true;
-    this.setReadout(p[0], p[1], "Cursor");
+    this.setReadout(sky.ra, sky.dec, "Cursor");
+    this.showPointerCoordinates(sky, e.x, e.y);
+  }
+  onMapClick(e) {
+    if (!this.onSelectPosition || (e?.button !== undefined && e.button !== 0) || e?.object) return;
+    const sky = aladinSkyAt(this.aladin, e);
+    if (!sky) return;
+    const fields = selectionText(sky);
+    // Clipboard access must begin during the click, before loading changes the view.
+    const copied = copySkySelection(fields.clipboardText);
+    this.onSelectPosition({ ...sky, ...fields });
+    this.hidePointerCoordinates();
+    copied.then((ok) => {
+      if (this.selectionStatusEl) this.selectionStatusEl.textContent = ok
+        ? "Sky position copied and loaded into Blink Workspace."
+        : "Sky position loaded into Blink Workspace. Clipboard permission was unavailable.";
+    });
   }
   /** Load the country map once and redraw the readout with it. */
   async ensureWorld() {
@@ -191,9 +225,15 @@ export class SkyContext {
       this.readout.className = "sky-readout";
       this.readout.title = READOUT_HELP;
       this.container.appendChild(this.readout);
+      // A compact mouse-following label is separate from Aladin's centre/country readout.
+      this.coordinateHint = document.createElement("div");
+      this.coordinateHint.className = "sky-cursor-coordinates";
+      this.coordinateHint.hidden = true;
+      this.container.appendChild(this.coordinateHint);
       this.aladin.on("mouseMove", (e) => this.onHover(e));
+      this.aladin.on("click", (e) => this.onMapClick(e));
       this.aladin.on("positionChanged", () => { if (!this.hovering) this.showCentre(); });
-      this.container.addEventListener("pointerleave", () => this.showCentre());
+      this.container.addEventListener("pointerleave", () => { this.hidePointerCoordinates(); this.showCentre(); });
     }
     // The source can change between two openings (e.g. the backend was started meanwhile).
     else if (before !== source) this.setSurvey(this.survey);
