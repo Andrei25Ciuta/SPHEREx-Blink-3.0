@@ -11,7 +11,7 @@ async function check() {
       await page.route("**/*", route => new URL(route.request().url()).origin === new URL(base).origin
         ? route.continue() : route.abort());
       await page.goto(new URL("index.html#workspace", base).href);   // a bare index.html redirects to overview.html; a hash keeps the workspace
-      await page.locator("#about").evaluate(el => { el.inert = true; });
+      await page.locator("#text-analysis").evaluate(el => { el.inert = true; });
       const opener = page.locator("#tour-btn");
       await opener.click();
       const dialog = page.getByRole("dialog");
@@ -36,7 +36,7 @@ async function check() {
       assert.equal(await dialog.count(), 0);
       assert.equal(await page.locator("#workspace").evaluate(el => el.inert), false);
       assert.equal(await page.locator(".site-header").evaluate(el => el.inert), false);
-      assert.equal(await page.locator("#about").evaluate(el => el.inert), true,
+      assert.equal(await page.locator("#text-analysis").evaluate(el => el.inert), true,
         "an existing inert state is preserved");
       await page.locator("#load-btn").click({ trial: true });
       assert.equal(await opener.evaluate(el => el === document.activeElement), true,
