@@ -79,3 +79,15 @@
 @media (max-width: 700px) { .sky-atlas-heading, .sky-atlas-grid { grid-template-columns: 1fr; display: grid; }.sky-atlas-heading { align-items: start; }.atlas-note .btn { margin-top: 1rem; } }
 
 .explore table caption { text-align: left; color: var(--text-muted); padding: .4rem .6rem; }
+
+.sim-stage #scene {
+  background: radial-gradient(ellipse at 48% 62%, #172028, #10151a 72%);
+  border-color: #39434c;
+  border-radius: var(--radius-sm);
+}
+.sim-stage #scene text { fill: #e3e9ed; font-weight: 500; }
+.sim-stage #scene .orbit { stroke: #657482; stroke-width: 1.25; }
+.sim-stage #scene .reference { stroke: #d6ae60; stroke-width: 1.6; }
+.sim-stage #scene .sight { stroke: #63c1c0; stroke-width: 1.7; }
+.sim-time input[type="range"] { accent-color: #55a9ac; }
+.sim-stage #scene .reference-earth { opacity: .84; }
