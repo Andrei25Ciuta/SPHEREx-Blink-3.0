@@ -3,7 +3,8 @@ import {
   unlockedLevel, progressPercent, rankForXp, earnedAchievements, gradeAnswer,
   completeLevel, addProfile, selectProfile, renameActiveProfile, addLearningTime, recordQuizScore,
 } from "./features/learning.js";
-import { explanationFor, askAstra, aiAvailability } from "./features/spaceGuide.js";
+import { explanationFor, askAstra, aiAvailability, looksNotEnglish } from "./features/spaceGuide.js";
+import { createWebLlmModel } from "./features/webLlmModel.js";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -293,39 +294,69 @@ $("#classroom-name")?.addEventListener("change", (event) => { state.classroomNam
 // ---- Astra: prepared notes, or the AI built into the browser when the person turns it on (features/spaceGuide.js)
 const AI_KEY = "spherex-blink-astra-ai";
 let astraJob = null;
+let aiModel = null, aiKind = "none";                 // "builtin": the browser's own AI; "webllm": the free model downloaded into this browser
 async function setupAstraAi() {
-  const box = $("#astra-ai-on"), status = $("#astra-ai-status");
-  const state = await aiAvailability();
-  if (state === "unavailable") { status.textContent = "This browser has no built-in AI, so Astra answers from its prepared notes. (Recent Chrome on a computer has one.)"; return; }
+  const box = $("#astra-ai-on"), status = $("#astra-ai-status"), label = $("#astra-ai-label");
+  let state = await aiAvailability();
+  if (state !== "unavailable") { aiModel = globalThis.LanguageModel; aiKind = "builtin"; }
+  else {
+    const free = createWebLlmModel();
+    state = await free.availability();
+    if (state !== "unavailable") { aiModel = free; aiKind = "webllm"; }
+  }
+  if (!aiModel) { status.textContent = "This browser cannot run an AI model (it needs WebGPU: a recent Chrome, Edge or Brave on a computer), so Astra answers from its prepared notes."; return; }
+  if (aiKind === "webllm") label.textContent = "Let a free AI model in this browser answer (downloads about 2 GB once)";
   box.disabled = false;
   try { box.checked = localStorage.getItem(AI_KEY) === "on"; } catch { /* storage blocked: stays off */ }
   const say = () => {
-    status.textContent = box.checked ? "On: the AI on this device writes the answer from Astra's notes. It can make mistakes; the notes it used are named under the answer."
+    status.textContent = box.checked
+      ? (aiKind === "webllm" ? "On: a free AI model runs on this computer and can answer any question. The first answer waits for the download (about 2 GB); after that it is quick. Ask in English. It can make mistakes."
+        : "On: the AI on this device answers, using Astra's notes when they match. It can make mistakes.")
+      : aiKind === "webllm" ? "Off: answers come from the prepared notes. Turn it on to ask anything; nothing is downloaded until you do. It is free and your questions never leave this computer."
       : state === "available" ? "Off: answers come from the prepared notes. The built-in AI is ready to use."
       : "Off: answers come from the prepared notes. The first use downloads the browser's AI model (once; it can take a few minutes).";
   };
   say();
   box.addEventListener("change", () => { try { localStorage.setItem(AI_KEY, box.checked ? "on" : "off"); } catch { /* not remembered */ } say(); });
 }
+function logTurn(question, answer, note) {
+  const log = $("#astra-log");
+  if (!log) return;
+  const q = el("li", { className: "astra-q" }, question);
+  const a = el("li", { className: "astra-a" }, answer);
+  if (note) a.append(el("small", {}, note));
+  log.append(q, a);
+  while (log.children.length > 20) log.firstElementChild.remove();
+  log.hidden = false;
+}
 async function ask(question) {
   question = String(question ?? "").trim();
   if (!question) return;
   astraJob?.abort();
   const job = astraJob = new AbortController();
-  const answer = $("#astra-answer"), source = $("#astra-source"), useAi = $("#astra-ai-on").checked;
-  if (useAi) answer.textContent = "Astra is thinking…";
+  const answer = $("#astra-answer"), source = $("#astra-source"), useAi = $("#astra-ai-on").checked && aiModel;
+  if (useAi && looksNotEnglish(question)) {
+    answer.textContent = "Astra's AI understands English best, so please ask your question in English. (Example: “What is a black hole?”)";
+    source.textContent = "The free AI model runs on your own computer and is small: in other languages its answers are often wrong.";
+    return;
+  }
+  answer.textContent = useAi ? "Astra is thinking…" : "";
   source.textContent = "";
   try {
-    const result = await askAstra(question, { model: useAi ? globalThis.LanguageModel : null, signal: job.signal,
+    const result = await askAstra(question, { model: useAi ? aiModel : null, signal: job.signal,
       onChunk: (text) => { if (astraJob === job) answer.textContent = text; },
-      onDownload: (f) => { if (astraJob === job) answer.textContent = `Downloading the browser's AI model: ${Math.round(f * 100)} %`; } });
+      onDownload: (f) => { if (astraJob === job) answer.textContent = `${aiKind === "webllm" ? "Downloading the free AI model (only the first time)" : "Downloading the browser's AI model"}: ${Math.round(f * 100)} %`; } });
     if (astraJob !== job) return;
     answer.textContent = result.text;
     source.textContent = result.source === "ai"
-      ? `Written by the AI in your browser, which can be wrong.${result.notes.length ? ` Notes it was given: ${result.notes.join(", ")}.` : " No prepared note matched, so check it elsewhere."}`
+      ? `Written by an AI running in your browser, which can be wrong.${result.notes.length ? ` Notes it was given: ${result.notes.join(", ")}.` : ""}`
       : result.source === "notes"
-        ? `From Astra's prepared notes${result.error ? " (the browser's AI could not answer this time)" : ""}.${result.notes.length > 1 ? ` Related: ${result.notes.slice(1).join(", ")}.` : ""}`
-        : `No prepared note matches this question.${$("#astra-ai-on").disabled ? "" : " Turn on the browser's AI below for a fuller answer."}`;
+        ? `From Astra's prepared notes${result.error ? " (the AI could not answer this time)" : ""}.${result.notes.length > 1 ? ` Related: ${result.notes.slice(1).join(", ")}.` : ""}`
+        : `No prepared note matches this question.${aiModel && !$("#astra-ai-on").checked ? " Turn on the AI below and Astra can answer any question." : ""}`;
+    logTurn(question, result.text, source.textContent);
+    answer.textContent = "";          // the finished answer lives in the conversation above; this line only shows the answer while it is being written
+    source.textContent = "";
+    $("#astra-question").value = "";
   } catch { /* a newer question replaced this one */ }
 }
 setupAstraAi();
