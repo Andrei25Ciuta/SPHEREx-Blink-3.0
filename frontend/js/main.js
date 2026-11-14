@@ -36,7 +36,7 @@ import { openDialog, shortcutsHtml } from "./features/dialog.js";
 import { colourSequences } from "./features/colourBlink.js?v=3";
 import { setupTimeline } from "./features/timelineView.js";
 import { FLAGGED_LIMIT } from "./features/timeline.js";
-import { SkyContext } from "./features/skyContext.js";
+import { SkyContext } from "./features/skyContext.js?v=2";
 import { setupFullscreen } from "./features/fullscreen.js";
 import { detectSources, describeMover, matchKnownObject, moverPositionAtMjd, passIndices, trackSupport, blendWarning, VERSION as MOVERS_VERSION, DEFAULTS as MOVER_DEFAULTS, ERROR_MODEL } from "./features/movers.js";
 import { blindCheckCandidate, VERSION as BLIND_CHECK_VERSION } from "./features/blindCheck.js";
@@ -803,7 +803,7 @@ function clearMarker() {
 // ---------------------------------------------------------------
 // Sky context (Aladin Lite)
 // ---------------------------------------------------------------
-const sky = new SkyContext($("aladin-box"), $("aladin-status"), $("sky-geo-note"));
+const sky = new SkyContext($("aladin-box"), $("aladin-status"), $("sky-geo-note"), { matchField: true });
 setupFullscreen($("sky-frame"), $("sky-full-btn"));   // map + its controls fill the screen
 /** Open (or re-centre) the sky map on a position { ra, dec, fov }. */
 async function openSkyMap(q) {
@@ -814,11 +814,17 @@ async function openSkyMap(q) {
   $("sky-full-btn").hidden = !sky.isOpen;             // nothing to enlarge until the map is open
 }
 $("aladin-btn").addEventListener("click", async () => {
-  const q = currentQuery || readForm();
+  const q = readForm();
   if (!q) { $("aladin-status").textContent = "Enter coordinates first."; return; }
   await openSkyMap(q);
 });
 $("survey-select").addEventListener("change", (e) => sky.setSurvey(e.target.value));
+fovInput.addEventListener("change", () => {
+  if (sky.isOpen && !allFrames.length) {
+    const query = readForm();
+    if (query) sky.update(query);
+  }
+});
 
 // ---------------------------------------------------------------
 // Catalogue (SIMBAD): overlay on the blink image, and the "known object" check of Find movers
@@ -1777,6 +1783,7 @@ async function loadData(query) {
   currentQuery = null;
   detSelect.disabled = true;
   lastQuery = query;
+  if (sky.isOpen) sky.update(query);
   setLoading(true);
   setStatus("");
   player.pause();
@@ -1799,7 +1806,6 @@ async function loadData(query) {
     setComparisonFrames(frames);
     currentQuery = query;
     pinBoard?.refresh();
-    if (sky.isOpen) sky.update(query);
     if (frames.length === 0) {
       detSelect.innerHTML = '<option value="">No data</option>';
       detSelect.disabled = true;
