@@ -515,15 +515,17 @@
     scene.add(observatory);
 
     // ── 5. INTERACTIVE 3D ORBIT & DRAG ROTATION ──
-    let isDragging = false;
+    let dragPointerId = null;
     let prevMouseX = 0, prevMouseY = 0;
     let rotVelX = 0, rotVelY = 0;
     let mouseNDC = { x: 0, y: 0 };
 
     window.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0 || dragPointerId !== null) return;
       if (e.pointerType === 'touch' && e.target !== canvas) return;
-      if (e.target.closest('#overview-main button, #overview-main a, .site-header, #model-hud')) return;
-      isDragging = true;
+      if (e.target.closest('a, button, input, select, textarea, [contenteditable], .site-header, #model-hud')) return;
+      dragPointerId = e.pointerId;
+      if (e.pointerType === 'mouse') e.preventDefault();
       prevMouseX = e.clientX;
       prevMouseY = e.clientY;
       rotVelX = 0; rotVelY = 0;
@@ -531,17 +533,28 @@
       if (ring) ring.classList.add('is-dragging');
     });
 
-    window.addEventListener('pointerup', () => {
-      isDragging = false;
+    function stopDrag() {
+      dragPointerId = null;
       const ring = document.getElementById('cursorRing');
       if (ring) ring.classList.remove('is-dragging');
+    }
+
+    function endPointerDrag(e) {
+      if (e.pointerId === dragPointerId) stopDrag();
+    }
+
+    window.addEventListener('pointerup', endPointerDrag);
+    window.addEventListener('pointercancel', endPointerDrag);
+    window.addEventListener('blur', stopDrag);
+    document.addEventListener('selectstart', (e) => {
+      if (dragPointerId !== null) e.preventDefault();
     });
 
     window.addEventListener('pointermove', (e) => {
       mouseNDC.x = (e.clientX / window.innerWidth) * 2 - 1;
       mouseNDC.y = -(e.clientY / window.innerHeight) * 2 + 1;
 
-      if (isDragging) {
+      if (e.pointerId === dragPointerId) {
         const dx = e.clientX - prevMouseX;
         const dy = e.clientY - prevMouseY;
         rotVelY = dx * 0.006;
@@ -573,7 +586,7 @@
         camera.position.z = 480 - scrollProgress * 700;
         stars.rotation.y += 0.0002;
         stars.rotation.z = scrollProgress * 0.5;
-        if (!isDragging) {
+        if (dragPointerId === null) {
           observatory.rotation.y += 0.0025 + rotVelY;
           observatory.rotation.x += rotVelX;
           rotVelX *= 0.92;
