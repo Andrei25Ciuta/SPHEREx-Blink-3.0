@@ -24,6 +24,7 @@ import { setupBundle } from "./features/bundleView.js";
 import { fetchSurvey as askSurvey } from "./features/surveyCoverage.js";
 import { setupAssistant } from "./features/assistantView.js";
 import { setupPinBoard } from "./features/missionsPinView.js";
+import { setupPredict } from "./features/predictView.js";
 import { startMissionRunner } from "./features/missionRunner.js";
 import { runTask, isCancelled } from "./features/workerClient.js";
 import { estimateSearch, describeEstimate } from "./features/searchCost.js";
@@ -962,6 +963,10 @@ let textAnalysis = null;                   // the text analysis (section 9), set
 let movers = [];                           // candidates for the detector on screen, best first
 let selectedMover = -1;
 startMissionRunner({ getCandidate: () => (selectedMover >= 0 ? movers[selectedMover] ?? null : null), getCount: () => movers.length });
+const predict = setupPredict({
+  getCandidate: () => (selectedMover >= 0 ? movers[selectedMover] ?? null : null),
+  getContext: () => (currentQuery && currentFrames?.length ? { scaleArcsec: currentFrames[0].pixelScaleArcsec ?? (currentQuery.fov * 60) / player.naturalSize, field: { ra: currentQuery.ra, dec: currentQuery.dec, fov: currentQuery.fov } } : null),
+});
 const pinBoard = setupPinBoard({
   getCandidate: () => (selectedMover >= 0 ? movers[selectedMover] ?? null : null),
   getContext: () => ({ realData: DATA_SOURCE === "api", field: currentQuery ? { ra: currentQuery.ra, dec: currentQuery.dec, fov: currentQuery.fov, det: currentQuery.det } : null }),
@@ -1451,6 +1456,7 @@ function selectMover(k) {
   planetLab?.refresh();                             // the lab compares the motions of the one selected
   assistant?.refresh();
   pinBoard?.refresh();
+  predict?.refresh();
   document.querySelectorAll("#mover-list .mover-item").forEach((b) =>
     b.setAttribute("aria-pressed", String(Number(b.dataset.index) === k)));
   player.setCandidates(movers, k);
