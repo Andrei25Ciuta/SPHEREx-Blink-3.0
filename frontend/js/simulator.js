@@ -2,7 +2,7 @@ import { earthPositionAU } from "./features/parallax.js";
 import { orbitScene, cameraPoint } from "./features/orbitScene.js";
 
 const $ = id => document.getElementById(id);
-const svg = $("scene"), controls = $("controls");
+const svg = $("scene-bodies"), controls = $("controls");
 let timer, lastEpoch, orbit;
 
 function stop() {
@@ -47,16 +47,30 @@ function draw() {
     const [x1,y1] = project(start), [x2,y2] = project(end);
     shape("line", {x1,y1,x2,y2,class:cls});
   }
-  function body(pos, name, cls, radius, dy) {
-    const [cx,cy] = project(pos);
-    shape("circle", {cx,cy,r:radius,class:cls});
-    shape("text", {x:Math.max(10,Math.min(cx+8,585)),y:cy+dy},name);
+  function label(cx, cy, name) {
+    shape("text", { x: Math.max(54, Math.min(cx, 646)), y: cy, "text-anchor": "middle" }, name);
   }
-  shape("polyline",{points:orbit.map(p=>project(p).join(",")).join(" "),class:"orbit"});
-  line(model.reference,target,"reference"); line(model.observer,target,"sight");
-  body([0,0,0],"Sun","sun",5,19);
-  body(model.observer,"Earth","model",4,-11);
-  body(target,"Target","model",5,-11);
+  function earth(pos, name, cls, dy) {
+    const [cx, cy] = project(pos);
+    shape("use", { href: "#earth-symbol", x: cx - 14, y: cy - 14, width: 28, height: 28, class: cls });
+    label(cx, cy + dy, name);
+  }
+  shape("polyline", { points: orbit.map(p => project(p).join(",")).join(" "), class: "orbit" });
+  const [sunX, sunY] = project([0, 0, 0]);
+  shape("circle", { cx: sunX, cy: sunY, r: 58, fill: "url(#sun-glow)" });
+  line(model.reference, target, "reference");
+  line(model.observer, target, "sight");
+  shape("circle", { cx: sunX, cy: sunY, r: 21, fill: "url(#sun-surface)" });
+  label(sunX, sunY + 41, "Sun");
+  const [refX, refY] = project(model.reference);
+  const [obsX, obsY] = project(model.observer);
+  const overlap = Math.hypot(refX - obsX, refY - obsY) < 32;
+  if (!overlap) earth(model.reference, "Reference Earth", "reference-earth", -22);
+  earth(model.observer, overlap ? "Earth · both views" : "Observer Earth", "observer-earth", 30);
+  const [targetX, targetY] = project(target);
+  shape("circle", { cx: targetX, cy: targetY, r: 15, fill: "url(#target-glow)" });
+  shape("circle", { cx: targetX, cy: targetY, r: 3, fill: "#f5f8ff" });
+  label(targetX, targetY - 17, "Target");
   svg.replaceChildren(...nodes);
   $("day-label").value = String(day);
   $("epoch").textContent = new Date((epoch + day - 40587) * 86400000).toISOString().slice(0,10);
@@ -65,8 +79,8 @@ function draw() {
   $("offset").textContent = [model.offset.east,model.offset.north].map(v => `${v.toFixed(offsetDigits)}″`).join(" / ");
   $("range").textContent = model.range.toFixed(3) + " AU";
   $("scale").textContent = educational
-    ? "Target distance compressed to 3 AU in the drawing. The readouts use the entered distance. Dashed line shows the reference sightline."
-    : `Uniform spatial scale · 100 drawing units = ${(100 / pixelsPerAU).toPrecision(3)} AU. Body markers are enlarged. Dashed line shows the reference sightline.`;
+    ? "Target distance compressed to 3 AU in the drawing. The readouts use the entered distance. Amber dashed line marks the reference date. Teal marks the observer date."
+    : `Uniform spatial scale · 100 drawing units = ${(100 / pixelsPerAU).toPrecision(3)} AU. Body markers are enlarged. Amber dashed line marks the reference date. Teal marks the observer date.`;
 }
 controls.addEventListener("submit", e => e.preventDefault());
 controls.addEventListener("input", draw);
