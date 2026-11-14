@@ -5,3 +5,8 @@ __pycache__/
 *.pyc
 .claude/
 scratch/_out/
+# local tool files, never part of the project
+.agents/
+skills-lock.json
+.rederive/
+*.stackdump

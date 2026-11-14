@@ -22,7 +22,11 @@ class NoCacheHandler(SimpleHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    port = int(sys.argv[1]) if len(sys.argv) > 1 else 8765
+    arg = sys.argv[1] if len(sys.argv) > 1 else "8765"
+    if arg in ("-h", "--help") or not arg.isdigit() or not 0 < int(arg) < 65536:
+        print("usage: py scripts/serve_frontend.py [port]   (a number from 1 to 65535; default 8765)")
+        sys.exit(0 if arg in ("-h", "--help") else 2)
+    port = int(arg)
     handler = partial(NoCacheHandler, directory=str(FRONTEND))
     with ThreadingHTTPServer(("", port), handler) as server:
         print(f"Serving {FRONTEND} at http://localhost:{port}/  (Cache-Control: no-cache)", flush=True)
