@@ -117,6 +117,7 @@ export class SkyContext {
     this.onSelectPosition = onSelectPosition;
     this.selectionStatusEl = selectionStatusEl;
     this.coordinateHint = null;
+    this.clickedAladinObject = false;
     this.noteEl = noteEl;               // the paragraph that explains the country in brackets
     this.aladin = null;
     this.A = null;
@@ -170,7 +171,10 @@ export class SkyContext {
     this.showPointerCoordinates(sky, e.x, e.y);
   }
   onMapClick(e) {
-    if (!this.onSelectPosition || (e?.button !== undefined && e.button !== 0) || e?.object) return;
+    // Aladin fires 'click' on mouse release, even after panning. Never load a new
+    // field when the user dragged the map or selected a catalogue source.
+    if (!this.onSelectPosition || e?.isDragging || e?.object ||
+        (e?.button !== undefined && e.button !== 0)) return;
     const sky = aladinSkyAt(this.aladin, e);
     if (!sky) return;
     const fields = selectionText(sky);
@@ -231,7 +235,15 @@ export class SkyContext {
       this.coordinateHint.hidden = true;
       this.container.appendChild(this.coordinateHint);
       this.aladin.on("mouseMove", (e) => this.onHover(e));
-      this.aladin.on("click", (e) => this.onMapClick(e));
+      this.aladin.on("objectClicked", (object) => {
+        // A source click should keep Aladin's own SIMBAD popup, not navigate away.
+        this.clickedAladinObject = Boolean(object);
+      });
+      this.aladin.on("click", (e) => {
+        const clickedSource = this.clickedAladinObject;
+        this.clickedAladinObject = false;
+        if (!clickedSource) this.onMapClick(e);
+      });
       this.aladin.on("positionChanged", () => { if (!this.hovering) this.showCentre(); });
       this.container.addEventListener("pointerleave", () => { this.hidePointerCoordinates(); this.showCentre(); });
     }
