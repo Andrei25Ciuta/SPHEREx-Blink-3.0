@@ -678,6 +678,7 @@ output { font-weight: 600; color: var(--accent); }
 /* Second row: full-width panels */
 .measure, .context { grid-column: 1 / -1; }
 .measure p, .context p { margin: .4rem 0; }
+#context-title { min-height: 24px; }
 .measure-pos { font-variant-numeric: tabular-nums; font-size: .88rem; }
 .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: .6rem; }
 .chart { margin: 0; padding: .6rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--chart-bg); }
