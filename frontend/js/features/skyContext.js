@@ -109,9 +109,10 @@ function loadWorld() {
 }
 
 export class SkyContext {
-  constructor(container, statusEl, noteEl = null) {
+  constructor(container, statusEl, noteEl = null, { matchField = false } = {}) {
     this.container = container;
     this.statusEl = statusEl;
+    this.matchField = matchField;
     this.noteEl = noteEl;               // the paragraph that explains the country in brackets
     this.aladin = null;
     this.A = null;
@@ -162,15 +163,16 @@ export class SkyContext {
     this.survey = survey || this.survey;
     this.container.hidden = false;
     this.statusEl.textContent = "Loading sky map…";
+    let pictureSource;
     try {
-      this.A = await loadAladin();
+      [this.A, pictureSource] = await Promise.all([loadAladin(), pickSource()]);
     } catch (err) {
       this.statusEl.textContent = err.message;
       this.container.hidden = true;
       return;
     }
     const before = source;
-    source = await pickSource();
+    source = pictureSource;
     if (!this.aladin) {
       this.aladin = this.A.aladin(this.container, {
         survey: surveyRef(this.survey),
@@ -216,7 +218,7 @@ export class SkyContext {
     const { A, aladin } = this;
     const { ra, dec, fov } = query;
     aladin.gotoRaDec(ra, dec);
-    aladin.setFoV(Math.max(fov * 3, 6) / 60);          // show some context around the field
+    aladin.setFoV((this.matchField ? fov : Math.max(fov * 3, 6)) / 60);
     this.hovering = false;
     this.setReadout(ra, dec, "Centre");
 
