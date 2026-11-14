@@ -353,17 +353,23 @@ export function setupPinBoard({ getCandidate, getContext }) {
   }
   function copyCoordinates(sky) {
     const coordinates = `RA ${(Number(sky.ra.toFixed(5)) % 360).toFixed(5)}°, Dec ${sky.dec.toFixed(5)}°`;
-    if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(coordinates).then(() => true, () => false);
-    // Legacy fallback for browsers without the async Clipboard API.
-    const temp = document.createElement("textarea");
-    temp.value = coordinates;
-    temp.style.position = "fixed"; temp.style.opacity = "0";
-    document.body.appendChild(temp);
-    temp.select();
-    let copied = false;
-    try { copied = Boolean(document.execCommand?.("copy")); } catch {}
-    temp.remove();
-    return Promise.resolve(copied);
+    const fallbackCopy = () => {
+      const temp = document.createElement("textarea");
+      temp.value = coordinates;
+      temp.style.position = "fixed"; temp.style.opacity = "0";
+      document.body.appendChild(temp);
+      temp.select();
+      let copied = false;
+      try { copied = Boolean(document.execCommand?.("copy")); } catch {}
+      temp.remove();
+      return copied;
+    };
+    // The clipboard request starts synchronously from the click gesture.
+    if (navigator.clipboard?.writeText) {
+      try { return navigator.clipboard.writeText(coordinates).then(() => true, fallbackCopy); }
+      catch { return Promise.resolve(fallbackCopy()); }
+    }
+    return Promise.resolve(fallbackCopy());
   }
   function openMapPosition(sky) {
     if (!sky) return;
@@ -379,8 +385,14 @@ export function setupPinBoard({ getCandidate, getContext }) {
     popup.hidden = true;
     hideCursorHint();
     const moveToWorkspace = () => $("workspace").scrollIntoView({ behavior: "smooth", block: "start" });
-    if (document.fullscreenElement) document.exitFullscreen?.().then(moveToWorkspace, moveToWorkspace);
-    else { svg.closest(".pb-map-wrap")?.classList.remove("is-expanded"); moveToWorkspace(); }
+    if (document.fullscreenElement) {
+      const exit = document.exitFullscreen?.();
+      if (exit?.then) exit.then(moveToWorkspace, moveToWorkspace);
+      else moveToWorkspace();
+    } else {
+      svg.closest(".pb-map-wrap")?.classList.remove("is-expanded");
+      moveToWorkspace();
+    }
   }
   svg.addEventListener("click", (e) => {
     if (dragged) { dragged = false; return; }
