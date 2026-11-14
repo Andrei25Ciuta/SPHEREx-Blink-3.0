@@ -1,7 +1,6 @@
 import { parseRA, parseDec } from "./coords.js";
 import { API_BASE, CAN_USE_LOCAL_BACKEND } from "./config.js";
 import { tangentPoint } from "./features/explorerGeometry.js";
-import { SkyContext } from "./features/skyContext.js";
 import { TARGETS, positionAtEpoch } from "./targets.js";
 
 const $ = id => document.getElementById(id);
@@ -10,7 +9,7 @@ $("workspace-help").hidden = CAN_USE_LOCAL_BACKEND;
 $("search").querySelector('button[type="submit"]').disabled = !CAN_USE_LOCAL_BACKEND;
 if (!CAN_USE_LOCAL_BACKEND) $("live-search-help").textContent =
   "Live IRSA search requires the local Blink backend. Explore the saved QR2 field below.";
-const map = new SkyContext($("aladin-box"), $("map-status"));
+let map;
 const params = new URLSearchParams(location.search);
 const stateKeys = ["ra", "dec", "fov", "collection"];
 let current, selected, overlay, request;
@@ -35,6 +34,7 @@ function setupAtlas() {
     marker.innerHTML = `<circle cx="${x}" cy="${y}" r="7"></circle><text x="${x + 12}" y="${y + 5}">${target.label}</text>`;
     const choose = () => {
       $("ra").value = ra.toFixed(7); $("dec").value = dec.toFixed(7);
+      updateWorkspacePreview();
       $("atlas-selected").textContent = target.label;
       $("atlas-detail").textContent = `${target.kind}. Coordinates were propagated from its documented J2000 position to the Blink reference epoch; adjust the field diameter, then search IRSA.`;
       $("atlas-search").hidden = false;
@@ -56,6 +56,23 @@ function readQuery() {
     return null;
   }
   return {ra: ra.deg, dec: dec.deg, fov: $("fov").valueAsNumber, collection: $("collection").value};
+}
+
+function updateWorkspacePreview() {
+  const ra = parseRA($("ra").value), dec = parseDec($("dec").value);
+  const fov = $("fov").valueAsNumber;
+  const link = $("preview-workspace");
+  if (!ra.ok || !dec.ok || !Number.isInteger(fov) || fov < 1 || fov > 30) {
+    link.hidden = true;
+    $("preview-field").textContent = "Enter valid coordinates and a whole-number field width from 1 to 30 arcmin.";
+    return;
+  }
+  const url = new URL("index.html", location.href);
+  url.search = new URLSearchParams({ ra: ra.deg, dec: dec.deg, fov, data: "mock" });
+  url.hash = "workspace";
+  link.href = url.href;
+  link.hidden = false;
+  $("preview-field").textContent = `${fov}′ field · synthetic images`;
 }
 
 function validArchiveResponse(body) {
@@ -106,7 +123,7 @@ function workspaceUrl() {
 }
 
 function drawMapOverlay() {
-  if (!map.isOpen) return;
+  if (!map?.isOpen) return;
   if (!overlay) {
     overlay = map.A.graphicOverlay({name:"Selected IRSA product", color:"#f5b942", lineWidth:3});
     map.aladin.addOverlay(overlay);
@@ -128,6 +145,7 @@ function renderProducts() {
     drawMapOverlay();
     $("workspace").href = workspaceUrl();
   }
+  plot(records); drawMapOverlay();
   rows.replaceChildren(...records.map(record => {
     const tr = document.createElement("tr");
     const button = Object.assign(document.createElement("button"), {type:"button", className:"btn btn-small", textContent:record.id});
@@ -141,7 +159,6 @@ function renderProducts() {
     else file.textContent = "Unavailable";
     return tr;
   }));
-  plot(records); drawMapOverlay();
   if (selected) $("workspace").href = workspaceUrl();
   else $("workspace").removeAttribute("href");
 }
@@ -175,6 +192,7 @@ async function search(saved) {
       throw new Error("Invalid archive metadata response.");
     current = body;
     for (const key of stateKeys) $(key).value = current.query[key];
+    updateWorkspacePreview();
     selected = null;
     const detectors = [...new Set(current.records.map(r => r.detector).filter(Boolean))].sort();
     $("detector").replaceChildren(new Option("All detectors","all"), ...detectors.map(d => new Option(d,d)));
@@ -182,7 +200,7 @@ async function search(saved) {
     $("provenance").textContent = `${saved ? "Saved" : "Live"} IRSA SIA2 response · ${current.query.collection} · retrieved ${current.retrieved.slice(0,19).replace("T"," ")} UTC.`;
     $("status").textContent = `${current.records.length} image products${current.truncated ? " shown (response limited to 100)" : " found"}.`;
     $("products").hidden = false;
-    if (map.isOpen) map.update(current.query);
+    if (map?.isOpen) map.update(current.query);
     renderProducts();
     const next = new URL(location.href);
     for (const key of stateKeys) saved ? next.searchParams.delete(key) : next.searchParams.set(key, current.query[key]);
@@ -197,14 +215,19 @@ async function search(saved) {
 $("search").addEventListener("submit", event => { event.preventDefault(); search(false); });
 $("example").addEventListener("click", () => search(true));
 $("detector").addEventListener("change", renderProducts);
-$("survey").addEventListener("change", () => map.setSurvey($("survey").value));
+$("survey").addEventListener("change", () => map?.setSurvey($("survey").value));
 $("map-start").addEventListener("click", async () => {
   const query = readQuery();
   if (!query) return;
   $("map-start").disabled = true;
   try {
+    if (!map) {
+      $("map-status").textContent = "Loading the survey map…";
+      const { SkyContext } = await import("./features/skyContext.js");
+      map = new SkyContext($("aladin-box"), $("map-status"));
+    }
     await map.open(query, $("survey").value);
-    if (map.isOpen) { map.aladin.setFoV(8); drawMapOverlay(); }
+    if (map.isOpen) { map.aladin.setFoV(query.fov / 60); drawMapOverlay(); }
     $("use-centre").disabled = !map.isOpen;
   } catch { $("map-status").textContent = "Sky map unavailable. Check WebGL2 support and network access."; }
   finally { $("map-start").disabled = false; }
@@ -212,8 +235,12 @@ $("map-start").addEventListener("click", async () => {
 $("use-centre").addEventListener("click", () => {
   const [ra, dec] = map.aladin.getRaDec();
   $("ra").value = ra.toFixed(7); $("dec").value = dec.toFixed(7);
+  updateWorkspacePreview();
   $("status").textContent = "Map centre copied. Search IRSA to update the products.";
 });
 for (const key of stateKeys) if (params.has(key)) $(key).value = params.get(key);
+$("search").addEventListener("input", updateWorkspacePreview);
 setupAtlas();
-search(!stateKeys.some(key => params.has(key)));
+updateWorkspacePreview();
+if (!stateKeys.some(key => params.has(key))) search(true);
+else if (CAN_USE_LOCAL_BACKEND) search(false);

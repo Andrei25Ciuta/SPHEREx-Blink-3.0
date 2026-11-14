@@ -27,13 +27,17 @@
       <form id="search" class="tool-form">
         <label>Right ascension <input type="text" id="ra" required value="127.69444"></label>
         <label>Declination <input type="text" id="dec" required value="-39.17760"></label>
-        <label>Diameter (arcmin) <input type="number" id="fov" required min="1" max="30" value="2"></label>
+        <label>Field of view (arcmin) <input type="number" id="fov" required min="1" max="30" value="2"></label>
         <label>Collection <select id="collection">
           <option value="spherex_qr2">QR2 wide</option><option value="spherex_qr2_deep">QR2 deep</option>
           <option value="spherex_qr3">QR3 wide</option><option value="spherex_qr3_deep">QR3 deep</option>
         </select></label>
         <button class="btn btn-primary" type="submit" aria-describedby="live-search-help">Search IRSA</button>
       </form>
+      <div class="tool-actions">
+        <a class="btn" id="preview-workspace" href="index.html?ra=127.69444&amp;dec=-39.17760&amp;fov=2&amp;data=mock#workspace">Open in Image Workspace</a>
+        <span id="preview-field"></span>
+      </div>
       <p><span id="live-search-help">Enter degrees or sexagesimal coordinates. The live search uses the Blink backend.</span> <button class="btn btn-small" id="example">Load saved QR2 field</button></p>
       <p id="status" role="status"></p>
     </section>
@@ -54,5 +58,5 @@
       <button type="button" id="use-centre" class="btn" aria-describedby="map-status" disabled>Use map centre in search</button></div>
       <div class="skymap" id="aladin-box" hidden></div><p id="map-status" role="status">Open the survey map to use its centre in a search.</p>
     </section>
-  </main></div><script type="module" src="js/skyExplorer.js"></script></body>
+  </main></div><script type="module" src="js/skyExplorer.js?v=2"></script></body>
 </html>
