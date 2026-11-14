@@ -432,6 +432,7 @@ function setPlayerEnabled(enabled) {
   observations.disabled = !enabled || !player.isAnimated;
   speedInput.disabled = !animated;
   $("save-png-btn").disabled = !enabled;
+  $("viewer-sky-map-btn").disabled = !enabled;
   $("record-btn").disabled = !animated || player.playbackCount < 2 || !canRecord();
   // Modes that combine frames need at least 2 of them.
   document.querySelectorAll('#mode-switch input:not([value="blink"])')
@@ -793,12 +794,26 @@ const sky = new SkyContext($("aladin-box"), $("aladin-status"), $("sky-geo-note"
 setupFullscreen($("sky-frame"), $("sky-full-btn"));   // map + its controls fill the screen
 /** Open (or re-centre) the sky map on a position { ra, dec, fov }. */
 async function openSkyMap(q) {
-  $("aladin-btn").disabled = true;
-  await sky.open(q, $("survey-select").value);
-  $("aladin-btn").disabled = false;
-  $("aladin-btn").textContent = "Re-centre sky map";
-  $("sky-full-btn").hidden = !sky.isOpen;             // nothing to enlarge until the map is open
+  const button = $("aladin-btn");
+  if (button.disabled) return;
+  button.disabled = true;
+  try {
+    await sky.open(q, $("survey-select").value);
+  } finally {
+    button.disabled = false;
+    button.textContent = sky.isOpen ? "Re-centre sky map" : "Show sky map";
+    $("sky-full-btn").hidden = !sky.isOpen;
+  }
 }
+
+$("viewer-sky-map-btn").addEventListener("click", async () => {
+  if (!currentQuery || !player.length) return;
+  const title = $("context-title");
+  title.focus({ preventScroll: true });
+  title.scrollIntoView({ block: "start", behavior: prefersReducedMotion ? "auto" : "smooth" });
+  await openSkyMap(currentQuery);
+});
+
 $("aladin-btn").addEventListener("click", async () => {
   const q = readForm();
   if (!q) { $("aladin-status").textContent = "Enter coordinates first."; return; }
