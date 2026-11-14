@@ -717,7 +717,12 @@ output { font-weight: 600; color: var(--accent); }
   font: .75rem/1.35 var(--font-mono); font-variant-numeric: tabular-nums;
   text-align: center; pointer-events: none;
 }
-#sky-reset-light { position: absolute; top: .5rem; right: .5rem; z-index: 6; }
+#sky-reset-light {
+  position: absolute; top: .5rem; right: .5rem; z-index: 6;
+  display: grid; place-items: center; width: 44px; height: 44px; padding: 0;
+  background: var(--raised); color: var(--text);
+  font-size: 1.55rem; line-height: 1;
+}
 .sky-map-scale::after {
   content: ""; display: block; width: var(--scale-width); height: .35rem; margin: 0 auto;
   border: 1px solid currentColor; border-top: 0;

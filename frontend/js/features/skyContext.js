@@ -13,7 +13,7 @@
 import { SKY_TILES, API_BASE } from "../config.js";
 import { WORLD_URL, decodeCountries, overheadAt } from "./skyGeo.js";
 import { fieldCorners } from "./explorerGeometry.js";
-import { aladinSkyAt, selectionText, copySkySelection } from "./skyContextClick.js";
+import { aladinSkyAt, selectionText } from "./skyContextClick.js";
 
 import { outsideWorkspaceField, skyMapGuide } from "./skyMapGuide.js";
 
@@ -112,12 +112,10 @@ function loadWorld() {
 }
 
 export class SkyContext {
-  constructor(container, statusEl, noteEl = null, { matchField = false, onSelectPosition = null, selectionStatusEl = null, backToField = null, guide = null, scale = null, resetLight = null } = {}) {
+  constructor(container, statusEl, noteEl = null, { matchField = false, backToField = null, guide = null, scale = null, resetLight = null } = {}) {
     this.container = container;
     this.statusEl = statusEl;
     this.matchField = matchField;
-    this.onSelectPosition = onSelectPosition;
-    this.selectionStatusEl = selectionStatusEl;
     this.backToField = backToField;
     this.guide = guide;
     this.scale = scale;
@@ -133,7 +131,6 @@ export class SkyContext {
       if (this.workspaceField) this.update(this.workspaceField);
     });
     this.coordinateHint = null;
-    this.clickedAladinObject = false;
     this.noteEl = noteEl;               // the paragraph that explains the country in brackets
     this.aladin = null;
     this.A = null;
@@ -207,7 +204,7 @@ export class SkyContext {
   showPointerCoordinates(sky, x, y) {
     if (!this.coordinateHint || !Number.isFinite(x) || !Number.isFinite(y)) return;
     const { raText, decText } = selectionText(sky);
-    this.coordinateHint.textContent = `RA ${raText}° · Dec ${decText}° · Click to open in Blink`;
+    this.coordinateHint.textContent = `RA ${raText}° · Dec ${decText}°`;
     this.coordinateHint.hidden = false;
     const width = this.container.clientWidth, height = this.container.clientHeight;
     const left = Math.max(8, Math.min(x + 14, width - this.coordinateHint.offsetWidth - 8));
@@ -227,24 +224,6 @@ export class SkyContext {
     this.hovering = true;
     this.setReadout(sky.ra, sky.dec, "Cursor");
     this.showPointerCoordinates(sky, e.x, e.y);
-  }
-  onMapClick(e) {
-    // Aladin fires 'click' on mouse release, even after panning. Never load a new
-    // field when the user dragged the map or selected a catalogue source.
-    if (!this.onSelectPosition || e?.isDragging || e?.object ||
-        (e?.button !== undefined && e.button !== 0)) return;
-    const sky = aladinSkyAt(this.aladin, e);
-    if (!sky) return;
-    const fields = selectionText(sky);
-    // Clipboard access must begin during the click, before loading changes the view.
-    const copied = copySkySelection(fields.clipboardText);
-    this.onSelectPosition({ ...sky, ...fields });
-    this.hidePointerCoordinates();
-    copied.then((ok) => {
-      if (this.selectionStatusEl) this.selectionStatusEl.textContent = ok
-        ? "Sky position copied and loaded into Blink Workspace."
-        : "Sky position loaded into Blink Workspace. Clipboard permission was unavailable.";
-    });
   }
   /** Load the country map once and redraw the readout with it. */
   async ensureWorld() {
@@ -293,15 +272,6 @@ export class SkyContext {
       this.coordinateHint.hidden = true;
       this.container.appendChild(this.coordinateHint);
       this.aladin.on("mouseMove", (e) => this.onHover(e));
-      this.aladin.on("objectClicked", (object) => {
-        // A source click should keep Aladin's own SIMBAD popup, not navigate away.
-        this.clickedAladinObject = Boolean(object);
-      });
-      this.aladin.on("click", (e) => {
-        const clickedSource = this.clickedAladinObject;
-        this.clickedAladinObject = false;
-        if (!clickedSource) this.onMapClick(e);
-      });
       if (this.scale) this.container.appendChild(this.scale);
       if (this.resetLight) this.container.appendChild(this.resetLight);
       this.installMapGuide();
