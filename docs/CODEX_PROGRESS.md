@@ -489,3 +489,8 @@ Verification: 46 `scratch/test_*.mjs` scripts passed (the new one has 56 checks,
 ## 2026-11-14 – Cosmic Missions and Discovery Pin Board (branch `missions-pinboard`)
 Added `features/missions.js`, `pinBoard.js`, `missionsPinView.js`, two panels in index.html, a pin button in the mover detail, `scratch/test_missions_pins.mjs`.
 Untested: the Node suite could not run on this machine (Node 18.15; the repo's ES modules need Node 22, every existing test_*.mjs fails here too). The same checks were run by hand in the browser (served by scripts/serve_frontend.py on 8765): 19 missions, Math.random reaches all, SHA-256("abc") correct, Find movers → select #1 → pin as Alex_Space99 → marker + list item, hash verifies, no console errors. Playwright regressions and pytest not run.
+
+## Workspace comparison and Findings cards
+
+- Added a split view of two displayed observations or survey-pass averages, with a draggable divider and a keyboard-accessible range input. Findings now shows one supporting cutout per available preview and can sort cards by detection count or endpoint separation.
+- Checks include `node scratch/test_compare.mjs` and `git diff --check`. The split geometry test uses stub canvas calls. The browser smoke test uses the synthetic demo. This environment rejected Chromium at startup because the Unix socket could not be opened, leaving the browser checks unverified here.

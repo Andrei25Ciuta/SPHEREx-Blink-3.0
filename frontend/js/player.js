@@ -10,7 +10,7 @@
 //   "mean"  – average of all images: a deeper, less noisy single picture
 //   "max"   – brightest value of each pixel over all images: a moving object
 //             leaves a TRAIL of dots, a static star stays one dot
-//   "compare" – YOUR choice: image A minus (or plus) image B, where A and B are single images or
+//   "compare" – YOUR choice: image A next to, minus or plus image B, where A and B are single images or
 //             whole survey passes (features/compare.js). Set with player.setCompare({ a, b, op }).
 //
 // Usage:
@@ -66,7 +66,8 @@ export class BlinkPlayer {
     this.showTracks = true;
     this.candidates = [];   // movers found by "Find movers": [{ label, points: [{ fx, fy }] }], one point per frame
     this.selectedCandidate = -1;
-    this.compare = null;    // { a: [frame indices], b: [frame indices], op: "sub" | "add" } for the "compare" mode
+    this.compareSplit = 0.5;
+    this.compare = null;    // { a: [frame indices], b: [frame indices], op: "sub" | "add" | "wipe" } for the "compare" mode
     this.catalogue = [];    // catalogue objects: [{ label, pm, moving, points: [{ fx, fy }] }], one point per frame
     this.asteroids = [];    // known asteroids per frame: [[{ name, fx, fy, vmag }] | null, ...] (features/skybot.js)
     this.lastTick = 0;
@@ -172,6 +173,44 @@ export class BlinkPlayer {
   greyFrames() { return this._greys(); }
   /** What the "compare" mode shows: a, b = frame indices (averaged if several), op = "sub" (A − B) or "add" (A + B). */
   setCompare(compare) { this.compare = compare; this.draw(); }
+  setCompareSplit(fraction) {
+    this.compareSplit = fraction;
+    if (this.mode === "compare" && this.compare?.op === "wipe") this.draw();
+  }
+
+  _drawCompareSplit() {
+    const { a, b } = this.compare;
+    if (!a.length || !b.length) return false;
+    const drawSide = (members) => {
+      if (members.length === 1) {
+        this._blit(this.images[members[0]]);
+        return;
+      }
+      const levels = this._stat("mean", members);
+      if (levels) this._drawRgba(combine(levels, levels, "add"));
+      else this._blit(this.images[members[0]]);
+    };
+    const { ctx, canvas } = this;
+    const x = Math.round(canvas.width * this.compareSplit);
+    drawSide(b);
+    if (x > 0) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, 0, x, canvas.height);
+      ctx.clip();
+      drawSide(a);
+      ctx.restore();
+    }
+    if (x > 0 && x < canvas.width) {
+      ctx.save();
+      ctx.fillStyle = "#000";
+      ctx.fillRect(x - 2, 0, 4, canvas.height);
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(x - 1, 0, 2, canvas.height);
+      ctx.restore();
+    }
+    return true;
+  }
   /** Catalogue objects at each frame's date (features/catalogue.js): small rings, names + paths for the moving ones. */
   setCatalogue(catalogue) { this.catalogue = catalogue || []; this.draw(); }
   /** Known asteroids on every frame's date (features/skybot.js asteroidPoints): amber diamonds. */
@@ -212,6 +251,8 @@ export class BlinkPlayer {
 
     if (this.showsOriginal) {
       this._blit(img);
+    } else if (this.mode === "compare" && this.compare?.op === "wipe") {
+      if (!this._drawCompareSplit()) this._blit(img);
     } else {
       const rgba = this._renderDerived();
       if (rgba) this._drawRgba(rgba);

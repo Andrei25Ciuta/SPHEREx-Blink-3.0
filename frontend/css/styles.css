@@ -504,6 +504,19 @@ output { font-weight: 600; color: var(--accent); }
 }
 .compare-controls label { display: grid; gap: .2rem; min-width: 0; font-size: .78rem; color: var(--text-muted); }
 .compare-controls select { width: 100%; min-width: 0; text-overflow: ellipsis; }
+.compare-controls .compare-split { grid-column: 1 / -1; }
+.compare-split > span { display: flex; justify-content: space-between; }
+.compare-split input { width: 100%; margin: 0; }
+.compare-handle {
+  position: absolute; z-index: 1; top: 50%; left: clamp(16px, var(--split, 50%), calc(100% - 16px));
+  transform: translate(-50%, -50%); display: grid; place-items: center;
+  width: 40px; height: 44px; cursor: ew-resize; touch-action: none; user-select: none;
+}
+.compare-handle span {
+  display: grid; place-items: center; width: 32px; height: 32px;
+  border: 1px solid var(--text); border-radius: 50%;
+  background: var(--bg); color: var(--text); font-weight: 700; pointer-events: none;
+}
 @media (max-width: 560px) { .compare-controls { grid-template-columns: 1fr; } }
 
 #blink-canvas { cursor: crosshair; }
@@ -1459,7 +1472,13 @@ html[data-theme] .site-footer { border-top: 1px solid var(--border); background:
 .mission-why { padding: 8px 10px; border-radius: 10px; background: rgb(var(--accent-rgb) / .08); }
 
 /* ---------- the object finder's candidate cards (main.js renderMovers) ---------- */
-.mover-list { gap: .6rem; }
+#mover-list { grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: .85rem; }
+#mover-list .mover-item { height: 100%; }
+.mover-sort { display: flex; flex-wrap: wrap; gap: .45rem; align-items: center; }
+.mover-preview {
+  display: block; align-self: center; width: min(100%, 144px); height: auto;
+  border: 1px solid var(--border); border-radius: var(--radius-sm); image-rendering: pixelated;
+}
 #mover-list .mover-item { display: flex; flex-direction: column; align-items: stretch; gap: .45rem; text-align: left; padding: .8rem .9rem; border-radius: var(--radius-sm);
   background: linear-gradient(150deg, rgb(var(--accent-rgb) / .08), transparent 55%), var(--raised); transition: border-color .2s, box-shadow .2s, transform .15s; }
 #mover-list .mover-item:hover { transform: translateY(-1px); box-shadow: 0 8px 22px -12px rgb(0 0 0 / .6); }

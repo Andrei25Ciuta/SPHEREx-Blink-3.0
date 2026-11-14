@@ -45,6 +45,8 @@ A candidate is a lead with its evidence, never a discovery. Nothing this applica
 
 ## Find movers
 
+- The Findings thumbnail shows one supporting detection. The displayed displacement is an approximate angular separation between the first and last detections. A curved or returning trajectory can have a small endpoint separation.
+
 - Needs images from at least 3 survey passes about 6 months apart; motion below about 0.8 pixel (5″) over the baseline looks like a still star.
 - In a field with a saturated star it is 20-30 times less sensitive; one image reaches about 0.6-0.9 mJy in a clean field.
 - The "chance lines expected" number is conservative in the empty-sky tests; it is not a probability of being real.
@@ -70,6 +72,8 @@ A candidate is a lead with its evidence, never a discovery. Nothing this applica
 - The positions CSV is not an MPC/ADES report.
 
 ## Viewer (zoom, pan, readout)
+
+- The A/B split uses the displayed intensities of the selected images or pass averages. Wavelength and display scaling can change how a source looks across the split.
 
 - Zoom enlarges the cutout's pixels (nearest neighbour, no smoothing): it adds no detail and never changes a measurement. Sky position under the cursor uses the same
   flat-sky formula as everything else (`geometry.js`); zooming and panning leave it exactly as it was (`test_view.mjs`).

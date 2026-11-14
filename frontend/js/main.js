@@ -12,7 +12,7 @@ import { skyToCanvas, tanCanvasToSky, mjdToYear } from "./geometry.js";
 import { readUrlState, writeUrlState } from "./urlState.js";
 import { getCutouts, listDetectors } from "./data/getCutouts.js";
 import { DATA_SOURCE, API_BASE, CAN_USE_LOCAL_BACKEND } from "./config.js";
-import { BlinkPlayer, MODES, loadImage, meanImageData } from "./player.js?v=5";
+import { BlinkPlayer, MODES, loadImage, meanImageData } from "./player.js?v=6";
 import { canvasToSky, measureAndPlot, clearMeasurement, setSpectrumStyle, APERTURE_RADIUS_PX } from "./features/measure.js";
 import { setupViewer } from "./features/viewerControls.js";
 import { setupWorkspace } from "./features/workspaceView.js";
@@ -408,7 +408,7 @@ function updateFrameInfo(i, frame) {
     // Compare: A − B or A + B of the images / passes you picked.
     const { a, b, op } = compareState;
     const used = [...new Set([...compareMembers(a), ...compareMembers(b)])].map((k) => player.frames[k]);
-    const sign = op === "sub" ? "−" : "+";
+    const sign = op === "wipe" ? "/" : op === "sub" ? "−" : "+";
     $("frame-counter").textContent = OPERATIONS[op];
     $("frame-date").textContent = `${shortLabel(a, player.frames)} ${sign} ${shortLabel(b, player.frames)}`;
     $("meta-wl").textContent = `${Math.min(...used.map((f) => f.wavelengthMinUm)).toFixed(2)}–${Math.max(...used.map((f) => f.wavelengthMaxUm)).toFixed(2)} µm`;
@@ -416,7 +416,7 @@ function updateFrameInfo(i, frame) {
     $("meta-flags").textContent = flagged ? `⚠ ${flagged} of ${used.length} images` : "Clean";
     $("meta-mjd").textContent = `${Math.min(...used.map((f) => f.mjd)).toFixed(1)}–${Math.max(...used.map((f) => f.mjd)).toFixed(1)}`;
     canvas.setAttribute("aria-label",
-      `SPHEREx ${frame.detector} ${op === "sub" ? "difference" : "sum"} image: ${shortLabel(a, player.frames)} ${sign} ${shortLabel(b, player.frames)}`);
+      `SPHEREx ${frame.detector} ${op === "wipe" ? "split-view" : op === "sub" ? "difference" : "sum"} image: ${shortLabel(a, player.frames)} ${sign} ${shortLabel(b, player.frames)}`);
   } else {
     // Stack / trail: one image made from the images the timeline filter lets through (all of them without a filter).
     const used = player.activeIndices.map((k) => player.frames[k]);
@@ -456,6 +456,7 @@ function setPlayerEnabled(enabled) {
   document.querySelectorAll('#mode-switch input:not([value="blink"])')
     .forEach((r) => { r.disabled = !enabled || player.length < 2; });
   $("show-flags").disabled = !enabled || !player.hasFlagMasks;
+  updateCompareSplitControl(enabled);
   viewer.refresh();                                  // the zoom buttons follow whether there is a picture
   $("find-movers-btn").disabled = !enabled || !canFindMovers();
   $("find-distant-btn").disabled = !enabled || !canFindMovers();
@@ -502,7 +503,7 @@ const MODE_HELP = {
   mean: "Average of all images: deeper and less noisy. Moving objects get smeared or fade out.",
   max: "Brightest value of every pixel over all dates: a moving object leaves a <strong>trail of dots</strong>, a still star stays one dot.",
   colour: "Blink from shorter to longer wavelengths within one survey pass. The coloured halo marks the local brightness centre near the selected candidate, a marked position, a single test target, or the field centre. A faint halo marks the predicted position when the light centre is unavailable.",
-  compare: 'Pick two images, or whole survey passes. <strong>A − B</strong>: <span class="swatch" style="background:#ff9e33"></span> brighter in A · <span class="swatch" style="background:#409eff"></span> fainter in A – a mover is an orange dot next to a blue one, still stars vanish. <strong>A + B</strong>: the average of both, a deeper picture. Other dates are also other wavelengths, so bright stars can leave a faint leftover even if they did not move.',
+  compare: 'Pick two images, or whole survey passes. <strong>A / B</strong>: drag Split position to compare A on the left and B on the right. <strong>A − B</strong>: <span class="swatch" style="background:#ff9e33"></span> brighter in A · <span class="swatch" style="background:#409eff"></span> fainter in A – a mover is an orange dot next to a blue one, still stars vanish. <strong>A + B</strong>: the average of both, a deeper picture. Other dates are also other wavelengths, so bright stars can leave a faint leftover even if they did not move.',
 };
 
 const colourPass = $("colour-pass");
@@ -583,9 +584,40 @@ function applyCompare() {
   compareState.a = $("cmp-a").value;
   compareState.b = $("cmp-b").value;
   compareState.op = $("cmp-op").value;
+  updateCompareSplitControl();
   player.setCompare({ a: compareMembers(compareState.a), b: compareMembers(compareState.b), op: compareState.op });
   if (player.mode === "compare" && player.length) updateFrameInfo(player.index, player.frames[player.index]);
 }
+const compareSplitInput = $("cmp-split");
+const compareHandle = $("cmp-handle");
+
+function updateCompareSplitControl(enabled = player.length >= 2) {
+  const hidden = !enabled || player.mode !== "compare" || $("cmp-op").value !== "wipe";
+  $("cmp-split-control").hidden = compareHandle.hidden = hidden;
+}
+
+function updateCompareSplit(value) {
+  compareSplitInput.value = String(value);
+  $("cmp-split-value").textContent = `${value}%`;
+  compareHandle.style.setProperty("--split", `${value}%`);
+  player.setCompareSplit(value / 100);
+}
+
+compareSplitInput.addEventListener("input", () => updateCompareSplit(compareSplitInput.valueAsNumber));
+function dragCompareSplit(event) {
+  const bounds = canvas.getBoundingClientRect();
+  const value = Math.round(100 * (event.clientX - bounds.left) / bounds.width);
+  updateCompareSplit(Math.min(100, Math.max(0, value)));
+}
+compareHandle.addEventListener("pointerdown", (event) => {
+  if (event.button !== 0 || !event.isPrimary) return;
+  compareHandle.setPointerCapture(event.pointerId);
+  compareSplitInput.focus({ preventScroll: true });
+  dragCompareSplit(event);
+});
+compareHandle.addEventListener("pointermove", (event) => {
+  if (compareHandle.hasPointerCapture(event.pointerId)) dragCompareSplit(event);
+});
 ["cmp-a", "cmp-b", "cmp-op"].forEach((id) => $(id).addEventListener("change", applyCompare));
 
 // ---------------------------------------------------------------
@@ -959,6 +991,7 @@ $("show-asteroids").addEventListener("change", updateAsteroids);
 const MOVERS_HINT = "Compares the dots in all images and lists the ones that moved.";
 const MIN_PASSES = 3;                      // same rule as in movers.js: a third pass proves a line
 let textAnalysis = null;                   // the text analysis (section 9), set up below; its candidate table is refreshed when the list changes
+let moverPreviews = [];
 let movers = [];                           // candidates for the detector on screen, best first
 let selectedMover = -1;
 startMissionRunner({ getCandidate: () => (selectedMover >= 0 ? movers[selectedMover] ?? null : null), getCount: () => movers.length });
@@ -1036,6 +1069,7 @@ $("movers-all-det").addEventListener("change", () => {
 
 function clearMovers() {
   movers = [];
+  moverPreviews = [];
   moversRun = null;
   $("movers-provenance").hidden = true;
   selectedMover = -1;
@@ -1043,6 +1077,7 @@ function clearMovers() {
   updateSkyCandidate(null);
   player.setCandidates([]);
   $("mover-list").hidden = true;
+  $("mover-sort-control").hidden = true;
   $("mover-list").replaceChildren();
   $("mover-export").hidden = true;
   $("mover-detail").hidden = true;
@@ -1253,18 +1288,22 @@ $("find-distant-btn").addEventListener("click", async () => {
 
 function showMovers({ candidates, stats, reason }, catalogueObjects = null, { distant = false } = {}) {
   moversCatalogueChecked = Boolean(catalogueObjects);
-  const status = $("movers-status"), list = $("mover-list");
+  const status = $("movers-status");
   if (reason) { status.textContent = `Cannot search: ${reason}.`; return; }
 
   const n = player.naturalSize;
   const geo = currentGeo();
   const pool = catalogueObjects ? [...TARGETS, ...catalogueObjects] : TARGETS;     // test objects first: their motions are the best
+  const framesById = new Map(allFrames.map((frame) => [frameId(frame), frame]));
+  const framesOnScreen = new Map(player.frames.map((frame, index) => [frameId(frame), player.images[index]]));
+  moverPreviews = candidates.map((candidate) => candidatePreview(candidate, n, framesById, framesOnScreen));
   movers = candidates.map((c, k) => ({
     ...c, ...describeMover(c, geo),
     fitPoints: c.points,
     dots: c.points,                                   // the raw dots of the fit, before `points` below becomes the places on the images (the Planet X Lab compares motions on them)
     dotDates: c.dotDates ?? null,                     // the date of each dot (attachDotDates)
     label: `#${k + 1}`,
+    observedDisplacement: candidateDisplacement(c, geo.scaleArcsec),
     known: distant ? null : matchKnownObject(c, geo, pool)?.target.label ?? null,
     distant: distant ? describeDistant(c, geo) : null,
     // where it is on each frame's date, as image fractions (what the player draws)
@@ -1294,14 +1333,73 @@ function showMovers({ candidates, stats, reason }, catalogueObjects = null, { di
       : `No movers found. ${summary} Nothing shifted by more than about 1 pixel (${geo.scaleArcsec.toFixed(0)}″).${other}`;
     return;
   }
-  status.textContent = `${movers.length} candidate${movers.length === 1 ? "" : "s"} found, best first. ${summary} Click one to see its path.`;
+  status.textContent = `${movers.length} candidate${movers.length === 1 ? "" : "s"} found. ${summary} Click one to see its path.`;
 
-  list.replaceChildren(...movers.map((m, k) => {
+  renderMoverCards();
+  $("mover-sort-control").hidden = false;
+  $("mover-export").hidden = false;
+  player.setCandidates(movers, -1);
+  textAnalysis?.refreshCandidates();
+}
+
+function candidateDisplacement(candidate, scale) {
+  const ordered = candidate.points
+    .map((point, index) => ({ ...point, mjd: candidate.dotDates?.[index] }))
+    .filter(({ x, y, mjd }) => [x, y, mjd].every(Number.isFinite))
+    .sort((a, b) => a.mjd - b.mjd);
+  if (ordered.length < 2) return null;
+  const first = ordered[0], last = ordered.at(-1);
+  return Math.hypot(last.x - first.x, last.y - first.y) * scale;
+}
+
+function candidatePreview(candidate, size, framesById, framesOnScreen) {
+  const dot = candidate.points.find((point) =>
+    framesOnScreen.has(candidate.frameIds?.[point.frame])) ?? candidate.points[0];
+  if (!dot || ![dot.x, dot.y, size].every(Number.isFinite) || size < 1) return null;
+  const id = candidate.frameIds?.[dot.frame];
+  const frame = framesById.get(id) ?? (id ? null : player.frames[dot.frame]);
+  if (!frame) return null;
+  const side = Math.min(size, 12);
+  const left = Math.min(size - side, Math.max(0, Math.floor(dot.x - side / 2)));
+  const top = Math.min(size - side, Math.max(0, Math.floor(dot.y - side / 2)));
+  const preview = document.createElement("canvas");
+  preview.className = "mover-preview";
+  preview.width = preview.height = 144;
+  preview.setAttribute("aria-hidden", "true");
+  preview.title = `Detection on ${frame.dateISO.slice(0, 10)} · ${frame.detector}`;
+  const draw = (image) => {
+    const context = preview.getContext("2d");
+    const width = preview.width;
+    context.imageSmoothingEnabled = false;
+    context.drawImage(image, left, top, side, side, 0, 0, width, width);
+    context.strokeStyle = "#f5c451";
+    context.lineWidth = 2;
+    context.beginPath();
+    context.arc((dot.x - left) * width / side, (dot.y - top) * width / side, width / side, 0, 2 * Math.PI);
+    context.stroke();
+  };
+  const image = framesOnScreen.get(frameId(frame));
+  if (image) draw(image);
+  else loadImage(frame.imageUrl, frame).then(draw).catch(() => { preview.hidden = true; });
+  return preview;
+}
+
+$("mover-sort").addEventListener("change", renderMoverCards);
+
+function renderMoverCards() {
+  const list = $("mover-list");
+  const order = movers.map((_, index) => index);
+  const sort = $("mover-sort").value;
+  if (sort === "detections") order.sort((a, b) => movers[b].nDet - movers[a].nDet);
+  if (sort === "displacement") order.sort((a, b) =>
+    (movers[b].observedDisplacement ?? -1) - (movers[a].observedDisplacement ?? -1));
+  list.replaceChildren(...order.map((k) => {
+    const m = movers[k];
     const li = document.createElement("li");
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "mover-item";
-    btn.setAttribute("aria-pressed", "false");
+    btn.setAttribute("aria-pressed", String(selectedMover === k));
     btn.dataset.index = String(k);
     const rank = Object.assign(document.createElement("span"), { className: "mover-rank", textContent: m.label });
     const main = Object.assign(document.createElement("span"), { className: "mover-main",
@@ -1330,15 +1428,20 @@ function showMovers({ candidates, stats, reason }, catalogueObjects = null, { di
     meters.innerHTML = bar("seen in images", m.nDet, m.nFrames) + (m.support?.measurable ? bar("on its path", m.support.supported, m.support.measurable) : "");
     const head = Object.assign(document.createElement("span"), { className: "mover-head" });
     head.append(rank, badge, arrow);
-    btn.append(head, main, meters, sub);
+    btn.append(head);
+    if (moverPreviews[k]) btn.append(moverPreviews[k]);
+    btn.append(main, meters, sub);
+    if (m.observedDisplacement !== null) {
+      const displacement = document.createElement("span");
+      displacement.className = "mover-sub";
+      displacement.textContent = `First to last detection · ${m.observedDisplacement.toFixed(1)}″`;
+      btn.append(displacement);
+    }
     btn.addEventListener("click", () => selectMover(selectedMover === k ? -1 : k));
     li.append(btn);
     return li;
   }));
-  list.hidden = false;
-  $("mover-export").hidden = false;
-  player.setCandidates(movers, -1);
-  textAnalysis?.refreshCandidates();
+  list.hidden = !movers.length;
 }
 
 // Save the candidates as CSV / JSON. Every file says what the data is and links back to this view.

@@ -1,5 +1,6 @@
 // Tests for frontend/js/features/compare.js ("Compare": A - B and A + B).  Run: node scratch/test_compare.mjs
 import { compareChoices, membersFor, defaultChoice, shortLabel, combine, OPERATIONS } from "../frontend/js/features/compare.js";
+import { BlinkPlayer } from "../frontend/js/player.js";
 import { mulberry32, renderPixels, stretchAsinh } from "../frontend/js/data/mockSource.js";
 
 let failed = 0;
@@ -60,6 +61,30 @@ const px = (rgba, i) => [rgba[4 * i], rgba[4 * i + 1], rgba[4 * i + 2], rgba[4 *
   check("a mover is ORANGE where it is in A", now[0] > 100 && now[0] > now[2] * 2, `rgb(${now.slice(0, 3).map(Math.round)})`);
   check("... and BLUE where it was in B", before[2] > 100 && before[2] > before[0] * 2, `rgb(${before.slice(0, 3).map(Math.round)})`);
   check("a still star cancels out", star[0] < 60 && star[2] < 60, `rgb(${star.slice(0, 3).map(Math.round)})`);
+}
+
+// The canvas crop and zoom belong to the blit, while the split clips in screen coordinates.
+{
+  const calls = [];
+  const split = {
+    canvas: { width: 512, height: 512 },
+    ctx: {
+      save() {}, restore() {}, beginPath() {}, clip() {}, fillRect() {},
+      rect: (...bounds) => calls.push(bounds),
+    },
+    images: ["image A", "image B"],
+    compare: { a: [0], b: [1], op: "wipe" },
+    _blit: (image) => calls.push(image),
+  };
+  const redraw = (fraction) => {
+    calls.length = 0;
+    split.compareSplit = fraction;
+    BlinkPlayer.prototype._drawCompareSplit.call(split);
+    return JSON.stringify(calls);
+  };
+  check("split at 0% shows B", redraw(0) === '["image B"]');
+  check("split at 25% clips A to the first quarter of the canvas", redraw(.25) === '["image B",[0,0,128,512],"image A"]');
+  check("split at 100% covers B with A", redraw(1) === '["image B",[0,0,512,512],"image A"]');
 }
 
 console.log(failed ? `\n${failed} check(s) FAILED` : "\nAll checks passed");

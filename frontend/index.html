@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Oswald:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 
   <script>if (/[?&]embed=1(&|$)/.test(location.search)) document.documentElement.classList.add("embed");</script>   <!-- ?embed=1: workspace only, for an <iframe> -->
-  <link rel="stylesheet" href="css/styles.css?v=22">
+  <link rel="stylesheet" href="css/styles.css?v=23">
   <link rel="stylesheet" href="css/instrument.css?v=3">
   <link rel="stylesheet" href="css/lab-track.css">
   <link rel="stylesheet" href="css/contact-sheet.css?v=25">
@@ -123,11 +123,16 @@
           <label>Image A <select id="cmp-a"></select></label>
           <label>Operation
             <select id="cmp-op">
-              <option value="sub">A − B · what changed</option>
+              <option value="wipe">A / B · split view</option>
+              <option value="sub" selected>A − B · what changed</option>
               <option value="add">A + B · deeper picture</option>
             </select>
           </label>
           <label>Image B <select id="cmp-b"></select></label>
+          <label class="compare-split" id="cmp-split-control" hidden>
+            <span>Split position <output id="cmp-split-value" for="cmp-split">50%</output></span>
+            <input id="cmp-split" type="range" min="0" max="100" value="50">
+          </label>
         </div>
 
         <div class="viewer-tools" role="group" aria-labelledby="viewer-tools-label">
@@ -169,6 +174,7 @@
             <canvas id="blink-canvas" width="512" height="512" aria-label="Blink image" role="img" tabindex="0" aria-roledescription="image you can measure" aria-describedby="canvas-keys"
                     title="Click a source to measure its brightness. Drag to move when zoomed in. From the keyboard: Shift and the arrows move the view, plus and minus zoom, Enter measures at the centre of the view."></canvas>
             <p id="canvas-keys" class="sr-only">With this picture focused: plus and minus zoom, Shift with the arrow keys moves the view, and Enter measures at the centre of the view. The position at the centre is read out below the picture. Escape clears the mark.</p>
+            <div class="compare-handle" id="cmp-handle" aria-hidden="true" hidden><span>↔</span></div>
             <div class="crosshair" id="crosshair" aria-hidden="true"></div>
             <!-- Zoom: Ctrl + scroll or pinch also work (js/features/viewerControls.js) -->
             <div class="stage-tools" id="stage-tools" role="group" aria-label="Zoom the image">
@@ -307,6 +313,13 @@
       <p class="movers-status" id="movers-status" role="status" aria-live="polite">Compares the dots in all images and lists the ones that moved.</p>
       <p class="discover-status" id="discover-status" role="status" aria-live="polite"></p>
       <div class="movers" id="movers">
+        <label class="mover-sort" id="mover-sort-control" hidden>Sort candidates
+          <select id="mover-sort">
+            <option value="rank">Search rank</option>
+            <option value="detections">Most detections</option>
+            <option value="displacement">Largest observed displacement</option>
+          </select>
+        </label>
         <ol class="mover-list" id="mover-list" aria-label="Candidate movers" hidden></ol>
         <details class="provenance" id="movers-provenance" hidden>
           <summary>How this search was run</summary>
@@ -777,7 +790,7 @@
     <div class="dlg-head"><h2 id="simulation-note-title">About the simulation</h2><form method="dialog"><button class="btn btn-small">Close</button></form></div>
     <p class="dlg-body">The Planet X preset uses a simulated body 600 AU away. Its position is invented for testing the distant-body search.</p>
   </dialog>
-  <script type="module" src="js/main.js?v=11"></script>
+  <script type="module" src="js/main.js?v=12"></script>
   <script type="module" src="js/scienceExplain.js"></script>
   <script type="module" src="js/features/highContrast.js"></script>
 </body>

@@ -108,6 +108,25 @@ async function main() {
       await waitFor(`!document.getElementById("find-movers-btn").disabled && !document.getElementById("find-distant-btn").disabled`, "search buttons enabled");
       return await text("#movers-status");
     });
+    await step("Compare split shows A and B at opposite ends of the same slider", async () => {
+      await click('input[name="mode"][value="compare"]');
+      const checked = await evaluate(`(() => {
+        const operation = document.getElementById("cmp-op");
+        operation.value = "wipe";
+        operation.dispatchEvent(new Event("change"));
+        const slider = document.getElementById("cmp-split");
+        const view = document.getElementById("blink-canvas");
+        const read = (value) => {
+          slider.value = value;
+          slider.dispatchEvent(new Event("input"));
+          return view.toDataURL();
+        };
+        const b = read(0), a = read(100), split = read(50);
+        return !document.getElementById("cmp-handle").hidden && a !== b && split !== a && split !== b;
+      })()`);
+      if (!checked) throw new Error("the split did not render the selected observations");
+      await click('input[name="mode"][value="blink"]');
+    });
     await step("Find movers finishes (in a worker) with an answer, not an error", async () => {
       workers.clear();
       await startGapProbe();
@@ -178,6 +197,22 @@ async function main() {
       const inInspector = await evaluate(`document.getElementById("inspector").contains(document.getElementById("mover-detail"))`);
       if (!inInspector) throw new Error("#mover-detail is not inside #inspector at 1400 px");
       return (await text("#mover-detail-text")).slice(0, 100);
+    });
+    await step("Findings shows a drawn cutout and keeps the selected candidate when sorted", async () => {
+      const checked = await evaluate(`(() => {
+        const preview = document.querySelector('.mover-item[data-index="0"] .mover-preview');
+        const sort = document.getElementById("mover-sort");
+        if (!preview || preview.hidden || sort.closest("label").hidden) return false;
+        const pixels = preview.getContext("2d").getImageData(0, 0, preview.width, preview.height).data;
+        if (!pixels.some((value, i) => i % 4 !== 3 && value > 0)) return false;
+        for (const value of ["detections", "displacement", "rank"]) {
+          sort.value = value;
+          sort.dispatchEvent(new Event("change"));
+          if (!document.querySelector('.mover-item[data-index="0"][aria-pressed="true"]')) return false;
+        }
+        return true;
+      })()`);
+      if (!checked) throw new Error("the candidate cutout or selection is missing");
     });
     await step("Planet X Lab: the motions of the selected candidate are compared", async () => {
       await waitFor(`!document.getElementById("lab-compare-btn").disabled`, "compare button enabled");

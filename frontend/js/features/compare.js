@@ -9,7 +9,7 @@
 
 import { passIndices } from "./movers.js";      // the same meaning of "survey pass" as in Find movers
 
-export const OPERATIONS = { sub: "A − B", add: "A + B" };
+export const OPERATIONS = { sub: "A − B", add: "A + B", wipe: "A / B" };
 const GAIN = 2.2;                               // same boost as the Difference mode: makes small changes visible
 
 const day = (f) => f.dateISO.slice(0, 10);
