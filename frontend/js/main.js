@@ -37,7 +37,7 @@ import { openDialog, shortcutsHtml } from "./features/dialog.js";
 import { colourSequences } from "./features/colourBlink.js?v=3";
 import { setupTimeline } from "./features/timelineView.js";
 import { FLAGGED_LIMIT } from "./features/timeline.js";
-import { SkyContext } from "./features/skyContext.js?v=3";
+import { SkyContext } from "./features/skyContext.js?v=4";
 import { setupFullscreen } from "./features/fullscreen.js";
 import { detectSources, describeMover, matchKnownObject, moverPositionAtMjd, passIndices, trackSupport, blendWarning, VERSION as MOVERS_VERSION, DEFAULTS as MOVER_DEFAULTS, ERROR_MODEL } from "./features/movers.js";
 import { blindCheckCandidate, VERSION as BLIND_CHECK_VERSION } from "./features/blindCheck.js";
@@ -813,7 +813,29 @@ function clearMarker() {
 // ---------------------------------------------------------------
 // Sky context (Aladin Lite)
 // ---------------------------------------------------------------
-const sky = new SkyContext($("aladin-box"), $("aladin-status"), $("sky-geo-note"), { matchField: true });
+const sky = new SkyContext($("aladin-box"), $("aladin-status"), $("sky-geo-note"), {
+  matchField: true,
+  selectionStatusEl: $("sky-selection-status"),
+  onSelectPosition: ({ raText, decText }) => {
+    // Same field form and loader used by the Pin Board; keep FOV and data source unchanged.
+    raInput.value = raText;
+    decInput.value = decText;
+    raInput.dispatchEvent(new Event("input", { bubbles: true }));
+    decInput.dispatchEvent(new Event("input", { bubbles: true }));
+    if ($("controls-body").hidden) $("panel-left-btn").click();
+    form.requestSubmit();
+    const scrollToBlink = () => $("workspace").scrollIntoView({
+      block: "start", behavior: prefersReducedMotion ? "auto" : "smooth"
+    });
+    // Fullscreen must close first, or the Workspace remains hidden behind the sky map.
+    const skyFrame = $("sky-frame");
+    const wasFullscreen = skyFrame.classList.contains("is-fullscreen");
+    const nativeFullscreen = document.fullscreenElement === skyFrame || document.webkitFullscreenElement === skyFrame;
+    if (nativeFullscreen) document.addEventListener("fullscreenchange", scrollToBlink, { once: true });
+    if (wasFullscreen) $("sky-full-btn").click();
+    if (!nativeFullscreen) scrollToBlink();
+  }
+});
 setupFullscreen($("sky-frame"), $("sky-full-btn"));   // map + its controls fill the screen
 /** Open (or re-centre) the sky map on a position { ra, dec, fov }. */
 async function openSkyMap(q) {
