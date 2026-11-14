@@ -17,7 +17,7 @@ import {
 /** localStorage can throw (private window, blocked site data): every access is wrapped and the page works without it. */
 const safe = (fn, fallback = null) => { try { return fn(); } catch { return fallback; } };
 
-export function setupWorkspace({ root, leftBtn, rightBtn, slot, empty, details, win = window, doc = document }) {
+export function setupWorkspace({ root, leftBtn, rightBtn, slot, empty, details, expand, win = window, doc = document }) {
   const buttons = { left: leftBtn, right: rightBtn };
   const storage = safe(() => win.localStorage);
   let state = { ...DEFAULT_PANELS, ...parsePanels(safe(() => storage?.getItem(STORAGE_KEY))) };
@@ -27,6 +27,7 @@ export function setupWorkspace({ root, leftBtn, rightBtn, slot, empty, details, 
   const mqTwo = win.matchMedia?.(`(min-width: ${BREAKPOINT_TWO}px)`) ?? null;
   const currentLayout = () => (mqThree && mqTwo ? (mqThree.matches ? "three" : mqTwo.matches ? "two" : "one") : layoutFor(win.innerWidth));
   let layout = currentLayout();
+  let expanded = false;
 
   const homes = new Map();                                    // element -> a comment node marking where it lives under its own list
   for (const el of details) {
@@ -55,7 +56,7 @@ export function setupWorkspace({ root, leftBtn, rightBtn, slot, empty, details, 
   }
 
   function placeDetails() {
-    const inInspector = detailsHome(layout) === "inspector";
+    const inInspector = !expanded && detailsHome(layout) === "inspector";
     for (const el of details) {
       if (inInspector) slot.append(el);
       else homes.get(el).after(el);
@@ -76,7 +77,7 @@ export function setupWorkspace({ root, leftBtn, rightBtn, slot, empty, details, 
 
   doc.addEventListener("keydown", (e) => {
     const side = sideForKey(e.key);
-    if (!side || e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented) return;
+    if (expanded || !side || e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented) return;
     const t = e.target;
     if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;     // typing a bracket into a field is not a command
     e.preventDefault();
@@ -87,6 +88,17 @@ export function setupWorkspace({ root, leftBtn, rightBtn, slot, empty, details, 
   win.addEventListener("resize", onWidth);
   mqThree?.addEventListener?.("change", onWidth);
   mqTwo?.addEventListener?.("change", onWidth);
+
+  expand?.button.addEventListener("click", () => {
+    expanded = !expanded;
+    root.classList.toggle("image-expanded", expanded);
+    expand.button.textContent = expanded ? "Exit expanded view" : "Expand image";
+    expand.button.setAttribute("aria-expanded", String(expanded));
+    expand.info.hidden = !expanded;
+    if (expanded) expand.info.append(...expand.sections);
+    else expand.inspector.prepend(...expand.sections);
+    placeDetails();
+  });
 
   const watcher = new win.MutationObserver(renderEmpty);
   for (const el of details) watcher.observe(el, { attributes: true, attributeFilter: ["hidden"] });

@@ -87,7 +87,8 @@ class Node {
   fire(type, event = {}) { for (const fn of this.listeners[type] ?? []) fn(event); }
   querySelector(sel) { return sel === ".sr-only" ? this.sr ?? null : null; }
   remove() { if (this.parentNode) { this.parentNode.children.splice(this.parentNode.children.indexOf(this), 1); this.parentNode = null; } }
-  append(n) { n.remove(); this.children.push(n); n.parentNode = this; }
+  append(...nodes) { for (const n of nodes) { n.remove(); this.children.push(n); n.parentNode = this; } }
+  prepend(...nodes) { for (const n of nodes) n.remove(); this.children.unshift(...nodes); for (const n of nodes) n.parentNode = this; }
   insertBefore(n, ref) { n.remove(); this.children.splice(this.children.indexOf(ref), 0, n); n.parentNode = this; }
   after(n) { n.remove(); const p = this.parentNode; p.children.splice(p.children.indexOf(this) + 1, 0, n); n.parentNode = p; }
 }
@@ -102,7 +103,11 @@ function makePage({ width = 1400, stored = undefined, storageThrows = false } = 
   const leftBtn = make("panel-left-btn", "BUTTON"), rightBtn = make("panel-right-btn", "BUTTON");
   leftBtn.setAttribute("aria-controls", "controls-body"); rightBtn.setAttribute("aria-controls", "inspector-body");
   leftBtn.sr = new Node(); rightBtn.sr = new Node();
-  make("controls-body"); make("inspector-body");
+  make("controls-body");
+  const inspector = make("inspector-body");
+  const expand = { button: make("expand-image-btn"), info: make("expanded-image-info"), inspector, sections: [make("inspector-image"), make("timeline")] };
+  inspector.append(...expand.sections);
+  root.classList = { toggle: (name, on) => on ? root.classes.add(name) : root.classes.delete(name) };
   const store = new Map(stored === undefined ? [] : [[STORAGE_KEY, stored]]);
   const localStorage = storageThrows
     ? { getItem() { throw new Error("blocked"); }, setItem() { throw new Error("blocked"); } }
@@ -121,13 +126,13 @@ function makePage({ width = 1400, stored = undefined, storageThrows = false } = 
   };
   const docListeners = {};
   const doc = { createComment: () => new Node("#comment"), getElementById: (id) => byId[id] ?? null, addEventListener: (t, fn) => (docListeners[t] ??= []).push(fn) };
-  const ws = setupWorkspace({ root, leftBtn, rightBtn, slot, empty, details: [moverDetail, discoverDetail], win, doc });
+  const ws = setupWorkspace({ root, leftBtn, rightBtn, slot, empty, details: [moverDetail, discoverDetail], expand, win, doc });
   const key = (k, extra = {}) => { const e = { key: k, target: new Node("x"), ctrlKey: false, metaKey: false, altKey: false, defaultPrevented: false, preventDefault() { this.defaultPrevented = true; }, ...extra }; for (const fn of docListeners.keydown ?? []) fn(e); return e; };
   const resize = (w) => { win.innerWidth = w; win.viewport = w; for (const fn of winListeners.resize ?? []) fn(); };
   /** Only the media queries change (innerWidth stays stale) and only their change event fires: what an emulated or half-finished resize looks like. */
   const mediaOnly = (w) => { win.viewport = w; for (const fn of mediaListeners) fn(); };
   const touchDetails = () => { for (const o of observers) o.cb(); };
-  return { ws, root, slot, empty, leftBtn, rightBtn, byId, store, moverDetail, discoverDetail, listBox, listBox2, key, resize, mediaOnly, touchDetails };
+  return { ws, root, slot, empty, expand, leftBtn, rightBtn, byId, store, moverDetail, discoverDetail, listBox, listBox2, key, resize, mediaOnly, touchDetails };
 }
 
 {
@@ -194,6 +199,23 @@ function makePage({ width = 1400, stored = undefined, storageThrows = false } = 
 {
   const p = makePage({ width: 1400, stored: "{broken" });
   check("DOM: a damaged saved value means both open", p.ws.state.left === true && p.ws.state.right === true);
+}
+
+{
+  const p = makePage({ stored: '{"left":true,"right":false}' });
+  const { button, info, inspector, sections } = p.expand;
+  button.fire("click");
+  check("Expand image moves the live metadata and timeline below the canvas",
+    p.root.classes.has("image-expanded") && button.attrs["aria-expanded"] === "true" &&
+    !info.hidden && sections.every((section) => section.parentNode === info));
+  check("Candidate details stay available in their lists during expansion",
+    p.moverDetail.parentNode === p.listBox && p.discoverDetail.parentNode === p.listBox2);
+  p.key("]");
+  button.fire("click");
+  check("Exiting restores the inspector, candidate details and original panel settings",
+    !p.root.classes.has("image-expanded") && button.attrs["aria-expanded"] === "false" &&
+    info.hidden && sections.every((section) => section.parentNode === inspector) &&
+    p.moverDetail.parentNode === p.slot && p.ws.state.left && !p.ws.state.right);
 }
 
 console.log(failed ? `\n${failed} check(s) FAILED` : "\nAll checks passed");
