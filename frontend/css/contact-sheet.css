@@ -96,6 +96,9 @@
 .analysis-actions, .analysis-actions .movers-head, .analysis-actions .discover-head, .desk-command-row .tools { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
 .analysis-deck-title p, .analysis-actions .movers-status, .analysis-actions .discover-status { font-size: .8rem; color: var(--text-muted); }
 .analysis-deck-title p { margin: 0 0 5px; }
+.analysis-workbench { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-items: stretch; }
+.analysis-workbench > .analysis-results, .analysis-workbench > .measure { grid-column: auto; min-width: 0; margin: 0; max-width: none; }
+.analysis-workbench > .ws-toc { grid-column: 1 / -1; margin: 0; }
 #workspace .measure, #workspace .analysis-results { grid-column: auto; }
 #workspace :is(.sequence-controls,.info-aside) { grid-column: 1 / -1; }
 #workspace .info-aside { position: static; }
@@ -134,6 +137,8 @@
 }
 @media (max-width: 860px) {
   #workspace.layout { grid-template-columns: minmax(0,1fr); }
+  .analysis-workbench { grid-template-columns: minmax(0,1fr); }
+  .analysis-workbench > .ws-toc { grid-column: auto; }
   .observing-row { grid-template-columns: minmax(0,1fr); }
   #workspace #inspector { order: initial; }
   #search-form { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px 12px; }

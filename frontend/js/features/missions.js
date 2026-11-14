@@ -229,10 +229,10 @@ export const missionsDatabase = Object.freeze([
   // ===================== Pro lab
   M("pro-pin", CATEGORIES.pro, 2, "Report to the Board", "Observers share leads so others can confirm them, like drivers reporting a hazard on the road. But only new things are worth reporting.", B,
     [FIND, LIST, PICK, see("Read why this one cannot be pinned: it is a known object.", "#pin-known-note:not([hidden])"),
-     PX, DISTANT, LIST, PICK, on("This one is unexplained: press 📌 Pin & Report Object.", "#pin-report-btn")],
+     PX, DISTANT, LIST, PICK, on("This one is unexplained: press Pin & Report Object.", "#pin-report-btn")],
     "Known objects (catalogued stars, known asteroids) cannot be pinned: they are not finds. A pin records who saw something unexplained, where and when, with a SHA-256 hash, so others can check it. Until they confirm it, it is still a candidate."),
   M("pro-pin-distant", CATEGORIES.pro, 3, "Flag the Shadow", "Report the simulated distant body on the pin board.", at("#pin-board"),
-    [PX, DISTANT, LIST, PICK, on("Press 📌 Pin & Report Object.", "#pin-report-btn")],
+    [PX, DISTANT, LIST, PICK, on("Press Pin & Report Object.", "#pin-report-btn")],
     "Pins made on demo data are marked synthetic. Honest labels make a shared board trustworthy."),
 ]);
 

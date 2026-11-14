@@ -39,7 +39,7 @@ async function main() {
     const page = await browser.newPage();
     if (!process.env.BLINK_URL) server = await serveCheckout();
     const base = process.env.BLINK_URL || `http://127.0.0.1:${server.address().port}/`;
-    const pages = ["index.html", "overview.html", "results.html", "sky.html", "simulator.html", "planet-x.html"];
+    const pages = ["index.html", "overview.html", "results.html", "sky.html", "simulator.html"];
     for (const name of pages) {
       for (const theme of ["deep-space", "observatory", "light", "midnight"]) {
         for (const width of [320, 375, 768, 1280]) {

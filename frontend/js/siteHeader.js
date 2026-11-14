@@ -12,25 +12,24 @@ const saveMode = (m) => { try { localStorage.setItem(MODE_KEY, m); } catch {} };
 const params = new URLSearchParams(location.search);
 let mode = readMode();
 if (current === "learn" || params.has("mission")) mode = "learn";
-else if (["sky", "simulator", "planet-x", "results"].includes(current)) mode = "science";
+else if (["sky", "simulator", "results"].includes(current)) mode = "science";
 else if (current === "index" && !mode) mode = "science";
 if (mode && current !== "overview") saveMode(mode);
 document.documentElement.dataset.mode = mode ?? "none";
 
 const PRACTICE = "index.html?ra=269.4462&dec=4.769&fov=5&det=D2#workspace";
 const MODES = {
-  learn: { label: "🎓 Learn Mode", home: "learn.html", pages: [
-    ["learn", "🚀 Missions", "learn.html#missions"],
-    ["lessons", "📖 Lessons", "learn.html#lesson-panel"],
-    ["astra", "🤖 Astra guide", "learn.html#astra"],
-    ["index", "🧪 Practice lab", PRACTICE],
+  learn: { label: "Learn Mode", home: "learn.html", pages: [
+    ["learn", "Missions", "learn.html#missions"],
+    ["lessons", "Lessons", "learn.html#lesson-panel"],
+    ["astra", "Astra guide", "learn.html#astra"],
+    ["index", "Practice lab", PRACTICE],
   ] },
-  science: { label: "🔬 Science Mode", home: "index.html#workspace", pages: [
+  science: { label: "Science Mode", home: "index.html#workspace", pages: [
     ["index", "Workspace", "index.html#workspace"],
-    ["pins", "📌 Pin Board", "index.html#pin-board"],
+    ["pins", "Pin Board", "index.html#pin-board"],
     ["sky", "Sky Explorer", "sky.html"],
     ["simulator", "Simulator", "simulator.html"],
-    ["planet-x", "Planet X Lab", "planet-x.html"],
     ["results", "Results", "results.html"],
     ["about", "About", "index.html#about"],
   ] },
@@ -42,7 +41,6 @@ const overviewPages = [
   ["index", "Workspace", "index.html#workspace"],
   ["sky", "Sky Explorer", "sky.html"],
   ["simulator", "Simulator", "simulator.html"],
-  ["planet-x", "Planet X Lab", "planet-x.html"],
   ["results", "Results", "results.html"],
   ["about", "About", "index.html#about"],
 ];
@@ -72,7 +70,7 @@ if (showMode) {
   const sw = document.createElement("a");
   sw.className = "mode-switch-link";
   sw.href = MODES[other].home;
-  sw.innerHTML = `⇄ <span class="msl-long">Switch to </span>${MODES[other].label.replace(/^\S+ /, "")}`;
+  sw.innerHTML = `⇄ <span class="msl-long">Switch to </span>${MODES[other].label}`;
   sw.addEventListener("click", () => saveMode(other));
   nav.append(sw);
 }

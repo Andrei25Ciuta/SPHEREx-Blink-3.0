@@ -50,13 +50,6 @@ async function check() {
     assert.equal(await page.locator("#workspace-help").isVisible(), true);
     assert.match(await page.locator("#workspace-help").textContent(), /local backend/i);
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
-    await page.goto(base + "planet-x.html");
-    await page.locator("#summary:not(:empty)").waitFor();
-    assert.equal(await page.locator("#workspace").isVisible(), false,
-      "public Planet X Lab must not offer a dead observed-FITS workspace link");
-    assert.equal(await page.locator("#workspace-help").isVisible(), true);
-    assert.match(await page.locator("#workspace-help").textContent(), /local backend/i);
-    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
     await page.goto(base + "results.html");
     await page.locator("#candidate-rows button").first().waitFor();
     assert.equal(await page.locator("#candidate-viewer").isVisible(), false,
@@ -85,10 +78,6 @@ async function check() {
     assert.equal(await local.locator("#workspace").isVisible(), true,
       "locally served Sky Explorer keeps the observed-field link");
     assert.match(await local.locator("#workspace").getAttribute("href"), /data=api/);
-    await local.goto(localOrigin + "/planet-x.html");
-    await local.locator("#summary:not(:empty)").waitFor();
-    assert.equal(await local.locator("#workspace").isVisible(), true,
-      "locally served Planet X Lab keeps the observed-field link");
     await local.goto(localOrigin + "/results.html");
     await local.locator("#candidate-rows button").first().waitFor();
     assert.equal(await local.locator("#candidate-viewer").isVisible(), true,

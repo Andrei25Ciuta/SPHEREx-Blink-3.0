@@ -1,5 +1,9 @@
 # Development progress
 
+## 2026-11-14 — Group Workspace analysis and remove standalone Planet X page
+
+Placed Search results and Source measurements in a paired responsive workbench, with More tools spanning beneath them on desktop and all three stacking on narrow screens. Removed the separate Planet X Lab page and its page-only renderer; kept distant-body analysis inside Workspace and redirected its candidate action to that in-page analysis. Removed stale navigation links and updated the page lists. `git diff --check` and JavaScript syntax checks passed; browser review and tests were not run. The preceding header and spacecraft-flicker changes were pushed to Blink 3.0 `main` at `53e1e96`; this follow-up is local and unpushed.
+
 ## 2026-11-14 — Refresh Sky Explorer and About
 
 Added a rotatable celestial globe with the five propagated challenge targets. Selecting a globe marker synchronizes the existing atlas selection and archive coordinate fields; arrow keys rotate the globe, and reduced-motion preferences disable its idle rotation. Restyled About with a colorful hero and more readable workflow/topic cards while retaining its science copy and links. The globe grid, star field and color band are decorative; only target markers represent documented coordinates. `git diff --check` passed; browser review was not run.
