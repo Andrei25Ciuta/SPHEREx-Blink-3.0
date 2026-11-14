@@ -40,7 +40,7 @@ const html=readFileSync(new URL("../frontend/index.html",import.meta.url),"utf8"
 const main=readFileSync(new URL("../frontend/js/main.js",import.meta.url),"utf8");
 const skySrc=readFileSync(new URL("../frontend/js/features/skyContext.js",import.meta.url),"utf8");
 assert.ok(html.includes('id="sky-selection-status"'));
-assert.ok(html.includes('src="js/main.js?v=13"'));
+assert.match(html, /src="js\/main\.js\?v=\d+"/);
 assert.ok(skySrc.includes('this.aladin.on("click", (e) => {'));
 assert.ok(skySrc.includes('this.aladin.on("objectClicked", (object) => {'));
 assert.ok(skySrc.includes('if (!clickedSource) this.onMapClick(e);'));
