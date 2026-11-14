@@ -27,7 +27,7 @@ check("isSitePage: the five pages and the folder root, nothing else", ["index.ht
 const header = readFileSync(new URL("../frontend/js/siteHeader.js", import.meta.url), "utf8");
 check("js/siteHeader.js imports and calls patchLinks", /import \{ patchLinks \} from "\.\/features\/carryParams\.js"/.test(header) && /patchLinks\(document\)/.test(header));
 const pages = ["index", "overview", "sky", "simulator", "results"];
-const missing = pages.filter((p) => !/src="js\/siteHeader\.js"/.test(readFileSync(new URL(`../frontend/${p}.html`, import.meta.url), "utf8")));
+const missing = pages.filter((p) => !/src="js\/siteHeader\.js(?:\?v=\d+)?"/.test(readFileSync(new URL(`../frontend/${p}.html`, import.meta.url), "utf8")));
 check("all five pages load js/siteHeader.js", missing.length === 0, missing.join(", "));
 
 console.log(failed ? `\n${failed} FAILED` : "\nAll checks passed");

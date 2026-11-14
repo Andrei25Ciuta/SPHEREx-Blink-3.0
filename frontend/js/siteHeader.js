@@ -137,3 +137,25 @@ addEventListener("storage", event => {
 // Keep the choices of this visit (?data=api, ?api=..., ?embed=1, ?theme=...) on every link to another page, the links added later included (features/carryParams.js):
 // without it, Workspace -> Overview -> Workspace dropped a person from real data to the synthetic demo.
 patchLinks(document);
+
+// Keep the control out of the way near the header and in embedded workspaces.
+if (params.get("embed") !== "1") {
+  const backToTop = document.createElement("button");
+  backToTop.type = "button";
+  backToTop.className = "btn back-to-top";
+  backToTop.setAttribute("aria-label", "Back to top");
+  backToTop.title = "Back to top";
+  backToTop.textContent = "↑";
+  backToTop.hidden = true;
+  document.body.append(backToTop);
+
+  const updateVisibility = () => {
+    backToTop.hidden = window.scrollY < 400;
+  };
+  backToTop.addEventListener("click", () => {
+    brand?.focus({ preventScroll: true });
+    window.scrollTo({ top: 0, behavior: "auto" });
+  });
+  window.addEventListener("scroll", updateVisibility, { passive: true });
+  updateVisibility();
+}
