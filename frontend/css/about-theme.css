@@ -1,0 +1,60 @@
+/* Keep the project story and telescope card on the same selected site theme. */
+html[data-theme]:not([data-contrast="high"]) #about.info-aside,
+html[data-theme]:not([data-contrast="high"]) #telescope .info-box {
+  --tel-ink: var(--text);
+  --tel-secondary: var(--text-muted);
+  --tel-minor: var(--text-faint);
+  --tel-border: var(--border);
+  color: var(--text);
+  border: 1px solid color-mix(in srgb, var(--accent) 34%, var(--border));
+  border-radius: 12px;
+  background:
+    radial-gradient(ellipse at 92% 8%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 28%),
+    radial-gradient(ellipse at 4% 32%, color-mix(in srgb, rgb(var(--alt-rgb)) 11%, transparent), transparent 30%),
+    var(--surface);
+  box-shadow: none;
+}
+
+html[data-theme]:not([data-contrast="high"]) #telescope h2,
+html[data-theme]:not([data-contrast="high"]) #telescope h3,
+html[data-theme]:not([data-contrast="high"]) #telescope .det-table th {
+  color: var(--text);
+}
+
+html[data-theme]:not([data-contrast="high"]) #telescope p.info-lead,
+html[data-theme]:not([data-contrast="high"]) #telescope .det-table td {
+  color: var(--text-muted);
+}
+
+html[data-theme]:not([data-contrast="high"]) #telescope .stats li,
+html[data-theme]:not([data-contrast="high"]) #telescope .info-cols > div {
+  background: color-mix(in srgb, var(--raised) 72%, transparent);
+  border-color: var(--border);
+}
+
+html[data-theme]:not([data-contrast="high"]) #telescope .det-table th {
+  background: var(--raised);
+}
+
+html[data-theme]:not([data-contrast="high"]) #telescope .det-table tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--raised) 45%, transparent);
+}
+
+html[data-theme]:not([data-contrast="high"]) #telescope .info-links a {
+  color: var(--accent-text);
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+}
+
+html[data-theme]:not([data-contrast="high"]) #telescope .info-links a:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+}
+
+html[data-contrast="high"] #about.info-aside,
+html[data-contrast="high"] #telescope .info-box {
+  color: #fff;
+  background: #000;
+  border: 1px solid #fff;
+  box-shadow: none;
+}
