@@ -126,7 +126,7 @@
           <summary>Research tools</summary>
           <nav class="research-nav" aria-label="Standalone research pages">
             <a href="results.html#candidate-explorer">Candidate Explorer</a>
-            <a href="planet-x.html">Planet X Lab (page)</a><a href="sky.html">Sky Explorer (page)</a><a href="simulator.html">Solar System Simulator (page)</a>
+            <a class="colour-blink-link" href="#colour-blink">Blink in colours</a><a href="planet-x.html">Planet X Lab (page)</a><a href="sky.html">Sky Explorer (page)</a><a href="simulator.html">Solar System Simulator (page)</a>
           </nav>
         </details>
       </div>
@@ -450,6 +450,33 @@
       </details>
     </section>
 
+    <section class="panel" id="colour-blink" aria-labelledby="colour-blink-title">
+      <h2 id="colour-blink-title">Blink in colours</h2>
+      <p><strong>Synthetic data</strong> · Two nearby stars can look like one spot. Change wavelength to see its centre shift toward the brighter star, then change the date to see a source that actually moves.</p>
+      <fieldset class="chart-style">
+        <legend>Compare by</legend>
+        <label><input type="radio" name="colour-blink-axis" value="wavelength" checked> Wavelength</label>
+        <label><input type="radio" name="colour-blink-axis" value="date"> Date</label>
+      </fieldset>
+      <p class="colour-blink-controls">
+        <button type="button" class="btn btn-small" id="colour-blink-step">Switch frame</button>
+        <label><input type="checkbox" id="colour-blink-centres" checked> Show measured centres</label>
+        <span id="colour-blink-status" role="status"></span>
+      </p>
+      <figure class="chart colour-blink-figure">
+        <canvas id="colour-blink-image" width="480" height="192" role="img" aria-label="Synthetic cutouts of a fixed pair, a moving source and a reference star. Measured shifts follow in the table."></canvas>
+        <figcaption><span>Fixed pair</span><span>Moving source</span><span>Reference star</span></figcaption>
+      </figure>
+      <div class="table-scroll">
+        <table class="ss-table">
+          <caption>Shift of the centre of light relative to the first frame</caption>
+          <thead><tr><th scope="col">Source</th><th scope="col">Measured Δx</th><th scope="col">After reference correction</th></tr></thead>
+          <tbody id="colour-blink-shifts"></tbody>
+        </table>
+      </div>
+      <p class="muted small">Positive Δx points right. The demo includes a small frame offset. Subtracting the fixed reference star’s shift removes that shared offset.</p>
+    </section>
+
     <!-- ============ 4. Sky context (Aladin Lite) ============ -->
     <section class="panel context" aria-labelledby="context-title">
       <h2 id="context-title">Sky context</h2>
@@ -693,5 +720,6 @@
   <!-- type="module" lets us use import/export without a bundler.
        NOTE: modules do NOT load from file:// – serve the folder over http. -->
   <script type="module" src="js/main.js"></script>
+  <script type="module" src="js/features/colourBlinkView.js"></script>
 </body>
 </html>

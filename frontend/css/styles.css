@@ -1390,3 +1390,21 @@ html[data-theme] .explore header, html[data-theme] .rhead { border-bottom: 1px s
 .atlas-key::before { content: ""; display: inline-block; width: 1.7rem; margin-right: .4rem; border-top: 2px solid var(--accent); vertical-align: middle; }.atlas-key-galactic::before { border-color: var(--text-muted); border-top-style: dashed; }.atlas-key-target::before { width: .65rem; height: .65rem; border: 0; border-radius: 50%; background: var(--accent); }
 .atlas-note { display: flex; flex-direction: column; align-items: flex-start; padding: 1rem; border: 1px solid var(--border); background: var(--surface); }.atlas-note h3 { margin: .2rem 0 .7rem; }.atlas-note p:not(.atlas-kicker) { margin: 0; color: var(--text-muted); }.atlas-note .btn { margin-top: auto; }.atlas-target-list { display: flex; flex-wrap: wrap; gap: .4rem; margin: 1rem 0; }.atlas-target-list .btn { min-height: 2.5rem; font-size: .66rem; }.atlas-target-list .btn[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 @media (max-width: 700px) { .sky-atlas-heading, .sky-atlas-grid { grid-template-columns: 1fr; display: grid; }.sky-atlas-heading { align-items: start; }.atlas-note .btn { margin-top: 1rem; } }
+
+/* Synthetic wavelength/date comparison */
+.colour-blink-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .6rem 1rem;
+}
+.colour-blink-figure { max-width: 42rem; }
+.colour-blink-figure canvas { display: block; width: 100%; height: auto; }
+.colour-blink-figure figcaption {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: .4rem 0 0;
+  text-align: center;
+}
+#colour-blink .table-scroll { margin-top: .75rem; }
+html.embed :is(#colour-blink, .colour-blink-link) { display: none; }
