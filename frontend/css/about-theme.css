@@ -1,5 +1,12 @@
 /* Keep the project story and telescope card on the same selected site theme. */
-html[data-theme]:not([data-contrast="high"]) #about.info-aside,
+html[data-theme]:not([data-contrast="high"]) #about.info-aside {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+html[data-theme]:not([data-contrast="high"]) #about .info-box,
 html[data-theme]:not([data-contrast="high"]) #telescope .info-box {
   --tel-ink: var(--text);
   --tel-secondary: var(--text-muted);
@@ -51,7 +58,14 @@ html[data-theme]:not([data-contrast="high"]) #telescope .info-links a:hover {
   background: color-mix(in srgb, var(--accent) 18%, var(--surface));
 }
 
-html[data-contrast="high"] #about.info-aside,
+html[data-contrast="high"] #about.info-aside {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+html[data-contrast="high"] #about .info-box,
 html[data-contrast="high"] #telescope .info-box {
   color: #fff;
   background: #000;
