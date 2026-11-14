@@ -1,15 +1,7 @@
 /* results.css – the "Real-data results" page (results.html). Tokens, panels and the stat strip come from styles.css.
    The charts are HTML + CSS: a row is a label and a track; marks sit on the track at left: var(--x) (percent). */
 
-.rhead {
-  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-  max-width: 1100px; margin: 0 auto; padding: 1rem clamp(1rem, 3vw, 2rem) .4rem;
-}
-.rhead-logo { display: inline-flex; align-items: center; gap: .7rem; color: var(--text); text-decoration: none; font-family: var(--font-head); font-weight: 700; }
-.rhead nav a { display: inline-block; padding: .55rem .4rem; color: var(--text); font-weight: 500; text-decoration: none; }
-.rhead nav a:hover { color: var(--accent-hi); text-decoration: underline; }
-
-.rmain { max-width: 1100px; margin: 0 auto; padding: .6rem clamp(1rem, 3vw, 2rem) 2rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.2rem; }   /* minmax(0, ...): a wide table scrolls inside its section, it does not widen the page */
+.rmain { max-width: 80rem; margin: 0 auto; padding: .6rem clamp(1rem, 3vw, 2rem) 2rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.2rem; }   /* minmax(0, ...): a wide table scrolls inside its section, it does not widen the page */
 .rfield { display: grid; gap: .3rem; max-width: 26rem; margin: 0 0 .8rem; font-size: .85rem; color: var(--text-muted); }
 .rintro h1 {
   margin: 0 0 1rem; font-family: var(--display); font-weight: 700; color: var(--text);
@@ -105,12 +97,11 @@ p.rcaveat {
   .raxis { margin-top: 0; } .raxis .rlabel { display: none; }
   .rfig { padding: .8rem .75rem .7rem; }
 }
-@media (pointer: coarse) { .rtable summary, .rhead nav a { min-height: 44px; display: inline-flex; align-items: center; } }
+@media (pointer: coarse) { .rtable summary{ min-height: 44px; display: inline-flex; align-items: center; } }
 @media (prefers-reduced-motion: reduce) { .sky-bg, .brand-logo::before, .brand-logo::after { animation: none; } }
 
 .result-links, .explorer-inputs { display: flex; flex-wrap: wrap; align-items: end; gap: .6rem 1rem; }
 .result-links a, .record-button { color: var(--accent-hi); }
-.rhead { flex-wrap: wrap; }
 .rmain > * { min-width: 0; }
 .rsec code { overflow-wrap: anywhere; }
 .explorer h1 { margin-bottom: .6rem; font-size: clamp(1.8rem, 4vw, 2.8rem); }
@@ -130,7 +121,8 @@ p.rcaveat {
 #local-ai { margin-top: .6rem; }
 #local-ai label { margin-bottom: .5rem; }
 #report-output { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--field); padding: .75rem; border-radius: var(--radius-sm); }
-#run-title, #candidate-title, #candidate-ref { overflow-wrap: anywhere; }#centroid-plot { display: block; width: min(100%, 540px); height: auto; background: var(--field); color: var(--text); }
+#run-title, #candidate-title, #candidate-ref { overflow-wrap: anywhere; }
+#centroid-plot { display: block; width: min(100%, 540px); height: auto; background: var(--field); color: var(--text); }
 #candidate-samples summary { color: var(--accent-hi); cursor: pointer; }
 #candidate-samples { margin: .75rem 0; }
 #distribution { margin: .4rem 0 1rem; font-size: .88rem; }
@@ -138,13 +130,13 @@ p.rcaveat {
 #speed-bins { padding: 0; list-style: none; max-width: 34rem; }
 #speed-bins li { margin-bottom: .5rem; }
 .histogram-bar { display: block; height: .35rem; background: var(--accent); }
-/* Header with the theme switch: wrap instead of squeezing the link into a column */
-.rhead { flex-wrap: wrap; row-gap: .4rem; }
-.rhead nav a { white-space: nowrap; }
-@media (max-width: 480px) { .rhead .theme-switch { margin-right: 0; } .rhead-logo span:last-child { font-size: .95rem; } }
 
 /* Under the heading of sections 1-10: which command made the numbers, and where VALIDATION.md reports it */
 .rorigin { margin: -.4rem 0 1rem; font-size: .82rem; color: var(--text-muted); overflow-wrap: anywhere; max-width: 74ch; }
 .rorigin:empty { display: none; }
 .rsec .rorigin strong { color: var(--text-muted); }
 .rsec .rorigin code { font-size: max(.9em, 12px); }
+
+.rmain .result-links { gap: .4rem 1rem; }
+.rmain table { font-variant-numeric: tabular-nums; }
+.rmain .rsec { padding: clamp(1rem,2.5vw,2rem); }

@@ -162,11 +162,16 @@ async function main() {
       if (pressed !== "true") throw new Error(`aria-pressed is "${pressed}" after Enter`);
     });
     await step("keys: a layer switch (checkbox) is operated with Space", async () => {
+      await evaluate(`document.querySelector('[data-open-panel="image-layers"]').focus()`);
+      await press("Enter");
+      await waitFor(`document.getElementById("image-layers").open`, "layer dialog", 3000);
       const id = await evaluate(`(() => { const c = document.querySelector("#layers input[type=checkbox]"); c.focus(); window.__lc = c; window.__was = c.checked; return c.id || c.name || "layer"; })()`);
       await press("Space");
       const now = await evaluate(`window.__lc.checked`), was = await evaluate(`window.__was`);
       if (now === was) throw new Error(`Space did not toggle ${id}`);
       await press("Space");
+      await press("Escape");
+      await waitFor(`!document.getElementById("image-layers").open`, "layer dialog dismissal", 3000);
       return id;
     });
     await step("keys: the picture takes focus from Tab, reads out the position at the centre of the view, and Enter measures there (the mark is announced); Escape clears it", async () => {

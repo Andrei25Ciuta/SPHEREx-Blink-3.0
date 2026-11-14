@@ -111,6 +111,9 @@ const throwingStorage = { getItem() { throw new Error("blocked"); }, setItem() {
 check("the default is Light research and every theme has an id, a label, a scheme and a browser-bar colour", DEFAULT_THEME === "light" && THEMES.every((t) => t.id && t.label && ["dark", "light"].includes(t.scheme) && /^#[0-9A-F]{6}$/i.test(t.themeColor)));
 check("isTheme accepts the four names and nothing else", THEMES.every((t) => isTheme(t.id)) && !isTheme("neon") && !isTheme("") && !isTheme(null) && !isTheme("__proto__"));
 check("nothing saved, nothing in the address: the default", readTheme({ search: "", storage: memoryStorage() }) === "light");
+check("the workspace opens in Midnight on first visit", readTheme({ defaultTheme: "midnight", storage: memoryStorage() }) === "midnight");
+check("a saved choice wins over the workspace palette", readTheme({ defaultTheme: "midnight", storage: memoryStorage({ [STORAGE_KEY]: "classic" }) }) === "classic");
+check("a URL theme wins over both the saved choice and the workspace palette", readTheme({ defaultTheme: "midnight", search: "?theme=nebula", storage: memoryStorage({ [STORAGE_KEY]: "classic" }) }) === "nebula");
 check("a saved choice is used", readTheme({ search: "", storage: memoryStorage({ [STORAGE_KEY]: "light" }) }) === "light");
 check("the address beats the saved choice", readTheme({ search: "?ra=1&theme=observatory", storage: memoryStorage({ [STORAGE_KEY]: "light" }) }) === "observatory");
 check("unknown names, in the address or in storage, are ignored", readTheme({ search: "?theme=neon", storage: memoryStorage({ [STORAGE_KEY]: "<script>" }) }) === "light");
@@ -147,7 +150,9 @@ for (const [name, html] of [["index.html", INDEX], ["results.html", RESULTS]]) {
   const m = /var t=new URLSearchParams\(location\.search\)\.get\("theme"\)\|\|localStorage\.getItem\("([^"]+)"\);if\(\/\^\(([^)]+)\)\$\/\.test\(t\)\)/.exec(html);
   check(`${name}: the inline script reads the same storage key and the same four names as theme.js`, Boolean(m) && m[1] === STORAGE_KEY && m[2].split("|").join() === THEMES.map((t) => t.id).join(), m ? `${m[1]} ${m[2]}` : "no inline theme script");
   check(`${name}: the default theme is on <html> (no flash and no JavaScript needed), there is a switch and a browser-bar colour`,
-    html.includes(`<html lang="en" data-theme="${DEFAULT_THEME}">`) && html.includes('id="theme-select"') && /<meta name="theme-color" content="#FBFBF9">/.test(html));
+    html.includes(`<html lang="en" data-theme="midnight">`) &&
+    html.includes('id="theme-select"') &&
+    html.includes(`<meta name="theme-color" content="#0B0F19">`));
   check(`${name}: the monospace face is loaded with the other fonts`, /family=JetBrains\+Mono/.test(html) && /family=Inter:wght@400;500;600;700/.test(html));
 }
 

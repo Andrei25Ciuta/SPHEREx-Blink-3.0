@@ -1,25 +1,31 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="en" data-theme="midnight"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0B0F19">
 <title>Solar System Simulator · SPHEREx Blink</title>
-<script src="js/theme.js"></script><link rel="stylesheet" href="css/styles.css?v=21"><link rel="stylesheet" href="css/exploration.css">
-</head><body><div class="explore">
+<script>try{var t=new URLSearchParams(location.search).get("theme")||localStorage.getItem("spherex-blink-theme");if(/^(midnight|nebula|deep-space|observatory|light|classic)$/.test(t))document.documentElement.dataset.theme=t}catch(e){}</script><link rel="stylesheet" href="css/styles.css?v=21"><link rel="stylesheet" href="css/exploration.css">
+<link rel="stylesheet" href="css/instrument.css">
+  </head><body>
 <a class="skip-link" href="#simulation">Skip to simulation</a>
-<header><nav aria-label="Pages"><a href="index.html">SPHEREx Blink</a><a href="sky.html">Sky Explorer</a><a href="results.html">Results</a></nav>
-<label class="theme-picker">Theme <select data-theme-picker></select></label></header>
+<header class="site-header" id="top" data-page="simulator">
+    <a class="site-brand" href="overview.html">SPHEREx Blink</a>
+    <select id="theme-select" data-default-theme="midnight" aria-label="Colour theme"></select>
+  </header>
+  <script type="module" src="js/siteHeader.js"></script>
+  <div class="explore">
 <main id="simulation" class="simulator-page" tabindex="-1"><header class="sim-intro"><p class="atlas-kicker">Orbit geometry lab</p><h1>Solar System Simulator</h1>
 <p>Move the observer through one year and inspect how Earth's orbit changes the apparent direction of a stationary, hypothetical target.</p></header>
-<div class="simulator-layout">
-<form class="panel sim-inputs sim-controls" id="controls"><div class="sim-panel-heading"><p class="atlas-kicker">01 / Configure</p><h2>Geometry</h2><p>Set the reference target, time and camera. Every input updates the model immediately.</p></div>
+<form class="simulator-layout" id="controls">
+<section class="panel sim-stage"><div class="sim-panel-heading"><h2>Observer and target</h2><p>Earth, the Sun and the reference sightline in the selected projection.</p></div>
+<figure><svg viewBox="0 0 700 400" class="plot" id="scene" role="img" aria-label="Rotatable orthographic view of Earth's orbit, the Sun and the observer-to-target sightline"></svg><figcaption id="scale"></figcaption></figure>
+<fieldset class="sim-time"><legend>Observer epoch</legend><label class="range-label"><span>Days since reference</span><output for="day" id="day-label">0</output><input type="range" id="day" min="0" max="365" value="0"></label><button type="button" id="play" class="btn btn-primary">Play year</button></fieldset>
+<dl class="tool-output sim-readouts"><div><dt>Observer epoch</dt><dd id="epoch"></dd></div><div><dt>Earth position</dt><dd id="earth"></dd></div><div><dt>Apparent offset</dt><dd id="offset"></dd></div><div><dt>Target distance</dt><dd id="range"></dd></div></dl>
+<p class="sim-note"><strong>Model scope.</strong> Earth-centred observer; approximate heliocentric Earth ephemeris on J2000 equatorial axes. Offsets are gnomonic tangent-plane arcseconds relative to the reference date. This is an educational geometric model, not a predicted source position; it omits spacecraft and target motion, aberration and light-travel time.</p>
+<p id="status" role="status"></p></section>
+<section class="panel sim-inputs sim-controls"><div class="sim-panel-heading"><h2>Geometry</h2><p>Set the reference target, time and camera. Every input updates the model immediately.</p></div>
 <fieldset><legend>Target reference</legend><label>View <select id="mode"><option value="educational">Educational visualization</option><option value="scientific">Scientific geometry</option></select></label>
 <label>Reference date (UTC) <input type="date" id="date" min="2000-01-01" max="2099-12-31" value="2025-01-01" required></label>
 <div class="sim-coordinate-pair"><label>Target RA <span class="field-unit">degrees</span><input type="number" id="ra" min="0" max="359.99999999" step="any" value="70" required></label><label>Target Dec <span class="field-unit">degrees</span><input type="number" id="dec" min="-90" max="90" step="any" value="15" required></label></div>
 <label>Reference distance <span class="field-unit">AU from Earth</span><input type="number" id="distance" min="10" max="20000" step="any" value="500" required></label></fieldset>
-<fieldset class="sim-time"><legend>Observer epoch</legend><label class="range-label"><span>Days since reference</span><output for="day" id="day-label">0</output><input type="range" id="day" min="0" max="365" value="0"></label><button type="button" id="play" class="btn btn-primary">Play year</button></fieldset>
 <details class="sim-camera"><summary>Camera controls</summary><label>Azimuth <span class="field-unit">degrees</span><input type="range" id="az" min="-180" max="180" value="10"></label><label>Elevation <span class="field-unit">degrees</span><input type="range" id="el" min="-90" max="90" value="45"></label></details>
+</section>
 </form>
-<section class="panel sim-stage"><div class="sim-panel-heading"><p class="atlas-kicker">02 / Inspect</p><h2>Observer and target</h2><p>Earth, the Sun and the reference sightline in the selected projection.</p></div>
-<figure><svg viewBox="0 0 700 400" class="plot" id="scene" role="img" aria-label="Rotatable orthographic view of Earth's orbit, the Sun and the observer-to-target sightline"></svg><figcaption id="scale"></figcaption></figure>
-<dl class="tool-output sim-readouts"><div><dt>Observer epoch</dt><dd id="epoch"></dd></div><div><dt>Earth position</dt><dd id="earth"></dd></div><div><dt>Apparent offset</dt><dd id="offset"></dd></div><div><dt>Target distance</dt><dd id="range"></dd></div></dl>
-<p class="sim-note"><strong>Model scope.</strong> Earth-centred observer; approximate heliocentric Earth ephemeris on J2000 equatorial axes. Offsets are gnomonic tangent-plane arcseconds relative to the reference date. This is an educational geometric model, not a predicted source position; it omits spacecraft and target motion, aberration and light-travel time.</p>
-<p id="status" role="status"></p></section></div>
 </main></div><script type="module" src="js/simulator.js"></script></body></html>

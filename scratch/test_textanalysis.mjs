@@ -72,7 +72,7 @@ const n = 49, geo = { ra: 269.4462, dec: 4.769, n, scaleArcsec: 6.14 };
   const HTML = read("../frontend/index.html"), MAIN = read("../frontend/js/main.js"), VIEW = read("../frontend/js/features/textAnalysisView.js").replace(/\/\/.*$/gm, "");
   const ids = ["ta-build-btn", "ta-error", "ta-status", "ta-out", "ta-prov", "ta-prov-title", "ta-frames", "ta-frame-filter", "ta-sources", "ta-sources-note", "ta-cands", "ta-cands-note", "ta-frames-csv", "ta-sources-csv", "ta-cands-csv"];
   const section = HTML.slice(HTML.indexOf('id="text-analysis"'), HTML.indexOf("</section>", HTML.indexOf('id="text-analysis"')));
-  check("page: every element the text analysis needs is in index.html exactly once, in its own section with a heading", ids.every((id) => (HTML.match(new RegExp(`id="${id}"`, "g")) || []).length === 1) && /<h2 id="ta-title">9\. Text analysis/.test(HTML) && /aria-labelledby="ta-title"/.test(HTML));
+  check("page: every element the text analysis needs is in index.html exactly once, in its own section with a heading", ids.every((id) => (HTML.match(new RegExp(`id="${id}"`, "g")) || []).length === 1) && /<h2 id="ta-title">Text analysis/.test(HTML) && /aria-labelledby="ta-title"/.test(HTML));
   check("page: the status is a polite live region, the error an alert, the result heading can take focus; the section has no canvas, image or SVG (nothing that needs sight)",
     /id="ta-status" role="status" aria-live="polite"/.test(HTML) && /id="ta-error" role="alert"/.test(HTML) && /id="ta-prov-title" tabindex="-1"/.test(HTML) && !/<canvas|<img|<svg|<video/i.test(section));
   check("page: the tables have a caption, column headers with scope=col and a row header; the focus goes to the result heading; a failure says so and shows nothing in its place",

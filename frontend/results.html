@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="midnight">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#FBFBF9">
+  <meta name="theme-color" content="#0B0F19">
   <!-- Colour theme, applied before the first paint (js/features/theme.js does the same and handles the switch; keep the key and the names in step) -->
   <script>try{var t=new URLSearchParams(location.search).get("theme")||localStorage.getItem("spherex-blink-theme");if(/^(midnight|nebula|deep-space|observatory|light|classic)$/.test(t))document.documentElement.dataset.theme=t}catch(e){}</script>
   <title>Real-data results and candidate explorer – SPHEREx Blink</title>
@@ -14,20 +14,21 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Oswald:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css?v=21">
   <link rel="stylesheet" href="css/results.css?v=3">
-</head>
+<link rel="stylesheet" href="css/instrument.css">
+  </head>
 <body>
   <div class="sky-bg" aria-hidden="true"></div>
   <a class="skip-link" href="#results">Skip to the results</a>
 
-  <header class="rhead">
-    <a class="rhead-logo" href="index.html"><span class="brand-logo" aria-hidden="true"></span><span>SPHEREx Blink</span></a>
-    <label class="theme-switch"><span class="sr-only">Colour theme</span><select id="theme-select" aria-label="Colour theme"></select></label>
-    <nav aria-label="Pages"><a href="index.html?workspace=1#workspace">&larr; Back to the app</a></nav>
+  <header class="site-header" id="top" data-page="results">
+    <a class="site-brand" href="overview.html">SPHEREx Blink</a>
+    <select id="theme-select" data-default-theme="midnight" aria-label="Colour theme"></select>
   </header>
+  <script type="module" src="js/siteHeader.js"></script>
 
   <main id="results" class="rmain" tabindex="-1">
     <nav class="result-links" aria-label="Results sections">
-      <a href="#candidate-explorer">Candidate Explorer</a><a href="#research-assistant">Research report</a><a href="#results-title">Real-data validation</a>
+      <a href="#candidate-explorer">Candidate Explorer</a><a href="#research-assistant">Selected candidate report</a><a href="#results-title">Validation on real observations</a>
     </nav>
     <section class="panel rsec explorer" id="candidate-explorer" aria-labelledby="explorer-title">
       <h1 id="explorer-title">Candidate Explorer</h1>
@@ -323,7 +324,7 @@
       <a href="https://doi.org/10.26131/IRSA629">10.26131/IRSA629</a> (QR1), <a href="https://doi.org/10.26131/IRSA652">10.26131/IRSA652</a> (QR2),
       <a href="https://doi.org/10.26131/IRSA662">10.26131/IRSA662</a> (QR3); which release each image comes from has not been matched yet.
       Catalogues: 2MASS and AllWISE via IRSA; SIMBAD (CDS); ephemerides: JPL Horizons, SkyBoT (IMCCE).
-      Built for NASA Space Apps Challenge 2026, with AI assistance (Claude Code). <a href="index.html">Back to the app</a></p>
+      Built for NASA Space Apps Challenge 2026, with AI assistance (Claude Code). <a href="index.html#workspace">Back to the Workspace</a></p>
   </footer>
 
   <script type="module" src="js/results.js"></script>

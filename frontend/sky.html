@@ -1,23 +1,29 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="midnight">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0B0F19">
   <title>Sky Explorer · SPHEREx Blink</title>
-  <script src="js/theme.js"></script>
+  <script>try{var t=new URLSearchParams(location.search).get("theme")||localStorage.getItem("spherex-blink-theme");if(/^(midnight|nebula|deep-space|observatory|light|classic)$/.test(t))document.documentElement.dataset.theme=t}catch(e){}</script>
   <link rel="stylesheet" href="css/styles.css?v=21"><link rel="stylesheet" href="css/exploration.css">
-</head>
-<body><div class="explore">
+<link rel="stylesheet" href="css/instrument.css">
+  </head>
+<body>
   <a class="skip-link" href="#explorer">Skip to explorer</a>
-  <header><nav aria-label="Pages"><a href="index.html">SPHEREx Blink</a><a href="results.html">Results</a><a href="simulator.html">Solar System Simulator</a></nav>
-    <label class="theme-picker">Theme <select data-theme-picker></select></label></header>
+  <header class="site-header" id="top" data-page="sky">
+    <a class="site-brand" href="overview.html">SPHEREx Blink</a>
+    <select id="theme-select" data-default-theme="midnight" aria-label="Colour theme"></select>
+  </header>
+  <script type="module" src="js/siteHeader.js"></script>
+  <div class="explore">
   <main id="explorer" tabindex="-1">
     <h1>Sky Explorer</h1>
-    <p>Find spectral image products at IRSA and inspect their detector footprints in ICRS coordinates.</p>
+    <p>Find spectral image products at IRSA and inspect their detector footprints in ICRS coordinates. <a href="#archive-search">Go to archive search</a>.</p>
     <section class="panel sky-atlas" aria-labelledby="atlas-title">
       <div class="sky-atlas-heading"><div><p class="atlas-kicker">Orientation atlas</p><h2 id="atlas-title">Choose a field in the sky</h2></div><p>Use one of the challenge targets to fill the archive search below. The map is an orientation aid, not a survey-coverage map.</p></div>
       <div class="sky-atlas-grid"><figure><svg id="sky-atlas-map" viewBox="0 0 900 480" role="img" aria-labelledby="atlas-map-title atlas-map-desc"><title id="atlas-map-title">All-sky orientation map</title><desc id="atlas-map-desc">An equal-area style sky outline with reference grid, ecliptic and galactic guide paths, and five selectable challenge targets.</desc><defs><clipPath id="atlas-clip"><ellipse cx="450" cy="240" rx="420" ry="205"/></clipPath></defs><ellipse class="atlas-ground" cx="450" cy="240" rx="420" ry="205"/><g class="atlas-grid" clip-path="url(#atlas-clip)"><path d="M30 240H870M75 142H825M75 338H825M170 58Q230 240 170 422M310 38Q350 240 310 442M450 35V445M590 38Q550 240 590 442M730 58Q670 240 730 422"/><path class="atlas-ecliptic" d="M30 270C190 410 330 333 450 240S710 70 870 210"/><path class="atlas-galactic" d="M145 82C310 20 375 118 450 245S655 450 786 205"/></g><g id="atlas-targets" aria-hidden="true"></g><text class="atlas-label" x="58" y="255">0°</text><text class="atlas-label" x="426" y="464">180°</text><text class="atlas-label" x="825" y="255">360°</text></svg><figcaption><span class="atlas-key atlas-key-ecliptic">Ecliptic guide</span><span class="atlas-key atlas-key-galactic">Galactic guide</span><span class="atlas-key atlas-key-target">Challenge target</span></figcaption></figure><aside class="atlas-note"><p class="atlas-kicker">Field details</p><h3 id="atlas-selected">Select a marker</h3><p id="atlas-detail">Each marker copies a documented challenge target into the coordinate fields. You can adjust the field size before searching.</p><div class="atlas-target-list" id="atlas-target-list" aria-label="Challenge targets"></div><a class="btn btn-small" id="atlas-search" href="#archive-search" hidden>Continue to archive search</a></aside></div>
     </section>
     <section class="panel" id="archive-search" aria-label="Archive search">
+      <h2>Archive search</h2>
       <form id="search" class="tool-form">
         <label>Right ascension <input type="text" id="ra" required value="127.69444"></label>
         <label>Declination <input type="text" id="dec" required value="-39.17760"></label>
@@ -26,7 +32,7 @@
           <option value="spherex_qr2">QR2 wide</option><option value="spherex_qr2_deep">QR2 deep</option>
           <option value="spherex_qr3">QR3 wide</option><option value="spherex_qr3_deep">QR3 deep</option>
         </select></label>
-        <button class="btn btn-primary" type="submit">Search IRSA</button>
+        <button class="btn btn-primary" type="submit" aria-describedby="live-search-help">Search IRSA</button>
       </form>
       <p><span id="live-search-help">Enter degrees or sexagesimal coordinates. The live search uses the Blink backend.</span> <button class="btn btn-small" id="example">Load saved QR2 field</button></p>
       <p id="status" role="status"></p>
@@ -35,7 +41,7 @@
       <h2>Image footprints</h2>
       <p id="empty-products" hidden>No image products match this search. Try a wider field or another collection.</p>
       <p id="provenance"></p><div class="tool-actions"><label>Detector <select id="detector"></select></label>
-      <a href="index.html" id="workspace">Analyze field in workspace</a><span id="workspace-help" hidden>To analyze observed FITS frames, open this field from a workspace served with the local backend.</span><a id="source">Source table at IRSA</a></div>
+      <a hidden id="workspace">Analyze field in workspace</a><span id="workspace-help" hidden>To analyze observed FITS frames, open this field from a workspace served with the local backend.</span><a id="source">Source table at IRSA</a></div>
       <div class="tool-grid">
         <figure><svg id="footprints" class="plot" viewBox="0 0 400 400" role="img" aria-label="Detector footprints on the tangent plane, north up and east left"></svg><figcaption id="scale"></figcaption></figure>
         <div class="table-scroll"><table><caption>Products in the search region</caption><thead><tr><th>Observation</th><th>Detector</th><th>Start (MJD)</th><th>File</th></tr></thead><tbody id="rows"></tbody></table></div>
@@ -45,8 +51,8 @@
     <section class="panel"><h2>Survey imagery</h2>
       <div class="tool-actions"><label>Background survey <select id="survey"><option value="2mass">2MASS</option><option value="allwise">AllWISE</option><option value="dss2">DSS2</option></select></label>
       <button type="button" id="map-start" class="btn">Open map at coordinates</button>
-      <button type="button" id="use-centre" class="btn" disabled>Use map centre in search</button></div>
-      <div class="skymap" id="aladin-box" hidden></div><p id="map-status" role="status"></p>
+      <button type="button" id="use-centre" class="btn" aria-describedby="map-status" disabled>Use map centre in search</button></div>
+      <div class="skymap" id="aladin-box" hidden></div><p id="map-status" role="status">Open the survey map to use its centre in a search.</p>
     </section>
   </main></div><script type="module" src="js/skyExplorer.js"></script></body>
 </html>

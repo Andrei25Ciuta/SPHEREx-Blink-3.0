@@ -1,8 +1,80 @@
 # Development progress
 
+> **Where things stand (12 Nov 2026): read this first.** The repository for later changes is **SPHEREx-Blink-3.0** (the author's decision of 12 Nov). The default theme is
+> **Midnight / dark** on all six pages (`DEFAULT_THEME` in `theme.js` is only the fallback; each page passes `midnight`). Entries below that say the destination is Blink 2.0
+> (the 8 Nov "return to SPHEREx-Blink-2.0" entry), that "Deep Space is the default theme", or that the work is "on the branch `blink-2.0`" were true when written and are
+> **superseded**. SPHEREx-Blink-2.0 holds a parallel line of work (service-failure handling, chance baselines, a release audit, a Paper-theme redesign) that is **not merged into
+> this repository yet**; what differs is listed in `docs/MERGE_NOTES.md` and has to be decided before the two are joined.
+
 ## 2026-11-14 — Blink in colours
 
 Added a linked workspace demo comparing centroids across two illustrative bands or two dates. It generates Gaussian stamps for a fixed blended pair, a moving source and a fixed reference star. The reference-corrected shifts passed `node scratch/test_colour_blink.mjs`. The fixture contains only synthetic pixels.
+
+## 2026-11-12 — Tour pacing follow-up
+
+Reduced travel time by another 15% to 415–960 ms. Linux Chromium with the synthetic Barnard field passed all eight steps at the seven agreed widths, including a downward scroll without reversals and Escape during motion. All scratch/test_*.mjs scripts, benchmark.mjs --check, the smoke, accessibility, navigation, layout and tour modal checks, and 190 backend tests passed. Physical devices were outside this check.
+
+## 2026-11-12 — Quicker tour transitions
+
+Shortened spotlight travel by about 25%, to 490–1125 ms according to scroll distance. With the synthetic Barnard field, the Linux Chromium tour check aligned each of the eight steps at all seven agreed widths. At 390 px a long downward move advanced through 43 distinct scroll positions without reversing, and Escape stopped it in progress. All 44 Node test scripts, the three benchmark comparisons and 190 backend pytest cases passed. Physical devices were outside this timing check.
+
+## 2026-11-12 — Restore guided tour movement
+
+A single animation moves the page, spotlight and card together over 650–1500 ms according to scroll distance. Next and Back interrupt from the current position. Escape stops the movement and reduced motion places the step immediately.
+
+Linux Chromium: with the synthetic Barnard field, all eight spotlight targets aligned at the seven agreed widths. Reviewed 390 and 1440 px screenshots. A separate frame sampling check at 390 px recorded a long downward move without a reversal and verified that Escape stopped an in-progress move. All scratch/test_*.mjs scripts, benchmark.mjs --check, e2e_smoke.mjs, a11y_audit.mjs, browser_navigation.cjs, browser_layout_audit.cjs, browser_tour_modal.cjs and 190 backend tests passed. Physical devices and live FITS were outside this check.
+
+## 2026-11-12 — Combine the viewing guide and tour
+
+Moved the visual motion cues into the existing eight-step tour. Settings and Layers share the viewer toolbar. Steps now position the highlight immediately and fade the card for 180 ms, with the fade disabled for reduced motion. Removed the delayed reposition callback and overlapping spotlight transitions.
+
+Linux verification used the synthetic Barnard field at 320, 390, 768, 1024, 1366, 1440 and 1920 px. Completed all steps and exercised rapid Back/Next with normal motion, checked card bounds and reviewed desktop and phone screenshots. Ran scratch/browser_tour_modal.cjs on the explicit Workspace route for reduced-motion modal checks. All 44 scratch/test_*.mjs scripts, benchmark.mjs --check, e2e_smoke.mjs, a11y_audit.mjs, browser_navigation.cjs, browser_layout_audit.cjs and 190 backend pytest cases passed. No live FITS, physical devices or screen readers were exercised.
+
+## 2026-11-12 — Workspace viewer tools
+
+Grouped Settings, Layers and Viewing guide in a labelled, tinted row above playback with theme-coloured icons. The buttons wrap on small screens.
+
+Linux Chromium with the built-in synthetic Barnard field: opened all three dialogs, dismissed each with Escape and verified focus returned to its button at 320, 390, 768, 1024, 1366, 1440 and 1920 px. No horizontal page overflow. Reviewed toolbar screenshots at 390 and 1440 px. Ran every scratch/test_*.mjs, benchmark.mjs --check (three matching digests), e2e_smoke.mjs, a11y_audit.mjs, browser_navigation.cjs and browser_layout_audit.cjs. All passed. The isolated backend pytest run passed 190 tests with one FITS keyword warning. Live FITS, external catalogues, physical phones and screen readers were outside this check.
+
+## 2026-11-12 — Repair pass on branch `repair-docs` (documentation, Playwright scripts, CI)
+
+Fixed the seven findings of a read-only review of `main` at `4e207b8`:
+
+1. README: the themes row now lists Midnight / dark and the five Paper palettes (it still described the removed "Deep Space default"); `docs/ACCESSIBILITY.md` likewise.
+2. README: both demo links pointed at `iooonut.github.io`; they now point at `mateibut.github.io/SPHEREx-Blink-3.0/` (the Pages site of this repository, deployed by the green run of `4e207b8`).
+3. Themes: this was **not** an inconsistency in behaviour. All six pages open in Midnight on a first visit (`data-default-theme="midnight"`, `siteHeader.js`, and the `data-theme` on `<html>`); `DEFAULT_THEME = "light"` in `theme.js` is only the fallback. Documented in a comment in `theme.js` (no code behaviour changed) and in the README. The three pages that lacked a browser-bar colour (`planet-x`, `simulator`, `sky`) now have `<meta name="theme-color" content="#0B0F19">`.
+4. `AGENTS.md`: rule 4 said "never push, work on the branch `blink-2.0`" (from an earlier repository) while the first paragraph said to push to a `blink3` remote; it now says: never force-push or rewrite history, push only after the author's fresh explicit yes, plain push to this repository. The `?theme=` names and the open decision were updated.
+5. `CODEX_PROGRESS.md` and `ARCHITECTURE.md`: a "where things stand" block / note at the top; the 8 Nov "return to Blink-2.0" entry and the second half of both files are marked as historical (nothing deleted).
+6. Playwright: the scripts were never run by CI and had never been run against this page. Found and fixed: a bare `index.html` now redirects to `overview.html` (so `browser_tour_modal`, `browser_public_backend`, `browser_workspace`, `browser_all` loaded the wrong page; they use `index.html#workspace`), selectors of the removed hero and settings details (now `.site-header`, the `viewer-settings` dialog, `#theme-select`, `#zoom-in-btn`), a theme id `light-research` that no longer exists, and ports written into four scripts (`browser_workspace`, `_all`, `_real`, `_provenance` now read `BLINK_URL` / `BLINK_REAL_URL` and `BLINK_BROWSER`). One zoom assertion was changed because the control it tested (`#image-zoom`) no longer exists: it now checks that the zoom-in button changes the zoom level. Nine of the twelve scripts pass against a local server with Playwright 1.59.1 in Chrome (`browser_navigation`, `_layout_audit`, `_tour_modal`, `_public_backend`, `_sky_archive`, `_simulator_precision`, `_candidate_roundtrip`, `_workspace`, `_all`). `browser_real`, `_real_responsive` and `_provenance` need the real-data backend and were **not run**. A new CI job `browser` runs the nine (Playwright pinned to 1.59.1 and installed outside the repository; licence line in `CREDITS.md`); it is **advisory** (`continue-on-error`) until it has passed once on the runner, which has not been checked.
+7. Backend: `python -m pytest backend -q` ran here with the project's venv: **190 passed, 1 warning** (the known HIERARCH keyword warning).
+
+Also run on this branch: all 44 `scratch/test_*.mjs`, `node scratch/e2e_smoke.mjs`, `node scratch/a11y_audit.mjs`.
+
+## 2026-11-12 — Navigation and observing workflow cleanup
+
+Continued the contact-sheet checkout from 710256a. The six pages use the same project navigation, active destination, responsive menu and theme picker. The standalone research links now sit beside the field-specific tools. Settings, layers, simulation context and viewing help open in bounded dialogs. Playback and observation selection share a row above the square image. The Inspector contains the frame metadata and interactive timeline. Search findings follow their commands. Phone layouts start with field selection in the Workspace and the orbit in the Simulator.
+
+Verified the static frontend over HTTP in Chrome. Ran every `node scratch/test_*.mjs` script (44), `node scratch/benchmark.mjs --check` (three output digests matched), `node scratch/e2e_smoke.mjs`, `node scratch/a11y_audit.mjs`, `node scratch/browser_navigation.cjs` and `node scratch/browser_layout_audit.cjs` with the bundled Playwright and Chrome. All passed. Updated static expectations for the shared header, working Workspace URL, unnumbered tool heading and retained tooltip descriptions. The layout audit now selects actual saved themes and resolves the surface beneath a transparent panel. Installed the existing backend/requirements-dev.txt in an isolated Python environment and ran `python -m pytest backend -q`. All 190 tests passed with one Astropy FITS keyword warning.
+
+Additional local Playwright checks (`cleanup-final-review.cjs after`, `cleanup-public.cjs`, `cleanup-api-review.cjs` in the chat visualization folder) covered the six pages at 320, 390, 768, 1024, 1366, 1440 and 1920 px. No document-level horizontal overflow. Fixtures were the built-in synthetic Barnard and simulated Planet X fields, saved QR2 footprint records, archived candidates and injection-recovery JSON. At 1440 × 900 the canvas changed from 294 to 585 pixels square. Settings, guide, layer and simulation dialogs retained the canvas position, with focus restored after dismissal. Checked Simulator playback and projection, Sky target/saved product selection, Lab filtering, and candidate filtering/report generation. A touch-emulated public origin served local files and confirmed backend restrictions. Intercepted cutout loading, HTTP 503, retry and empty responses matched HEAD in request method, parameters and feedback. Before and after screenshots are in the chat visualization folder. Live FITS, external catalogues, survey tiles and physical-device/screen-reader testing were outside these checks.
+
+## Field controls follow-up
+
+Moved the existing tour and disclosures into a single row beneath the presets, with stacked touch targets on phones. The field collapse arrow now follows the vertical direction of the panel. Playwright opened and closed all three disclosures and collapsed and restored the field panel at 320, 390, 820, 1179, 1180 and 1440 px using the empty synthetic workspace. No document overflow was detected. The backend pytest run could not start because pytest was unavailable.
+
+## 2026-11-12 — Project-wide visual redesign
+
+Extended the workspace reference palette and control styles to the five companion pages. The field heading aligns with the coordinate form at the desktop breakpoint. The tablet simulator shows the orbit before the controls, and the Overview theme selector is available on phones.
+
+Checked the six routes with Playwright at 1440, 820 and 390 px using synthetic workspace frames, the saved QR2 field and archived experiment and candidate JSON. All six fit the viewport. The 44 frontend test scripts, browser layout and navigation regressions, workspace keyboard audit and synthetic end-to-end smoke test passed. Compared the original workspace control inventory and intercepted cutout requests through loading, HTTP 503, retry and empty responses. Backend pytest was unavailable. Live FITS and catalogue services were not tested. The pre-existing Planet X Lab header link labelled Workspace resolves to Overview through the original redirect.
+
+## 2026-11-11 — Contact Sheet workspace
+
+Restyled the image workspace on `redesign/contact-sheet` from `880777f`. The coordinate form and presets sit above the viewer, with frame metadata alongside it. Detector averages, search actions, exports, measurements and results use the existing controls. The first-visit workspace palette is charcoal and amber. Saved and URL-selected themes retain precedence.
+
+Ran all 44 `scratch/test_*.mjs` scripts, `node scratch/e2e_smoke.mjs`, `node scratch/a11y_audit.mjs`, and the Playwright navigation and layout checks in `scratch/browser_navigation.cjs` and `scratch/browser_layout_audit.cjs`. All passed. Playwright screenshots at 1536, 820, 390 and 320 px used the built-in WISE 0855 and simulated Planet X fields. A touch-emulated phone check exercised mode selection and display settings. A before-and-after comparison matched 129 static controls, links and forms, the cutout GET and parameters, and the loading, HTTP 503, retry and empty-field states using intercepted API responses.
+
+The frontend serves directly from `frontend/` with no build step. The available Python installations lacked pytest, so `python -m pytest backend -q` could not run. Live FITS, external catalogues and third-party sky map services were not exercised.
 
 ## 2026-11-11 — academic Overview refinement
 
@@ -210,6 +282,9 @@ Verification: all 17 `scratch/test_*.mjs` scripts passed; `python -m pytest back
 <!-- Everything below comes from the branch blink-2.0 of mateibut/SPHEREx, a second line of Blink 2.0 work that was merged into this repository on 10 Nov 2026. Where the two halves describe the same thing differently, they describe two different implementations: see docs/MERGE_NOTES.md. -->
 
 # Progress: SPHEREx Blink 2.0
+
+> *Historical note (12 Nov 2026):* this second half was written on the branch `blink-2.0` on 10 Nov. Its statements about the branch, "`main` still has the old page", "Deep Space is the default theme" and
+> "where Blink 2.0 lives" are superseded by the block at the top of this file and by `AGENTS.md`. The descriptions of the code, the tests and the validation still apply.
 
 Read `AGENTS.md` first. Update this file after every working session. Last update: **10 Nov 2026**, branch `blink-2.0`.
 Verify what is written here against `git log` and the test commands in `AGENTS.md`; do not trust it blindly.

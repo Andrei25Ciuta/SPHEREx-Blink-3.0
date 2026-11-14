@@ -5,7 +5,6 @@
 // repeated in a real table under each chart for screen readers. The builders below are pure functions (they return
 // strings), so scratch/test_results.mjs tests them without a browser.
 
-import { setupThemeSwitcher } from "./features/theme.js";
 import { createExplorer } from "./features/candidateExplorerView.js";
 import { provenanceText, missingProvenance } from "./features/provenance.js";
 import { setupExplorer } from "./features/resultsExplorer.js";
@@ -395,4 +394,3 @@ async function main() {
   }
 }
 if (typeof document !== "undefined" && document.getElementById("results-status")) main();
-if (typeof document !== "undefined" && document.getElementById("theme-select")) setupThemeSwitcher(document.getElementById("theme-select"));

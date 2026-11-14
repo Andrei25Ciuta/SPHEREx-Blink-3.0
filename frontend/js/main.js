@@ -49,7 +49,6 @@ import { fetchSkybotForFrames, asteroidPoints, matchAsteroids } from "./features
 import { setComparisonFrames } from "./features/detectorPair.js";
 import { savePng, recordBlink, canRecord, copyLink } from "./features/exporters.js";
 import { setupDiscoverPanel } from "./features/discoverPanel.js";
-import { setupThemeSwitcher } from "./features/theme.js";
 
 // Small helper: document.getElementById is long, so we alias it.
 const $ = (id) => document.getElementById(id);
@@ -1439,7 +1438,6 @@ $("mover-spectrum-btn").addEventListener("click", async () => {
 });
 
 // Colour theme (features/theme.js): the choice is kept in this browser; ?theme=light overrides it for one visit
-setupThemeSwitcher($("theme-select"));
 
 // ---------------------------------------------------------------
 // Find everything: every source in the images, checked against the catalogues (features/discoverPanel.js)
@@ -1503,6 +1501,18 @@ $("record-btn").addEventListener("click", async () => {
     btn.disabled = false;
   }
 });
+
+// Native modal panels keep the viewer in place and return focus to the opener.
+for (const button of document.querySelectorAll("[data-open-panel]")) {
+  const panel = $(button.dataset.openPanel);
+  button.addEventListener("click", () => panel.showModal());
+  panel.addEventListener("click", event => {
+    if (event.target !== panel) return;
+    const { left, right, top, bottom } = panel.getBoundingClientRect();
+    if (event.clientX < left || event.clientX > right || event.clientY < top || event.clientY > bottom) panel.close();
+  });
+  panel.addEventListener("keydown", event => event.stopPropagation());
+}
 
 // Guided tour: points at the parts of the page, changes nothing, needs no data or network.
 let activeTour = null;

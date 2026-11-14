@@ -46,7 +46,7 @@ export function clipToView(rect, view) {
  * Returns { close() }. onClose({ finished }) is called once, when the tour ends or is closed.
  */
 export function startTour(steps, { onClose = () => {} } = {}) {
-  const reduced = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const motion = matchMedia("(prefers-reduced-motion: no-preference)");
   const opener = document.activeElement;
   const usable = steps.filter((s) => { const el = document.querySelector(s.target); return el && el.getClientRects().length; });
   if (!usable.length) { onClose({ finished: false }); return { close() {} }; }
@@ -82,25 +82,74 @@ export function startTour(steps, { onClose = () => {} } = {}) {
 
   const rectOf = (el) => { const r = el.getBoundingClientRect(); return { top: r.top, left: r.left, width: r.width, height: r.height }; };
 
-  function position() {
-    frame = 0;
-    if (closed) return;
-    const el = document.querySelector(usable[index].target);
-    if (!el) return;
+  function layout(target, scrollDelta = 0) {
     const view = { width: innerWidth, height: innerHeight };
-    const pad = 6;
-    const raw = rectOf(el);
-    const lit = clipToView({ top: raw.top - pad, left: raw.left - pad, width: raw.width + 2 * pad, height: raw.height + 2 * pad }, view);
-    Object.assign(spot.style, { top: `${lit.top}px`, left: `${lit.left}px`, width: `${lit.width}px`, height: `${lit.height}px` });
-    card.style.width = "";                                                     // measure at its natural width first
-    const size = { width: Math.min(card.offsetWidth || 340, view.width - 16), height: card.offsetHeight };
-    const p = placeCard(lit, size, view);
-    Object.assign(card.style, { top: `${p.top}px`, left: `${p.left}px`, width: `${p.width}px` });
-    card.dataset.placement = p.placement;
+    const lit = clipToView({ top: target.top - scrollDelta - 6, left: target.left - 6,
+      width: target.width + 12, height: target.height + 12 }, view);
+    card.style.width = view.width < 520 ? `${view.width - 16}px` : "";
+    const placement = placeCard(lit, rectOf(card), view);
+    card.dataset.placement = placement.placement;
+    return { lit, placement };
   }
-  const schedule = () => { if (!frame) frame = requestAnimationFrame(position); };
+
+  function draw(el, rect) {
+    for (const [key, value] of Object.entries(rect)) el.style[key] = `${value}px`;
+  }
+
+  function position() {
+    const { lit, placement } = layout(rectOf(document.querySelector(usable[index].target)));
+    draw(spot, lit);
+    draw(card, { left: placement.left, top: placement.top });
+  }
+
+  function schedule() {
+    if (!frame) frame = requestAnimationFrame(() => {
+      frame = 0;
+      position();
+    });
+  }
+
+  function moveTo(target, fromSpot, fromCard) {
+    cancelAnimationFrame(frame);
+    frame = 0;
+    const startY = scrollY;
+    const rect = rectOf(target);
+    let endY = startY;
+    if (rect.top < 0 || rect.top + rect.height > innerHeight) {
+      const centered = startY + rect.top + (rect.height - innerHeight) / 2;
+      endY = Math.max(0, Math.min(centered, document.documentElement.scrollHeight - innerHeight));
+    }
+    const distance = endY - startY;
+    if (!motion.matches) {
+      window.scrollTo({ top: endY, behavior: "instant" });
+      position();
+      return;
+    }
+    const { lit, placement } = layout(rect, distance);
+    const cardTop = Math.max(8, Math.min(fromCard.top, innerHeight - card.offsetHeight - 8));
+    const duration = Math.min(960, 415 + Math.abs(distance) * 0.16);
+    const start = performance.now();
+    function tick(now) {
+      const t = Math.min(1, Math.max(0, (now - start) / duration));
+      const progress = t * t * (3 - 2 * t);
+      const mix = (a, b) => a + (b - a) * progress;
+      window.scrollTo({ top: mix(startY, endY), behavior: "instant" });
+      draw(spot, { top: mix(fromSpot.top, lit.top), left: mix(fromSpot.left, lit.left),
+        width: mix(fromSpot.width, lit.width), height: mix(fromSpot.height, lit.height) });
+      draw(card, { top: mix(cardTop, placement.top), left: mix(fromCard.left, placement.left) });
+      if (t < 1) frame = requestAnimationFrame(tick);
+      else {
+        frame = 0;
+        position();
+      }
+    }
+    tick(start);
+  }
 
   function show(i) {
+    const first = !spot.style.width;
+    const fromSpot = rectOf(first ? opener || document.querySelector(usable[i].target) : spot);
+    const fromCard = first ? null : rectOf(card);
     index = i;
     const step = usable[i];
     q("#tour-count").textContent = stepLabel(i, usable.length);
@@ -108,15 +157,16 @@ export function startTour(steps, { onClose = () => {} } = {}) {
     q("#tour-text").textContent = step.text;
     back.disabled = i === 0;
     next.textContent = i === usable.length - 1 ? "Done" : "Next";
-    document.querySelector(step.target).scrollIntoView({ block: "center", behavior: reduced ? "auto" : "smooth" });
-    position();
-    setTimeout(position, reduced ? 0 : 350);                                   // again when the smooth scroll has arrived
+    const target = document.querySelector(step.target);
+    const previousCard = fromCard || layout(fromSpot).placement;
+    moveTo(target, fromSpot, previousCard);
     next.focus({ preventScroll: true });
   }
 
   function close(finished) {
     if (closed) return;
     closed = true;
+    cancelAnimationFrame(frame);
     removeEventListener("resize", schedule);
     removeEventListener("scroll", schedule, true);
     document.removeEventListener("keydown", onKey, true);
@@ -160,9 +210,9 @@ export const WORKSPACE_STEPS = [
     text: "Five objects chosen by the challenge. WISE 0855, the coldest known brown dwarf, moves about 8 arcseconds per year: small, but enough to see." },
   { target: "#search-form", title: "Or choose any patch of sky",
     text: "Type a position (degrees or hours-minutes-seconds) and a field of view up to 30 arcminutes. You get one image per observation date." },
-  { target: "#stage", title: "Blink, and other ways to look",
-    text: "The images of one detector flash one after another: stars stay put, something that moves jumps. Difference makes still stars vanish; Stack and Trail add the images up; Compare subtracts one set of dates from another (buttons above the picture)." },
-  { target: "#movers", title: "Let the computer find them",
+  { target: "#stage", title: "Spot motion by eye",
+    text: "Press Play to blink one detector across dates. Look for a dot that drifts or jumps. A dot that changes brightness in place may be a variable star. Slow playback or pause and use ← and → to step. Try Difference to suppress fixed stars or Trail to see a mover’s path." },
+  { target: "#search-actions", title: "Let the computer find them",
     text: "Find movers links dots across at least three survey passes and lists the ones that moved. Look for a distant body is the Planet X mode: it follows the swing the Earth's motion gives a body hundreds of AU away, and reads off its distance." },
   { target: "#inspector", title: "The inspector",
     text: "Facts about what you have selected: the image on screen, the position you marked with a click, and the description of the candidate you pressed in a list. The keys [ and ] hide the search panel and the inspector to give the picture room." },

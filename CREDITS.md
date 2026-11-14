@@ -34,6 +34,7 @@ Suggested acknowledgement lines (check the exact wording on each archive's page 
 | **Aladin Lite** v3.6.5 (CDS) | **GPL-3.0** | Loaded unmodified from the jsDelivr CDN when the sky map opens. It is not bundled or redistributed here. Whether a page that loads a GPL library at run time must itself be GPL is a licensing question we have **not** settled; check it before choosing the final licence. |
 | **Plotly.js** (basic bundle) 2.35.2 | MIT | Spectrum and light-curve charts, loaded from jsDelivr on demand. |
 | **Inter**, **Oswald**, **Space Grotesk** | SIL Open Font License 1.1 | Loaded from Google Fonts. |
+| **Playwright** 1.59.1 (test-only, `playwright` on npm) | Microsoft, Apache-2.0 | Drives a real browser in `scratch/browser_*.cjs` and in the advisory CI job `browser`. Installed outside the repository on every run (`npm install playwright@1.59.1`); nothing of it is shipped or served. Licence from the npm registry listing. |
 
 ## Software in the backend
 

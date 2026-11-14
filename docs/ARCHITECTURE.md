@@ -10,6 +10,9 @@ Both HTML pages use frontend/css/styles.css. Results-specific chart and layout r
 
 <!-- Everything below comes from the branch blink-2.0 of mateibut/SPHEREx, a second line of Blink 2.0 work that was merged into this repository on 10 Nov 2026. Where the two halves describe the same thing differently, they describe two different implementations: see docs/MERGE_NOTES.md. -->
 
+> *Note (12 Nov 2026):* the second half of this file was written for the branch `blink-2.0` (Blink 2.0) and is merged here; it still describes the code. Where it names a branch or the
+> default theme, `AGENTS.md` and the top of `docs/CODEX_PROGRESS.md` apply (repository: SPHEREx-Blink-3.0; default theme: Midnight / dark).
+
 # Architecture
 
 ## Pieces

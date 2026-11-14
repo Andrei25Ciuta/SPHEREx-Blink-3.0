@@ -1,13 +1,18 @@
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="midnight">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#FBFBF9"><title>Overview · SPHEREx Blink</title>
+  <meta name="theme-color" content="#0B0F19"><title>Overview · SPHEREx Blink</title>
   <script>try{var t=new URLSearchParams(location.search).get("theme")||localStorage.getItem("spherex-blink-theme");if(/^(midnight|nebula|deep-space|observatory|light|classic)$/.test(t))document.documentElement.dataset.theme=t}catch(e){}</script>
   <link rel="stylesheet" href="css/styles.css?v=21"><link rel="stylesheet" href="css/overview.css?v=1"><link rel="stylesheet" href="css/overview-academic.css?v=1">
-</head>
+<link rel="stylesheet" href="css/instrument.css">
+  </head>
 <body><a class="skip-link" href="#overview-main">Skip to overview</a>
-<header class="overview-header"><a class="overview-brand" href="overview.html" aria-label="SPHEREx Blink overview"><span class="brand-logo" aria-hidden="true"></span><span>SPHEREx Blink</span></a><nav aria-label="Project pages"><a aria-current="page" href="overview.html">01 Overview</a><a href="index.html#workspace">02 Workspace</a><a href="sky.html">03 Sky Explorer</a><a href="planet-x.html">04 Planet X Lab</a><a href="simulator.html">05 Simulator</a><a href="results.html">06 Results</a></nav><label class="theme-picker"><span class="sr-only">Colour theme</span><select data-theme-picker></select></label><a class="overview-open" href="index.html#workspace">Open workspace <span aria-hidden="true">↗</span></a></header>
+<header class="site-header" id="top" data-page="overview">
+    <a class="site-brand" href="overview.html">SPHEREx Blink</a>
+    <select id="theme-select" data-default-theme="midnight" aria-label="Colour theme"></select>
+  </header>
+  <script type="module" src="js/siteHeader.js"></script>
 <main id="overview-main">
   <section class="overview-hero" aria-labelledby="overview-title"><div class="overview-copy"><p class="overview-kicker">Infrared time domain · synthetic demo</p><h1 id="overview-title">Find what<br>moves<span>.</span></h1><p>Blink through the infrared sky over time. Most stars stay put; the dot that jumps is worth investigating.</p><div class="overview-actions"><a class="overview-primary" href="index.html#workspace">Open the workspace <span aria-hidden="true">↗</span></a><a class="overview-secondary" href="sky.html">Explore the sky map</a></div><p class="overview-meta">Synthetic demo frames · Blink · Difference · Stack · Trail</p></div><figure class="overview-frame" aria-label="Illustration of a synthetic infrared image sequence"><div class="overview-frame-status"><span></span>Blinking · synthetic</div><div class="overview-stars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><b></b></div><figcaption>Illustration only — not SPHEREx observations.</figcaption></figure></section>
   <p class="overview-ticker" aria-label="SPHEREx Blink capabilities"><span>Infrared image sequences</span><b>◆</b><span>Six detectors</span><b>◆</b><span>Inspect what changes</span><b>◆</b><span>Export with provenance</span></p>
@@ -17,4 +22,4 @@
   <section class="overview-callout"><p class="overview-kicker">Research workflow</p><h2>A dot that jumps frame to frame is a candidate.</h2><p>Use Find Movers to link bright dots across a sequence. The page reports motion, significance and each supporting detection, while keeping synthetic and observed inputs clearly labelled.</p><a class="overview-secondary" href="index.html#workspace">Run the workspace <span aria-hidden="true">↗</span></a></section>
 </main>
 <footer class="overview-footer"><span>SPHEREx Blink · NASA Space Apps Challenge 2026</span><span>Demo pixels are synthetic unless stated otherwise.</span></footer>
-<script src="js/theme.js"></script></body></html>
+</body></html>
