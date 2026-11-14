@@ -117,6 +117,7 @@ export class SkyContext {
     this.aladin = null;
     this.A = null;
     this.query = null;
+    this.candidateTrack = [];
     this.survey = "2mass";
     this.readout = null;                // the box in the corner: coordinates and, in brackets, the country overhead
     this.world = null;                  // countries (skyGeo.js), once loaded
@@ -199,7 +200,29 @@ export class SkyContext {
     this.statusEl.textContent = SOURCE_NOTE[source];
     if (this.noteEl) { this.noteEl.hidden = false; this.noteEl.textContent = this.world ? GEO_NOTE : "Loading country names…"; }
     this.update(query);
+    this.setCandidateTrack(this.candidateTrack);
     this.ensureWorld();                  // not awaited: the map works at once, the country appears when the borders have arrived
+  }
+
+  /** Draw the selected candidate's supporting detections, in observation order. */
+  setCandidateTrack(points, onSelect = this.onCandidatePoint) {
+    this.candidateTrack = points;
+    this.onCandidatePoint = onSelect;
+    if (!this.aladin) return;
+    const { A, aladin } = this;
+    if (!this.trackOverlay && points.length) {
+      this.trackOverlay = A.graphicOverlay({ name: "Candidate trajectory", color: "#f0bf73", lineWidth: 2 });
+      aladin.addOverlay(this.trackOverlay);
+      this.trackCatalog = A.catalog({
+        name: "Supporting detections", color: "#ffd693", shape: "circle", sourceSize: 10,
+        onClick: source => this.onCandidatePoint?.(this.candidateTrack[source.data.index]),
+      });
+      aladin.addCatalog(this.trackCatalog);
+    }
+    this.trackOverlay?.removeAll();
+    this.trackCatalog?.removeAll();
+    if (points.length > 1) this.trackOverlay.add(A.polyline(points.map(({ ra, dec }) => [ra, dec])));
+    if (points.length) this.trackCatalog.addSources(points.map(({ ra, dec }, index) => A.source(ra, dec, { index })));
   }
 
   setSurvey(key) {

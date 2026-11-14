@@ -36,7 +36,7 @@ import { openDialog, shortcutsHtml } from "./features/dialog.js";
 import { colourSequences } from "./features/colourBlink.js?v=3";
 import { setupTimeline } from "./features/timelineView.js";
 import { FLAGGED_LIMIT } from "./features/timeline.js";
-import { SkyContext } from "./features/skyContext.js?v=2";
+import { SkyContext } from "./features/skyContext.js?v=3";
 import { setupFullscreen } from "./features/fullscreen.js";
 import { detectSources, describeMover, matchKnownObject, moverPositionAtMjd, passIndices, trackSupport, blendWarning, VERSION as MOVERS_VERSION, DEFAULTS as MOVER_DEFAULTS, ERROR_MODEL } from "./features/movers.js";
 import { blindCheckCandidate, VERSION as BLIND_CHECK_VERSION } from "./features/blindCheck.js";
@@ -1031,6 +1031,7 @@ function clearMovers() {
   $("movers-provenance").hidden = true;
   selectedMover = -1;
   updateObservationTrack(null);
+  updateSkyCandidate(null);
   player.setCandidates([]);
   $("mover-list").hidden = true;
   $("mover-list").replaceChildren();
@@ -1396,10 +1397,48 @@ function updateObservationTrack(candidate) {
   drawTrack($("observation-track-plot"), datedTrackPoints(points), size);
 }
 
+function updateSkyCandidate(candidate) {
+  const status = $("sky-candidate-status");
+  status.hidden = !candidate;
+  const points = [];
+  if (candidate && currentQuery && player.naturalSize) {
+    const geo = currentGeo();
+    candidate.dots.forEach((dot, i) => {
+      const mjd = candidate.dotDates?.[i];
+      if (![dot.x, dot.y, mjd].every(Number.isFinite)) return;
+      // Distant-body shifts also contain the parallax term. Use only the pointing correction here.
+      const shift = candidate.distant ? candidate.registration?.[dot.frame] : candidate.shifts?.[dot.frame];
+      const position = inspectionPosition((dot.x + (shift?.dx ?? 0)) / geo.n, (dot.y + (shift?.dy ?? 0)) / geo.n, geo);
+      if (!Number.isFinite(position.ra) || !Number.isFinite(position.dec) || Math.abs(position.dec) > 90) return;
+      points.push({ ...position, mjd, frame: candidate.frameIds?.[dot.frame] });
+    });
+    points.sort((a, b) => a.mjd - b.mjd);
+  }
+  const message = points.length
+    ? `Candidate ${candidate.label} · ${points.length} supporting detections in gold.${DATA_SOURCE === "api" ? "" : " Synthetic path on survey imagery."}`
+    : "No supporting positions to plot for this candidate.";
+  status.textContent = message;
+  sky.setCandidateTrack(points, point => {
+    if (!point) return;
+    const index = player.frames.findIndex(frame => point.frame ? frameId(frame) === point.frame : frame.mjd === point.mjd);
+    if (index < 0) {
+      status.textContent = `${message} This observation is outside the current player sequence.`;
+      return;
+    }
+    player.pause();
+    if (!player.isAnimated) setMode("blink");
+    player.pause();
+    player.goTo(index);
+    status.textContent = `${message} Showing ${fmtDate(player.frames[index].dateISO)} in the player.`;
+    $("stage").scrollIntoView({ block: "nearest" });
+  });
+}
+
 function selectMover(k) {
   player.stopFollow();                              // the view followed the one selected before
   selectedMover = k;
   updateObservationTrack(movers[k]);
+  updateSkyCandidate(movers[k]);
   planetLab?.refresh();                             // the lab compares the motions of the one selected
   assistant?.refresh();
   pinBoard?.refresh();
