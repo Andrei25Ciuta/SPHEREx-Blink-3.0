@@ -96,9 +96,10 @@
 .trial-controls { display: flex; flex-wrap: wrap; gap: .6rem 1rem; align-items: end; }
 .trial-controls label { display: grid; gap: .25rem; }
 .recovery-plot { max-width: 26rem; }
-.recovery-boundary { fill: none; stroke: var(--border); }
-.recovery-line { fill: none; stroke: var(--accent-text); stroke-width: 2; }
-.recovery-point { fill: var(--accent-text); }
+.recovery-boundary { fill: #10151e; stroke: var(--border); }
+.recovery-star { fill: #dce9fb; }
+.recovery-line { fill: none; stroke: #f0bf73; stroke-width: 2; }
+.recovery-point { fill: #ffd693; }
 #recovery-track, #candidate-evidence { margin-top: 1rem; }
 #lab figcaption { margin-top: .65rem; color: var(--text-muted); }
 #lab [hidden] { display: none; }

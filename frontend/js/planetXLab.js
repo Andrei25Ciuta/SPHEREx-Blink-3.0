@@ -1,6 +1,8 @@
 import { CAN_USE_LOCAL_BACKEND } from "./config.js";
 import { recoveryTrack } from "./features/recoveryTrack.js";
 
+import { mulberry32 } from "./data/mockSource.js";
+
 const $ = id => document.getElementById(id);
 function drawTrack(plot, points, size) {
   const minX = Math.min(0, ...points.map(p => p.x));
@@ -17,6 +19,17 @@ function drawTrack(plot, points, size) {
   plot.replaceChildren();
   const [x, y] = project({ x: 0, y: 0 });
   shape("rect", { x, y, width: 372 * size / span, height: 372 * size / span, class: "recovery-boundary" });
+  // Keep the illustrative stars stationary when switching trials.
+  const random = mulberry32(1365);
+  for (let i = 0; i < 156; i++) {
+    const [cx, cy] = project({ x: size * (.025 + .95 * random()), y: size * (.025 + .95 * random()) });
+    const brightness = random() ** 3;
+    if (brightness > .72) {
+      shape("circle", { cx, cy, r: 4.2, class: "recovery-star", opacity: .10, "aria-hidden": "true" });
+    }
+    shape("circle", { cx, cy, r: .45 + 1.65 * brightness,
+      class: "recovery-star", opacity: .16 + .58 * brightness, "aria-hidden": "true" });
+  }
   shape("polyline", { points: points.map(p => project(p).join(",")).join(" "), class: "recovery-line" });
   points.forEach(point => {
     const [cx, cy] = project(point);
