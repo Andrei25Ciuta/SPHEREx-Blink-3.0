@@ -91,3 +91,20 @@
 .sim-stage #scene .sight { stroke: #63c1c0; stroke-width: 1.7; }
 .sim-time input[type="range"] { accent-color: #55a9ac; }
 .sim-stage #scene .reference-earth { opacity: .84; }
+
+.recovery-map td, .recovery-map th { text-align: center; white-space: nowrap; }
+.recovery-map button {
+  width: 100%;
+  min-height: 44px;
+  background: color-mix(in srgb, var(--accent) var(--recovered), var(--field));
+  font-variant-numeric: tabular-nums;
+}
+.recovery-map button[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.trial-inspector { margin: 1.25rem 0; border-top: 1px solid var(--border); }
+.trial-controls { display: flex; flex-wrap: wrap; gap: .6rem 1rem; align-items: end; }
+.trial-controls label { display: grid; gap: .25rem; }
+.recovery-plot { max-width: 26rem; }
+.recovery-boundary { fill: none; stroke: var(--border); }
+.recovery-line { fill: none; stroke: var(--accent-text); stroke-width: 2; }
+.recovery-point { fill: var(--accent-text); }
+#recovery-track figcaption, #recovery-track details { margin-top: .65rem; color: var(--text-muted); }
