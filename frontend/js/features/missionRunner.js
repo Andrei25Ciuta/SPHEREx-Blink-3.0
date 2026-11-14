@@ -3,7 +3,7 @@
 // read off the page, and awards XP. DOM only; the missions and the checks are pure, in missions.js.
 
 import { findMission, stepMatches, checkMeasurement, STEP_NOTES, missionWhy, stepWhy, termsFor, categoryInfo, xpFor, totalXp, rankFor,
-  loadProgress, saveProgress, markComplete, pickRandomMission, missionHref } from "./missions.js";
+  loadProgress, saveProgress, markComplete, pickRandomMission, missionHref } from "./missions.js?v=2";
 
 const store = (() => { try { return window.localStorage; } catch { return null; } })();
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));

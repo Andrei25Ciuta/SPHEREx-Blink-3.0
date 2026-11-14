@@ -1098,31 +1098,6 @@ body::before {
 .cite:hover { border-color: var(--accent); }
 .ss-table tr.is-cited th, .ss-table tr.is-cited td { background: rgb(var(--accent-rgb) / .14); }
 
-/* The Solar System simulator (features/solarSystemView.js): the map sits in a .chart box, which keeps a dark ground and the Deep Space tokens in every theme */
-.ss { grid-column: 1 / -1; }
-.ss p { margin: .4rem 0; }
-.ss-modes { display: grid; gap: .3rem; margin: .6rem 0; padding: .4rem .7rem .6rem; border: 1px solid var(--border); border-radius: var(--radius-sm); }
-.ss-modes legend { padding: 0 .3rem; font-size: .78rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); }
-.ss-controls, .ss-body-controls { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem 1.2rem; margin: .5rem 0; font-size: .88rem; }
-.ss-controls label, .ss-body-controls label { display: inline-flex; align-items: center; gap: .4rem; }
-.ss-date input[type="range"] { width: min(18rem, 60vw); }
-.ss-controls output { font-variant-numeric: tabular-nums; min-width: 6.5rem; }
-.ss-body-controls input[type="number"] { width: 6rem; min-height: 1.75rem; }      /* min-height: a target of at least 24 px (WCAG 2.2, 2.5.8); it was 21 px */
-.ss-map { max-width: 640px; margin: .6rem auto; }
-.ss-svg { display: block; width: 100%; height: auto; }
-.ss-edge { fill: none; stroke: var(--text-muted); stroke-width: .006; }
-.ss-ring { fill: none; stroke: var(--text-muted); stroke-opacity: .25; stroke-width: .004; }
-.ss-orbit { fill: none; stroke: var(--text-muted); stroke-opacity: .45; stroke-width: .005; }
-.ss-orbit.is-earth { stroke: var(--accent-hi); stroke-opacity: .8; }
-.ss-sun { fill: var(--warn); }
-.ss-planet { fill: var(--text); }
-.ss-planet.is-earth { fill: var(--accent-hi); }
-.ss-name, .ss-label { font-size: .055px; font-family: var(--font-body); }
-.ss-name { fill: var(--text); }
-.ss-label { fill: var(--text-muted); }
-.ss-sight { stroke: var(--accent-2); stroke-width: .006; stroke-dasharray: .03 .02; }
-.ss-earth-date { fill: none; stroke: var(--accent-hi); stroke-width: .006; }
-.ss-body { stroke: var(--warn); stroke-width: .012; fill: none; }
 .ss-table th, .ss-table td { padding: .35rem .6rem; border-bottom: 1px solid var(--border); text-align: left; font-size: .85rem; }
 .ss-table .num { text-align: right; font-variant-numeric: tabular-nums; }
 
@@ -1343,8 +1318,6 @@ h1, h2, h3 { letter-spacing: -.015em; }
   .layout { grid-template-columns: minmax(0, 1fr); }
   .layout > *, .panel, .table-scroll, .layers { min-width: 0; }
   .layer-list { grid-template-columns: minmax(0, 1fr); }
-  .ss-date { flex-wrap: wrap; min-width: 0; }
-  .ss-date input[type="range"] { max-width: 100%; width: min(18rem, 100%); }
 }
 
 /* ---------- Paper presentation: shared by every named palette ---------- */

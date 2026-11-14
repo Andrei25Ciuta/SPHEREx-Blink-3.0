@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Oswald:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 
   <script>if (/[?&]embed=1(&|$)/.test(location.search)) document.documentElement.classList.add("embed");</script>   <!-- ?embed=1: workspace only, for an <iframe> -->
-  <link rel="stylesheet" href="css/styles.css?v=21">
+  <link rel="stylesheet" href="css/styles.css?v=22">
   <link rel="stylesheet" href="css/instrument.css">
   <link rel="stylesheet" href="css/lab-track.css">
   <link rel="stylesheet" href="css/contact-sheet.css?v=23">
@@ -396,7 +396,7 @@
 
     <nav class="ws-toc" aria-label="More tools on this page">
       <span class="ws-toc-title">More tools</span>
-      <a href="#pin-board">📌 Pin Board</a><a href="#planet-lab">🪐 Distant-body analysis</a><a href="#sky-explorer">🗺️ Sky map</a><a href="#solar-system">☀️ Solar System</a>
+      <a href="#pin-board">📌 Pin Board</a><a href="#planet-lab">🪐 Distant-body analysis</a><a href="#sky-explorer">🗺️ Sky map</a>
       <a href="#assistant">💬 Explain a candidate</a><a href="#observation-tools">🔭 Observation tools</a><a href="#text-analysis">📋 Tables</a>
     </nav>
     </section>
@@ -508,7 +508,6 @@
     <!-- ============ 5. Planet X Lab (features/planetLab.js, planetLabView.js, planetLabWorker.js) ============ -->
     <section class="panel lab" id="planet-lab" aria-labelledby="lab-title">
       <h2 id="lab-title">Distant-body analysis</h2>
-      <p><a href="planet-x.html">Open saved Planet X recovery experiment</a></p>
       <p class="muted">Two questions about a distant body. <strong>Which motion fits</strong> the positions of a candidate: standing still, a straight line, or a straight drift plus the swing of the Earth's orbit? And <strong>how likely is this search to find</strong> a body of a given distance and brightness in the images on screen? The second one adds <strong>synthetic</strong> bodies to the real images: it measures the search, it does not find anything.</p>
 
       <h3 id="lab-models-title">Which motion fits?</h3>
@@ -569,32 +568,7 @@
       </div>
     </section>
 
-    <!-- ============ 7. The Solar System, seen from above (features/solarSystem.js, solarSystemView.js) ============ -->
-    <section class="panel ss" id="solar-system" aria-labelledby="ss-title">
-      <h2 id="ss-title">The Solar System, seen from above</h2>
-      <p class="muted">Why would a distant body seem to swing? Because the Earth goes round the Sun: from two places of its orbit the same body is seen in two directions. Move the date, add a body in the direction of the field on screen and see the lines of sight from the Earth on the dates of the survey passes. Two modes, each named for what it is.</p>
-      <fieldset class="ss-modes">
-        <legend>Mode</legend>
-        <label class="check"><input type="radio" name="ss-mode" value="true" checked> <span><strong>Scientific</strong>: to scale; the planets from JPL's table of approximate positions, checked against JPL Horizons; the Earth the one the Planet X search uses</span></label>
-        <label class="check"><input type="radio" name="ss-mode" value="educational"> <span><strong>Educational</strong>: distances compressed and planets enlarged so that all can be seen: <strong>not to scale</strong></span></label>
-      </fieldset>
-      <div class="ss-controls">
-        <label>Range <select id="ss-range"><option value="inner">Inner Solar System (2 AU)</option><option value="giants" selected>To Jupiter (6 AU)</option><option value="all">To Neptune (35 AU)</option><option value="far">Far away (1000 AU)</option></select></label>
-        <label class="ss-date">Date <input type="range" id="ss-date" min="60800" max="61500" step="1" value="61000" aria-label="Date"> <output id="ss-date-label" for="ss-date"></output></label>
-        <label>Speed <select id="ss-speed"><option value="1">1 day per step</option><option value="3">3 days</option><option value="10" selected>10 days</option><option value="30">30 days</option></select></label>
-        <button type="button" class="btn btn-small" id="ss-play" aria-pressed="false">Play</button>
-      </div>
-      <div class="ss-body-controls">
-        <label class="check"><input type="checkbox" id="ss-body"> A distant body in the direction of the field on screen</label>
-        <label>at <input type="number" id="ss-distance" value="500" min="50" max="20000" step="50"> AU</label>
-      </div>
-      <p class="muted small" id="ss-swing" aria-live="polite"></p>
-      <div class="chart ss-map" id="ss-map"></div>
-      <p class="muted small" id="ss-mode-note"></p>
-      <details class="table-view"><summary>Show the positions as a table</summary><div class="table-scroll"><table class="ss-table" id="ss-table"></table></div></details>
-    </section>
-
-    <!-- ============ 8. Explain the selected candidate (features/assistant.js, assistantView.js) ============ -->
+    <!-- ============ 7. Explain the selected candidate (features/assistant.js, assistantView.js) ============ -->
     <section class="panel assistant" id="assistant" aria-labelledby="assistant-title">
       <h2 id="assistant-title">Explain the selected candidate</h2>
       <p class="muted">An explainer that says only what was measured. Every sentence is followed by the ids of the measured values it is made of, and a check refuses any sentence that holds a number that is not one of them. <strong>No language model is used</strong>: the sentences are written by rules from the numbers, so it works without a key or a network and sends nothing anywhere.</p>
@@ -608,7 +582,7 @@
       <details class="table-view" id="assistant-evidence-wrap" hidden><summary>The measured values it can use (the evidence)</summary><div class="table-scroll"><table class="ss-table" id="assistant-evidence"></table></div></details>
     </section>
 
-    <!-- ============ 9. Text analysis: the same data as tables, no picture (features/textAnalysis.js, textAnalysisView.js) ============ -->
+    <!-- ============ 8. Text analysis: the same data as tables, no picture (features/textAnalysis.js, textAnalysisView.js) ============ -->
     <section class="panel textan" id="text-analysis" aria-labelledby="ta-title">
       <h2 id="ta-title">Text analysis: the images, the dots and the candidates as tables</h2>
       <p class="muted">The same data as the picture, with <strong>no picture</strong>: every image, every dot the search found (position, S/N, the error of the position, warnings) and every candidate with its status. It is for a screen reader and the keyboard, and for anyone who wants to cite or check a number. Each table can be saved as CSV, with a first line that says whether the data are real or synthetic.</p>

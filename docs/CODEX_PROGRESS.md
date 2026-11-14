@@ -1,5 +1,9 @@
 # Development progress
 
+## 2026-11-14 — Remove the Solar System panel from Workspace
+
+Removed the embedded “The Solar System, seen from above” section, its More tools link, page renderer and section-only styling. The standalone Simulator page remains. Removed the three Learn missions that depended on the deleted panel's controls and updated the remaining parallax learning goals. The validated `solarSystem.js` calculation and its tests remain as reference material. `git diff --check` and JavaScript syntax checks passed; browser review and tests were not run. This follow-up is local and unpushed.
+
 ## 2026-11-14 — Group Workspace analysis and remove standalone Planet X page
 
 Placed Search results and Source measurements in a paired responsive workbench, with More tools spanning beneath them on desktop and all three stacking on narrow screens. Removed the separate Planet X Lab page and its page-only renderer; kept distant-body analysis inside Workspace and redirected its candidate action to that in-page analysis. Removed stale navigation links and updated the page lists. `git diff --check` and JavaScript syntax checks passed; browser review and tests were not run. The preceding header and spacecraft-flicker changes were pushed to Blink 3.0 `main` at `53e1e96`; this follow-up is local and unpushed.

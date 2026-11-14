@@ -1,6 +1,6 @@
 // missionsPinView.js – the DOM part of missions.js (the mission card) and pinBoard.js (the pin board with its sky map and the observer-name dialog).
 
-import { missionWhy, termsFor, categoryInfo, stepWhy, xpFor, missionsDatabase, pickRandomMission, missionHref, loadProgress, saveProgress, markComplete, noteShown } from "./missions.js";
+import { missionWhy, termsFor, categoryInfo, stepWhy, xpFor, missionsDatabase, pickRandomMission, missionHref, loadProgress, saveProgress, markComplete, noteShown } from "./missions.js?v=2";
 import { makePin, pinTag, loadPins, savePins, addPin, removePin, skyToMap, verifyPin, eclipticPoints, galacticToEquatorial, fieldOffsetArcmin, initials, timeAgo, decorativeStars, canPin } from "./pinBoard.js";
 import { formatRA, formatDec } from "../coords.js";
 import { sharedConfig, fetchSharedPins, pushSharedPin, mergePins } from "./pinSync.js";
