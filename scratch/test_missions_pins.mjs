@@ -2,7 +2,7 @@
 import { webcrypto } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { missionsDatabase, pickRandomMission, missionHref, loadProgress, saveProgress, markComplete, noteShown, stepMatches, checkMeasurement, rankFor, totalXp } from "../frontend/js/features/missions.js";
-import { canPin, cleanObserver, makePin, verifyPin, pinTag, addPin, removePin, loadPins, savePins, skyToMap, sha256Hex } from "../frontend/js/features/pinBoard.js";
+import { canPin, cleanObserver, makePin, verifyPin, pinTag, addPin, removePin, loadPins, savePins, skyToMap, mapToSky, fieldOffsetArcmin, sha256Hex } from "../frontend/js/features/pinBoard.js";
 
 let failed = 0;
 const check = (name, ok, d = "") => { console.log(`${ok ? "PASS" : "FAIL"}  ${name}${d ? "  – " + d : ""}`); if (!ok) failed++; };
@@ -59,6 +59,19 @@ let pins = addPin(addPin([], pin), pin); const s2 = mem(); savePins(s2, pins);
 check("duplicate not added; storage round-trip", pins.length === 1 && loadPins(s2).length === 1 && removePin(pins, pin.id).length === 0);
 const a = skyToMap(0, 90), b = skyToMap(180, -90);
 check("map projection", a.x === 1 && a.y === 0 && b.x === 0.5 && b.y === 1);
+const allSky = mapToSky(540, 120);
+check("all-sky pointer inverts RA-left / Dec-top map", allSky && Math.abs(allSky.ra - 90) < 1e-10 && Math.abs(allSky.dec - 30) < 1e-10);
+check("all-sky RA seam is valid 0°", mapToSky(0, 180).ra === 0 && mapToSky(720, 180).ra === 0);
+check("out-of-bounds sky click rejected", mapToSky(-1, 30) === null && mapToSky(721, 30) === null && mapToSky(200, 500) === null);
+const fieldCentre = { ra: 359.999, dec: 20, fov: 5 };
+const truePoint = { ra: 0.001, dec: 20.01 };
+const offsetArcmin = fieldOffsetArcmin(truePoint.ra, truePoint.dec, fieldCentre.ra, fieldCentre.dec);
+const fieldK = 180 / (5 * 0.75);
+const fieldBack = mapToSky(360 - offsetArcmin.east * fieldK, 180 - offsetArcmin.north * fieldK, { view: "field", field: fieldCentre });
+check("field pointer inversion including RA 360° wrap", fieldBack && Math.abs(fieldBack.ra - truePoint.ra) < 1e-8 && Math.abs(fieldBack.dec - truePoint.dec) < 1e-8);
+check("field view without centre has no sky coordinates", mapToSky(360, 180, { view: "field", field: null }) === null);
+check("field centre stays fixed, even at the pole", mapToSky(360, 180, { view: "field", field: { ra: 26, dec: 90, fov: 5 } }).ra === 26);
+check("cursor overlay and workspace tools exist", html.includes('id="pb-hover-coords"') && html.includes('id="pb-cursor-readout"') && html.includes('id="search-form"') && html.includes('id="ra-input"') && html.includes('id="dec-input"'));
 check("page has the pin button and the dialog", html.includes('id="pin-report-btn"') && html.includes("Enter Observer Name / Handle:") && html.includes("Pin &amp; Report Object"));
 check("missions card is in Learn Mode", learn.includes('id="mission-card"') && !html.includes('id="mission-card"'));
 
