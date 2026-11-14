@@ -72,3 +72,8 @@ html[data-contrast="high"] #telescope .info-box {
   border: 1px solid #fff;
   box-shadow: none;
 }
+
+/* The Telescope card shares the About palette without the separate rainbow top stripe. */
+#telescope .info-box::before {
+  display: none;
+}
