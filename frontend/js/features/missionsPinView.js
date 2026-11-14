@@ -369,7 +369,7 @@ export function setupPinBoard({ getCandidate, getContext }) {
     if (!sky) return;
     // The Pin Board is on the same page as Blink: use its existing field loader.
     const ra = $("ra-input"), dec = $("dec-input"), form = $("search-form");
-    ra.value = sky.ra.toFixed(5);
+    ra.value = (Number(sky.ra.toFixed(5)) % 360).toFixed(5);
     dec.value = sky.dec.toFixed(5);
     ra.dispatchEvent(new Event("input", { bubbles: true }));
     dec.dispatchEvent(new Event("input", { bubbles: true }));
