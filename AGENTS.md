@@ -1,6 +1,6 @@
 # Developing SPHEREx Blink
 
-Work in this checkout. This is SPHEREx-Blink-4.0, based on the 3.0 code at commit `831a9cd`; it is a separate worktree on `codex/blink4-education`. The current user requested that this version be developed from the 3.0 baseline. Read docs/CODEX_PROGRESS.md, docs/IMPLEMENTATION_ROADMAP.md and docs/FEATURE_STATUS.md, then verify HEAD and the working tree. Historical instructions imported below describe earlier repositories; the current user's destination and scope take precedence. Do not publish unless the user asks.
+Work in this checkout. This is SPHEREx-Blink-4.0 on `codex/blink4-education`, derived from Blink 3.0 and synced to its published `main` interface at `06ac378`. Learn Mode is an addition to the Science Mode baseline. Read docs/CODEX_PROGRESS.md, docs/IMPLEMENTATION_ROADMAP.md and docs/FEATURE_STATUS.md, then verify HEAD and the working tree. Historical instructions imported below describe earlier repositories; the current user's destination and scope take precedence. Do not publish unless the user asks.
 
 Serve frontend/ over HTTP. Preserve index.html, results.html, query parameters and embedded mode. Keep Science Mode tools and analysis intact. The default workspace is synthetic and must remain explicitly labelled. Learn Mode progress is local to the browser; do not imply cloud sync or a connected AI model. Read docs/VALIDATION.md before changing scientific methods, units, or thresholds.
 
@@ -29,8 +29,10 @@ modules in `frontend/` (no build step, no npm), a FastAPI + astropy backend in `
 2. **No invented science.** No made-up FITS columns, endpoints, units, catalogue matches or validation numbers. A number in the docs comes from a
    command that can be re-run (`docs/VALIDATION.md` names it). Facts written from memory are marked as such. A candidate is a lead, never a discovery.
 3. **Do not download new FITS files** without the author's explicit yes (file, source, size first). Catalogue queries (SIMBAD, Gaia, IRSA TAP, SkyBoT) are fine.
-4. **Never `git push`, force-push, delete branches or touch `main` history.** The author pushes. Work is on the branch `blink-2.0`; `main` is the reference.
-   Commit only when asked or when a task says to; messages end with the co-author line the tool gives you.
+4. **Never force-push, rewrite history or delete branches.** Push only after the author's fresh, explicit yes, as a plain push to this repository
+   (`mateibut/SPHEREx-Blink-3.0`, the branch the author names; an approval for one push does not cover the next). Work on a branch, not on `main`. (The text that stood
+   here said "never push, work on the branch `blink-2.0`": that came from an earlier repository and is replaced.) Commit only when asked or when a task says to;
+   messages end with the co-author line the tool gives you.
 5. **Keep it working.** Existing URLs (`?ra=&dec=&fov=&det=&mode=`, `?data=api&api=`, `?embed=1`) and existing features stay. Run the tests before and after.
 6. **Honest tests.** Never mark a test as passing without running it; never weaken a check to make it pass (change it only when the behaviour it
    encodes was meant to change, and say so).
@@ -42,6 +44,11 @@ for f in scratch/test_*.mjs; do node "$f" | tail -1; done          # Node tests:
 backend/.venv/Scripts/python.exe -m pytest backend -q               # backend tests (Python 3.14 venv; `py` is the launcher, `python` is a broken alias)
 node scratch/e2e_smoke.mjs                                          # the page in headless Chrome (synthetic demo, Node 22+, no install; not part of the test_*.mjs set); docs/BENCHMARKS.md section 3
 node scratch/benchmark.mjs --check                                  # the digests of three searches against scratch/benchmark_baseline.json; --write only when a scientific change was meant
+# the Playwright regression (a TEST-ONLY tool, pinned: `npm install playwright@1.59.1` in a folder OUTSIDE the repository, then NODE_PATH=<that folder>/node_modules):
+#   py scripts/serve_frontend.py 8765   then   BLINK_BROWSER=chrome node scratch/browser_navigation.cjs   (also browser_layout_audit, _tour_modal, _public_backend, _sky_archive, _simulator_precision,
+#   _candidate_roundtrip, _workspace, _all; BLINK_URL=http://127.0.0.1:8765/ is the default). A bare index.html redirects to overview.html: use index.html#workspace or a query string.
+#   browser_real, _real_responsive and _provenance need the real-data backend (BLINK_REAL_URL) and are not run in CI.
+
 py scripts/serve_frontend.py 8765                                   # frontend, no stale cache (also .claude/launch.json "frontend")
 node scratch/calibrate_astrometry.mjs                               # the injection tables of VALIDATION §15 (a minute); scratch/check_astrometry_real.mjs: the same errors on the real fields (needs backend-real)
 node scratch/make_results_sources.mjs                               # remake frontend/data/real_sources.json (needs "backend-real" and internet): do it when discovery.js VERSION or a threshold changes, test_results.mjs fails on a stale file
@@ -50,7 +57,7 @@ node scratch/make_results_sources.mjs                               # remake fro
 ```
 
 Open the page with real data: `http://localhost:8765/?data=api&api=http://localhost:8003&ra=269.4462&dec=4.769&fov=5&det=D2`.
-`?theme=light|observatory|classic|deep-space` picks a colour theme for one visit.
+`?theme=midnight|nebula|deep-space|observatory|light|classic` picks a colour theme for one visit (Midnight / dark is the default on a first visit; the other five are the Paper palettes).
 
 ## Conventions
 
@@ -63,5 +70,5 @@ Open the page with real data: `http://localhost:8765/?data=api&api=http://localh
 
 ## Open decisions (the author's, not code's)
 
-Where Blink 2.0 lives (separate repository or this branch); eligibility of work begun before the hackathon (`docs/TODO.md` §1); the data licence and
+Which repository is final: on 12 Nov 2026 the author named **SPHEREx-Blink-3.0** for later changes (SPHEREx-Blink-2.0 holds a parallel line of work that is not merged here yet); eligibility of work begun before the hackathon (`docs/TODO.md` §1); the data licence and
 acknowledgement wording (`CREDITS.md`).

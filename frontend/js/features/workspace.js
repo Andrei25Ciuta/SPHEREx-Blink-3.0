@@ -57,7 +57,7 @@ export function emptyHint(layout) {
     : "Press a candidate in a list and its description appears under that list.";
 }
 
-export const MARK_IDLE = "Click the picture to mark a position. It is described here, and measured in section 3.";
+export const MARK_IDLE = "Click the picture to mark a position. It is described here, with measurements below the viewer.";
 
 /** One line for the marked position from the parts of readout.js (pixel, sky, offset, value); parts that are empty are left out. */
 export const markText = (parts) => [parts.pixel, parts.sky, parts.offset, parts.value].filter(Boolean).join(" · ");

@@ -5,7 +5,7 @@ let enabled = false;
 try { enabled = localStorage.getItem(STORAGE_KEY) === "on"; } catch { /* The toggle still works for this page session. */ }
 root.dataset.contrast = enabled ? "high" : "normal";
 
-const themeControl = document.querySelector(".theme-switch, .theme-picker");
+const themeControl = document.querySelector(".theme-switch, .theme-picker, #theme-select");
 if (themeControl) {
   const label = document.createElement("label");
   label.className = "contrast-toggle";

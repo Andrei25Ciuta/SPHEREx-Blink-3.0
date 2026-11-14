@@ -41,21 +41,27 @@ async function main() {
     const base = process.env.BLINK_URL || `http://127.0.0.1:${server.address().port}/`;
     const pages = ["index.html", "overview.html", "results.html", "sky.html", "simulator.html", "planet-x.html"];
     for (const name of pages) {
-      for (const theme of ["deep-space", "observatory", "light-research"]) {
+      for (const theme of ["deep-space", "observatory", "light", "midnight"]) {
         for (const width of [320, 375, 768, 1280]) {
           await page.setViewportSize({ width, height: 800 });
           await page.goto(base + name + (name === "index.html" ? "?workspace=1" : ""));
-          await page.evaluate(value => localStorage.setItem("spherex-blink.theme", value), theme);
+          await page.evaluate(value => localStorage.setItem("spherex-blink-theme", value), theme);
           await page.reload();
+          assert.equal(await page.locator("html").getAttribute("data-theme"), theme);
           const audit = await page.evaluate(() => {
             const root = getComputedStyle(document.documentElement);
             const panel = document.querySelector(".panel");
+            // A transparent field panel exposes the ancestor surface behind it.
+            let backdrop = panel;
+            while (backdrop && getComputedStyle(backdrop).backgroundColor === "rgba(0, 0, 0, 0)") {
+              backdrop = backdrop.parentElement;
+            }
             return {
               overflow: document.documentElement.scrollWidth - innerWidth,
               bodyText: getComputedStyle(document.body).color,
               bodySurface: root.getPropertyValue("--bg").trim(),
               panelText: panel ? getComputedStyle(panel).color : null,
-              panelSurface: panel ? getComputedStyle(panel).backgroundColor : null,
+              panelSurface: backdrop ? getComputedStyle(backdrop).backgroundColor : root.getPropertyValue("--bg").trim(),
               mutedText: root.getPropertyValue("--text-muted").trim(),
             };
           });

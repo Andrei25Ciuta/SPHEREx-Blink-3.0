@@ -1,12 +1,14 @@
+/* Run with Playwright, BLINK_URL (a local frontend server, default http://127.0.0.1:8765/) and optionally BLINK_BROWSER (chrome, msedge). */
 const {chromium}=require('playwright');
+const BASE=process.env.BLINK_URL||'http://127.0.0.1:8765/';
 (async()=>{
- const browser=await chromium.launch({channel:'msedge'});
+ const browser=await chromium.launch({channel:process.env.BLINK_BROWSER||undefined});
  try{
   const page=await browser.newPage();
   const errors=[];
   page.on('pageerror',e=>errors.push(e.message));
   for(const path of ['index.html','results.html','sky.html','simulator.html','planet-x.html']){
-   await page.goto('http://127.0.0.1:18769/'+path);
+   await page.goto(BASE+(path==='index.html'?'index.html#workspace':path));
    await page.waitForTimeout(600);
    console.log(path, await page.title(), errors.splice(0));
    if(path==='planet-x.html') console.log('lab', await page.locator('#summary').textContent());

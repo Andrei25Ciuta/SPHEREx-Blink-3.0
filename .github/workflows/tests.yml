@@ -75,3 +75,38 @@ jobs:
           cache-dependency-path: backend/requirements-dev.txt
       - run: pip install -r backend/requirements-dev.txt
       - run: python -m pytest backend -q
+
+  # The Playwright regression scripts of scratch/browser_*.cjs that need no real data: shared navigation and keyboard, layout and contrast of the six pages at six widths, the tour modal,
+  # the public static-site backend guard, the Sky Explorer failure and recovery, the simulator readouts, the candidate round trip, the workspace walk and a load of every page.
+  # ADVISORY until it has passed once on the runner (continue-on-error): these scripts had only ever run on the author's machine, and the runner's browser and fonts may differ.
+  # Playwright is a TEST-ONLY tool, pinned to 1.59.1 (Apache-2.0, see CREDITS.md), installed outside the repository on every run; nothing of it is shipped. It drives the Chrome that the runner image
+  # already has (BLINK_BROWSER=chrome): `playwright install chromium` failed on 12 Nov 2026 because ubuntu-latest had become Ubuntu 26.04, which Playwright 1.59.1 does not support. The three scripts that need
+  # the real-data backend (browser_real, browser_real_responsive, browser_provenance) are not run here.
+  browser:
+    name: Browser regression (Playwright, advisory)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install the pinned Playwright package (outside the repository; no browser download, the runner's Chrome is used)
+        run: |
+          mkdir -p "$RUNNER_TEMP/pw" && cd "$RUNNER_TEMP/pw"
+          npm init -y >/dev/null
+          npm install playwright@1.59.1 --no-audit --no-fund
+      - name: Serve frontend/ and run the scripts
+        env:
+          NODE_PATH: ${{ runner.temp }}/pw/node_modules
+          BLINK_BROWSER: chrome
+        run: |
+          python3 -m http.server 8765 --directory frontend --bind 127.0.0.1 >/dev/null 2>&1 &
+          sleep 2
+          status=0
+          for f in navigation layout_audit tour_modal public_backend sky_archive simulator_precision candidate_roundtrip workspace all; do
+            echo "::group::browser_$f"
+            node "scratch/browser_$f.cjs" || status=1
+            echo "::endgroup::"
+          done
+          exit $status

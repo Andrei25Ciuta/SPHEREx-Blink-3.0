@@ -6,6 +6,12 @@ Created a separate `codex/blink4-education` worktree from 3.0 commit `831a9cd`; 
 
 Intentional implementation limit: Astra is not a connected language model and has a constrained offline response set. Teacher dashboard data remains on this device. See `docs/EDUCATION_MODE.md`.
 
+## 2026-11-14 — Science interface aligned with published Blink 3.0
+
+The user supplied the live Blink 3.0 workspace as the visual reference. Merged current 3.0 `main` at `06ac378` into the 4.0 worktree so Science uses the current workspace structure, instrumentation stylesheet, shared responsive project menu and matching light signal-red default. Added Learn Mode to the shared menu, retained the 4.0 mode chooser and Learn identity, and reattached high-contrast and Science simple-explanation controls. The 4.0-specific blind mover check remains in place. Science query URLs continue to work.
+
+Verification for this alignment is pending: source syntax and responsive/browser navigation checks have not yet been run after the merge.
+
 Verification so far: `node scratch/test_learning.mjs` and `node scratch/test_overview.mjs` passed at the landing/model stage before the final classroom-score and high-contrast additions. `node --check` passed on each new JavaScript module and `git diff --check` is clean. The full app/runtime, accessibility, browser, and preserved-science regressions have not been run for this integration.
 
 ## 2026-11-14 — leave-one-image-out candidate check
