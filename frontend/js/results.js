@@ -8,6 +8,8 @@
 import { createExplorer } from "./features/candidateExplorerView.js";
 import { provenanceText, missingProvenance } from "./features/provenance.js";
 import { setupExplorer } from "./features/resultsExplorer.js";
+import { readResultsFile, validationDataset, MAX_FILE_BYTES } from "./features/resultsData.js";
+import { dashboardCharts, kpiList } from "./features/resultsCharts.js";
 
 // ---------- small pure helpers ----------
 
@@ -156,8 +158,13 @@ const linTicks = (lo, hi, n, d = 1) => niceTicks(lo, hi, n).map((v) => ({ v, tex
 /** All charts, keyed by the id used in results.html (data-chart="..."). */
 export function buildCharts(data) {
   const out = {};
-  const runs = data.movers.runs;
+  // each numbered block is tried on its own: a file that lacks a section still gets the charts of the others (the page says which are missing)
+  const missing = [];
+  const attempt = (fn) => { try { fn(); } catch (e) { missing.push(e.message); } };
+  Object.defineProperty(out, "_missing", { value: missing, enumerable: false });
+  const runs = data.movers?.runs, cal = data.calibration;
 
+  attempt(() => {
   // 1. how far the measured motion is from the catalogue motion
   out.moversDifference = barsHtml(
     runs.map((r) => ({ label: r.label, value: r.difference, text: `${fixed(r.difference)}″/yr`, cls: REAL })),
@@ -166,6 +173,8 @@ export function buildCharts(data) {
     ["Run", "Catalogue (east, north) ″/yr", "Measured (east, north) ″/yr", "Difference ″/yr", "Seen in", "Significance", "Chance lines expected"],
     runs.map((r) => [r.label, `${signed(r.catalogue[0])}, ${signed(r.catalogue[1])}`, `${signed(r.measured[0])}, ${signed(r.measured[1])}`, fixed(r.difference), fmtBy("ofn", r.seen) + " images", `${r.sigma} σ`, fmtChance(r.chanceLines)]));
 
+  });
+  attempt(() => {
   // 2. chance lines expected: real lines far below 1, false lines of the original rule above it
   const orr = data.movers.originalRule;
   out.chanceLines = dotsHtml([
@@ -179,6 +188,8 @@ export function buildCharts(data) {
   }) + tableHtml("Chance lines expected", ["Line", "Chance lines expected"],
     [...runs.map((r) => [r.label, fmtChance(r.chanceLines)]), ["Original rule · real Epsilon Indi B line", fmtChance(orr.realChanceLines)], ...orr.falseChanceLines.map((v, i) => [`Original rule · false line ${i + 1} (dots in ${orr.falseSupportedImages[i][0]} of ${orr.falseSupportedImages[i][1]} measurable images)`, fmtChance(v)])]);
 
+  });
+  attempt(() => {
   // 3. the bad-pixel mask on Barnard's Star in D2
   const mk = data.movers.barnardD2Mask;
   out.barnardMask = barsHtml([
@@ -187,6 +198,8 @@ export function buildCharts(data) {
   ], { domain: [0, 4], ticks: linTicks(0, 4, 4), unit: "Difference from the catalogue motion, arcsec per year (Barnard's Star, D2)" })
     + tableHtml("Barnard's Star in D2", ["Version", "Difference from the catalogue ″/yr"], [["Before the bad-pixel mask", fixed(mk.before)], ["After the bad-pixel mask", fixed(mk.after)]]);
 
+  });
+  attempt(() => {
   // 4. Jansky scale
   out.jansky = dotsHtml(
     data.jansky.map((j) => ({ label: j.label, points: [{ v: j.median, shape: "circle", cls: REAL }], range: [j.p16, j.p84] })),
@@ -195,12 +208,16 @@ export function buildCharts(data) {
   ) + tableHtml("Jansky scale against catalogue stars", ["Field, detector", "Stars", "Measurements", "Median measured / expected", "Robust scatter", "16th–84th percentile"],
     data.jansky.map((j) => [j.label, j.stars, j.measurements, fixed(j.median, 3), fixed(j.scatter, 3), `${fixed(j.p16)}–${fixed(j.p84)}`]));
 
+  });
+  attempt(() => {
   // 5. the asteroid that moved
   out.arosa = barsHtml(
     data.arosa.rows.map((r) => ({ label: r.label, value: r.fluxMilliJy, err: r.err, text: r.fluxMilliJy === null ? "" : `${fixed(r.fluxMilliJy)} mJy`, note: r.note, cls: r.fluxMilliJy !== null && r.fluxMilliJy < 3 ? FALSE : REAL })),
     { domain: [-2, 10], ticks: linTicks(-2, 10, 6, 0), unit: "Flux at the position where the asteroid is expected, mJy (± 1 error)", baseline: 0 },
   ) + tableHtml("Asteroid Arosa in two images 19.5 hours apart", ["Image and position", "Flux mJy", "Error mJy"], data.arosa.rows.map((r) => [r.label, r.fluxMilliJy === null ? r.note : fixed(r.fluxMilliJy), r.err === null ? "–" : fixed(r.err)]));
 
+  });
+  attempt(() => {
   // 6. WISE 0855, stacked along its path against control places
   for (const det of ["D6", "D2"]) {
     const w = data.wise0855[det];
@@ -218,6 +235,8 @@ export function buildCharts(data) {
   out.wiseImages = tableHtml("WISE 0855, D6, flux at the predicted position in each image", ["Date", "Wavelength µm", "Flux mJy", "Error mJy", "Flagged"],
     data.wise0855.d6Images.map((r) => [r.date, fixed(r.um, 3), fixed(r.fluxMilliJy, 3), fixed(r.err, 3), r.flagged ? "yes (left out)" : "no"]));
 
+  });
+  attempt(() => {
   // 7. Makemake distance
   const m = data.makemake;
   out.makemake = dotsHtml([
@@ -226,8 +245,9 @@ export function buildCharts(data) {
   ], { domain: [52.55, 52.70], ticks: linTicks(52.55, 52.70, 3, 2), unit: "Distance of Makemake, astronomical units (the fit's 1σ range is the line)",
     legend: [{ shape: "circle", cls: REAL, text: "ephemeris" }, { shape: "diamond", cls: TARGET, text: "fit to 4 detected positions, 1σ range" }] })
     + tableHtml("Makemake distance", ["", "AU"], [["JPL Horizons", fixed(m.horizonsAU)], ["Fit", `${fixed(m.fitAU)} (1σ ${fixed(m.fitLowAU)}–${fixed(m.fitHighAU)})`]]);
+  });
+  attempt(() => {
   // 8. how faint can one image go (fake movers injected into real frames)
-  const cal = data.calibration;
   out.calibrationLimits = dotsHtml(
     cal.limits.map((l) => ({ label: l.label, points: [{ v: l.flux50, shape: "circle", cls: REAL }, ...(l.flux90 === null ? [] : [{ v: l.flux90, shape: "diamond", cls: TARGET }])] })),
     { domain: [0.3, 30], log: true, ticks: [0.3, 1, 3, 10, 30].map((v) => ({ v, text: String(v) })), unit: "Total flux of the fake star, mJy (log scale)",
@@ -235,6 +255,8 @@ export function buildCharts(data) {
   ) + tableHtml("Faintest fake star the detector finds in one image", ["Field, detector", "Detector noise / pixel noise", "50 % of fakes found at, mJy", "90 % at, mJy"],
     cal.limits.map((l) => [l.label, fixed(l.noiseRatio), fixed(l.flux50), l.flux90 === null ? "not reached" : fixed(l.flux90)]));
 
+  });
+  attempt(() => {
   // 9. empty-sky calibration of the false-alarm number
   out.emptySky = dotsHtml(
     cal.emptySky.fields.map((f) => ({ label: f.label, points: [{ v: f.defaultRule, shape: "circle", cls: REAL }, { v: f.originalRule, shape: "diamond", cls: FALSE }] })),
@@ -243,6 +265,8 @@ export function buildCharts(data) {
   ) + tableHtml("Empty-sky test: share of scrambled fields with a candidate", ["Field, detector (images, survey passes)", "Rule now used, %", "Original rule, %"],
     cal.emptySky.fields.map((f) => [f.label, fixed(f.defaultRule, 1), fixed(f.originalRule, 1)]));
 
+  });
+  attempt(() => {
   // 10. could SPHEREx see a Planet X?
   const px = data.planetX;
   out.planetX = dotsHtml(
@@ -251,6 +275,7 @@ export function buildCharts(data) {
       legend: [{ shape: "circle", cls: REAL, text: "the planet at 300, 500 and 1000 AU, from left to right" }, { shape: "ref", text: "faintest star found in one image (about V 17)" }] },
   ) + tableHtml("Reflected-light brightness of a distant planet", ["Planet", "V at 300 AU", "V at 500 AU", "V at 1000 AU"],
     px.planets.map((p) => [p.label, fixed(p.v300, 1), fixed(p.v500, 1), fixed(p.v1000, 1)]));
+  });
   return out;
 }
 
@@ -361,9 +386,116 @@ function renderSources(file, root = document) {
   section.hidden = false;
 }
 
+// ---------- the page: ONE file in, everything on the page from that file ----------
+//
+// The page starts on the archived validation (data/real_results.json laid over real_results_generated.json), the numbers the project reported. A person can load
+// another file (the buttons, a drop anywhere on the page, or the file field): a candidate export of the workspace (JSON or CSV), a list of sources, or validation numbers.
+// Then the numbers at the top, the charts, the table, the detail and the report all come from THAT file (features/resultsData.js, resultsCharts.js, resultsExplorer.js);
+// the archived sections 1-12 are the author's commentary on the archived run, so they are shown only while it is the file on the page.
+
+const $ = (id) => document.getElementById(id);
+const IMPORTED = { export: "Candidate export loaded.", "export-csv": "Candidate export loaded.", sources: "List of sources loaded.", validation: "Validation numbers loaded." };
+
+/** The charts a validation file can have, in the order of the archived page: [key in buildCharts, title]. */
+export const GENERIC_CHARTS = [
+  ["moversDifference", "Distance of the measured motion from the catalogue motion"], ["chanceLines", "Lines expected by chance"], ["barnardMask", "Effect of the bad-pixel mask"],
+  ["jansky", "Measured flux divided by catalogue flux"], ["arosa", "Flux at the positions where the asteroid is expected"], ["wiseD6", "WISE 0855, stacked flux along its path (D6)"],
+  ["wiseD2", "WISE 0855, stacked flux along its path (D2)"], ["wiseImages", "WISE 0855, flux in each image"], ["makemake", "Distance of Makemake from the parallax fit"],
+  ["calibrationLimits", "Faintest fake star found in one image"], ["emptySky", "Empty fields that still show a candidate"], ["planetX", "Brightness of a distant planet"],
+];
+
+/** The validation numbers of a loaded file as charts and tables, with no commentary: the commentary of the page belongs to the archived run. A chart the file lacks is named as missing. */
+export function genericValidationHtml(data) {
+  const charts = buildCharts(data);
+  const figs = GENERIC_CHARTS.map(([id, title]) => (charts[id]
+    ? `<figure class="rfig"><figcaption>${esc(title)}</figcaption>${charts[id]}</figure>`
+    : `<p class="rmissing">${esc(title)}: not in this file.</p>`)).join("");
+  return `<section class="panel rsec" aria-labelledby="g-title"><h2 id="g-title">Validation numbers of this file</h2>`
+    + `<p class="rorigin">Drawn from the loaded file only. The explanations written for the archived run are not shown, because they describe other numbers.</p>${figs}</section>`;
+}
+
+/** "How this file was made": the provenance records the file carries (a candidate export has one, a list of sources has one per field). */
+export function provenanceHtml(ds) {
+  const items = ds.kind === "sources" ? (ds.raw.fields ?? []).map((f) => ({ label: f.label ?? f.id, p: f.provenance })) : ds.raw?.provenance ? [{ label: ds.label, p: ds.raw.provenance }] : [];
+  const parts = items.map(({ label, p }) => {
+    let text;
+    try { text = provenanceText(p); } catch { return `<details class="provenance"><summary>${esc(label)}: how it was made</summary><p>This file has no complete record of how it was made.</p></details>`; }
+    const missing = missingProvenance(p);
+    return `<details class="provenance"><summary>${esc(label)}: how it was made</summary><p>${esc(text)}${missing.length ? ` <strong>Missing from this record: ${esc(missing.join(", "))}.</strong>` : ""}</p></details>`;
+  });
+  return parts.join("");
+}
+
+function renderDashboard(ds) {
+  const badge = $("data-badge");
+  badge.textContent = ds.provenance;
+  badge.classList.toggle("synthetic", /synthetic/i.test(ds.provenance));
+  $("current-file").textContent = `${ds.label} · ${ds.rows.length} record${ds.rows.length === 1 ? "" : "s"} · ${ds.date}`;
+  $("kpis").innerHTML = kpiList(ds).map((k) => `<li><b>${esc(k.value)}</b><span>${esc(k.label)}</span></li>`).join("");
+  $("dash-charts").innerHTML = dashboardCharts(ds).map((c) => `<figure class="dcard${c.wide ? " wide" : ""}"><figcaption>${esc(c.title)}</figcaption>`
+    + `${c.note ? `<p class="dnote">${esc(c.note)}</p>` : ""}${c.html ?? `<p class="dempty">${esc(c.empty)}</p>`}</figure>`).join("");
+  $("dash-provenance").innerHTML = provenanceHtml(ds);
+}
+
 async function main() {
-  const status = document.getElementById("results-status");
-  const loadArchive = setupExplorer();
+  const status = $("results-status");
+  const explorer = setupExplorer();
+  let archive = null, current = null, version = 0;
+  const examples = {};                                    // the sample files, read once when asked for
+
+  const say = (text, bad = false) => { const el = $("import-status"); el.textContent = text; el.classList.toggle("bad", bad); };
+  const highlight = (id) => { for (const p of document.querySelectorAll("#dash-charts .dpt")) p.classList.toggle("sel", p.dataset.id === id); };
+  explorer.onSelect = highlight;
+  $("dash-charts").addEventListener("click", (e) => { const id = e.target.closest?.(".dpt")?.dataset.id; if (id) explorer.focusRow(id); });
+
+  /** Put a dataset on the page. The dashboard is drawn first so that the table can mark the selected record in it. */
+  function view(ds) {
+    current = ds;
+    renderDashboard(ds);
+    explorer.show(ds);
+    const isArchive = ds === archive;
+    $("validation-archive").hidden = !isArchive;
+    $("validation-generic").hidden = isArchive || ds.kind !== "validation";
+    $("validation-note").hidden = isArchive || ds.kind === "validation";
+    if (!$("validation-generic").hidden) $("validation-generic").innerHTML = genericValidationHtml(ds.raw);
+    for (const b of document.querySelectorAll("[data-example]")) b.setAttribute("aria-pressed", String(examples[b.dataset.example] === ds));
+  }
+
+  async function loadFile(file) {
+    const mine = ++version;
+    try {
+      if (file.size > MAX_FILE_BYTES) throw Error("Choose a file under 16 MiB.");
+      const { format, dataset } = readResultsFile(await file.text(), file.name, { lastModified: file.lastModified });
+      if (mine !== version) return;
+      view(dataset);
+      say(IMPORTED[format]);
+    } catch (error) {
+      if (mine === version) say(`Import failed. ${error.message}${current ? ` The page still shows ${current.label}.` : ""}`, true);
+    }
+  }
+
+  // ---- the ways in: the file field, a drop anywhere on the page, the sample files
+  $("candidate-file").addEventListener("change", (event) => { const file = event.target.files[0]; event.target.value = ""; if (file) loadFile(file); });
+  const zone = $("drop-zone");
+  window.addEventListener("dragover", (e) => { e.preventDefault(); zone.classList.add("over"); });
+  window.addEventListener("dragleave", (e) => { if (!e.relatedTarget) zone.classList.remove("over"); });
+  window.addEventListener("drop", (e) => { e.preventDefault(); zone.classList.remove("over"); const file = e.dataTransfer?.files?.[0]; if (file) loadFile(file); });
+  $("ex-sources").addEventListener("click", async () => {
+    const mine = ++version;
+    try {
+      if (!examples.sources) {
+        const r = await fetch("data/real_sources.json");
+        if (!r.ok) throw new Error(`data/real_sources.json: HTTP ${r.status}`);
+        examples.sources = { ...readResultsFile(await r.text(), "data/real_sources.json").dataset, label: "Find everything on the six real fields" };
+      }
+      if (mine !== version) return;
+      view(examples.sources);
+      say(IMPORTED.sources);
+    } catch (error) { if (mine === version) say(`Import failed. ${error.message}`, true); }
+  });
+  $("ex-archive").addEventListener("click", () => { version++; say(""); if (archive) view(archive); });
+
+  // ---- the archived validation: what the page shows until a file is loaded
   try {
     const [typed, generated] = await Promise.all(["data/real_results.json", "data/real_results_generated.json"].map(async (url) => {
       const r = await fetch(url);
@@ -372,7 +504,9 @@ async function main() {
     }));
     const merged = mergeResults(typed, generated);
     renderPage(merged);
-    loadArchive(merged);                         // the candidate explorer of the other Blink 2.0 line reads the archived mover validation (sections 1-3)
+    archive = { ...validationDataset(merged, "Archived mover validation"), source: "data/real_results.json" };
+    examples.archive = archive;
+    view(archive);
     if (status) status.hidden = true;
   } catch (err) {
     if (status) {
@@ -383,7 +517,7 @@ async function main() {
     }
   }
   // The sources table is a separate file: if it fails, say so in its own place and leave the rest of the page as it is.
-  const note = document.getElementById("sources-status");
+  const note = $("sources-status");
   try {
     const r = await fetch("data/real_sources.json");
     if (!r.ok) throw new Error(`HTTP ${r.status}`);

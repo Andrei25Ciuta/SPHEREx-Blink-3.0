@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en" data-theme="nebula">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#FCFAFF">
+  <title>Learn Mode · SPHEREx Blink 4.0</title>
+  <script>try{var t=new URLSearchParams(location.search).get("theme")||localStorage.getItem("spherex-blink-theme");if(/^(midnight|nebula|deep-space|observatory|light|classic)$/.test(t))document.documentElement.dataset.theme=t}catch(e){}</script>
+  <link rel="stylesheet" href="css/styles.css?v=23"><link rel="stylesheet" href="css/instrument.css"><link rel="stylesheet" href="css/overview.css?v=2"><link rel="stylesheet" href="css/learn.css?v=1">
+</head>
+<body class="learn-page">
+  <a class="skip-link" href="#missions">Skip to your missions</a>
+  <header class="site-header overview-header learn-header" id="top" data-page="learn">
+    <a class="site-brand overview-brand" href="overview.html" aria-label="SPHEREx Blink home"><span class="brand-logo" aria-hidden="true"></span><span>SPHEREx Blink 4.0</span></a>
+    <select id="theme-select" data-default-theme="nebula" aria-label="Colour theme"></select>
+  </header>
+  <main id="learn-main">
+    <section class="learn-hero" aria-labelledby="learn-title">
+      <div><p class="learn-kicker">Your space adventure starts here</p><h1 id="learn-title">Learn Mode</h1><p>Hands-on missions teach you the whole platform by using it, step by step; sixteen short theory lessons explain the science behind it. No astronomy experience needed.</p><p class="synthetic-notice"><span aria-hidden="true">✦</span> <strong>SYNTHETIC DEMO</strong> — diagrams and example images on this page are illustrations, not SPHEREx observations.</p></div>
+      <aside class="learn-progress-card" aria-label="Your learning progress"><div class="progress-heading"><span>Theory lesson progress</span><strong id="progress-label">0 of 16 complete</strong></div><progress id="mission-progress" max="100" value="0">0%</progress><p><strong id="xp-total">0 XP</strong><span id="rank-label">First Light Cadet</span></p><div class="streak-line"><span aria-hidden="true">🔥</span> <span id="streak-label">0 day streak</span><span class="streak-help">Learning streaks stay on this device.</span></div></aside>
+    </section>
+
+    <!-- ============ Cosmic Missions (features/missions.js, missionsPinView.js; run in Science Mode by missionRunner.js) ============ -->
+    <section class="learn-section cm" id="missions" aria-labelledby="missions-title">
+      <div class="cm-intro">
+        <p class="learn-kicker">Hands-on training · no experience needed</p>
+        <h2 id="missions-title">🚀 Cosmic Missions</h2>
+        <p class="cm-lead">New to astronomy? Start here. Each mission is a short, guided task on the real tools of this site. You do not need to know anything in advance: every step tells you what to press, why you press it, and what just happened.</p>
+        <ol class="cm-how" aria-label="How a mission works">
+          <li><span>1</span><strong>Pick a mission</strong><small>A random one is waiting below, or choose from the list.</small></li>
+          <li><span>2</span><strong>Follow the glowing steps</strong><small>Science Mode opens with a guide in the corner; the button to press glows.</small></li>
+          <li><span>3</span><strong>Learn and earn XP</strong><small>Each step explains itself, and the mission ends with what you learned.</small></li>
+        </ol>
+        <p class="cm-note">✦ The practice field is <strong>synthetic</strong>: pictures made by the computer, clearly labelled. A few missions need real NASA data and are marked 🛰️.</p>
+      </div>
+
+      <article class="cm-card" id="mission-card" aria-live="polite">
+        <div class="cm-card-side">
+          <span class="cm-icon" id="mission-icon" aria-hidden="true">🚀</span>
+          <p class="cm-category" id="mission-category"></p>
+          <p class="cm-meta" id="mission-meta"></p>
+        </div>
+        <div class="cm-card-main">
+          <h3 class="cm-title" id="mission-title"></h3>
+          <p class="cm-story" id="mission-story"></p>
+          <div class="cm-blocks">
+            <section class="cm-block"><h4>🧭 What is this about?</h4><p id="mission-intro"></p></section>
+            <section class="cm-block"><h4>🔭 Why it matters</h4><p id="mission-why"></p></section>
+          </div>
+          <section class="cm-block cm-words"><h4>📖 New words in this mission <small>tap a word</small></h4><div class="cm-terms" id="mission-terms"></div><p class="cm-term-def" id="mission-term-def" aria-live="polite"></p></section>
+          <h4 class="cm-steps-title">🧩 What you will do</h4>
+          <ol id="mission-steps-preview" class="cm-steps"></ol>
+          <p class="cm-feedback" id="mission-feedback" hidden></p>
+          <div class="cm-actions">
+            <a class="learn-button learn-button-primary cm-start" id="mission-go" href="#">🚀 Start this mission</a>
+            <button type="button" class="learn-button" id="mission-random-btn">🎲 Another random mission</button>
+          </div>
+        </div>
+      </article>
+
+      <div class="cm-progress">
+        <strong id="cm-progress"></strong>
+        <progress id="cm-progress-bar" value="0" max="1"></progress>
+        <button type="button" class="text-button" id="mission-reset-btn">Reset progress</button>
+      </div>
+      <h3 class="cm-all-title">All missions <small>pick a topic, then a mission to preview it above</small></h3>
+      <div id="mission-catalogue" class="cm-catalogue"></div>
+    </section>
+
+    <div class="learn-layout">
+      <aside class="path-card" aria-labelledby="path-title"><p class="learn-kicker">Background reading</p><h2 id="path-title">Theory lessons</h2><p class="path-hint">Short readings with a quiz. The hands-on missions are above.</p><ol id="learning-path" class="learning-path" aria-label="Sixteen learning levels"></ol></aside>
+      <section id="lesson-panel" class="lesson-panel" aria-labelledby="lesson-title" aria-live="polite" aria-atomic="false"><p>Loading your first mission…</p></section>
+    </div>
+
+    <section class="learn-section astra-section" id="astra" aria-labelledby="astra-title">
+      <div class="section-heading"><p class="learn-kicker">Your offline guide</p><h2 id="astra-title">🤖 Astra, your space guide</h2><p>Ask about a space topic, or choose a quick question. Astra uses prepared explanations on this page; it does not send your question to an AI service.</p></div>
+      <div class="astra-card"><form id="astra-form"><label for="astra-question">What are you curious about?</label><div class="astra-input-row"><input id="astra-question" maxlength="180" placeholder="Try: What is infrared light?" autocomplete="off"><button class="learn-button learn-button-primary" type="submit">Ask Astra</button></div></form><div class="astra-quick" aria-label="Ask a suggested question"><button type="button" data-ask="What is infrared light?">What is infrared?</button><button type="button" data-ask="What is a candidate mover?">What is a moving object?</button><button type="button" data-ask="What is redshift?">What is redshift?</button></div><p id="astra-answer" class="astra-answer" role="status" aria-live="polite">Astra is ready. Pick a topic to begin.</p></div>
+      <div class="glossary-grid" aria-label="Simple science explanations"><article><h3>Redshift</h3><p>Light waves stretch as space expands. This can shift distant light toward longer, infrared wavelengths.</p></article><article><h3>Spectral signature</h3><p>A pattern in light, like fingerprints, that can give clues about the material around an object.</p></article><article><h3>Signal-to-noise ratio</h3><p>How clearly a signal stands above random background. A strong signal is easier to see, but it is not proof by itself.</p></article><article><h3>Candidate mover</h3><p>A point that seems to change position between images. It is a clue that deserves checking.</p></article></div>
+    </section>
+
+    <section class="learn-section explorer-section" aria-labelledby="explorer-title"><div class="section-heading"><p class="learn-kicker">Touch, compare, discover</p><h2 id="explorer-title">Interactive space explorers</h2><p>These visual models teach ideas. The drawings are schematic and are not observations or to scale.</p></div>
+      <div class="explorer-grid">
+        <article class="explorer-card" id="infrared-explorer"><p class="explorer-number">01 · Light</p><h3>Visible vs infrared</h3><p>Slide through the spectrum. Infrared sits just beyond the red light our eyes can see.</p><label for="spectrum-slider">Choose a wavelength region</label><input id="spectrum-slider" type="range" min="0" max="2" step="1" value="0"><div class="spectrum-visual" aria-hidden="true"><span class="spectrum-visible"></span><span class="spectrum-infrared"></span><span class="spectrum-marker" id="spectrum-marker"></span></div><p class="explorer-readout" id="spectrum-readout" aria-live="polite">Visible light · about 380–700 nanometres · the rainbow our eyes detect.</p><button class="text-button" type="button" data-explain="infrared">Explain simply</button></article>
+        <article class="explorer-card" id="solar-system-explorer"><p class="explorer-number">02 · Our neighborhood</p><h3>Solar System Explorer</h3><p>Choose a planet to meet it. Spacing in this picture is not to scale.</p><svg class="orbit-art" viewBox="0 0 520 140" role="img" aria-label="Schematic row of the eight planets, not to scale"><path d="M24 70H496" stroke="currentColor" stroke-opacity=".25" stroke-dasharray="4 8"/><circle cx="34" cy="70" r="17" fill="var(--learn-sun)"/><circle cx="90" cy="70" r="7" fill="var(--learn-mercury)"/><circle cx="146" cy="70" r="11" fill="var(--learn-venus)"/><circle cx="202" cy="70" r="12" fill="var(--learn-earth)"/><circle cx="258" cy="70" r="9" fill="var(--learn-mars)"/><circle cx="318" cy="70" r="20" fill="var(--learn-jupiter)"/><circle cx="382" cy="70" r="17" fill="var(--learn-saturn)"/><circle cx="438" cy="70" r="14" fill="var(--learn-uranus)"/><circle cx="488" cy="70" r="14" fill="var(--learn-neptune)"/></svg><div id="planet-picker" class="planet-picker" role="group" aria-label="Choose a planet"></div><p class="explorer-readout" id="planet-readout" aria-live="polite">Choose a planet to read its short profile.</p></article>
+        <article class="explorer-card" id="galaxy-explorer"><p class="explorer-number">03 · Beyond our galaxy</p><h3>Galaxy Explorer</h3><p>Open a galaxy card to learn its shape, distance, and what astronomers know about its stars.</p><div class="galaxy-art" aria-hidden="true"><span></span><span></span><span></span></div><div class="galaxy-picker" role="group" aria-label="Choose a galaxy"><button type="button" data-galaxy="andromeda" aria-pressed="true">Andromeda</button><button type="button" data-galaxy="milky-way" aria-pressed="false">Milky Way</button></div><p class="explorer-readout" id="galaxy-readout" aria-live="polite">Andromeda · spiral galaxy · about 2.5 million light-years away. Its halo stars span a wide range of ages, roughly 6–13 billion years.</p></article>
+      </div>
+    </section>
+
+
+
+    <section class="learn-section source-section" aria-labelledby="sources-title"><h2 id="sources-title">Keep exploring</h2><p>Science summaries and astronomy facts are based on NASA educational material. The visual explorers here are original schematic illustrations.</p><ul><li><a href="https://science.nasa.gov/open-science/spherex-universe-map/" target="_blank" rel="noopener">NASA · SPHEREx and its 102 infrared wavelengths</a></li><li><a href="https://science.nasa.gov/ems/07_infraredwaves/" target="_blank" rel="noopener">NASA · Infrared waves</a></li><li><a href="https://science.nasa.gov/universe/galaxies/" target="_blank" rel="noopener">NASA · Galaxies</a></li><li><a href="https://science.nasa.gov/missions/hubble/young-and-old-stars-found-in-andromedas-halo/" target="_blank" rel="noopener">NASA · Ages of stars in Andromeda's halo</a></li><li><a href="https://science.nasa.gov/solar-system/planets/" target="_blank" rel="noopener">NASA · The eight planets</a></li><li><a href="https://science.nasa.gov/solar-system/solar-system-facts/" target="_blank" rel="noopener">NASA · Solar System facts</a></li></ul></section>
+  </main>
+  <footer class="learn-footer"><span>Learn Mode · SPHEREx Blink 4.0</span><span>Example visuals are synthetic. A candidate is a clue, not a discovery.</span></footer>
+  <script type="module" src="js/siteHeader.js"></script>
+  <script type="module" src="js/learnPage.js"></script>
+  <script type="module">import { setupMissions } from "./js/features/missionsPinView.js"; setupMissions();</script>
+  <script type="module" src="js/features/highContrast.js"></script>
+</body>
+</html>

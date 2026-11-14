@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="midnight">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0B0F19">
+  <meta name="theme-color" content="#FBFBF9">
   <script>if(!location.search&&!location.hash)location.replace("overview.html");</script>
   <!-- Colour theme, applied before the first paint (js/features/theme.js does the same and handles the switch; keep the key and the names in step) -->
   <script>try{var t=new URLSearchParams(location.search).get("theme")||localStorage.getItem("spherex-blink-theme");if(/^(midnight|nebula|deep-space|observatory|light|classic)$/.test(t))document.documentElement.dataset.theme=t}catch(e){}</script>
-  <title>SPHEREx Blink – Spot Moving Objects in the Infrared Sky</title>
+  <title>Science Mode · SPHEREx Blink 4.0</title>
   <meta name="description" content="Enter sky coordinates and blink through NASA SPHEREx near-infrared images taken at different times to spot moving objects like brown dwarfs, nearby stars and asteroids.">
 
   <!-- Google Fonts: Space Grotesk for headings, Inter for body text -->
@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="css/styles.css?v=21">
   <link rel="stylesheet" href="css/instrument.css">
   <link rel="stylesheet" href="css/lab-track.css">
-  <link rel="stylesheet" href="css/contact-sheet.css">
+  <link rel="stylesheet" href="css/contact-sheet.css?v=22">
 </head>
 <body>
   <a class="skip-link" href="#workspace">Skip to the workspace</a>
@@ -28,7 +28,7 @@
 
   <header class="site-header" id="top" data-page="index">
     <a class="site-brand" href="overview.html">SPHEREx Blink</a>
-    <select id="theme-select" data-default-theme="midnight" aria-label="Colour theme"></select>
+    <select id="theme-select" data-default-theme="light" aria-label="Colour theme"></select>
   </header>
   <script type="module" src="js/siteHeader.js"></script>
 
@@ -113,10 +113,9 @@
           </fieldset>
           <p class="mode-help" id="mode-help" aria-live="polite"></p>
         </div>
-        <div class="compare-controls" id="colour-controls" hidden>
+        <div class="compare-controls colour-controls" id="colour-controls" hidden>
           <label>Survey pass <select id="colour-pass"></select></label>
-          <span id="colour-status" role="status"></span>
-          <span id="colour-centre-status"></span>
+          <div class="colour-statuses"><span id="colour-status" role="status"></span><span id="colour-centre-status"></span></div>
         </div>
         <!-- Compare mode: pick image A, image B and the operation yourself (js/features/compare.js) -->
         <div class="compare-controls" id="compare-controls" hidden>
@@ -323,6 +322,8 @@
           <button type="button" class="btn btn-small" id="mover-lab-btn" hidden>Inspect in Planet X Lab</button>
           <button type="button" class="btn btn-small" id="mover-map-btn">Check in sky map</button>
           <button type="button" class="btn btn-small" id="mover-spectrum-btn" title="Measure the candidate in every image, where it is on that image's date, and plot flux against wavelength">Spectrum along its path</button>
+          <button type="button" class="btn btn-small btn-primary" id="pin-report-btn" title="Pin this candidate to the Discovery Pin Board under your observer name (kept in this browser only)" disabled>📌 Pin &amp; Report Object</button>
+          <p class="pin-known-note" id="pin-known-note" role="status" hidden></p>
         </div>
       </div>
 
@@ -353,6 +354,11 @@
     </section>
 
     <!-- ============ 3. Measure (spectrum + light curve) ============ -->
+    <nav class="ws-toc" aria-label="More tools on this page">
+      <span class="ws-toc-title">More tools</span>
+      <a href="#pin-board">📌 Pin Board</a><a href="#planet-lab">🪐 Planet X Lab</a><a href="#sky-explorer">🗺️ Sky map</a><a href="#solar-system">☀️ Solar System</a>
+      <a href="#assistant">💬 Explain a candidate</a><a href="#observation-tools">🔭 Observation tools</a><a href="#text-analysis">📋 Tables</a>
+    </nav>
     <section class="panel measure" aria-labelledby="measure-title">
       <h2 id="measure-title">Source measurements</h2>
       <p class="muted" id="measure-hint">
@@ -450,6 +456,50 @@
         <p class="muted small" id="aladin-status" aria-live="polite"></p>
         <p class="muted small" id="sky-geo-note" hidden></p>
       </div>
+    </section>
+
+    <!-- ============ Discovery Pin Board (features/pinBoard.js, missionsPinView.js) ============ -->
+    <section class="panel pin-board" id="pin-board" aria-labelledby="pin-board-title">
+      <div class="pb-head">
+        <div><p class="pb-kicker">Shared with everyone</p><h2 id="pin-board-title">📌 Discovery Pin Board</h2></div>
+        <div class="pb-stats" id="pin-stats" aria-live="polite"></div>
+      </div>
+      <p class="muted">Select an unexplained object in the search results and press <strong>📌 Pin &amp; Report Object</strong>. Pins are public and permanent; a pin is a candidate until others confirm it.</p>
+      <div class="pb-toolbar">
+        <div class="pb-toggle" role="group" aria-label="Map view">
+          <button type="button" class="pb-view" data-view="sky" aria-pressed="true">🌌 All sky</button>
+          <button type="button" class="pb-view" data-view="field" aria-pressed="false">🎯 This field</button>
+        </div>
+        <button type="button" class="btn btn-small btn-primary" id="pin-board-pin-btn" disabled>📌 Pin the selected object</button>
+      </div>
+      <div class="pb-map-wrap">
+        <svg id="pin-map" class="pin-map" viewBox="0 0 720 360" role="img" aria-label="Sky map of the pins"></svg>
+        <div class="pb-map-tools" role="group" aria-label="Map zoom">
+          <button type="button" data-pb-zoom="in" aria-label="Zoom in">+</button>
+          <span class="pb-zoom-level" id="pb-zoom-level">1×</span>
+          <button type="button" data-pb-zoom="out" aria-label="Zoom out">−</button>
+          <button type="button" data-pb-zoom="reset" aria-label="Show the whole map">⟲</button>
+        </div>
+        <button type="button" class="pb-fullscreen" id="pb-fullscreen">⛶ Full screen</button>
+        <p class="pb-readout" id="pb-readout" aria-live="off">Move over the map to read RA and Dec. Zoom with + / − (or Ctrl + scroll), drag to move.</p>
+        <div class="pb-popup" id="pin-popup" hidden></div>
+      </div>
+      <p class="pb-sync small"><span id="pin-sync" role="status" aria-live="polite"></span> <button type="button" class="btn btn-small" id="pin-refresh-btn">🔄 Refresh</button></p>
+      <p class="pb-legend small"><span class="pb-key pb-key-real"></span> real data <span class="pb-key pb-key-syn"></span> synthetic demo <span class="pb-key pb-key-here"></span> field on screen <span class="pb-key pb-key-ecl"></span> ecliptic (planets' path) <span class="pb-key pb-key-mw"></span> Milky Way (galactic plane). Background stars are decorative; the Milky Way and the ecliptic are drawn at their real positions.</p>
+      <p class="pb-empty" id="pin-empty">🛰️ No pins yet. Find movers, select one and pin it: it will appear here.</p>
+      <ul class="pin-list" id="pin-list"></ul>
+      <p class="small"><span id="pin-status" role="status" aria-live="polite"></span> <button type="button" class="btn btn-small" id="pin-clear-btn">Remove all pins</button></p>
+      <dialog id="pin-dialog" class="pin-dialog" aria-labelledby="pin-dialog-title">
+        <form id="pin-form" method="dialog">
+          <p class="pb-kicker">Report a moving object</p>
+          <h3 id="pin-dialog-title">📌 Pin &amp; Report Object</h3>
+          <div class="pb-preview" id="pin-preview"></div>
+          <label for="pin-name">Enter Observer Name / Handle:</label>
+          <input id="pin-name" name="observer" autocomplete="nickname" maxlength="40" placeholder="Alex_Space99" required>
+          <p class="small" id="pin-name-error" role="alert"></p>
+          <p class="pb-dialog-actions"><button type="button" class="btn btn-small" id="pin-cancel">Cancel</button> <button type="submit" class="btn btn-primary btn-small">📌 Pin it</button></p>
+        </form>
+      </dialog>
     </section>
 
     <!-- ============ 5. Planet X Lab (features/planetLab.js, planetLabView.js, planetLabWorker.js) ============ -->
@@ -737,6 +787,8 @@
     <div class="dlg-head"><h2 id="simulation-note-title">About the simulation</h2><form method="dialog"><button class="btn btn-small">Close</button></form></div>
     <p class="dlg-body">The Planet X preset uses a simulated body 600 AU away. Its position is invented for testing the distant-body search.</p>
   </dialog>
-  <script type="module" src="js/main.js?v=7"></script>
+  <script type="module" src="js/main.js?v=9"></script>
+  <script type="module" src="js/scienceExplain.js"></script>
+  <script type="module" src="js/features/highContrast.js"></script>
 </body>
 </html>

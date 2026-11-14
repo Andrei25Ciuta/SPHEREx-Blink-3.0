@@ -2,7 +2,7 @@
 
 Work in this checkout. This copy is SPHEREx-Blink-3.0; push only to the remote for `Andrei25Ciuta/SPHEREx-Blink-3.0` when the user requests publication. Treat SPHEREx-Blink-2.0 as the feature baseline. Read docs/CODEX_PROGRESS.md, docs/IMPLEMENTATION_ROADMAP.md and docs/FEATURE_STATUS.md, then verify HEAD and the working tree. Historical instructions imported below describe earlier repositories; the current user's destination and scope take precedence.
 
-Serve frontend/ over HTTP. Preserve index.html, results.html, query parameters and embedded mode. The default workspace is synthetic. Keep it explicitly labelled. Read docs/VALIDATION.md before changing scientific methods, units, or thresholds.
+Serve frontend/ over HTTP. Preserve index.html, results.html, query parameters and embedded mode. Keep Science Mode tools and analysis intact. The default workspace is synthetic and must remain explicitly labelled. Learn Mode progress is local to the browser; do not imply cloud sync or a connected AI model. Read docs/VALIDATION.md before changing scientific methods, units, or thresholds.
 
 Run every scratch/test_*.mjs with Node and run python -m pytest backend -q with backend/requirements-dev.txt installed. Run the browser regression for navigation changes. Record commands, fixture provenance and untested paths in the progress log.
 

@@ -23,6 +23,17 @@ Suggested acknowledgement lines (check the exact wording on each archive's page 
 
 ## Methods taken from the literature
 
+## Learn Mode educational sources
+
+The Learn Mode lesson summaries and interactive facts use the following NASA educational and mission pages (retrieved 2026-11-14). Page illustrations are original schematic artwork and are not copies of NASA images.
+
+- SPHEREx all-sky map and 102 infrared wavelengths: https://science.nasa.gov/open-science/spherex-universe-map/
+- Infrared waves and infrared astronomy: https://science.nasa.gov/ems/07_infraredwaves/ and https://science.nasa.gov/mission/webb/science-overview/science-explainers/infrared-astronomy/
+- Nebulae and star formation: https://science.nasa.gov/astrobiology/learning-resources/alp/how-did-our-solar-system-form/ and https://science.nasa.gov/universe/stories/quick-reads/decoding-nebulae/
+- Galaxy types and ages: https://science.nasa.gov/universe/galaxies/
+- Andromeda distance/type and halo star ages: https://science.nasa.gov/missions/hubble/nasas-hubble-shows-star-formation-in-andromeda-galaxy-winding-down/ and https://science.nasa.gov/asset/hubble/young-and-old-stars-found-in-andromedas-halo/
+- Solar System planets: https://science.nasa.gov/solar-system/planets/ and https://science.nasa.gov/solar-system/solar-system-facts/
+
 - **Position of the Earth** (Planet X mode, `frontend/js/features/parallax.js`): the low-precision Sun formula of J. Meeus, *Astronomical Algorithms* (2nd ed., Willmann-Bell, 1998), chapter 25, written from the published formula, then checked against known dates (solstice, perihelion, aphelion, J2000.0) in `scratch/test_parallax.mjs`.
 - **Windowed centroid, upper-half sigma, aperture photometry with a background ring**: standard techniques, written for this project.
 - **Greenwich sidereal time and first-order precession** (sky map country readout, `frontend/js/features/skyGeo.js`): Meeus, *Astronomical Algorithms*, equations 12.4 and 21.1, written from the published formulas and checked in `scratch/test_skygeo.mjs` against J2000.0 (280.4606°), 0h UT on 2000-01-01 (99.9678°) and Meeus' example 12.a (197.693195°).

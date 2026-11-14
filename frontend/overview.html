@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="midnight">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -22,6 +22,7 @@
   <link rel="stylesheet" href="css/styles.css?v=21">
   <link rel="stylesheet" href="css/instrument.css">
   <link rel="stylesheet" href="css/overview-3d.css">
+  <link rel="stylesheet" href="css/mode-choice.css">
 <!-- Three.js CDN; the rest of the overview remains usable if it is unavailable. -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
@@ -95,26 +96,19 @@
       </aside>
     </section>
 
-    <!-- ── TICKER ── -->
-    <div class="overview-ticker-3d" role="group" aria-label="Blink capabilities">
-      <div class="ticker-inner" aria-hidden="true">
-        <span>Infrared Image Sequences</span> ◆
-        <span>Six Spectral Detectors</span> ◆
-        <span>102 Spectral Channels</span> ◆
-        <span>Aperture Photometry</span> ◆
-        <span>Documented Target Fields</span> ◆
-        <span>Blink · Difference · Stack · Trail</span> ◆
-        <!-- loop duplicate -->
-        <span>Infrared Image Sequences</span> ◆
-        <span>Six Spectral Detectors</span> ◆
-        <span>102 Spectral Channels</span> ◆
-        <span>Aperture Photometry</span> ◆
-        <span>Documented Target Fields</span> ◆
-        <span>Blink · Difference · Stack · Trail</span> ◆
-      </div>
-    </div>
-
     <!-- ── ACTIVE MISSIONS SECTION ── -->
+    <!-- Learn Mode or Science Mode (Blink 4.0): choosing one sets the menu (js/siteHeader.js) -->
+    <section class="mode-choices mode-choices-3d" aria-label="Choose your experience">
+      <a class="mode-card mode-card-science" href="index.html#workspace">
+        <span class="mode-card-icon" aria-hidden="true">🔬</span><span class="mode-card-kicker">For researchers · students</span>
+        <h2>Science Mode</h2><p>Advanced analysis and research tools</p><span class="mode-card-detail">Blink images, find movers, compare detectors, inspect provenance and export evidence.</span><span class="mode-card-cta">Open research workspace <span aria-hidden="true">↗</span></span>
+      </a>
+      <a class="mode-card mode-card-learn" href="learn.html">
+        <span class="mode-card-icon" aria-hidden="true">🎓</span><span class="mode-card-kicker">For curious minds · all ages</span>
+        <h2>Learn Mode</h2><p>Guided lessons, missions and discoveries</p><span class="mode-card-detail">Start with the basics, explore interactive visuals, earn badges and ask Astra for a simple explanation.</span><span class="mode-card-cta">Start a space mission <span aria-hidden="true">↗</span></span>
+      </a>
+    </section>
+
     <section class="section-3d" id="missions" aria-labelledby="missions-title">
       <p class="section-kicker">Documented test fields</p>
       <h2 class="section-heading" id="missions-title">
@@ -335,8 +329,8 @@
       // Materials
       const goldMLI = new THREE.MeshStandardMaterial({
         color: 0xd4af37,
-        metalness: 0.88,
-        roughness: 0.22,
+        metalness: 0.68,
+        roughness: 0.4,
         emissive: 0x2a2005,
         emissiveIntensity: 0.2
       });
@@ -356,8 +350,8 @@
 
       const solarCellMat = new THREE.MeshStandardMaterial({
         color: 0x0c1e38,
-        metalness: 0.85,
-        roughness: 0.18
+        metalness: 0.55,
+        roughness: 0.38
       });
 
       // A) Service Module (Hexagonal Bus)
@@ -479,15 +473,25 @@
           );
           panel.position.set(side * (48 + p * 24), -35, 0);
 
-          // Gold frame around panel
-          const frame = new THREE.Mesh(
-            new THREE.BoxGeometry(46, 2.2, 29),
-            goldMLI
-          );
-          frame.position.copy(panel.position);
-          frame.scale.set(1.02, 0.9, 1.02);
-          wing.add(frame);
           wing.add(panel);
+
+          // Gold perimeter rails sit just above each panel face. A single
+          // filled frame box overlapped the panel surface and caused z-fighting
+          // (visible as rapid gold/blue flicker while the spacecraft rotated).
+          for (const face of [-1, 1]) {
+            const railY = panel.position.y + face * 1.4;
+            const rails = [
+              [new THREE.BoxGeometry(46, 0.35, 1), panel.position.x, railY, panel.position.z - 14],
+              [new THREE.BoxGeometry(46, 0.35, 1), panel.position.x, railY, panel.position.z + 14],
+              [new THREE.BoxGeometry(1, 0.35, 27), panel.position.x - 22.5, railY, panel.position.z],
+              [new THREE.BoxGeometry(1, 0.35, 27), panel.position.x + 22.5, railY, panel.position.z],
+            ];
+            for (const [geometry, x, y, z] of rails) {
+              const rail = new THREE.Mesh(geometry, goldMLI);
+              rail.position.set(x, y, z);
+              wing.add(rail);
+            }
+          }
         });
 
         wingsGroup.add(wing);
@@ -507,7 +511,7 @@
       dishGroup.add(feed);
       craft.add(dishGroup);
 
-      craft.scale.set(1.6, 1.6, 1.6);
+      craft.scale.set(1.3, 1.3, 1.3);
       return craft;
     }
 
@@ -605,6 +609,31 @@
 
     const earthSystem = createEarthSystem();
     scene.add(earthSystem.root);
+
+    // Keep the SPHEREx model outside Earth's visual collision envelope.
+    // The clearance radius is measured from the observatory's own origin so
+    // rotating the telescope cannot make its solar panels clip through Earth.
+    observatory.updateMatrixWorld(true);
+    const observatoryBounds = new THREE.Box3().setFromObject(observatory);
+    const observatorySphere = observatoryBounds.getBoundingSphere(new THREE.Sphere());
+    const observatoryClearanceRadius =
+      observatorySphere.radius + observatorySphere.center.distanceTo(observatory.position);
+    const earthKeepOutRadius = 200 * 1.07 + observatoryClearanceRadius + 24;
+
+    function keepObservatoryClearOfEarth() {
+      const earthCenter = earthSystem.root.position;
+      const dx = observatory.position.x - earthCenter.x;
+      const dy = observatory.position.y - earthCenter.y;
+      const requiredZOffset = Math.sqrt(
+        Math.max(0, earthKeepOutRadius * earthKeepOutRadius - dx * dx - dy * dy)
+      );
+
+      // Move the observatory toward the camera only as much as needed to keep
+      // its full bounding sphere outside Earth's atmosphere and safety margin.
+      observatory.position.z = earthCenter.z + Math.max(240, requiredZOffset);
+    }
+
+    keepObservatoryClearOfEarth();
 
     // A restrained scan beam and spotlight make the telescope's illustrative pointing visible.
     const scanBeam = new THREE.Mesh(
@@ -754,6 +783,7 @@
         observatory.position.y = 10 + Math.sin(clockTime * 0.6) * 6;
         const targetX = scrollProgress > 0.15 ? -130 - scrollProgress * 60 : 120;
         observatory.position.x += (targetX - observatory.position.x) * 0.04;
+        keepObservatoryClearOfEarth();
       }
       updateEarthScanLight();
       renderer.render(scene, camera);
@@ -885,5 +915,6 @@
 
   })();
   </script>
+  <script type="module" src="js/features/highContrast.js"></script>
 </body>
 </html>

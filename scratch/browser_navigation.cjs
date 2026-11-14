@@ -22,11 +22,13 @@ async function checkNavigation() {
     async function openNavigation() {
       if (await menu.isVisible() && await menu.getAttribute("aria-expanded") === "false") await menu.click();
     }
+    // Changed on purpose (14 Nov 2026): the menu shows the chosen mode's pages. In Science Mode: Home, its pages and a switch to Learn Mode;
+    // the home page itself shows only "Home" (checked after the loop).
     const destinations = [
-      ["Overview", "overview.html"], ["Workspace", "index.html#workspace"], ["Sky Explorer", "sky.html"],
+      ["Sky Explorer", "sky.html"], ["Workspace", "index.html#workspace"],   // leave the workspace first: its own link is a same-page jump
       ["Simulator", "simulator.html"], ["Planet X Lab", "planet-x.html"], ["Results", "results.html"], ["About", "index.html#about"]
     ];
-    const labels = destinations.map(([label]) => label);
+    const labels = ["Home", "Workspace", "📌 Pin Board", "Sky Explorer", "Simulator", "Planet X Lab", "Results", "About", "⇄ Switch to Learn Mode"];
     await page.goto(new URL("index.html", base).href);
     await page.waitForURL("**/overview.html");
     for (const width of [320, 390, 768, 1024, 1366, 1440, 1920]) {
@@ -57,6 +59,9 @@ async function checkNavigation() {
         assert.equal(await page.locator("html").getAttribute("data-theme"), "light");
         if (label === "Results") await page.locator("#results-status[hidden]").waitFor({ state: "attached" });
       }
+      await page.goto(new URL("overview.html", base).href);
+      await openNavigation();
+      assert.deepEqual(await nav.getByRole("link").allTextContents(), ["Home"], "the home page shows no mode menu");
       // The two same-document destinations must keep the loaded field and its URL parameters.
       await page.goto(new URL("index.html?ra=133.8189&dec=-7.247&fov=5&det=D2#workspace", base).href);
       await page.waitForFunction(() => !document.querySelector("#play-btn").disabled);

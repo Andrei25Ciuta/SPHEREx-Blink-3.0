@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="midnight">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0B0F19">
+  <meta name="theme-color" content="#FBFBF9">
   <!-- Colour theme, applied before the first paint (js/features/theme.js does the same and handles the switch; keep the key and the names in step) -->
   <script>try{var t=new URLSearchParams(location.search).get("theme")||localStorage.getItem("spherex-blink-theme");if(/^(midnight|nebula|deep-space|observatory|light|classic)$/.test(t))document.documentElement.dataset.theme=t}catch(e){}</script>
   <title>Real-data results and candidate explorer – SPHEREx Blink</title>
@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Oswald:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css?v=21">
-  <link rel="stylesheet" href="css/results.css?v=3">
+  <link rel="stylesheet" href="css/results.css?v=4">
 <link rel="stylesheet" href="css/instrument.css">
   </head>
 <body>
@@ -22,38 +22,71 @@
 
   <header class="site-header" id="top" data-page="results">
     <a class="site-brand" href="overview.html">SPHEREx Blink</a>
-    <select id="theme-select" data-default-theme="midnight" aria-label="Colour theme"></select>
+    <select id="theme-select" data-default-theme="light" aria-label="Colour theme"></select>
   </header>
   <script type="module" src="js/siteHeader.js"></script>
 
   <main id="results" class="rmain" tabindex="-1">
     <nav class="result-links" aria-label="Results sections">
-      <a href="#candidate-explorer">Candidate Explorer</a><a href="#research-assistant">Selected candidate report</a><a href="#results-title">Validation on real observations</a>
+      <a href="#load">Load a file</a><a href="#charts">Charts</a><a href="#candidate-explorer">Records</a><a href="#research-assistant">Selected record report</a><a href="#validation">Validation on real observations</a>
     </nav>
-    <section class="panel rsec explorer" id="candidate-explorer" aria-labelledby="explorer-title">
-      <h1 id="explorer-title">Candidate Explorer</h1>
-      <p>Inspect a historical mover fit or open the JSON saved by the workspace candidate export. Imported files stay in this browser tab.</p>
-      <div class="explorer-inputs">
-        <label>Candidate export <input id="candidate-file" type="file" accept="application/json,.json"></label>
-        <button type="button" class="btn btn-small" id="restore-archive" disabled>Show archived runs</button>
+
+    <section class="panel rload" id="load" aria-labelledby="explorer-title">
+      <div class="rload-head">
+        <div>
+          <h1 id="explorer-title">Results</h1>
+          <p class="rsub">Everything on this page comes from one file. Load another and the numbers, the charts and the table change with it.</p>
+        </div>
+        <p id="data-badge" class="rbadge" role="status">Loading the numbers…</p>
       </div>
-      <p id="import-status" role="status"></p>
-      <h2 id="run-title">Archived mover validation</h2>
+      <div class="rload-body">
+        <label id="drop-zone" class="rdrop" for="candidate-file">
+          <span class="rdrop-title">Load a results file</span>
+          <span class="rdrop-hint">Drop it anywhere on this page, or choose it here. It stays in this browser tab.</span>
+          <input id="candidate-file" type="file" accept="application/json,.json,text/csv,.csv">
+        </label>
+        <div class="rsamples" role="group" aria-label="Sample files">
+          <span class="rsamples-label">Or open a sample</span>
+          <button type="button" class="chip" id="ex-archive" data-example="archive" aria-pressed="false">Archived validation</button>
+          <button type="button" class="chip" id="ex-sources" data-example="sources" aria-pressed="false">Find everything on six real fields</button>
+        </div>
+      </div>
+      <p id="current-file" class="rcurrent"></p>
+      <p id="import-status" class="rimport" role="status"></p>
+      <details class="rformats">
+        <summary>Which files can I load?</summary>
+        <ul>
+          <li><strong>Candidate list (JSON or CSV)</strong>: what the workspace saves after Find movers or Look for a distant body.</li>
+          <li><strong>List of sources (JSON)</strong>: what <code>scratch/make_results_sources.mjs</code> writes from Find everything, one block per field.</li>
+          <li><strong>Validation numbers (JSON)</strong>: the numbers of <code>data/real_results.json</code> with <code>data/real_results_generated.json</code> laid over them.</li>
+        </ul>
+        <p>Any other file is refused with the reason. Nothing is sent anywhere, and no number is filled in for a file that lacks it: a chart that needs numbers the file does not have says so.</p>
+      </details>
+    </section>
+
+    <section aria-label="Summary of the file on the page"><ul id="kpis" class="rkpis"></ul></section>
+
+    <section class="panel rcharts" id="charts" aria-labelledby="charts-title">
+      <h2 id="charts-title">Charts of this file</h2>
+      <div id="dash-charts" class="rcards"></div>
+      <div id="dash-provenance"></div>
+    </section>
+
+    <section class="panel rsec explorer" id="candidate-explorer" aria-labelledby="records-title">
+      <h2 id="records-title">Records</h2>
+      <h3 id="run-title">Archived mover validation</h3>
       <p id="run-source"></p>
       <p id="association-count"></p>
       <div class="explorer-inputs">
-        <label>Search candidates <input id="candidate-search" type="search" placeholder="Name or identifier"></label>
+        <label>Search <input id="candidate-search" type="search" placeholder="Name, class, field or identifier"></label>
         <label>Detector <select id="candidate-detector"><option value="">All detectors</option></select></label>
-        <label>Order <select id="candidate-sort"><option value="original">Source order</option><option value="speed">Fastest first</option><option value="detections">Most detections</option></select></label>
+        <label>Kind <select id="candidate-kind"><option value="">All kinds</option></select></label>
+        <label>Order <select id="candidate-sort"><option value="original">Source order</option></select></label>
       </div>
       <p id="candidate-count" role="status"></p>
-      <details id="distribution"><summary>Motion distribution for the filtered records</summary>
-        <p>Angular speed in arcseconds per year. For parallax fits this is the fitted drift.</p>
-        <ul id="speed-bins"></ul>
-      </details>
       <div class="rtable explorer-table rtable-scroll">
-        <table><caption class="sr-only">Candidate measurements</caption>
-        <thead><tr><th scope="col">Candidate</th><th scope="col">Detector</th><th scope="col">Speed (″/yr)</th><th scope="col">Detections</th></tr></thead>
+        <table><caption class="sr-only">Records of the file on the page</caption>
+        <thead><tr id="candidate-head"><th scope="col">Record</th></tr></thead>
         <tbody id="candidate-rows"></tbody></table>
       </div>
       <div id="candidate-pages" class="result-links" hidden>
@@ -74,7 +107,7 @@
       </section>
       <section id="research-assistant" aria-labelledby="report-title">
         <h3 id="report-title">Research report</h3>
-        <p>Generate a report from the selected fit, with references to the source JSON.</p>
+        <p>Generate a report from the selected record, with references to the source file.</p>
         <button id="build-report" type="button" class="btn btn-small" disabled>Generate evidence report</button>
         <div id="local-ai" hidden>
           <label>Question for the on-device assistant <input id="report-question" type="text" maxlength="500" value="Which evidence supports this fit?"></label>
@@ -85,6 +118,11 @@
         <button id="download-report" type="button" class="btn btn-small" hidden>Download report (.txt)</button>
       </section>
     </section>
+
+    <div id="validation" tabindex="-1">
+      <p id="validation-note" class="rcaveat" role="status" hidden>The explanations below were written for the archived validation, not for the file on this page, so they are hidden while another file is shown. Open <strong>Archived validation</strong> above to read them.</p>
+      <div id="validation-generic" hidden></div>
+      <div id="validation-archive">
     <section class="info-box rintro" aria-labelledby="results-title">
       <p class="info-kicker">Real SPHEREx data &middot; numbers only</p>
       <h2 id="results-title">What the detector did on real images</h2>
@@ -317,6 +355,8 @@
       <p>The commands are in <a href="https://github.com/mateibut/SPHEREx/blob/main/docs/VALIDATION.md">docs/VALIDATION.md</a>. They need the real cutouts, which are not published
         (they are fetched from IRSA by <code>backend/scripts/fetch_real_sample.py</code>), and a backend that serves only those files.</p>
     </section>
+      </div>
+    </div>
   </main>
 
   <footer class="site-footer">
@@ -328,5 +368,5 @@
   </footer>
 
   <script type="module" src="js/results.js"></script>
-</body>
+<script type="module" src="js/features/highContrast.js"></script></body>
 </html>

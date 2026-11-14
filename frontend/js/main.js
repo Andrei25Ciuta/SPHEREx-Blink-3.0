@@ -24,6 +24,8 @@ import { setupBundle } from "./features/bundleView.js";
 import { fetchSurvey as askSurvey } from "./features/surveyCoverage.js";
 import { setupSolarSystem } from "./features/solarSystemView.js";
 import { setupAssistant } from "./features/assistantView.js";
+import { setupPinBoard } from "./features/missionsPinView.js";
+import { startMissionRunner } from "./features/missionRunner.js";
 import { runTask, isCancelled } from "./features/workerClient.js";
 import { estimateSearch, describeEstimate } from "./features/searchCost.js";
 import { runSearchTask } from "./features/searchTasks.js";
@@ -38,6 +40,7 @@ import { FLAGGED_LIMIT } from "./features/timeline.js";
 import { SkyContext } from "./features/skyContext.js";
 import { setupFullscreen } from "./features/fullscreen.js";
 import { detectSources, describeMover, matchKnownObject, moverPositionAtMjd, passIndices, trackSupport, blendWarning, VERSION as MOVERS_VERSION, DEFAULTS as MOVER_DEFAULTS, ERROR_MODEL } from "./features/movers.js";
+import { blindCheckCandidate, VERSION as BLIND_CHECK_VERSION } from "./features/blindCheck.js";
 import { buildProvenance, provenanceText, pictureCaption } from "./features/provenance.js";
 import { colourHint } from "./features/spectrum.js";
 import { describeDistant, classifyApparentMotion, VERSION as PARALLAX_VERSION, DISTANT_DEFAULTS } from "./features/parallax.js";
@@ -945,6 +948,11 @@ const MIN_PASSES = 3;                      // same rule as in movers.js: a third
 let textAnalysis = null;                   // the text analysis (section 9), set up below; its candidate table is refreshed when the list changes
 let movers = [];                           // candidates for the detector on screen, best first
 let selectedMover = -1;
+startMissionRunner({ getCandidate: () => (selectedMover >= 0 ? movers[selectedMover] ?? null : null), getCount: () => movers.length });
+const pinBoard = setupPinBoard({
+  getCandidate: () => (selectedMover >= 0 ? movers[selectedMover] ?? null : null),
+  getContext: () => ({ realData: DATA_SOURCE === "api", field: currentQuery ? { ra: currentQuery.ra, dec: currentQuery.dec, fov: currentQuery.fov, det: currentQuery.det } : null }),
+});
 let assistant = null;                      // the explainer (features/assistantView.js), set up further down
 let planetLab = null;                      // the Planet X Lab (features/planetLabView.js), set up further down
 let moversCatalogueChecked = false;        // was SIMBAD consulted for the list on screen?
@@ -1141,6 +1149,9 @@ $("find-movers-btn").addEventListener("click", async () => {
     endSearch();
     if (token !== loadToken) return;
     addSupport(result.candidates, frames, arrays, player.naturalSize, { ...(isFloat ? { sigmaFloor: 1e-9 } : {}) });
+    for (const candidate of result.candidates) {
+      candidate.blindCheck = blindCheckCandidate(candidate, frames.map((f) => ({ ...f, id: frameId(f) })), arrays, player.naturalSize);
+    }
     attachDotDates(result.candidates, frames);
     // Known objects: the test list always, and real SIMBAD objects too when we have real data.
     if (DATA_SOURCE === "api") status.textContent = "Checking SIMBAD and SkyBoT for known objects…";
@@ -1148,7 +1159,7 @@ $("find-movers-btn").addEventListener("click", async () => {
     if (token !== loadToken) return;
     showMovers(result, objects);
     // the options the search ran with: the defaults of movers.js, with the noise floor of real (float) pixels when it was used
-    moversRun = recordRun("find-movers", MOVERS_VERSION, frames, { ...MOVER_DEFAULTS, ...ERROR_MODEL, ...(isFloat ? { sigmaFloor: 1e-9 } : {}), allDetectors: useAllDetectors() }, startedAt, isFloat);
+    moversRun = recordRun("find-movers", `${MOVERS_VERSION}+${BLIND_CHECK_VERSION}`, frames, { ...MOVER_DEFAULTS, ...ERROR_MODEL, ...(isFloat ? { sigmaFloor: 1e-9 } : {}), allDetectors: useAllDetectors() }, startedAt, isFloat);
   } catch (err) {
     endSearch();
     if (isCancelled(err)) { status.textContent = "The search was cancelled. No candidate was kept (the list was cleared when the search started); the images are unchanged."; return; }
@@ -1287,8 +1298,25 @@ function showMovers({ candidates, stats, reason }, catalogueObjects = null, { di
       textContent: `RA ${formatRA(m.ra)}  Dec ${formatDec(m.dec)} · seen in ${m.nDet} of ${m.nFrames} images · ${m.significance > 100 ? ">100" : Math.round(m.significance)}σ` +
         (Number.isFinite(m.falseAlarm) ? ` · chance: ${chanceText(m.falseAlarm)}` : "") +
         (m.support?.measurable ? ` · on its path in ${m.support.supported}/${m.support.measurable}` : "") +
+        (m.blindCheck?.checked ? ` · blind check ${m.blindCheck.supported}/${m.blindCheck.checked}` : "") +
         (m.foundIn && hasSeveralDetectors() ? ` · found with ${m.foundIn === "all detectors" ? "all detectors together" : m.foundIn + " alone"}` : "") });
-    btn.append(rank, main, sub);
+    // the finder card: a verdict badge, a direction arrow (north up, east left, as on the picture) and two evidence bars
+    const verdict = m.known ? ["is-known", "🔎 Known object"] : m.distant ? ["is-distant", DATA_SOURCE === "api" ? "🪐 Distant-body candidate" : "🪐 Simulated distant body"] : ["is-new", "❓ Unexplained: check it"];
+    const badge = Object.assign(document.createElement("span"), { className: `mover-verdict ${verdict[0]}`, textContent: verdict[1] });
+    const arrow = document.createElement("span");
+    arrow.className = "mover-arrow";
+    arrow.setAttribute("aria-hidden", "true");
+    arrow.innerHTML = `<svg viewBox="-12 -12 24 24"><circle r="11"/><path d="M0 7V-7M-4 -3L0 -7L4 -3" transform="rotate(${(-(m.positionAngleDeg ?? 0)).toFixed(0)})"/></svg><b>${m.compass}</b>`;
+    const bar = (label, a, b) => {
+      const f = b ? Math.max(0, Math.min(1, a / b)) : 0;
+      return `<span class="mover-meter"><span class="mover-meter-label">${label} <b>${a}/${b}</b></span><span class="mover-meter-track"><span style="width:${(100 * f).toFixed(0)}%"></span></span></span>`;
+    };
+    const meters = document.createElement("span");
+    meters.className = "mover-meters";
+    meters.innerHTML = bar("seen in images", m.nDet, m.nFrames) + (m.support?.measurable ? bar("on its path", m.support.supported, m.support.measurable) : "");
+    const head = Object.assign(document.createElement("span"), { className: "mover-head" });
+    head.append(rank, badge, arrow);
+    btn.append(head, main, meters, sub);
     btn.addEventListener("click", () => selectMover(selectedMover === k ? -1 : k));
     li.append(btn);
     return li;
@@ -1370,6 +1398,7 @@ function selectMover(k) {
   updateObservationTrack(movers[k]);
   planetLab?.refresh();                             // the lab compares the motions of the one selected
   assistant?.refresh();
+  pinBoard?.refresh();
   document.querySelectorAll("#mover-list .mover-item").forEach((b) =>
     b.setAttribute("aria-pressed", String(Number(b.dataset.index) === k)));
   player.setCandidates(movers, k);
@@ -1398,8 +1427,15 @@ function selectMover(k) {
     (m.known ? `This is ${m.known}, a known object: the search found it on its own. `
       : moversCatalogueChecked
         ? "No SIMBAD object or test object sits within 18″ of it (catalogue positions moved to this date). It may be an asteroid, a faint star SIMBAD lacks, or something new: check the sky map and the other detectors. "
-        : "Not one of the five test objects (SIMBAD was not consulted: synthetic data, or it did not answer). Catalogues list year-2000 positions, so a fast mover can sit a little away from where it is catalogued. ") +
-    (m.known ? "" : classifyApparentMotion(m.speedArcsecPerYear) + asteroidSentence(m)) + supportSentence(m);
+      : "Not one of the five test objects (SIMBAD was not consulted: synthetic data, or it did not answer). Catalogues list year-2000 positions, so a fast mover can sit a little away from where it is catalogued. ") +
+    (m.known ? "" : classifyApparentMotion(m.speedArcsecPerYear) + asteroidSentence(m)) + supportSentence(m) + blindCheckSentence(m);
+}
+
+function blindCheckSentence(m) {
+  const check = m.blindCheck;
+  if (!check) return "";
+  if (!check.checked) return " Leave-one-image-out check: not enough detections in four separate survey passes to make a blind prediction.";
+  return ` Leave-one-image-out check: the path was fitted without each held-out image, then measured at its predicted position; signal reached S/N 5 in ${check.supported} of ${check.checked} measurable held-out images. This reuses detections that proposed the candidate and is a consistency check, not independent confirmation.`;
 }
 
 /**
@@ -1783,6 +1819,7 @@ async function loadData(query) {
     updateSourceLabels();
     setComparisonFrames(frames);
     currentQuery = query;
+    pinBoard?.refresh();
     if (sky.isOpen) sky.update(query);
     if (frames.length === 0) {
       detSelect.innerHTML = '<option value="">No data</option>';

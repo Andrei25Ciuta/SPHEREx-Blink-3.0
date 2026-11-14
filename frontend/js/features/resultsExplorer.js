@@ -1,8 +1,14 @@
-import { archiveDataset, importDataset, selectRows, speedHistogram, evidenceReport, assistedReport } from "./candidateEvidence.js";
+// resultsExplorer.js – the table of records of the Results page, the detail of the selected record, and its evidence report.
+//
+// It shows ONE dataset at a time (features/resultsData.js): whatever file was loaded, the rows, the columns, the filters and the sort orders here come from that file.
+// A column that no row has a number for is not drawn; a filter that would have one choice is not offered. Loading a file is not done here (js/results.js does it):
+//   const explorer = setupExplorer();   explorer.show(dataset);   explorer.focusRow(id);   explorer.onSelect = (id) => { ... };
+
+import { selectRows, SORTS, evidenceReport, assistedReport } from "./candidateEvidence.js";
 import { CAN_USE_LOCAL_BACKEND } from "../config.js";
 
 const PAGE_SIZE = 20;
-const MAX_FILE_BYTES = 16 * 1024 * 1024;
+const num = (v) => typeof v === "number" && Number.isFinite(v);
 
 // The two axes use one pixel scale. Canvas y increases down just as in the fit.
 function showCentroids(samples, canvas, tbody) {
@@ -39,9 +45,29 @@ function showCentroids(samples, canvas, tbody) {
   }));
 }
 
+/** The columns of the table for a set of rows: [{ key, label, cell(row), numeric }]. Only the columns at least one row has a value for. */
+export function columnsFor(rows) {
+  const has = (k) => rows.some((r) => num(r[k]));
+  const cols = [{ key: "detector", label: "Detector", cell: (r) => r.detector }];
+  if (new Set(rows.map((r) => r.field).filter(Boolean)).size > 1) cols.push({ key: "field", label: "Field", cell: (r) => r.field });
+  if (new Set(rows.map((r) => r.classLabel ?? r.kind).filter(Boolean)).size > 1) cols.push({ key: "kind", label: rows.some((r) => r.classLabel) ? "Class" : "Kind", cell: (r) => r.classLabel ?? r.kind ?? "–" });
+  cols.push({ key: "motion", label: "Speed (″/yr)", numeric: true, cell: (r) => (r.motion == null ? "Unavailable" : r.motion.toFixed(3)) });
+  cols.push({ key: "detections", label: "Detections", numeric: true, cell: (r) => (r.images > 0 ? `${r.detections} of ${r.images}` : String(r.detections)) });
+  if (has("sigma")) cols.push({ key: "sigma", label: "Significance (σ)", numeric: true, cell: (r) => (num(r.sigma) ? r.sigma.toFixed(1) : "–") });
+  if (has("snr")) cols.push({ key: "snr", label: "S/N", numeric: true, cell: (r) => (num(r.snr) ? r.snr.toFixed(r.snr < 10 ? 1 : 0) : "–") });
+  if (has("support")) cols.push({ key: "support", label: "Support", numeric: true, cell: (r) => (num(r.support) ? String(r.support) : "–") });
+  return cols;
+}
+
+/** The sort orders a set of rows can use (an order needs at least one row with its number). */
+export function sortsFor(rows) {
+  return Object.entries(SORTS).filter(([, [, , key]]) => !key || rows.some((r) => num(r[key]))).map(([value, [label]]) => ({ value, label }));
+}
+
 export function setupExplorer() {
   const el = id => document.getElementById(id);
-  let archive, dataset, selected, page = 0, importVersion = 0, activeReport;
+  let dataset, selected, page = 0, activeReport;
+  const api = { onSelect: null };
 
   function clearReport() {
     activeReport?.abort();
@@ -53,7 +79,7 @@ export function setupExplorer() {
     el("ask-model").disabled = false;
   }
 
-  function select(row) {
+  function select(row, notify = true) {
     selected = row;
     clearReport();
     el("build-report").disabled = !row;
@@ -62,6 +88,7 @@ export function setupExplorer() {
     for (const btn of el("candidate-rows").querySelectorAll("button")) {
       btn.setAttribute("aria-pressed", String(btn.dataset.id === row?.id));
     }
+    if (notify) api.onSelect?.(row?.id ?? null);
     if (!row) return;
     el("candidate-title").textContent = row.label;
     el("candidate-ref").textContent = dataset.source + "#" + row.pointer;
@@ -78,34 +105,35 @@ export function setupExplorer() {
     el("centroid-rows").replaceChildren();
     const needsLocalBackend = row.link.includes("data=api");
     const viewer = el("candidate-viewer");
-    viewer.hidden = needsLocalBackend && !CAN_USE_LOCAL_BACKEND;
-    el("candidate-viewer-help").hidden = !viewer.hidden;
+    viewer.hidden = !row.link || (needsLocalBackend && !CAN_USE_LOCAL_BACKEND);
+    el("candidate-viewer-help").hidden = !(row.link && viewer.hidden);
     if (viewer.hidden) viewer.removeAttribute("href");
     else viewer.href = row.link;
     viewer.textContent = needsLocalBackend ? "Open field in workspace (requires real-data backend)" : "Open synthetic field in workspace";
   }
 
+  function currentRows() {
+    return selectRows(dataset.rows, el("candidate-search").value, el("candidate-detector").value, el("candidate-sort").value, el("candidate-kind").value);
+  }
+
   function render() {
     if (!dataset) return;
-    const filtered = selectRows(dataset.rows, el("candidate-search").value, el("candidate-detector").value, el("candidate-sort").value);
+    const filtered = currentRows();
     const pages = Math.ceil(filtered.length / PAGE_SIZE);
     page = Math.min(page, Math.max(0, pages - 1));
     const visible = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
     el("candidate-count").textContent = `${filtered.length} of ${dataset.rows.length} records` + (pages > 1 ? ` · Page ${page + 1} of ${pages}` : "");
-    const bins = speedHistogram(filtered);
-    const largest = Math.max(1, ...bins.map(b => b.count));
-    el("speed-bins").replaceChildren(...bins.map(bin => {
-      const li = document.createElement("li");
-      const bar = document.createElement("span");
-      bar.className = "histogram-bar";
-      bar.style.width = `${100 * bin.count / largest}%`;
-      li.textContent = `${bin.label} ″/yr · ${bin.count} records`;
-      li.append(bar);
-      return li;
-    }));
     el("candidate-pages").hidden = pages <= 1;
     el("candidate-prev").disabled = page === 0;
     el("candidate-next").disabled = page + 1 >= pages;
+    const cols = columnsFor(dataset.rows);
+    el("candidate-head").replaceChildren(...[{ label: "Record" }, ...cols].map((c) => {
+      const th = document.createElement("th");
+      th.scope = "col";
+      th.textContent = c.label;
+      if (c.numeric) th.className = "num";
+      return th;
+    }));
     el("candidate-rows").replaceChildren(...visible.map(row => {
       const tr = document.createElement("tr");
       const th = document.createElement("th");
@@ -118,9 +146,10 @@ export function setupExplorer() {
       button.addEventListener("click", () => select(row));
       th.append(button);
       tr.append(th);
-      for (const text of [row.detector, row.motion == null ? "Unavailable" : row.motion.toFixed(3), row.detections]) {
+      for (const c of cols) {
         const td = document.createElement("td");
-        td.textContent = text;
+        td.textContent = c.cell(row);
+        if (c.numeric) td.className = "num";
         tr.append(td);
       }
       return tr;
@@ -128,45 +157,44 @@ export function setupExplorer() {
     select(visible.includes(selected) ? selected : visible[0]);
   }
 
-  function useDataset(next) {
+  /** Show a dataset: the header, the filters and the sort orders are rebuilt from its rows. */
+  api.show = function show(next) {
     dataset = next;
     page = 0;
     selected = null;
     el("candidate-search").value = "";
-    el("candidate-sort").value = "original";
-    const detectors = [...new Set(dataset.rows.map(r => r.detector))].sort();
+    const rows = dataset.rows;
+    const detectors = [...new Set(rows.map(r => r.detector).filter(Boolean))].sort();
     el("candidate-detector").replaceChildren(new Option("All detectors", ""), ...detectors.map(d => new Option(d, d)));
+    el("candidate-detector").closest("label").hidden = detectors.length < 2;
+    const kinds = [...new Set(rows.map(r => r.classLabel ?? r.kind).filter(Boolean))].sort();
+    el("candidate-kind").replaceChildren(new Option(rows.some(r => r.classLabel) ? "All classes" : "All kinds", ""), ...kinds.map(k => new Option(k, k)));
+    el("candidate-kind").closest("label").hidden = kinds.length < 2;
+    el("candidate-sort").replaceChildren(...sortsFor(rows).map(s => new Option(s.label, s.value)));
     el("run-title").textContent = dataset.label;
-    el("run-source").textContent = `${dataset.provenance} · ${dataset.date}`;
-    const matched = dataset.rows.filter(r => r.match).length;
-    el("association-count").textContent = dataset === archive
-      ? "Each record is a validation run. The same object can appear in several runs."
-      : `${matched} with a named object association · ${dataset.rows.length - matched} without a named association in the export. Detector labels use supporting frames where available and the viewer detector for older exports.`;
-    el("restore-archive").disabled = !archive || next === archive;
+    el("run-source").textContent = `${dataset.provenance} · ${dataset.date}${dataset.dateNote ? ` (${dataset.dateNote})` : ""}`;
+    const matched = rows.filter(r => r.match).length;
+    el("association-count").textContent = dataset.kind === "validation" ? "Each record is a validation run. The same object can appear in several runs."
+      : dataset.kind === "sources" ? `${matched} of ${rows.length} sources have a catalogue or object match; the others are leads to check, not discoveries.`
+      : `${matched} with a named object association · ${rows.length - matched} without a named association in the export. Detector labels use supporting frames where available and the viewer detector for older exports.`;
     render();
-  }
+  };
 
-  el("restore-archive").addEventListener("click", () => {
-    importVersion++;
-    el("import-status").textContent = "";
-    useDataset(archive);
-  });
-  el("candidate-file").addEventListener("change", async event => {
-    const file = event.target.files[0];
-    if (!file) return;
-    event.target.value = "";
-    const version = ++importVersion;
-    try {
-      if (file.size > MAX_FILE_BYTES) throw Error("Choose a file under 16 MiB.");
-      const next = importDataset(JSON.parse(await file.text()), file.name);
-      if (version !== importVersion) return;
-      useDataset(next);
-      el("import-status").textContent = "Candidate export loaded.";
-    } catch (error) {
-      if (version === importVersion) el("import-status").textContent = "Import failed. " + error.message;
+  /** Make a record the selected one, whatever the filters and the page hide it behind. */
+  api.focusRow = function focusRow(id) {
+    const row = dataset?.rows.find(r => r.id === id);
+    if (!row) return;
+    if (!currentRows().includes(row)) {
+      el("candidate-search").value = ""; el("candidate-detector").value = ""; el("candidate-kind").value = "";
     }
-  });
-  for (const id of ["candidate-search", "candidate-detector", "candidate-sort"]) {
+    const at = currentRows().indexOf(row);
+    page = Math.max(0, Math.floor(at / PAGE_SIZE));
+    selected = row;
+    render();
+    el("candidate-detail").scrollIntoView?.({ block: "nearest" });
+  };
+
+  for (const id of ["candidate-search", "candidate-detector", "candidate-sort", "candidate-kind"]) {
     el(id).addEventListener("input", () => { page = 0; render(); });
   }
   el("candidate-prev").addEventListener("click", () => { page--; render(); });
@@ -217,9 +245,5 @@ export function setupExplorer() {
       if (activeReport === controller) { activeReport = undefined; el("ask-model").disabled = false; }
     }
   });
-  return data => {
-    archive = archiveDataset(data);
-    if (!dataset) useDataset(archive);
-    else el("restore-archive").disabled = false;
-  };
+  return api;
 }
