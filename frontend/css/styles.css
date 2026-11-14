@@ -701,12 +701,8 @@ output { font-weight: 600; color: var(--accent); }
   padding: .3rem .6rem; border-radius: 8px; border: 1px solid var(--border);
   background: rgb(var(--bg-rgb) / .86); color: var(--text); font-size: .8rem; line-height: 1.35; font-variant-numeric: tabular-nums;
 }
-.sky-map-guide { margin: 0 .15rem .4rem; color: var(--text-muted); font-size: .85rem; }
 .sky-map-surface { position: relative; isolation: isolate; }
 .sky-map-surface .skymap { z-index: 0; }
-.sky-map-compass { display: flex; align-items: center; gap: .75rem; }
-.sky-map-compass [data-direction] { font-weight: 700; }
-.sky-map-compass b { display: inline-block; }
 .sky-map-scale {
   position: absolute; right: .5rem; bottom: 3.4rem; z-index: 6;
   padding: .3rem .5rem; border: 1px solid var(--border); border-radius: 8px;

@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Oswald:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 
   <script>if (/[?&]embed=1(&|$)/.test(location.search)) document.documentElement.classList.add("embed");</script>   <!-- ?embed=1: workspace only, for an <iframe> -->
-  <link rel="stylesheet" href="css/styles.css?v=33">
+  <link rel="stylesheet" href="css/styles.css?v=34">
   <link rel="stylesheet" href="css/instrument.css?v=3">
   <link rel="stylesheet" href="css/lab-track.css">
   <link rel="stylesheet" href="css/contact-sheet.css?v=27">
@@ -454,7 +454,7 @@
       <p class="muted">Other surveys at the same spot, with catalogued objects from SIMBAD.
         The map opens at the selected field width. The dashed square marks that field. The box in the corner gives the sky coordinates under the cursor
         and, in brackets, the country that spot of the sky is straight above right now.
-        Drag to pan and scroll to zoom. North (N) and east (E) are marked above the map. The angular scale is in the lower-right corner.</p>
+        Drag to pan and scroll to zoom. The angular scale is in the lower-right corner.</p>
       <div class="skyframe" id="sky-frame">
         <div class="context-controls">
           <label for="survey-select">Survey</label>
@@ -466,12 +466,6 @@
           <button type="button" class="btn btn-small" id="aladin-btn">Show sky map</button>
           <button type="button" class="btn btn-small" id="sky-back-to-field" aria-controls="aladin-box" hidden>Back to field</button>
           <button type="button" class="btn btn-small" id="sky-full-btn" hidden>Full screen</button>
-        </div>
-        <div class="sky-map-guide" id="sky-map-guide" hidden>
-          <span class="sky-map-compass" role="group" aria-label="Orientation at map centre">
-            <span data-direction="north" aria-label="North (N)">North (N) <b aria-hidden="true">→</b></span>
-            <span data-direction="east" aria-label="East (E)">East (E) <b aria-hidden="true">→</b></span>
-          </span>
         </div>
         <div class="sky-map-surface" id="sky-map-surface" hidden>
           <div id="aladin-box" class="skymap" hidden></div>
@@ -712,7 +706,7 @@
     <div class="dlg-head"><h2 id="simulation-note-title">About the simulation</h2><form method="dialog"><button class="btn btn-small">Close</button></form></div>
     <p class="dlg-body">The Planet X preset uses a simulated body 600 AU away. Its position is invented for testing the distant-body search.</p>
   </dialog>
-  <script type="module" src="js/main.js?v=21"></script>
+  <script type="module" src="js/main.js?v=22"></script>
   <script type="module" src="js/scienceExplain.js"></script>
   <script type="module" src="js/features/highContrast.js"></script>
 </body>

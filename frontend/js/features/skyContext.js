@@ -15,7 +15,7 @@ import { WORLD_URL, decodeCountries, overheadAt } from "./skyGeo.js";
 import { fieldCorners } from "./explorerGeometry.js";
 import { aladinSkyAt, selectionText } from "./skyContextClick.js";
 
-import { outsideWorkspaceField, skyMapGuide } from "./skyMapGuide.js?v=2";
+import { outsideWorkspaceField, skyMapScale } from "./skyMapGuide.js?v=3";
 
 const ALADIN_URL = "https://cdn.jsdelivr.net/npm/aladin-lite@3.6.5/dist/aladin.js";
 const SIMBAD_TAP = "https://simbad.harvard.edu/simbad/sim-tap/sync";
@@ -112,12 +112,11 @@ function loadWorld() {
 }
 
 export class SkyContext {
-  constructor(container, statusEl, noteEl = null, { matchField = false, backToField = null, guide = null, surface = null, scale = null, resetLight = null } = {}) {
+  constructor(container, statusEl, noteEl = null, { matchField = false, backToField = null, surface = null, scale = null, resetLight = null } = {}) {
     this.container = container;
     this.statusEl = statusEl;
     this.matchField = matchField;
     this.backToField = backToField;
-    this.guide = guide;
     this.surface = surface;
     this.scale = scale;
     this.resetLight = resetLight;
@@ -147,13 +146,13 @@ export class SkyContext {
 
   setWorkspaceField(field) {
     this.workspaceField = field;
-    this.refreshMapGuide();
+    this.refreshMapControls();
   }
 
-  installMapGuide() {
-    if (!this.guide) return;
+  installScaleUpdates() {
+    if (!this.scale) return;
     for (const event of ["zoomChanged", "cooFrameChanged", "resizeChanged", "projectionChanged"]) {
-      this.aladin.on(event, () => this.refreshMapGuide());
+      this.aladin.on(event, () => this.refreshMapControls());
     }
   }
 
@@ -161,22 +160,16 @@ export class SkyContext {
     if (this.resetLight) this.resetLight.hidden = !this.aladin.getBaseImageLayer();
   }
 
-  refreshMapGuide() {
-    if (!this.guide || !this.scale || !this.aladin) return;
+  refreshMapControls() {
+    if (!this.aladin) return;
     if (this.backToField) this.backToField.hidden = !outsideWorkspaceField(this.aladin, this.workspaceField);
-    const guide = skyMapGuide(this.aladin);
-    this.guide.hidden = !guide || (guide.north === null && guide.east === null);
-    this.scale.hidden = !guide;
-    if (!guide) return;
-    for (const direction of ["north", "east"]) {
-      const label = this.guide.querySelector(`[data-direction="${direction}"]`);
-      label.hidden = guide[direction] === null;
-      label.querySelector("b").style.transform = `rotate(${guide[direction]}deg)`;
-    }
-    const scale = this.scale;
-    scale.style.setProperty("--scale-width", `${guide.width}px`);
-    scale.textContent = guide.label;
-    scale.setAttribute("aria-label", `Approximate angular scale ${guide.label}`);
+    if (!this.scale) return;
+    const scale = skyMapScale(this.aladin);
+    this.scale.hidden = !scale;
+    if (!scale) return;
+    this.scale.style.setProperty("--scale-width", `${scale.width}px`);
+    this.scale.textContent = scale.label;
+    this.scale.setAttribute("aria-label", `Approximate angular scale ${scale.label}`);
   }
 
   /** Put coordinates (ICRS degrees) in the readout, with the country that sky point is straight above right now. */
@@ -267,11 +260,11 @@ export class SkyContext {
       this.coordinateHint.hidden = true;
       this.container.appendChild(this.coordinateHint);
       this.aladin.on("mouseMove", (e) => this.onHover(e));
-      this.installMapGuide();
+      this.installScaleUpdates();
       if (this.resetLight) this.aladin.on("layerChanged", () => this.refreshLightControl());
       this.aladin.on("positionChanged", () => {
         if (!this.hovering) this.showCentre();
-        this.refreshMapGuide();
+        this.refreshMapControls();
       });
       this.container.addEventListener("pointerleave", () => { this.hidePointerCoordinates(); this.showCentre(); });
     }
@@ -326,7 +319,7 @@ export class SkyContext {
     aladin.setFoV((this.matchField ? fov : Math.max(fov * 3, 6)) / 60);
     this.hovering = false;
     this.setReadout(ra, dec, "Centre");
-    this.refreshMapGuide();
+    this.refreshMapControls();
 
     if (this.overlay) this.overlay.removeAll();
     else {

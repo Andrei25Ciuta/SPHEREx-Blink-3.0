@@ -28,7 +28,7 @@ const main=readFileSync(new URL("../frontend/js/main.js",import.meta.url),"utf8"
 const skySrc=readFileSync(new URL("../frontend/js/features/skyContext.js",import.meta.url),"utf8");
 assert.match(html, /src="js\/main\.js\?v=\d+"/);
 assert.match(html, /id="sky-reset-light"[^>]*aria-label="Reset light settings"[^>]*><span aria-hidden="true">↺<\/span>/);
-assert.ok(html.includes('id="sky-map-guide"'));
+assert.ok(!html.includes('id="sky-map-guide"'));
 assert.match(html, /id="sky-map-surface"[^>]*>\s*<div id="aladin-box"[^>]*><\/div>\s*<button[^>]*id="sky-reset-light"/);
 assert.ok(!skySrc.includes('this.aladin.on("click"'));
 assert.ok(!main.includes('onSelectPosition:'));
@@ -43,10 +43,12 @@ context.refreshLightControl();
 assert.equal(resetLight.hidden, true);
 reset();
 assert.equal(updates.length, 0);
-layer = { setOptions: (options) => updates.push(options) };
+const light = { brightness: 0.75, contrast: -0.3, gamma: 2, saturation: 0.2 };
+layer = { setOptions: (options) => { updates.push(options); Object.assign(light, options); } };
 context.refreshLightControl();
 assert.equal(resetLight.hidden, false);
 reset();
-assert.deepEqual(updates, [{ brightness: 0, contrast: 0, gamma: 1, saturation: 0 }]);
+assert.equal(updates.length, 1);
+assert.deepEqual(light, { brightness: 0, contrast: 0, gamma: 1, saturation: 0 });
 
 console.log("PASS Sky Context cursor coordinates and light reset without map click navigation");
