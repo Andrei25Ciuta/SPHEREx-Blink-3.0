@@ -8,7 +8,17 @@
 
 ## 2026-11-14 — Add Earth behind the Overview telescope
 
-Added the missing procedural Earth, cloud layer, atmosphere and orbit behind the existing telescope model, following the source interface while keeping all scene elements labelled as illustration. The camera starts farther away and caps its scroll approach at `z=460`, before the Earth's front surface; scroll progress is clamped to the page range. `git diff --check` passed; browser review was not run.
+Added the missing procedural Earth, cloud layer, atmosphere and orbit behind the existing telescope model, following the source interface while keeping all scene elements labelled as illustration. Dragging rotates Earth with the telescope; a restrained decorative beam and spotlight point toward Earth's surface. The camera starts farther away and caps its scroll approach at `z=460`, before the Earth's front surface; scroll progress is clamped to the page range. `git diff --check` passed; browser review was not run.
+
+## 2026-11-14 — Blink in colours in the player
+
+Moved wavelength blinking into the observation player. Playback orders the selected pass by wavelength and respects the timeline filters. Selecting a candidate uses its existing fitted track to follow it on the canvas. The previous standalone synthetic illustration was removed.
+
+All 45 Node test scripts passed. The colour playback test also checks candidate following and resetting on mode changes. Chromium could not start in this environment, and no real FITS data were used for verification.
+
+## 2026-11-14 — Blink in colours
+
+Added a linked workspace demo comparing centroids across two illustrative bands or two dates. It generates Gaussian stamps for a fixed blended pair, a moving source and a fixed reference star. The reference-corrected shifts passed `node scratch/test_colour_blink.mjs`. The fixture contains only synthetic pixels.
 
 ## 2026-11-14 — Blink in colours in the player
 
