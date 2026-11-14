@@ -9,6 +9,14 @@ published until the author decides ([docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)).
 The reference is `main` at `3f1e538` (7 Nov 2026). Status per phase: [docs/IMPLEMENTATION_ROADMAP.md](docs/IMPLEMENTATION_ROADMAP.md); feature by feature,
 with what was and was not checked: [docs/FEATURE_STATUS.md](docs/FEATURE_STATUS.md).
 
+### 11-15 Nov 2026 (repository SPHEREx-Blink-3.0, merged into `main` through pull requests)
+- **Results page from a file:** every number, chart and table comes from the file loaded (`resultsData.js`, `resultsCharts.js`; `test_results_file.mjs`); the Workspace "telescope" section restyled to match.
+- **Astra:** about 60 offline notes with rarity-weighted matching, the browser's built-in AI when it has one, an optional WebLLM model otherwise (`test_astra.mjs`). The real Chrome model was not tried by the author of that change.
+- **Predicting objects** in Science Mode (`predict.js`, `predictView.js`; `test_predict.mjs`), then zoom and pan on its chart; asset versions bumped so browsers load the new code.
+- **Sky maps to Workspace:** the Pin Board map and Sky Context show RA/Dec under the pointer, and a left-click copies the position and opens it in the Blink Workspace (RA wrap at 24 h handled; drags and Aladin object picks ignored).
+- **Simulator:** synthetic monthly exposures with star registration, labelled synthetic; Earth and SPHEREx animated.
+- **Learn Mode:** new lesson illustrations (the old ones drew a black circle), redesigned Cosmic Missions; project information moved to an About page; one page background across modes; Sky Explorer accessibility fixes.
+
 ### Provenance in every saved picture (10 Nov 2026)
 - **Found:** the saved PNG and the recorded video carried no label. They now print a caption into the image (real, or SYNTHETIC and not an observation, plus field, detector, date, mode); `test_exportlabels.mjs` audits all 13 save points; 17th browser check. Item 6 of the ten; 7-10 not done.
 
