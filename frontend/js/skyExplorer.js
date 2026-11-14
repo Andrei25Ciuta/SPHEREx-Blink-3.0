@@ -13,6 +13,9 @@ let map;
 const params = new URLSearchParams(location.search);
 const stateKeys = ["ra", "dec", "fov", "collection"];
 let current, selected, overlay, request;
+const archiveCache = new Map();
+const productList = $("product-list");
+let tableDirty = true;
 
 function projectAtlas(ra, dec) {
   // A deliberately simple whole-sky orientation projection. It is not used for
@@ -94,9 +97,10 @@ function validArchiveResponse(body) {
 }
 
 function plot(records) {
-  const { ra, dec } = current.query;
+  const { ra, dec, fov } = current.query;
   const polygons = records.map(record => record.footprint?.map(([a, d]) => tangentPoint(a, d, ra, dec)));
-  let limit = 0.01;
+  const radius = Math.tan(fov * Math.PI / 21600) * 180 / Math.PI;
+  let limit = radius;
   for (const polygon of polygons) {
     if (polygon?.every(Boolean)) for (const [x, y] of polygon) limit = Math.max(limit, Math.abs(x), Math.abs(y));
   }
@@ -113,9 +117,10 @@ function plot(records) {
   shape("text", { x: 207, y: 23 }, "N"); shape("text", {x: 8, y: 193}, "E");
   const draw = (points, cls) => shape("polygon", {points: points.map(([x,y]) => [200 - x*scale, 200 - y*scale].join(",")).join(" "), class: cls});
   polygons.forEach(points => { if (points?.every(Boolean)) draw(points, "coverage"); });
+  shape("circle", { cx: 200, cy: 200, r: radius * scale, class: "axis", fill: "none" });
   const active = polygons[records.indexOf(selected)];
   if (active?.every(Boolean)) draw(active, "active");
-  $("scale").textContent = `Tangent-plane width ${(400 / scale).toFixed(2)}° · ${polygons.filter(p => p?.every(Boolean)).length} outlines. The selected product has a thicker outline.`;
+  $("scale").textContent = `Tangent-plane width ${(400 / scale).toFixed(2)}° · ${polygons.filter(p => p?.every(Boolean)).length} outlines. Dashed circle: ${fov}′ search field. The selected product has a thicker outline.`;
 }
 
 function workspaceUrl() {
@@ -137,11 +142,28 @@ function drawMapOverlay() {
   if (selected?.footprint) overlay.add(map.A.polygon(selected.footprint));
 }
 
+function filteredProducts() {
+  const detector = $("detector").value;
+  return current.records.filter(record => detector === "all" || record.detector === detector);
+}
+
 function renderProducts() {
-  const records = current.records.filter(r => $("detector").value === "all" || r.detector === $("detector").value);
+  const records = filteredProducts();
   if (!records.includes(selected)) selected = records[0];
   $("empty-products").hidden = records.length > 0;
   $("workspace").hidden = !CAN_USE_LOCAL_BACKEND || !selected;
+  plot(records);
+  drawMapOverlay();
+  if (selected) $("workspace").href = workspaceUrl();
+  else $("workspace").removeAttribute("href");
+  tableDirty = true;
+  renderProductTable();
+}
+
+function renderProductTable() {
+  if (!current || !productList.open || !tableDirty || $("products").hidden) return;
+  tableDirty = false;
+  const records = filteredProducts();
   const rows = $("rows");
   function select(record, button) {
     selected = record;
@@ -150,7 +172,6 @@ function renderProducts() {
     drawMapOverlay();
     $("workspace").href = workspaceUrl();
   }
-  plot(records); drawMapOverlay();
   rows.replaceChildren(...records.map(record => {
     const tr = document.createElement("tr");
     const button = Object.assign(document.createElement("button"), {type:"button", className:"btn btn-small", textContent:record.id});
@@ -164,8 +185,6 @@ function renderProducts() {
     else file.textContent = "Unavailable";
     return tr;
   }));
-  if (selected) $("workspace").href = workspaceUrl();
-  else $("workspace").removeAttribute("href");
 }
 
 async function search(saved) {
@@ -186,15 +205,22 @@ async function search(saved) {
   const url = saved ? "data/sky-example.json" : base + "/api/observations?" + new URLSearchParams(query);
   $("status").textContent = saved ? "Reading the saved IRSA field…" : "Querying IRSA…";
   try {
-    const response = await fetch(url, {signal: AbortSignal.any([controller.signal, AbortSignal.timeout(30000)])});
-    if (!response.ok) {
-      const problem = await response.json().catch(() => null);
-      throw new Error(typeof problem?.detail === "string" ? problem.detail : `HTTP ${response.status}`);
+    const cached = archiveCache.get(url);
+    const fresh = cached && Date.now() - cached.time < 300000;
+    let body = fresh ? cached.body : null;
+    if (!body) {
+      const response = await fetch(url, {signal: AbortSignal.any([controller.signal, AbortSignal.timeout(30000)])});
+      if (!response.ok) {
+        const problem = await response.json().catch(() => null);
+        throw new Error(typeof problem?.detail === "string" ? problem.detail : `HTTP ${response.status}`);
+      }
+      body = await response.json();
+      if (controller.signal.aborted) return;
+      if (!validArchiveResponse(body)) throw new Error("Invalid archive metadata response.");
+      archiveCache.delete(url);
+      archiveCache.set(url, { body, time: Date.now() });
+      if (archiveCache.size > 24) archiveCache.delete(archiveCache.keys().next().value);
     }
-    const body = await response.json();
-    if (controller.signal.aborted) return;
-    if (!validArchiveResponse(body))
-      throw new Error("Invalid archive metadata response.");
     current = body;
     for (const key of stateKeys) $(key).value = current.query[key];
     updateWorkspacePreview();
@@ -202,10 +228,13 @@ async function search(saved) {
     const detectors = [...new Set(current.records.map(r => r.detector).filter(Boolean))].sort();
     $("detector").replaceChildren(new Option("All detectors","all"), ...detectors.map(d => new Option(d,d)));
     $("source").href = current.source;
-    $("provenance").textContent = `${saved ? "Saved" : "Live"} IRSA SIA2 response · ${current.query.collection} · retrieved ${current.retrieved.slice(0,19).replace("T"," ")} UTC.`;
+    $("provenance").textContent = `${saved ? "Saved" : fresh ? "Cached" : "Live"} IRSA SIA2 response · ${current.query.collection} · retrieved ${current.retrieved.slice(0,19).replace("T"," ")} UTC.`;
     $("status").textContent = `${current.records.length} image products${current.truncated ? " shown (response limited to 100)" : " found"}.`;
     $("products").hidden = false;
-    if (map?.isOpen) map.update(current.query);
+    if (map?.isOpen) {
+      map.update(current.query);
+      map.aladin.setFoV(current.query.fov / 60);
+    }
     renderProducts();
     const next = new URL(location.href);
     for (const key of stateKeys) saved ? next.searchParams.delete(key) : next.searchParams.set(key, current.query[key]);
@@ -219,6 +248,7 @@ async function search(saved) {
 
 $("search").addEventListener("submit", event => { event.preventDefault(); search(false); });
 $("example").addEventListener("click", () => search(true));
+productList.addEventListener("toggle", renderProductTable);
 $("detector").addEventListener("change", renderProducts);
 $("survey").addEventListener("change", () => map?.setSurvey($("survey").value));
 $("map-start").addEventListener("click", async () => {
@@ -245,6 +275,14 @@ $("use-centre").addEventListener("click", () => {
 });
 for (const key of stateKeys) if (params.has(key)) $(key).value = params.get(key);
 $("search").addEventListener("input", updateWorkspacePreview);
+let zoomTimer;
+$("fov").addEventListener("input", () => {
+  clearTimeout(zoomTimer);
+  zoomTimer = setTimeout(() => {
+    const fov = $("fov").valueAsNumber;
+    if (map?.isOpen && Number.isInteger(fov) && fov >= 1 && fov <= 30) map.aladin.setFoV(fov / 60);
+  }, 120);
+});
 setupAtlas();
 updateWorkspacePreview();
 if (!stateKeys.some(key => params.has(key))) search(true);

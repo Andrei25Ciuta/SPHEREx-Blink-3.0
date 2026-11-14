@@ -57,7 +57,7 @@
       <a hidden id="workspace">Analyze field in workspace</a><span id="workspace-help" hidden>To analyze observed FITS frames, open this field from a workspace served with the local backend.</span><a id="source">Source table at IRSA</a></div>
       <div class="tool-grid">
         <figure><svg id="footprints" class="plot" viewBox="0 0 400 400" role="img" aria-label="Detector footprints on the tangent plane, north up and east left"></svg><figcaption id="scale"></figcaption></figure>
-        <div class="table-scroll"><table><caption>Products in the search region</caption><thead><tr><th>Observation</th><th>Detector</th><th>Start (MJD)</th><th>File</th></tr></thead><tbody id="rows"></tbody></table></div>
+        <details id="product-list"><summary>Image products</summary><div class="table-scroll"><table><caption>Products in the search region</caption><thead><tr><th>Observation</th><th>Detector</th><th>Start (MJD)</th><th>File</th></tr></thead><tbody id="rows"></tbody></table></div></details>
       </div>
       <p>Each outline uses the archive product’s sky polygon. The cross marks the search centre. The workspace reads downloaded FITS files from the local archive.</p>
     </section>
@@ -67,5 +67,5 @@
       <button type="button" id="use-centre" class="btn" aria-describedby="map-status" disabled>Use map centre in search</button></div>
       <div class="skymap" id="aladin-box" hidden></div><p id="map-status" role="status">Open the survey map to use its centre in a search.</p>
     </section>
-  </main></div><script type="module" src="js/skyGlobe.js"></script><script type="module" src="js/skyExplorer.js?v=3"></script><script type="module" src="js/features/highContrast.js"></script></body>
+  </main></div><script type="module" src="js/skyGlobe.js"></script><script type="module" src="js/skyExplorer.js?v=4"></script><script type="module" src="js/features/highContrast.js"></script></body>
 </html>

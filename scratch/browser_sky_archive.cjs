@@ -49,15 +49,22 @@ async function check() {
     const localPage = await browser.newPage();
     const errors = [];
     localPage.on("pageerror", error => errors.push(error.message));
+    let apiRequests = 0;
     let apiResponse = { status: 502, body: { detail: "IRSA image metadata is unavailable. Retry the search." } };
     await localPage.route("**/*", route => {
       const url = new URL(route.request().url());
-      if (url.origin === apiOrigin && url.pathname === "/api/observations")
+      if (url.origin === apiOrigin && url.pathname === "/api/observations") {
+        apiRequests++;
         return route.fulfill({ status: apiResponse.status, contentType: "application/json", body: JSON.stringify(apiResponse.body) });
+      }
       return staticRoute(route, localOrigin, "/");
     });
     await localPage.goto(localOrigin + "/sky.html?api=" + encodeURIComponent(apiOrigin));
     await localPage.locator("#products:not([hidden])").waitFor();
+    assert.equal(await localPage.locator("#rows tr").count(), 0, "the closed table is rendered on demand");
+    assert.ok(await localPage.locator("#footprints circle").count(), "field of view is drawn before the table opens");
+    await localPage.locator("#product-list summary").click();
+    await localPage.locator("#rows tr").first().waitFor();
     const savedCount = await localPage.locator("#rows tr").count();
     assert.ok(savedCount > 0);
     await localPage.locator("#ra").fill("not a coordinate");
@@ -88,7 +95,13 @@ async function check() {
     assert.match(await localPage.locator("#provenance").textContent(), /Live IRSA SIA2 response/);
     assert.equal(await localPage.locator("#rows tr").count(), 1);
 
-    apiResponse = { status: 200, body: { ...liveResult, records: [] } };
+    const requestsBeforeRepeat = apiRequests;
+    await localPage.locator('#search button[type="submit"]').click();
+    await localPage.getByText(/Cached IRSA SIA2 response/).waitFor();
+    assert.equal(apiRequests, requestsBeforeRepeat, "repeat search uses the cached result");
+
+    apiResponse = { status: 200, body: { ...liveResult, query: { ...liveResult.query, fov: 3 }, records: [] } };
+    await localPage.locator("#fov").fill("3");
     await localPage.locator('#search button[type="submit"]').click();
     await localPage.getByText("0 image products found.").waitFor();
     assert.equal(await localPage.locator("#rows tr").count(), 0);
