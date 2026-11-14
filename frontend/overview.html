@@ -634,35 +634,6 @@
 
     keepObservatoryClearOfEarth();
 
-    // A restrained scan beam and spotlight make the telescope's illustrative pointing visible.
-    const scanBeam = new THREE.Mesh(
-      new THREE.ConeGeometry(42, 1, 32, 1, true),
-      new THREE.MeshBasicMaterial({ color: 0xefb24f, transparent: true, opacity: 0.16, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
-    );
-    scene.add(scanBeam);
-    const scanLightTarget = new THREE.Object3D();
-    scene.add(scanLightTarget);
-    const scanLight = new THREE.SpotLight(0xffcf78, 2.4, 520, 0.38, 0.8, 1);
-    scanLight.target = scanLightTarget;
-    scene.add(scanLight);
-
-    function updateEarthScanLight() {
-      observatory.updateMatrixWorld();
-      const origin = observatory.localToWorld(new THREE.Vector3(0, -50, 0));
-      const toEarth = earthSystem.root.position.clone().sub(origin);
-      const distanceToCenter = toEarth.length();
-      const direction = toEarth.normalize();
-      const surfaceDistance = Math.max(0, distanceToCenter - 200);
-
-      scanBeam.position.copy(origin).addScaledVector(direction, surfaceDistance / 2);
-      scanBeam.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction.clone().negate());
-      scanBeam.scale.y = surfaceDistance;
-      scanBeam.visible = surfaceDistance > 0;
-
-      scanLight.position.copy(origin);
-      scanLightTarget.position.copy(origin).addScaledVector(direction, surfaceDistance);
-    }
-
     // ── 5. INTERACTIVE 3D ORBIT & DRAG ROTATION ──
     let dragPointerId = null;
     let prevMouseX = 0, prevMouseY = 0;
@@ -742,7 +713,6 @@
         earthSystem.root.rotation.y += rotVelY;
         earthSystem.root.rotation.x += rotVelX;
         if (reducedMotion) {
-          updateEarthScanLight();
           renderer.render(scene, camera);
         }
         prevMouseX = e.clientX;
@@ -784,7 +754,6 @@
         observatory.position.x += (targetX - observatory.position.x) * 0.04;
         keepObservatoryClearOfEarth();
       }
-      updateEarthScanLight();
       renderer.render(scene, camera);
     }
     renderLoop();
