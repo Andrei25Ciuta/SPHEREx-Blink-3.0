@@ -394,9 +394,33 @@
       </details>
     </section>
 
+    <!-- ============ Predicting objects (features/predict.js, predictView.js) ============ -->
+    <section class="panel predict" id="predict" aria-labelledby="predict-title">
+      <div class="pr-head">
+        <div><p class="pr-kicker">Forecast</p><h2 id="predict-title">Predicting objects</h2></div>
+        <p class="pr-lead">Where the selected object will be, from its measured motion.</p>
+      </div>
+      <div class="pr-body">
+        <svg id="predict-chart" class="pr-chart" viewBox="0 0 640 320" role="img" aria-label="Chart of the object's measured positions and its predicted path, east to the left and north up"></svg>
+        <div class="pr-side">
+          <div class="pr-horizons" id="predict-horizons" role="group" aria-label="Predict for"></div>
+          <label class="pr-slider-label" for="predict-days">Any date (up to 10 years)</label>
+          <input type="range" id="predict-days" min="0" max="3652" step="1" value="365">
+          <dl class="pr-stats">
+            <div><dt>Date</dt><dd id="predict-date">–</dd></div>
+            <div><dt>RA</dt><dd id="predict-ra">–</dd></div>
+            <div><dt>Dec</dt><dd id="predict-dec">–</dd></div>
+            <div><dt>Uncertainty</dt><dd id="predict-sigma">–</dd></div>
+          </dl>
+          <p class="pr-leave" id="predict-leave" hidden></p>
+        </div>
+      </div>
+      <p class="pr-note"><span id="predict-note"></span> <span class="pr-legend"><i class="k-past"></i>measured <i class="k-fit"></i>fitted path <i class="k-future"></i>prediction <i class="k-sigma"></i>1-sigma range</span></p>
+    </section>
+
     <nav class="ws-toc" aria-label="More tools on this page">
       <span class="ws-toc-title">More tools</span>
-      <a href="#pin-board">📌 Pin Board</a><a href="#planet-lab">🪐 Distant-body analysis</a><a href="#sky-explorer">🗺️ Sky map</a>
+      <a href="#predict">Predict</a><a href="#pin-board">📌 Pin Board</a><a href="#planet-lab">🪐 Distant-body analysis</a><a href="#sky-explorer">🗺️ Sky map</a>
       <a href="#assistant">💬 Explain a candidate</a><a href="#observation-tools">🔭 Observation tools</a><a href="#text-analysis">📋 Tables</a>
     </nav>
     </section>

@@ -188,3 +188,7 @@ A candidate is a lead with its evidence, never a discovery. Nothing this applica
 
 - Mission texts (Barnard's Star at about 10″/yr and 6 light-years, 1 AU ≈ 150 million km, d[pc] = 1/p[″], infrared and cold bodies) are textbook facts **written from memory**, not measured here. Mission completion is detected from the learner's clicks and from results appearing on the page; it shows the learner used the tool, not that they understood it.
 - The pin tag reads "Discovered/Verified by <name>" at the author's request (14 Nov 2026). Scientifically a pin is still a candidate: the board says so, nothing is checked by anyone else, and synthetic-data pins say "(synthetic demo data)". Pins live in one browser's localStorage; nothing is shared between computers. The SHA-256 shows a pin was not edited afterwards in that browser; it is not a timestamped proof of priority (no outside witness).
+
+## Predicting objects
+
+- The prediction is a straight-line extrapolation of the fitted motion. It leaves out acceleration, the curved apparent paths of Solar System bodies (they change within weeks) and the yearly parallax swing; the page says which applies. The 1-sigma range uses the errors the mover search reports (posErrPx, vErrPx), which VALIDATION 20 found about right in four fields, too small in Barnard D2 and with heavy tails, so the circle can understate the real spread.
