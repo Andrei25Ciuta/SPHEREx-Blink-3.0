@@ -22,7 +22,7 @@
 // Zoom and pan (features/view.js): the player keeps `view = { zoom, cx, cy }`. Positions everywhere else stay image FRACTIONS (fx, fy);
 // only drawing goes through the view (`_px`), so the sky <-> image mapping of geometry.js is untouched by zoom and pan.
 
-import { lightCentre } from "./features/colourBlink.js";
+import { lightCentre } from "./features/colourBlink.js?v=2";
 import { combine } from "./features/compare.js";
 import { createView, clampView, fracToCanvas, canvasToFrac, sourceRect, zoomAt, panBy, panStep, scaleBar, centreAndZoom, pathCentre, followView } from "./features/view.js";
 import { OVERLAY_COLORS, DRAW_ORDER, clampOpacity, normaliseOrder } from "./features/layers.js";
@@ -218,7 +218,7 @@ export class BlinkPlayer {
     }
 
     for (const id of this.layerOrder) this._drawLayer(id);          // back to front (features/layers.js DRAW_ORDER, changed from the layer list)
-    if (this.mode === "colour") this._drawLightCentre();
+    if (this.mode === "colour") this.onLightCentre?.(this._drawLightCentre());
     if (this.caption) this._drawCaption();
     this.onDraw();
   }
@@ -226,7 +226,8 @@ export class BlinkPlayer {
   _drawLightCentre() {
     const size = this.naturalSize;
     const fitted = this.candidates[this.selectedCandidate]?.points[this.index];
-    const point = this.selectedCandidate >= 0 ? fitted : (this.marker ?? { fx: 0.5, fy: 0.5 });
+    const predicted = this.tracks.length === 1 ? this.tracks[0].points[this.index] : null;
+    const point = this.selectedCandidate >= 0 ? fitted : (this.marker ?? predicted ?? { fx: 0.5, fy: 0.5 });
     if (!point) return;
     const grey = this._greys()?.[this.index];
     if (!grey) return;
@@ -254,10 +255,11 @@ export class BlinkPlayer {
     ctx.fillStyle = OVERLAY_COLORS.lightCentre;
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(x, y, 4, 0, 2 * Math.PI);
+    ctx.arc(x, y, 7, 0, 2 * Math.PI);
     ctx.fill();
     ctx.stroke();
     ctx.restore();
+    return true;
   }
 
   /** Is this layer on screen now (its switch is on and it has something to draw)? */

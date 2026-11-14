@@ -37,7 +37,7 @@ export function lightCentre(pixels, size, point, mask = null) {
   sky.sort((a, b) => a - b);
   const background = sky[Math.floor(sky.length / 2)];
   const noise = sky[Math.floor(sky.length * 0.84)] - background;
-  if (Math.max(...core.map(pixel => pixel.value)) - background < Math.max(4, 5 * noise)) return null;
+  if (Math.max(...core.map(pixel => pixel.value)) - background < Math.max(8, 1.5 * noise)) return null;
   let weight = 0, sumX = 0, sumY = 0;
   for (const pixel of core) {
     const signal = Math.max(0, pixel.value - background);

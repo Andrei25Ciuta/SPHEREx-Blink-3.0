@@ -58,3 +58,19 @@ mask[10 * size + 11] = 1;
 assert.equal(lightCentre(pixels, size, target, mask), null);
 assert.equal(lightCentre(pixels, size, { fx: 0.05, fy: 0.5 }), null);
 console.log("PASS  local light centre ignores unrelated peaks and rejects weak, masked or clipped measurements");
+
+const { observe, stretchAsinh } = await import("../frontend/js/data/mockSource.js");
+const { TARGETS, positionAtEpoch } = await import("../frontend/js/targets.js");
+const { skyToCanvas, mjdToYear } = await import("../frontend/js/geometry.js");
+const ra = 269.44627, dec = 4.76820;
+const demo = observe(ra, dec, 5);
+const barnard = TARGETS.find(target => target.label.startsWith("Barnard"));
+const barnardFrames = demo.obs.filter(frame => frame.detector === "D1");
+assert.ok(barnardFrames.length > 1);
+for (const frame of barnardFrames) {
+  const predicted = positionAtEpoch(barnard, mjdToYear(frame.mjd));
+  const point = skyToCanvas(predicted.ra, predicted.dec, { ra, dec, n: demo.size, scaleArcsec: demo.scale });
+  const centre = lightCentre(stretchAsinh(frame.pixels), demo.size, point, frame.flagMask);
+  assert.ok(centre && Math.hypot(centre.fx - point.fx, centre.fy - point.fy) < 2.5 / demo.size);
+}
+console.log("PASS  Barnard D1 demo yields local light centres");
