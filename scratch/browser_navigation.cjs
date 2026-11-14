@@ -62,7 +62,7 @@ async function checkNavigation() {
       await page.goto(new URL("overview.html", base).href);
       await openNavigation();
       assert.deepEqual(await nav.getByRole("link").allTextContents(), ["Overview", "Workspace", "Sky Explorer", "Simulator", "Results", "About"], "Overview keeps its classic project menu");
-      // The two same-document destinations must keep the loaded field and its URL parameters.
+      // Field coordinates belong to the Workspace; site navigation should not leak them into About or other pages.
       await page.goto(new URL("index.html?ra=133.8189&dec=-7.247&fov=5&det=D2#workspace", base).href);
       await page.waitForFunction(() => !document.querySelector("#play-btn").disabled);
       const imageGeometry = () => page.locator("#blink-canvas").evaluate(canvas => {
@@ -87,13 +87,16 @@ async function checkNavigation() {
         assert.equal(await panel.isVisible(), false);
         assert.equal(await page.locator(":focus").getAttribute("data-open-panel"), id);
       }
-      const query = new URL(page.url()).search;
-      for (const label of ["About", "Workspace"]) {
-        await openNavigation();
-        await nav.getByRole("link", { name: label, exact: true }).click();
-        assert.equal(new URL(page.url()).search, query);
-        assert.equal(await page.locator("#play-btn").isEnabled(), true);
-      }
+      await openNavigation();
+      await nav.getByRole("link", { name: "About", exact: true }).click();
+      await page.waitForURL(new URL("about.html", base).href);
+      assert.equal(new URL(page.url()).search, "", "workspace coordinates stay with the workspace");
+      assert.equal(await page.locator("#project-nav [aria-current]").textContent(), "About");
+      await openNavigation();
+      await nav.getByRole("link", { name: "Workspace", exact: true }).click();
+      await page.waitForURL(new URL("index.html#workspace", base).href);
+      assert.equal(new URL(page.url()).search, "", "returning from About does not invent a field");
+      assert.equal(await page.locator("#workspace").isVisible(), true);
       console.log("Shared navigation, keyboard, saved theme and field links passed at", width, "px");
     }
     await page.goto(new URL("index.html?embed=1", base).href);

@@ -1559,3 +1559,42 @@ main .panel > h2, main .panel .panel-head, main .pin-board .pb-head { padding-ri
 .ws-toc-title { font-weight: 700; font-size: .85rem; margin-right: .4rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; }
 .ws-toc a { padding: .3rem .75rem; border-radius: 999px; border: 1px solid var(--border); background: var(--raised); color: var(--text); text-decoration: none; font-size: .85rem; }
 .ws-toc a:hover { border-color: var(--accent); }
+
+/* ---------- Predicting objects (features/predictView.js): chart first, few words ---------- */
+#predict { grid-column: 1 / -1; }
+.pr-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: .3rem 1.5rem; margin-bottom: .8rem; }
+.pr-head h2 { margin: 0; }
+.pr-kicker { margin: 0; font: .72rem var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--accent-text); }
+.pr-lead { margin: 0; color: var(--text-muted); }
+.pr-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(15rem, 18rem); gap: 1rem; align-items: start; }
+.pr-chart { width: 100%; height: auto; display: block; border-radius: var(--radius-sm); border: 1px solid var(--border); background: #070b18; }
+.pr-bg { fill: #070b18; }
+.pr-grid { stroke: #ffffff14; } .pr-axis { stroke: #ffffff33; }
+.pr-lbl { fill: #c9d6ff; font: 11px var(--font-mono); } .pr-faint { fill: #c9d6ff80; }
+.pr-empty { fill: #e8ebf2; font: 600 15px var(--font-body); } .pr-empty-sub { fill: #c9d6ff99; font: 12px var(--font-body); }
+.pr-cone { fill: #7cc6fe; fill-opacity: .14; stroke: #7cc6fe; stroke-opacity: .35; stroke-dasharray: 3 4; }
+.pr-sigma { fill: #7cc6fe; fill-opacity: .16; stroke: #7cc6fe; stroke-width: 1.5; }
+.pr-fit { stroke: #e8ebf2; stroke-opacity: .55; stroke-width: 2; }
+.pr-future { stroke: #f2c14e; stroke-width: 2.5; stroke-dasharray: 7 6; }
+.pr-past { fill: #e8ebf2; } .pr-tick { fill: #f2c14e; fill-opacity: .8; }
+.pr-ref { fill: #fff; stroke: #070b18; stroke-width: 2; }
+.pr-target circle { fill: #f2c14e; stroke: #fff; stroke-width: 2; } .pr-target path { stroke: #f2c14e; stroke-width: 2; }
+.pr-target-lbl { fill: #f2c14e; }
+.pr-side { display: grid; gap: .7rem; }
+.pr-horizons { display: flex; flex-wrap: wrap; gap: .35rem; }
+.pr-chip { min-height: 32px; padding: .3rem .75rem; border-radius: 999px; border: 1px solid var(--border); background: var(--raised); color: var(--text); font: 600 .82rem var(--font-body); cursor: pointer; }
+.pr-chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on-accent, #fff); }
+.pr-slider-label { font-size: .78rem; color: var(--text-muted); }
+#predict-days { width: 100%; accent-color: var(--accent); }
+.pr-stats { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin: 0; }
+.pr-stats div { padding: .55rem .7rem; border-radius: var(--radius-sm); background: var(--raised); border: 1px solid var(--border); }
+.pr-stats dt { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); }
+.pr-stats dd { margin: .15rem 0 0; font: 600 .95rem var(--font-mono); }
+.pr-leave { margin: 0; padding: .45rem .7rem; border-radius: 999px; font-size: .8rem; background: rgb(var(--warn-rgb) / .12); border: 1px solid var(--warn); }
+.pr-note { margin: .8rem 0 0; font-size: .82rem; color: var(--text-muted); display: flex; flex-wrap: wrap; gap: .4rem 1rem; justify-content: space-between; }
+.pr-legend { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .3rem .7rem; }
+.pr-legend i { display: inline-block; width: 14px; height: 3px; margin-right: .25rem; vertical-align: middle; border-radius: 2px; }
+.k-past { background: #e8ebf2; height: 8px !important; width: 8px !important; border-radius: 50% !important; }
+.k-fit { background: #e8ebf2aa; } .k-future { background: repeating-linear-gradient(90deg, #f2c14e 0 5px, transparent 5px 8px); } .k-sigma { background: #7cc6fe66; height: 10px !important; }
+#predict.is-empty .pr-side { opacity: .55; pointer-events: none; }
+@media (max-width: 900px) { .pr-body { grid-template-columns: 1fr; } }
