@@ -5,6 +5,7 @@ import {
 } from "./features/learning.js";
 import { explanationFor, askAstra, aiAvailability, looksNotEnglish } from "./features/spaceGuide.js";
 import { createWebLlmModel } from "./features/webLlmModel.js";
+import { LESSON_ART } from "./features/lessonArt.js";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -76,26 +77,13 @@ function makeMissionArt(level) {
     figure.append(band, el("figcaption", {}, "Diagram only · infrared wavelengths are longer than visible red light."));
     return figure;
   }
+  const art = LESSON_ART[level.visual] ?? LESSON_ART.atlas;
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("viewBox", "0 0 600 170");
+  svg.setAttribute("viewBox", "0 0 600 200");
   svg.setAttribute("role", "img");
-  const art = {
-    atlas: { label: "Schematic all-sky map made from colored bands", shapes: [["circle", 300, 85, 58, "var(--learn-galaxy)"], ["ellipse", 300, 85, 168, 45, "none"], ["ellipse", 300, 85, 225, 68, "none"]], caption: "Schematic · SPHEREx maps the whole sky in many infrared wavelengths." },
-    star: { label: "Illustration of a star shining in a dark sky", shapes: [["circle", 300, 85, 41, "var(--learn-sun)"], ["circle", 300, 85, 64, "none"], ["circle", 100, 38, 4, "var(--learn-star)"], ["circle", 470, 123, 5, "var(--learn-star)"]], caption: "Illustration · a star's light can carry clues about its temperature and surroundings." },
-    nebula: { label: "Illustration of a cloud of gas and dust", shapes: [["ellipse", 300, 85, 190, 47, "var(--learn-galaxy)"], ["ellipse", 250, 80, 114, 33, "var(--learn-nebula)"], ["ellipse", 370, 94, 96, 27, "var(--learn-nebula-warm)"], ["circle", 225, 65, 7, "var(--learn-star)"], ["circle", 394, 102, 8, "var(--learn-star)"]], caption: "Illustration · a nebula is a cloud of gas and dust; some are places where stars form." },
-    galaxy: { label: "Schematic spiral galaxy", shapes: [["circle", 300, 85, 15, "var(--learn-star)"], ["ellipse", 300, 85, 123, 36, "none"], ["ellipse", 300, 85, 91, 30, "none"], ["ellipse", 300, 85, 169, 47, "none"]], caption: "Schematic · a galaxy is a vast group of stars, gas and dust held by gravity." },
-    orbit: { label: "Schematic of Earth moving around the Sun and a distant object", shapes: [["circle", 115, 85, 17, "var(--learn-sun)"], ["ellipse", 115, 85, 64, 28, "none"], ["ellipse", 115, 85, 102, 47, "none"], ["circle", 180, 85, 7, "var(--learn-earth)"], ["circle", 495, 36, 8, "var(--learn-mover)"]], caption: "Model illustration · a distant body's apparent path can include Earth's motion. Not a Planet X detection." },
-    steward: { label: "Schematic checklist showing careful scientific review", shapes: [["rect", 177, 26, 246, 118, "var(--learn-night)"], ["circle", 213, 58, 10, "var(--learn-check)"], ["circle", 213, 85, 10, "var(--learn-check)"], ["circle", 213, 112, 10, "var(--learn-check)"], ["rect", 237, 53, 143, 7, "var(--learn-check-line)"], ["rect", 237, 80, 143, 7, "var(--learn-check-line)"], ["rect", 237, 107, 143, 7, "var(--learn-check-line)"]], caption: "Illustration · record the source, inspect evidence, and leave room for someone else to check." },
-  }[level.visual];
+  svg.setAttribute("class", "lesson-art-svg");
   svg.setAttribute("aria-label", art.label);
-  for (const [kind, x, y, a, b, fill] of art.shapes) {
-    const shape = document.createElementNS("http://www.w3.org/2000/svg", kind);
-    if (kind === "rect") { shape.setAttribute("x", x); shape.setAttribute("y", y); shape.setAttribute("width", a); shape.setAttribute("height", b); }
-    else { shape.setAttribute("cx", x); shape.setAttribute("cy", y); shape.setAttribute(kind === "circle" ? "r" : "rx", a); if (kind === "ellipse") shape.setAttribute("ry", b); }
-    shape.setAttribute("fill", fill);
-    if (fill === "none") shape.setAttribute("stroke", "var(--learn-outline)");
-    svg.append(shape);
-  }
+  svg.innerHTML = art.svg;
   figure.append(svg, el("figcaption", {}, art.caption));
   return figure;
 }
