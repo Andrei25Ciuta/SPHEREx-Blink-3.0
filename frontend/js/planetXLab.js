@@ -78,6 +78,32 @@ try {
   addHeading(header, "Distance / flux", "col");
   for (const flux of fluxes) addHeading(header, `${flux} mJy`, "col");
   const rows = map.createTBody(), buttons = new Map();
+  const metric = $("recovery-metric");
+  const percent = value => `${Math.round(value * 100)}%`;
+  const interval = cell => cell.interval95.map(percent).join("–");
+  const signal = cell => Number.isFinite(cell.medianInjectedApertureSnr) ? cell.medianInjectedApertureSnr.toFixed(1) : "—";
+  const metrics = {
+    recovery: { legend: "Colour intensity shows the recovered fraction. The 95% Wilson interval reflects the small trial count.",
+      label: cell => `${cell.recovered} / ${cell.trials} · ${percent(cell.fraction)}`,
+      detail: cell => `95% interval · ${interval(cell)}`, value: cell => cell.fraction },
+    signal: { legend: "Colour intensity shows the median aperture signal-to-noise of the injected signal for each setting.",
+      label: cell => signal(cell), detail: () => "Median aperture SNR", value: cell => cell.medianInjectedApertureSnr },
+    unmatched: { legend: "Colour intensity shows the count of candidates that did not match the injected source across the trials.",
+      label: cell => String(cell.unmatched), detail: () => "Unmatched candidates", value: cell => cell.unmatched },
+  };
+  function renderMetric() {
+    const view = metrics[metric.value];
+    const maximum = Math.max(1, ...data.cells.map(cell => view.value(cell) ?? 0));
+    $("recovery-legend").textContent = view.legend;
+    for (const [cell, button] of buttons) {
+      const detail = document.createElement("small");
+      detail.textContent = view.detail(cell);
+      button.replaceChildren(document.createTextNode(view.label(cell)), detail);
+      button.style.setProperty("--recovered", `${Math.round(32 * (view.value(cell) ?? 0) / maximum)}%`);
+      button.setAttribute("aria-label", `${cell.distanceAU} AU, ${cell.fluxMjy} mJy: ${view.label(cell)}. ${detail.textContent}`);
+    }
+  }
+  metric.addEventListener("change", renderMetric);
   for (const distance of distances) {
     const row = rows.insertRow();
     addHeading(row, `${distance} AU`, "row");
@@ -88,9 +114,6 @@ try {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "btn";
-      button.style.setProperty("--recovered", `${Math.round(cell.fraction * 32)}%`);
-      button.textContent = `${cell.recovered} / ${cell.trials}`;
-      button.setAttribute("aria-label", `${distance} AU, ${flux} mJy: ${cell.recovered} of ${cell.trials} recovered`);
       button.addEventListener("click", () => {
         $("distance").value = String(distance);
         $("flux").value = String(flux);
@@ -101,8 +124,54 @@ try {
     }
   }
 
+  renderMetric();
+
   const trials = $("trial"), reveal = $("reveal-track"), figure = $("recovery-track");
   let selectedCell;
+  const trialFilter = $("trial-filter"), trialSort = $("trial-sort"), trialRows = $("trial-rows");
+  let details = [];
+  function renderTrialTable() {
+    const visible = details.filter(row => trialFilter.value === "all" || row.result === trialFilter.value);
+    if (trialSort.value === "candidates") visible.sort((a, b) => b.outcome.candidates - a.outcome.candidates);
+    if (trialSort.value === "span") visible.sort((a, b) => b.span - a.span);
+    const fragment = document.createDocumentFragment();
+    if (!visible.length) {
+      const row = document.createElement("tr");
+      const cell = row.insertCell();
+      cell.colSpan = 6;
+      cell.textContent = "No trials match this filter.";
+      fragment.append(row);
+    }
+    for (const { index, outcome, result, span, inCutout, total } of visible) {
+      const row = document.createElement("tr");
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "btn btn-small";
+      button.dataset.trial = String(index);
+      button.textContent = `Trial ${index + 1}`;
+      button.addEventListener("click", () => {
+        trials.value = String(index);
+        renderTrial();
+      });
+      row.insertCell().append(button);
+      for (const value of [result === "recovered" ? "Recovered" : "Missed",
+        outcome.fittedAU.length ? outcome.fittedAU.map(d => `${d.toFixed(1)} AU`).join(", ") : "—",
+        outcome.candidates, `${span.toFixed(1)} px`, `${inCutout} / ${total}`]) {
+        row.insertCell().textContent = value;
+      }
+      fragment.append(row);
+    }
+    trialRows.replaceChildren(fragment);
+    markSelectedTrial();
+  }
+  function markSelectedTrial() {
+    for (const button of trialRows.querySelectorAll("[data-trial]")) {
+      button.setAttribute("aria-pressed", String(button.dataset.trial === trials.value));
+    }
+  }
+  trialFilter.addEventListener("change", renderTrialTable);
+  trialSort.addEventListener("change", renderTrialTable);
+
   const comparison = $("trial-comparison"), dateSlider = $("comparison-date");
   dateSlider.max = String(data.frames.length - 1);
   function renderComparison() {
@@ -120,6 +189,7 @@ try {
   }
   dateSlider.addEventListener("input", renderComparison);
   function renderTrial() {
+    markSelectedTrial();
     figure.hidden = true;
     comparison.hidden = true;
     reveal.textContent = "Reveal injected path";
@@ -154,14 +224,24 @@ try {
     for (const [key, button] of buttons) button.setAttribute("aria-pressed", String(key === cell));
     trials.replaceChildren(...(cell?.outcomes ?? []).map((outcome, i) =>
       new Option(`Trial ${i + 1} · ${outcome.fittedAU.length ? "recovered" : "missed"}`, i)));
+    details = (cell?.outcomes ?? []).map((outcome, index) => {
+      const points = recoveryTrack(data, cell, outcome);
+      let span = 0;
+      for (const a of points) {
+        for (const b of points) span = Math.max(span, Math.hypot(a.x - b.x, a.y - b.y));
+      }
+      const inCutout = points.filter(p => p.x >= 0 && p.x < data.n && p.y >= 0 && p.y < data.n).length;
+      return { index, outcome, result: outcome.fittedAU.length ? "recovered" : "missed", span, inCutout, total: points.length };
+    });
+    renderTrialTable();
     showBody();
     renderTrial();
     $("rows").replaceChildren();
     if (!cell) { $("summary").textContent = "No trial was recorded for this setting."; return; }
     const row = $("rows").insertRow();
     for (const value of [cell.distanceAU + " AU", cell.fluxMjy + " mJy", `${cell.recovered} / ${cell.trials}`,
-      (100 * cell.fraction).toFixed(0) + "%", cell.interval95.map(v => (100 * v).toFixed(0) + "%").join("–"),
-      cell.medianInjectedApertureSnr.toFixed(1)]) row.insertCell().textContent = value;
+      (100 * cell.fraction).toFixed(0) + "%", interval(cell),
+      signal(cell)]) row.insertCell().textContent = value;
     $("summary").textContent = `${cell.distanceAU} AU · ${cell.fluxMjy} mJy · ${cell.recovered} of ${cell.trials} recovered. ${cell.unmatched} unmatched candidates in those trials. ${data.controlCounts.join(", ")} candidates in the ${data.nulls} uninjected controls.`;
   };
   $("distance").addEventListener("change", render);

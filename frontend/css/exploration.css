@@ -119,3 +119,11 @@ html[data-theme] .recovery-map .btn[aria-pressed="true"] {
 .recovery-point.current { fill: var(--warn); stroke: var(--text); stroke-width: 2; }
 #trial-comparison { margin-top: 1rem; }
 #trial-comparison input { max-width: 100%; }
+
+html[data-theme] .recovery-map .btn { display: grid; place-content: center; gap: .2rem; min-height: 3.5rem; }
+.recovery-map .btn small { font-size: .72rem; font-weight: 400; }
+html[data-theme] #trial-table .btn[aria-pressed="true"] {
+  color: var(--on-accent);
+  background: var(--accent);
+  border-color: var(--accent);
+}

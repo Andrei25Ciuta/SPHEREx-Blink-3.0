@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en" data-theme="midnight"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0B0F19">
-<title>Planet X Lab · SPHEREx Blink</title><script>try{var t=new URLSearchParams(location.search).get("theme")||localStorage.getItem("spherex-blink-theme");if(/^(midnight|nebula|deep-space|observatory|light|classic)$/.test(t))document.documentElement.dataset.theme=t}catch(e){}</script><link rel="stylesheet" href="css/styles.css?v=21"><link rel="stylesheet" href="css/exploration.css?v=5"><link rel="stylesheet" href="css/instrument.css">
+<title>Planet X Lab · SPHEREx Blink</title><script>try{var t=new URLSearchParams(location.search).get("theme")||localStorage.getItem("spherex-blink-theme");if(/^(midnight|nebula|deep-space|observatory|light|classic)$/.test(t))document.documentElement.dataset.theme=t}catch(e){}</script><link rel="stylesheet" href="css/styles.css?v=21"><link rel="stylesheet" href="css/exploration.css?v=6"><link rel="stylesheet" href="css/instrument.css">
   </head>
 <body><a class="skip-link" href="#lab">Skip to lab</a><header class="site-header" id="top" data-page="planet-x">
     <a class="site-brand" href="overview.html">SPHEREx Blink</a>
@@ -20,7 +20,15 @@
 </section>
 <section class="panel"><h2>Experiment settings</h2><p id="provenance" role="status">Loading experiment…</p><label>Injected distance <select id="distance"></select></label><label>Injected flux <select id="flux"></select></label></section>
 <section class="panel"><h2>Recovery results</h2>
-<p>Choose a cell to inspect its recorded trials. Each cell shows how many of the four synthetic injections were recovered.</p>
+<p>Choose a cell to inspect the trials at that distance and flux.</p>
+<div class="trial-controls">
+  <label>Map detail <select id="recovery-metric">
+    <option value="recovery">Recovery and 95% interval</option>
+    <option value="signal">Median aperture signal-to-noise</option>
+    <option value="unmatched">Unmatched candidates</option>
+  </select></label>
+</div>
+<p id="recovery-legend" class="muted small"></p>
 <div class="table-scroll recovery-map"><table id="recovery-map"><caption>Recovered injections by distance and flux</caption></table></div>
 <p id="summary" class="recovery-selection" role="status"></p>
 <div class="table-scroll"><table><caption>Recovery for the selected distance and flux</caption><thead><tr><th scope="col">Injected distance</th><th scope="col">Injected flux</th><th scope="col">Recovered / trials</th><th scope="col">Recovery fraction</th><th scope="col">95% interval</th><th scope="col">Median aperture SNR</th></tr></thead><tbody id="rows"></tbody></table></div>
@@ -31,6 +39,20 @@
   <button type="button" class="btn btn-small" id="reveal-track" aria-expanded="false" aria-controls="recovery-track">Reveal injected path</button>
 </div>
 <p id="trial-result" role="status"></p>
+<div class="trial-controls">
+  <label>Filter trials <select id="trial-filter">
+    <option value="all">All</option><option value="recovered">Recovered</option><option value="missed">Missed</option>
+  </select></label>
+  <label>Sort by <select id="trial-sort">
+    <option value="trial">Trial number</option><option value="candidates">Most candidates</option><option value="span">Largest path span</option>
+  </select></label>
+</div>
+<div class="table-scroll"><table id="trial-table">
+  <caption>Recorded trials for the selected setting</caption>
+  <thead><tr><th scope="col">Trial</th><th scope="col">Result</th><th scope="col">Fitted distance</th><th scope="col">Candidates</th><th scope="col">Path span</th><th scope="col">Positions in cutout</th></tr></thead>
+  <tbody id="trial-rows"></tbody>
+</table></div>
+<p class="muted small">Path span is the largest separation between reconstructed positions. Positions in the cutout use the injection model before per-image alignment corrections.</p>
 <figure id="recovery-track" hidden>
   <svg class="plot recovery-plot" id="track-plot" viewBox="0 0 420 420" role="img" aria-label="Reconstructed injection path on the image plane. Positions are listed below."></svg>
   <figcaption>Full cutout in pixels. The path is reconstructed from the injection model before per-image alignment corrections. The archive stores fitted distances but does not store fitted positions.</figcaption>
@@ -48,4 +70,4 @@
 </div>
 </section>
 <h3>Method and limits</h3><p>Recovery intervals use the Wilson binomial method. They describe this small experiment at the tested locations and settings. Empty fields supply a separate false candidate check.</p></section>
-<section class="panel"><h2>Reproduce and inspect</h2><p>Run <code>scripts/parallax_recovery.mjs</code> against the local backend after obtaining the referenced IRSA FITS frames. The JSON records the observation dates, hashes, seed, injected positions, fitted distances and controls. <a href="data/parallax_recovery.json">Download the full experiment record</a>.</p><p><a id="workspace" hidden>Open the observed field in the workspace</a><span id="workspace-help" hidden>To inspect observed FITS frames, run the local backend and open the workspace there.</span></p></section></main></div><script type="module" src="js/planetXLab.js?v=4"></script></body></html>
+<section class="panel"><h2>Reproduce and inspect</h2><p>Run <code>scripts/parallax_recovery.mjs</code> against the local backend after obtaining the referenced IRSA FITS frames. The JSON records the observation dates, hashes, seed, injected positions, fitted distances and controls. <a href="data/parallax_recovery.json">Download the full experiment record</a>.</p><p><a id="workspace" hidden>Open the observed field in the workspace</a><span id="workspace-help" hidden>To inspect observed FITS frames, run the local backend and open the workspace there.</span></p></section></main></div><script type="module" src="js/planetXLab.js?v=5"></script></body></html>
