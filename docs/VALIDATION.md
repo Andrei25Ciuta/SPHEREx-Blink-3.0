@@ -951,7 +951,7 @@ different bits of sky: §12), a body with a spectrum, the real PSF.
 
 ## 17. The Solar System simulator: are the planets where JPL Horizons puts them? (Phase 8, 8 Nov 2026)
 
-Section 7 of the page (`solarSystem.js`, `solarSystemView.js`): a top-down view of the ecliptic with the planets on a date, and a distant body in the direction of the field with the lines of
+Historical Workspace panel (removed 14 Nov 2026; its validated calculation remains in `solarSystem.js`): a top-down view of the ecliptic with the planets on a date, and a distant body in the direction of the field with the lines of
 sight from the Earth on the dates of the survey passes. **Scientific mode** is to scale (linear in AU); **educational mode** compresses the distances (square root), enlarges the planets and says it
 is NOT TO SCALE. The planets come from the six Keplerian elements and their rates of JPL's table of approximate positions (Standish; valid 1800-2050), **written from memory and therefore checked**;
 the Earth is not taken from that table but is the Earth of `parallax.js` (`earthPositionAU`, the Sun formula of Meeus), turned into ecliptic axes, so the simulator and the parallax of the Planet X

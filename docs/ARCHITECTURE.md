@@ -63,7 +63,6 @@ checked by `validateFrame` in `getCutouts.js`.
 | `assistant.js` | the explainer (pure): the evidence of a candidate, the sentences of three questions each with its citations, the validator (every number in a sentence must be a cited value), the prompt and the answer parser for an optional language model (none connected) |
 | `assistantView.js` | the DOM side of the explainer (not pure): the questions, the sentences with their citation chips, the evidence table; an answer is shown only if the validator passes it |
 | `solarSystem.js` | the planets on a date (Keplerian elements, checked against Horizons), the Earth of the parallax search in ecliptic axes, a body that does not move and the angle it swings through, the two radial scales |
-| `solarSystemView.js` | the DOM side of the simulator (not pure): the SVG view, the date and the range, the table of positions |
 | `skyExplorer.js` | the sky explorer (pure): the Hammer map and its inverse, the ecliptic and the galactic plane, great circles cut at the map's edge, images grouped into fields, a field's images as arcminute offsets |
 | `skyExplorerView.js` | the DOM side of the explorer (not pure): the SVG map, the list of fields, a field at true scale, open a field |
 | `textAnalysis.js` | the images, the dots and the candidates as plain rows (pure): frame rows with survey passes and flag warnings, dot rows with RA/Dec, S/N, position error and warnings, candidate rows with a status in words, the provenance lines, CSV with the provenance first |
