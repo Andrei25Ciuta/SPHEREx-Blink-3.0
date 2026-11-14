@@ -4,7 +4,7 @@
 
 - Learn Mode diagrams are schematic illustrations and synthetic examples, not SPHEREx observations. The page labels them and links the astronomy summaries to NASA learning sources.
 - The course contains eight short lessons and one progress check per level. These quizzes are not a validated measure of learning or mastery; XP, ranks, badges and streaks are motivational UI.
-- Astra is a small offline glossary and curated response guide. It is not a generative AI model, does not answer unrestricted questions reliably, and does not send user text anywhere. Unsupported questions get a fallback instead of an invented answer.
+- Astra answers from about 60 reviewed offline notes. When the visitor turns the AI on, a language model (the browser's built-in one, or WebLLM with Qwen2.5-3B on the graphics card) writes the answer from those notes; it runs on the computer and sends no text to a server, but it can be wrong, and the page marks its answers as written by an AI. Without the AI, a question with no matching note gets a fallback instead of an invented answer.
 - Progress and the classroom dashboard use local browser storage. There is no cloud backup, account, or cross-device teacher roster. If browser storage is disabled or cleared, progress may be lost.
 - Science Mode's Explain Simply controls translate panel titles and known glossary terms into prepared summaries. They do not change analysis values, uncertainty, provenance or scientific status.
 

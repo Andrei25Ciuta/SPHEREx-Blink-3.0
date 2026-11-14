@@ -89,6 +89,30 @@ checked by `validateFrame` in `getCutouts.js`.
 | `timeline.js` | survey passes, the time × wavelength layout, the filter (wavelength window, passes off), stepping through the images that pass it, texts |
 | `timelineView.js` | the DOM side of the timeline (not pure): one button per image, pass switches, wavelength sliders; tells the player which images are active |
 
+## Other modules (added after the table above; one line each, from the module's own header)
+
+| Module | Job |
+|---|---|
+| `coords.js`, `urlState.js`, `carryParams.js` | parse and format RA/Dec; keep the state in the URL; carry this visit's choices between pages |
+| `targets.js` | the five official test objects of the challenge |
+| `theme.js`, `highContrast.js`, `siteHeader.js` | colour themes and their stored choice; the high-contrast switch; the site header with the mode menu |
+| `tour.js`, `fullscreen.js`, `exporters.js`, `export.js` | the one-minute tour; full screen; save the image, record the blink, copy the link; candidates as CSV/JSON |
+| `compare.js`, `colourBlink.js`, `detectorPair.js` | subtract or add two images or passes; wavelength blinking inside one survey pass; the detector-pair panel (DOM) |
+| `measure.js` | click a source, get its spectrum and light curve |
+| `blindCheck.js` | leave one image out, fit from the others, measure at the predicted spot |
+| `uncertainty.js`, `searchCost.js` | where a velocity's error comes from and what could enlarge it; the size of a search, said before it starts |
+| `predict.js` | where a mover will be at a future date, with its 1-sigma range (pure) |
+| `predictView.js` | the DOM side of *Predicting objects*: the chart (with zoom and pan), the four numbers, when it leaves the field |
+| `explorerGeometry.js`, `skyGeo.js`, `../skyGlobe.js` | gnomonic offsets from a field centre; which country is under a sky point now; the rotatable globe of Sky Explorer |
+| `skyContext.js`, `skyContextClick.js` | the Aladin Lite map with other surveys and SIMBAD; the pure helpers that turn a map click into RA/Dec for the Workspace |
+| `orbitScene.js`, `labTrackView.js` | drawings for the distant-body analysis (Earth's orbit and the parallax swing; the lab track) |
+| `pinBoard.js`, `pinSync.js`, `missionsPinView.js` | the Discovery Pin Board (pure, storage injected); the shared board in Supabase (add-only); the DOM of the board and the mission card |
+| `missions.js`, `missionRunner.js` | the Cosmic Missions database (pure); a mission run inside Science Mode (`?mission=<id>`) |
+| `learning.js`, `lessonArt.js`, `../learnPage.js` | Learn Mode's curriculum, quiz grading and local progress; the lesson illustrations (schematic, not to scale); the Learn page |
+| `spaceGuide.js`, `astraKnowledge.js`, `webLlmModel.js`, `../scienceExplain.js` | Astra: the glossary and ~60 reviewed notes found by word matching, the browser's built-in AI when present, else an optional WebLLM model on the graphics card; "Explain simply" in Science Mode |
+| `resultsData.js`, `resultsCharts.js`, `resultsExplorer.js`, `candidateEvidence.js` | the Results page reads one file and every number, chart and table comes from it; the record table, the detail and its evidence report |
+| `simulatorFrames.js`, `../simulator.js` | the standalone simulator: synthetic monthly exposures (labelled synthetic) and the animated Earth and SPHEREx |
+
 ## State and flow in `main.js`
 
 Module-level variables: `allFrames` (every frame of the query), `currentFrames` (one detector), `currentQuery`, `loadToken` (raised on every load, so
