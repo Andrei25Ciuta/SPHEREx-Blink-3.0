@@ -95,12 +95,12 @@ html[data-theme=midnight] .synthetic-notice{background:var(--learn-midnight-noti
 .cm-catalogue{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,22rem),1fr));gap:.8rem;align-items:start}
 .cm-topic{border:1px solid var(--border);border-radius:1.1rem;background:var(--surface);overflow:hidden}
 .cm-topic.is-open{grid-column:1/-1;border-color:var(--accent)}
-.cm-topic-head{display:grid;grid-template-columns:auto 1fr auto;grid-template-rows:auto auto;gap:.3rem .8rem;align-items:center;width:100%;padding:1rem 1.1rem;border:0;background:none;color:var(--text);font:inherit;text-align:left;cursor:pointer}
+.cm-topic-head{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;gap:.3rem .8rem;align-items:center;width:100%;padding:1rem 1.1rem;border:0;background:none;color:var(--text);font:inherit;text-align:left;cursor:pointer}
 .cm-topic-head:hover{background:var(--raised)}
 .cm-topic-icon{grid-row:1/span 2;font-size:1.8rem}
 .cm-topic-name{font-weight:750;font-size:.98rem}
 .cm-topic-count{font:.8rem var(--font-mono);color:var(--text-muted)}
-.cm-topic-bar{grid-column:2/-1;height:.35rem;border-radius:1rem;background:var(--border);overflow:hidden}
+.cm-topic-bar{grid-column:1/-1;height:.35rem;border-radius:1rem;background:var(--border);overflow:hidden}
 .cm-topic-bar span{display:block;height:100%;background:var(--accent)}
 .cm-topic-intro{margin:0;padding:0 1.2rem .9rem;color:var(--text-muted);line-height:1.6;max-width:80ch}
 .cm-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,15rem),1fr));gap:.6rem;padding:0 1.1rem 1.1rem}
@@ -129,3 +129,18 @@ html[data-theme=midnight] .synthetic-notice{background:var(--learn-midnight-noti
 #astra .astra-quick button:hover { border-color: var(--astra-blue); }
 #astra .astra-answer { border-left-color: var(--astra-blue); }
 #astra input:focus-visible { outline-color: var(--astra-blue); }
+
+/* Solar System Explorer: the chosen planet grows and glows */
+.orbit-art circle{transform-box:fill-box;transform-origin:center;transition:transform .35s cubic-bezier(.2,.8,.2,1),filter .35s;cursor:pointer}
+.orbit-art circle:first-of-type{cursor:default}
+.orbit-art circle:not(:first-of-type):hover{transform:scale(1.2)}
+.orbit-art circle.is-chosen{transform:scale(1.75);filter:drop-shadow(0 0 6px rgb(255 255 255 / .55))}
+/* Galaxy Explorer: one illustration per galaxy, turning slowly */
+.galaxy-svg{display:block;width:100%;height:auto;margin:.5rem 0 .2rem;border-radius:.7rem}
+.galaxy-svg .gx-spin{transform-box:view-box;transform-origin:200px 110px;animation:gx-spin 60s linear infinite}
+.galaxy-svg[data-galaxy="andromeda"] .gx-spin{animation-duration:90s}
+.galaxy-svg .gx-sun circle:last-of-type{animation:gx-pulse 2s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.galaxy-caption{margin:0 0 .5rem;color:var(--text-faint);font-size:.75rem}
+@keyframes gx-spin{to{transform:rotate(360deg)}}
+@keyframes gx-pulse{50%{transform:scale(1.5);opacity:.3}}
+@media (prefers-reduced-motion:reduce){.galaxy-svg .gx-spin,.galaxy-svg .gx-sun circle{animation:none}.orbit-art circle{transition:none}}
