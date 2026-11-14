@@ -42,3 +42,19 @@ assert.deepEqual(followed, [0, 0]);
 player.setCandidates([], -1);
 assert.equal(player.following, null);
 console.log("PASS  selection follows candidate in colour mode and stops on exit");
+
+const { lightCentre } = await import("../frontend/js/features/colourBlink.js");
+const size = 21;
+const target = { fx: 0.5, fy: 0.5 };
+const pixels = new Uint8Array(size ** 2).fill(12);
+assert.equal(lightCentre(pixels, size, target), null);
+pixels[10 * size + 11] = 90;
+pixels[3 * size + 3] = 255; // unrelated bright source outside the aperture
+const centre = lightCentre(pixels, size, target);
+assert.equal(centre.fx, 11.5 / size);
+assert.equal(centre.fy, 0.5);
+const mask = new Uint8Array(size ** 2);
+mask[10 * size + 11] = 1;
+assert.equal(lightCentre(pixels, size, target, mask), null);
+assert.equal(lightCentre(pixels, size, { fx: 0.05, fy: 0.5 }), null);
+console.log("PASS  local light centre ignores unrelated peaks and rejects weak, masked or clipped measurements");
