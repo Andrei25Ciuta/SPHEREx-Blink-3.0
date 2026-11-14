@@ -100,7 +100,7 @@ try {
     for (const value of [cell.distanceAU + " AU", cell.fluxMjy + " mJy", `${cell.recovered} / ${cell.trials}`,
       (100 * cell.fraction).toFixed(0) + "%", cell.interval95.map(v => (100 * v).toFixed(0) + "%").join("–"),
       cell.medianInjectedApertureSnr.toFixed(1)]) row.insertCell().textContent = value;
-    $("summary").textContent = `${cell.recovered} injected sources recovered. ${cell.unmatched} unmatched candidates in those trials. ${data.controlCounts.join(", ")} candidates in the ${data.nulls} uninjected controls.`;
+    $("summary").textContent = `${cell.distanceAU} AU · ${cell.fluxMjy} mJy · ${cell.recovered} of ${cell.trials} recovered. ${cell.unmatched} unmatched candidates in those trials. ${data.controlCounts.join(", ")} candidates in the ${data.nulls} uninjected controls.`;
   };
   $("distance").addEventListener("change", render);
   $("flux").addEventListener("change", render);

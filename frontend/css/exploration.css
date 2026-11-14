@@ -93,13 +93,18 @@
 .sim-stage #scene .reference-earth { opacity: .84; }
 
 .recovery-map td, .recovery-map th { text-align: center; white-space: nowrap; }
-.recovery-map button {
+html[data-theme] .recovery-map .btn {
   width: 100%;
   min-height: 44px;
   background: color-mix(in srgb, var(--accent) var(--recovered), var(--field));
   font-variant-numeric: tabular-nums;
 }
-.recovery-map button[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+html[data-theme] .recovery-map .btn[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+}
+.recovery-selection { font-weight: 600; }
 .trial-inspector { margin: 1.25rem 0; border-top: 1px solid var(--border); }
 .trial-controls { display: flex; flex-wrap: wrap; gap: .6rem 1rem; align-items: end; }
 .trial-controls label { display: grid; gap: .25rem; }
