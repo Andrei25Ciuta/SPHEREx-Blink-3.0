@@ -12,7 +12,7 @@ import { skyToCanvas, tanCanvasToSky, mjdToYear } from "./geometry.js";
 import { readUrlState, writeUrlState } from "./urlState.js";
 import { getCutouts, listDetectors } from "./data/getCutouts.js";
 import { DATA_SOURCE, API_BASE, CAN_USE_LOCAL_BACKEND } from "./config.js";
-import { BlinkPlayer, MODES, loadImage, meanImageData } from "./player.js?v=3";
+import { BlinkPlayer, MODES, loadImage, meanImageData } from "./player.js?v=4";
 import { canvasToSky, measureAndPlot, clearMeasurement, setSpectrumStyle, APERTURE_RADIUS_PX } from "./features/measure.js";
 import { setupViewer } from "./features/viewerControls.js";
 import { setupWorkspace } from "./features/workspaceView.js";

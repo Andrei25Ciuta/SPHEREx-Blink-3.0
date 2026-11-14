@@ -255,12 +255,12 @@ export class BlinkPlayer {
     const radius = 29 + 3 * pulse;
     const { ctx } = this;
     const glow = ctx.createRadialGradient(x, y, 0, x, y, radius);
-    glow.addColorStop(0, "rgba(255, 242, 251, .18)");
-    glow.addColorStop(.48, "rgba(255, 162, 209, .24)");
-    glow.addColorStop(.62, "rgba(255, 170, 215, .86)");
-    glow.addColorStop(.71, "rgba(214, 253, 255, .95)");
-    glow.addColorStop(.81, "rgba(83, 227, 255, .62)");
-    glow.addColorStop(1, "rgba(83, 227, 255, 0)");
+    glow.addColorStop(0, "rgba(101, 69, 101, .06)");
+    glow.addColorStop(.48, "rgba(122, 77, 113, .12)");
+    glow.addColorStop(.62, "rgba(160, 93, 139, .68)");
+    glow.addColorStop(.71, "rgba(93, 161, 167, .76)");
+    glow.addColorStop(.81, "rgba(44, 133, 149, .44)");
+    glow.addColorStop(1, "rgba(44, 133, 149, 0)");
     ctx.save();
     ctx.globalAlpha = measured ? 1 : .48;
     ctx.fillStyle = glow;
