@@ -610,12 +610,41 @@
     let dragPointerId = null;
     let prevMouseX = 0, prevMouseY = 0;
     let rotVelX = 0, rotVelY = 0;
-    let mouseNDC = { x: 0, y: 0 };
+    const mouseNDC = { x: 0, y: 0 };
+    const dragRay = new THREE.Raycaster();
+    const dragPoint = new THREE.Vector2();
+
+    function hitsSatellite(e) {
+      const bounds = canvas.getBoundingClientRect();
+      if (!bounds.width || !bounds.height) return false;
+      dragPoint.set(
+        ((e.clientX - bounds.left) / bounds.width) * 2 - 1,
+        1 - ((e.clientY - bounds.top) / bounds.height) * 2
+      );
+      camera.updateMatrixWorld();
+      observatory.updateWorldMatrix(true, true);
+      dragRay.setFromCamera(dragPoint, camera);
+      return dragRay.intersectObject(observatory, true).length > 0;
+    }
 
     window.addEventListener('pointerdown', (e) => {
       if (e.button !== 0 || dragPointerId !== null) return;
       if (e.pointerType === 'touch' && e.target !== canvas) return;
-      if (e.target.closest('a, button, input, select, textarea, [contenteditable], .site-header, #model-hud')) return;
+      const target = e.target;
+      if (target.closest('a, button, input, select, textarea, [contenteditable], .site-header, #model-hud')) return;
+      // Foreground text can overlap the background model. Let a drag starting on text select it.
+      if (target !== canvas) {
+        const caret = document.caretPositionFromPoint?.(e.clientX, e.clientY);
+        const text = caret?.offsetNode ?? document.caretRangeFromPoint?.(e.clientX, e.clientY)?.startContainer;
+        if (text?.nodeType === Node.TEXT_NODE) {
+          const textRange = document.createRange();
+          textRange.selectNodeContents(text);
+          if (Array.from(textRange.getClientRects()).some(rect =>
+            e.clientX >= rect.left && e.clientX < rect.right &&
+            e.clientY >= rect.top && e.clientY < rect.bottom)) return;
+        }
+      }
+      if (!hitsSatellite(e)) return;
       dragPointerId = e.pointerId;
       if (e.pointerType === 'mouse') e.preventDefault();
       prevMouseX = e.clientX;
