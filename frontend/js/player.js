@@ -28,8 +28,8 @@ import { OVERLAY_COLORS, DRAW_ORDER, clampOpacity, normaliseOrder } from "./feat
 import { gridLines } from "./features/grid.js";
 import { stepActive } from "./features/timeline.js";
 
-export const MODES = ["blink", "diff", "mean", "max", "compare"];
-const ANIMATED = new Set(["blink", "diff"]);       // modes that step through time
+export const MODES = ["blink", "diff", "mean", "max", "compare", "colour"];
+const ANIMATED = new Set(["blink", "diff", "colour"]);
 
 export class BlinkPlayer {
   constructor(canvas, { onFrameChange = () => {}, onPlayStateChange = () => {}, onViewChange = () => {}, onDraw = () => {} } = {}) {
@@ -48,6 +48,7 @@ export class BlinkPlayer {
     this.layerOpacity = {};                       // layer id -> 0..1 (missing = fully opaque)
     this.pixelScaleArcsec = null;                 // arcsec per image pixel, for the scale bar and the grid
     this.field = null;                            // { ra, dec } of the middle of the cutout, for the grid
+    this.colourOrder = [];
     this.active = null;                           // the timeline filter: sorted indices of the images the blink visits and Stack / Trail / Difference use; null = all
 
     this.frames = [];       // metadata objects (the Frame contract)
@@ -94,6 +95,7 @@ export class BlinkPlayer {
     this.selectedCandidate = -1;
     this.view = createView();                       // a new field: show all of it
     this.onViewChange(this.view);
+    this.colourOrder = [];
     this.active = null;                             // and all of its images
     let done = 0;
     onProgress(0, frames.length);
@@ -115,14 +117,24 @@ export class BlinkPlayer {
   get length() { return this.frames.length; }
   /** Indices of the images the timeline filter lets through (all of them when there is no filter). */
   get activeIndices() { return this.active ?? this.frames.map((_, i) => i); }
-  get activeCount() { return this.active ? this.active.length : this.frames.length; }
+  get playbackCount() { return this.mode === "colour" ? this.colourOrder.length : (this.active?.length ?? this.length); }
+  get firstPlaybackIndex() { return this.mode === "colour" ? (this.colourOrder[0] ?? this.index) : 0; }
+  get showsOriginal() { return this.mode === "blink" || this.mode === "colour"; }
+
+  setColourOrder(indices, { restart = false } = {}) {
+    this.colourOrder = indices;
+    if (this.playbackCount < 2) this.pause();
+    if (this.mode !== "colour" || !indices.length) return;
+    if (restart || !indices.includes(this.index)) this.goTo(indices[0]);
+    else this.onFrameChange(this.index, this.frames[this.index]);
+  }
   /**
    * The timeline filter: which images the blink steps through and which ones Stack, Trail and Difference combine. `indices` = sorted frame indices,
    * or null for all. It does not forbid looking at another image (goTo and the slider still show any), and the searches ignore it.
    */
   setActive(indices) {
     this.active = Array.isArray(indices) && indices.length !== this.frames.length ? [...indices].sort((a, b) => a - b) : null;
-    if (this.playing && this.activeCount < 2) this.pause();
+    if (this.playing && this.playbackCount < 2) this.pause();
     this.draw();
   }
   get isAnimated() { return ANIMATED.has(this.mode); }
@@ -132,7 +144,9 @@ export class BlinkPlayer {
 
   setMode(mode) {
     if (!MODES.includes(mode)) return;
+    if (this.mode === "colour" && mode !== "colour") this.stopFollow();
     this.mode = mode;
+    if (mode === "colour" && this.selectedCandidate >= 0) this.setFollow(this.selectedCandidate);
     if (!this.isAnimated) this.pause();
     this.draw();
   }
@@ -146,7 +160,8 @@ export class BlinkPlayer {
   setCandidates(candidates, selected = -1) {
     this.candidates = candidates || [];
     this.selectedCandidate = selected;
-    if (this.following !== null && !this.candidates[this.following]) this.stopFollow();       // the list was replaced: the one followed is gone
+    if (this.mode === "colour" && selected >= 0) this.setFollow(selected);
+    else if (this.following !== null && (this.mode === "colour" || !this.candidates[this.following])) this.stopFollow();
     this.draw();
   }
   /** Grey pixels (0..255) of every frame, or null if the browser will not let us read them. */
@@ -170,8 +185,19 @@ export class BlinkPlayer {
     this.onFrameChange(this.index, this.frames[this.index]);
   }
 
-  next() { this.goTo(this.active ? stepActive(this.index, this.active, 1) : this.index + 1); }
-  prev() { this.goTo(this.active ? stepActive(this.index, this.active, -1) : this.index - 1); }
+  step(direction) {
+    if (this.mode === "colour") {
+      const order = this.colourOrder;
+      if (!order.length) return;
+      const current = order.indexOf(this.index);
+      const next = current < 0 ? (direction > 0 ? 0 : order.length - 1) : (current + direction + order.length) % order.length;
+      this.goTo(order[next]);
+      return;
+    }
+    this.goTo(this.active ? stepActive(this.index, this.active, direction) : this.index + direction);
+  }
+  next() { this.step(1); }
+  prev() { this.step(-1); }
 
   draw() {
     const img = this.images[this.index];
@@ -180,7 +206,7 @@ export class BlinkPlayer {
     ctx.imageSmoothingEnabled = false;            // keep SPHEREx pixels sharp
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (this.mode === "blink") {
+    if (this.showsOriginal) {
       this._blit(img);
     } else {
       const rgba = this._renderDerived();
@@ -365,7 +391,7 @@ export class BlinkPlayer {
   setFps(fps) { this.fps = Math.max(0.1, Number(fps) || 1); }
 
   play() {
-    if (this.playing || this.activeCount < 2 || !this.isAnimated) return;
+    if (this.playing || this.playbackCount < 2 || !this.isAnimated) return;
     this.playing = true;
     this.lastTick = performance.now();
     this.rafId = requestAnimationFrame(this.tick);

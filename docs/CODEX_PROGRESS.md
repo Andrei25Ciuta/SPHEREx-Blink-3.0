@@ -6,6 +6,12 @@
 > **superseded**. SPHEREx-Blink-2.0 holds a parallel line of work (service-failure handling, chance baselines, a release audit, a Paper-theme redesign) that is **not merged into
 > this repository yet**; what differs is listed in `docs/MERGE_NOTES.md` and has to be decided before the two are joined.
 
+## 2026-11-14 — Blink in colours in the player
+
+Moved wavelength blinking into the observation player. Playback orders the selected pass by wavelength and respects the timeline filters. Selecting a candidate uses its existing fitted track to follow it on the canvas. The previous standalone synthetic illustration was removed.
+
+All 45 Node test scripts passed. The colour playback test also checks candidate following and resetting on mode changes. Chromium could not start in this environment, and no real FITS data were used for verification.
+
 ## 2026-11-14 — Blink in colours
 
 Added a linked workspace demo comparing centroids across two illustrative bands or two dates. It generates Gaussian stamps for a fixed blended pair, a moving source and a fixed reference star. The reference-corrected shifts passed `node scratch/test_colour_blink.mjs`. The fixture contains only synthetic pixels.

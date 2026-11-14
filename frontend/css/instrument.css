@@ -94,21 +94,3 @@ input[type=range]::-webkit-slider-thumb { box-shadow: none; }
 html[data-theme] :is(.workspace-kicker,.atlas-kicker,.overview-kicker,.info-kicker,.result-links a) {
   text-transform: none; letter-spacing: normal; font-family: var(--font-body);
 }
-
-/* Synthetic wavelength/date comparison */
-.colour-blink-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: .6rem 1rem;
-}
-.colour-blink-figure { max-width: 42rem; }
-.colour-blink-figure canvas { display: block; width: 100%; height: auto; }
-.colour-blink-figure figcaption {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  margin: .4rem 0 0;
-  text-align: center;
-}
-#colour-blink .table-scroll { margin-top: .75rem; }
-html.embed :is(#colour-blink, .colour-blink-link) { display: none; }
