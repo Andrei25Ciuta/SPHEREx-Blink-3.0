@@ -702,6 +702,23 @@ output { font-weight: 600; color: var(--accent); }
   background: rgb(var(--bg-rgb) / .86); color: var(--text); font-size: .8rem; line-height: 1.35; font-variant-numeric: tabular-nums;
 }
 .sky-readout:empty { display: none; }
+.sky-cursor-coordinates {
+  position: absolute;
+  z-index: 7;
+  max-width: min(320px, calc(100% - 16px));
+  padding: 6px 9px;
+  border: 1px solid rgb(var(--accent-rgb) / .65);
+  border-radius: 8px;
+  color: #fff;
+  background: rgb(6 12 23 / .95);
+  box-shadow: 0 8px 22px rgb(0 0 0 / .5);
+  font: 11px/1.45 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.sky-cursor-coordinates[hidden] { display: none; }
+
+
 
 /* Full-screen map: the frame (controls + map + status line) fills the screen.
    `is-fullscreen` = real Fullscreen API or CSS fallback; `is-fallback` = CSS fallback only (see fullscreen.js). */

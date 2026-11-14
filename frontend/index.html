@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Oswald:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 
   <script>if (/[?&]embed=1(&|$)/.test(location.search)) document.documentElement.classList.add("embed");</script>   <!-- ?embed=1: workspace only, for an <iframe> -->
-  <link rel="stylesheet" href="css/styles.css?v=25">
+  <link rel="stylesheet" href="css/styles.css?v=26">
   <link rel="stylesheet" href="css/instrument.css?v=3">
   <link rel="stylesheet" href="css/lab-track.css">
   <link rel="stylesheet" href="css/contact-sheet.css?v=25">
@@ -467,7 +467,8 @@
       <h2 id="context-title">Sky context</h2>
       <p class="muted">Other surveys at the same spot, with catalogued objects from SIMBAD.
         The map opens at the selected field width. The dashed square marks that field. The box in the corner gives the sky coordinates under the cursor
-        and, in brackets, the country that spot of the sky is straight above right now.</p>
+        and, in brackets, the country that spot of the sky is straight above right now.
+        Left-click on the map to copy RA/Dec and open that position directly in Blink Workspace; drag to move the sky.</p>
       <div class="skyframe" id="sky-frame">
         <div class="context-controls">
           <label for="survey-select">Survey</label>
@@ -481,6 +482,7 @@
         </div>
         <div id="aladin-box" class="skymap" hidden></div>
         <p class="muted small" id="aladin-status" aria-live="polite"></p>
+        <p class="muted small" id="sky-selection-status" role="status" aria-live="polite"></p>
         <p class="muted small" id="sky-geo-note" hidden></p>
         <p class="muted small" id="sky-candidate-status" role="status" hidden></p>
       </div>
