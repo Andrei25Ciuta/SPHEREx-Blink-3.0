@@ -1,6 +1,6 @@
 import { earthPositionAU } from "./features/parallax.js";
 import { orbitScene, cameraPoint } from "./features/orbitScene.js";
-import { FRAME_WIDTH, FRAME_HEIGHT, MONTH_PRESETS, syntheticStars, exposureGeometry } from "./features/simulatorFrames.js";
+import { FRAME_WIDTH, FRAME_HEIGHT, MONTH_PRESETS, syntheticStars, exposureGeometry, easeTargetShift } from "./features/simulatorFrames.js";
 
 const $ = id => document.getElementById(id);
 const svg = $("scene-bodies"), controls = $("controls");
@@ -9,6 +9,18 @@ let timer, lastEpoch, orbit;
 const stars = syntheticStars();
 const referenceExposure = { stars: {x: 0, y: 0}, target: {x: 160, y: 100} };
 let registered = false;
+const reducedTargetMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
+let displayedTargetShift = null;
+let desiredTargetShift = null;
+let exposurePair = null;
+let targetMotionFrame = null;
+let lastMotionFrameTime = null;
+
+function stopTargetMotion() {
+  if (targetMotionFrame !== null) window.cancelAnimationFrame?.(targetMotionFrame);
+  targetMotionFrame = null;
+  lastMotionFrameTime = null;
+}
 
 function paintBackground(ctx) {
   ctx.clearRect(0, 0, FRAME_WIDTH, FRAME_HEIGHT);
@@ -58,9 +70,17 @@ function paintCanvas(id, layers) {
   for (const [exposure, fraction, label] of layers) paintExposure(ctx, exposure, fraction, label);
 }
 
-function paintSyntheticFrames(model, day) {
-  const currentRaw = exposureGeometry(model.offset, $("distance").valueAsNumber, false);
-  const currentAligned = exposureGeometry(model.offset, $("distance").valueAsNumber, true);
+function redrawSyntheticExposures() {
+  if (!exposurePair) return;
+  const shifted = exposure => ({
+    ...exposure,
+    target: {
+      x: 160 + exposure.stars.x + displayedTargetShift.x,
+      y: 100 + exposure.stars.y + displayedTargetShift.y
+    }
+  });
+  const currentRaw = shifted(exposurePair.raw);
+  const currentAligned = shifted(exposurePair.aligned);
   const mix = $("sim-blend").valueAsNumber / 100;
   paintCanvas("sim-frame-reference", [[referenceExposure, 1, true]]);
   paintCanvas("sim-frame-current", [[currentRaw, 1, true]]);
@@ -68,6 +88,40 @@ function paintSyntheticFrames(model, day) {
     [referenceExposure, 1 - mix, false],
     [registered ? currentAligned : currentRaw, mix, false]
   ]);
+}
+
+function animateTarget(time) {
+  targetMotionFrame = null;
+  if (document.hidden || !exposurePair) return;
+  const deltaMs = lastMotionFrameTime === null ? 16 : Math.max(0, time - lastMotionFrameTime);
+  lastMotionFrameTime = time;
+  displayedTargetShift = easeTargetShift(displayedTargetShift, desiredTargetShift, deltaMs);
+  if (Math.hypot(displayedTargetShift.x - desiredTargetShift.x,
+                 displayedTargetShift.y - desiredTargetShift.y) < 0.06) {
+    displayedTargetShift = { ...desiredTargetShift };
+    lastMotionFrameTime = null;
+  } else {
+    targetMotionFrame = window.requestAnimationFrame(animateTarget);
+  }
+  redrawSyntheticExposures();
+}
+
+function paintSyntheticFrames(model, day) {
+  const currentRaw = exposureGeometry(model.offset, $("distance").valueAsNumber, false);
+  const currentAligned = exposureGeometry(model.offset, $("distance").valueAsNumber, true);
+  exposurePair = { raw: currentRaw, aligned: currentAligned };
+  desiredTargetShift = currentAligned.relativeTargetShift;
+  if (displayedTargetShift === null || reducedTargetMotion ||
+      typeof window.requestAnimationFrame !== "function") {
+    stopTargetMotion();
+    displayedTargetShift = { ...desiredTargetShift };
+  } else if (targetMotionFrame === null &&
+      Math.hypot(displayedTargetShift.x - desiredTargetShift.x,
+                 displayedTargetShift.y - desiredTargetShift.y) > 0.06) {
+    lastMotionFrameTime = null;
+    targetMotionFrame = window.requestAnimationFrame(animateTarget);
+  }
+  redrawSyntheticExposures();
   const months = Math.round(day * 12 / 365);
   $("sim-frame-date").textContent = "Current · month " + months;
   $("sim-month-label").textContent = "Month " + months + " · day " + day;
@@ -102,7 +156,8 @@ function stop() {
 
 function draw() {
   if (!controls.checkValidity()) {
-    stop(); svg.replaceChildren();
+    stop(); stopTargetMotion(); exposurePair = null; displayedTargetShift = null;
+    svg.replaceChildren();
     for (const id of ["epoch","earth","offset","range","scale"]) $(id).textContent = "—";
     $("status").textContent = "Enter valid coordinates, distance and reference date to calculate the simulation.";
     $("align-frames").disabled = true;
@@ -204,6 +259,14 @@ $("play").addEventListener("click", () => {
     if ($("day").valueAsNumber === 365) stop();
   }, 75);
 });
-document.addEventListener("visibilitychange", () => { if (document.hidden) stop(); });
-window.addEventListener("pagehide", stop);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    stop(); stopTargetMotion();
+    if (desiredTargetShift) {
+      displayedTargetShift = { ...desiredTargetShift };
+      redrawSyntheticExposures();
+    }
+  }
+});
+window.addEventListener("pagehide", () => { stop(); stopTargetMotion(); });
 draw();
