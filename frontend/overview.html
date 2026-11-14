@@ -33,7 +33,7 @@
 
   <!-- 3D Three.js WebGL canvas -->
   <canvas id="bg-canvas" aria-hidden="true"></canvas>
-  <p class="model-caption">Illustration only — not SPHEREx observations. 3D model not to scale. Demo image data are synthetic.</p>
+  <p class="model-caption">Illustration only — not SPHEREx observations. Earth and SPHEREx model not to scale. Demo image data are synthetic.</p>
 
   <!-- 3D Component Inspection HUD Card -->
   <aside id="model-hud" role="region" aria-label="Model component details" aria-hidden="true">
@@ -287,7 +287,9 @@
     scene.fog = new THREE.FogExp2(0x0b0f19, 0.0006);
 
     const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 4000);
-    camera.position.set(0, 0, 480);
+    const cameraStartZ = 760;
+    const cameraStopZ = 460;
+    camera.position.set(0, 0, cameraStartZ);
 
     // ── 2. LIGHTING ──
     const ambientLight = new THREE.AmbientLight(0x222a3a, 1.2);
@@ -514,6 +516,96 @@
     observatory.rotation.set(0.35, -0.6, 0.1);
     scene.add(observatory);
 
+    // Procedural Earth illustration, kept behind the spacecraft in the Overview.
+    function createEarthSystem() {
+      const root = new THREE.Group();
+      const radius = 200;
+      const map = document.createElement('canvas');
+      map.width = 1536;
+      map.height = 768;
+      const ctx = map.getContext('2d');
+      const ocean = ctx.createLinearGradient(0, 0, 0, map.height);
+      ocean.addColorStop(0, '#244a69');
+      ocean.addColorStop(0.5, '#0c3556');
+      ocean.addColorStop(1, '#09263f');
+      ctx.fillStyle = ocean;
+      ctx.fillRect(0, 0, map.width, map.height);
+
+      const toXY = (lon, lat) => [((lon + 180) / 360) * map.width, ((90 - lat) / 180) * map.height];
+      const continents = [
+        [[-168,65],[-145,72],[-125,58],[-112,48],[-98,50],[-82,25],[-97,15],[-110,30],[-125,38],[-130,52],[-150,58]],
+        [[-80,12],[-62,8],[-48,-2],[-36,-10],[-45,-24],[-58,-38],[-68,-54],[-75,-37],[-72,-15]],
+        [[-12,36],[8,38],[31,30],[42,12],[35,-4],[28,-30],[17,-35],[9,-18],[1,5],[-15,12]],
+        [[-10,36],[3,52],[20,58],[30,48],[43,55],[60,66],[95,70],[125,60],[150,48],[143,36],[122,28],[110,10],[93,8],[78,24],[62,26],[48,40],[33,38],[24,48],[10,42]],
+        [[112,-11],[133,-10],[153,-25],[145,-39],[127,-36],[115,-28]],
+        [[-180,-68],[-120,-72],[-60,-70],[0,-74],[60,-70],[120,-72],[180,-68],[180,-90],[-180,-90]]
+      ];
+      for (const points of continents) {
+        ctx.beginPath();
+        points.forEach(([lon, lat], index) => {
+          const [x, y] = toXY(lon, lat);
+          if (index === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.closePath();
+        ctx.fillStyle = points[0][0] === -180 ? '#c7e3e8' : '#557d55';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(173, 209, 170, 0.36)';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+
+      // Soft, randomized cloud bands keep this clearly illustrative, not an image product.
+      const clouds = document.createElement('canvas');
+      clouds.width = 1024;
+      clouds.height = 512;
+      const cloudCtx = clouds.getContext('2d');
+      for (let i = 0; i < 100; i++) {
+        const x = Math.random() * clouds.width;
+        const y = 35 + Math.random() * 440;
+        const width = 35 + Math.random() * 150;
+        const height = 5 + Math.random() * 18;
+        const cloud = cloudCtx.createRadialGradient(x, y, 1, x, y, width / 2);
+        cloud.addColorStop(0, 'rgba(235, 248, 255, 0.48)');
+        cloud.addColorStop(0.72, 'rgba(220, 240, 250, 0.2)');
+        cloud.addColorStop(1, 'rgba(220, 240, 250, 0)');
+        cloudCtx.fillStyle = cloud;
+        cloudCtx.beginPath();
+        cloudCtx.ellipse(x, y, width / 2, height, 0, 0, Math.PI * 2);
+        cloudCtx.fill();
+      }
+
+      const orbitRadius = radius * 1.42;
+      const orbitPoints = new THREE.EllipseCurve(0, 0, orbitRadius, orbitRadius, 0, Math.PI * 2).getPoints(160);
+      const orbitGeometry = new THREE.BufferGeometry().setFromPoints(orbitPoints.map(point => new THREE.Vector3(point.x, 0, point.y)));
+      const orbitMaterial = new THREE.LineDashedMaterial({ color: 0xefb24f, dashSize: 8, gapSize: 6, transparent: true, opacity: 0.46 });
+      const orbit = new THREE.Line(orbitGeometry, orbitMaterial);
+      orbit.computeLineDistances();
+      orbit.rotation.x = 97.5 * Math.PI / 180;
+      root.add(orbit);
+
+      const earth = new THREE.Mesh(
+        new THREE.SphereGeometry(radius, 64, 48),
+        new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(map), roughness: 0.76, metalness: 0.04 })
+      );
+      root.add(earth);
+      const cloudLayer = new THREE.Mesh(
+        new THREE.SphereGeometry(radius * 1.012, 48, 36),
+        new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(clouds), transparent: true, opacity: 0.38, depthWrite: false })
+      );
+      root.add(cloudLayer);
+      const atmosphere = new THREE.Mesh(
+        new THREE.SphereGeometry(radius * 1.07, 48, 36),
+        new THREE.MeshBasicMaterial({ color: 0x56b7f2, transparent: true, opacity: 0.16, side: THREE.BackSide, blending: THREE.AdditiveBlending })
+      );
+      root.add(atmosphere);
+      root.position.set(60, -70, -80);
+      root.rotation.x = 0.35;
+      return { root, earth, cloudLayer };
+    }
+
+    const earthSystem = createEarthSystem();
+    scene.add(earthSystem.root);
+
     // ── 5. INTERACTIVE 3D ORBIT & DRAG ROTATION ──
     let dragPointerId = null;
     let prevMouseX = 0, prevMouseY = 0;
@@ -572,7 +664,7 @@
 
     function onScroll() {
       const maxScroll = document.body.scrollHeight - window.innerHeight;
-      targetScrollProgress = maxScroll > 0 ? window.scrollY / maxScroll : 0;
+      targetScrollProgress = maxScroll > 0 ? Math.min(1, Math.max(0, window.scrollY / maxScroll)) : 0;
     }
     window.addEventListener('scroll', onScroll, { passive: true });
 
@@ -583,7 +675,9 @@
       if (!reducedMotion) {
         clockTime += 0.015;
         scrollProgress += (targetScrollProgress - scrollProgress) * 0.055;
-        camera.position.z = 480 - scrollProgress * 700;
+        camera.position.z = cameraStartZ - scrollProgress * (cameraStartZ - cameraStopZ);
+        earthSystem.earth.rotation.y += 0.00045;
+        earthSystem.cloudLayer.rotation.y += 0.00065;
         stars.rotation.y += 0.0002;
         stars.rotation.z = scrollProgress * 0.5;
         if (dragPointerId === null) {
