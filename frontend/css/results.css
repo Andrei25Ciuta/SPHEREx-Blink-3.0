@@ -173,7 +173,7 @@ p.rcaveat {
 .rkpis span { font-size: .82rem; color: var(--text-muted); overflow-wrap: anywhere; }
 
 .rcharts h2, .explorer h2 { margin: 0 0 .7rem; }
-.rcards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: .9rem; }
+.rcards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem; }
 .dcard { --c0: #F2B84B; --c1: #5CC8E6; --c2: #C99AF0; --c3: #7FD99A; --c4: #FF7A7A; --c5: #A9B3C1;
   margin: 0; padding: .8rem .9rem; min-width: 0; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--field); }
 .dcard.wide { grid-column: span 2; }
@@ -226,6 +226,7 @@ p.rcaveat {
 
 @media (max-width: 52rem) {
   .rload-body { grid-template-columns: minmax(0, 1fr); }
+  .rcards { grid-template-columns: minmax(0, 1fr); }
   .dcard.wide { grid-column: auto; }
 }
 @media (max-width: 640px) {
