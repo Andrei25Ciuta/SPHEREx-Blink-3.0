@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="css/styles.css?v=26">
   <link rel="stylesheet" href="css/instrument.css?v=3">
   <link rel="stylesheet" href="css/lab-track.css">
-  <link rel="stylesheet" href="css/contact-sheet.css?v=25">
+  <link rel="stylesheet" href="css/contact-sheet.css?v=26">
 </head>
 <body>
   <a class="skip-link" href="#workspace">Skip to the workspace</a>
@@ -109,13 +109,8 @@
             <label><input type="radio" name="mode" value="mean"><span>Stack</span></label>
             <label><input type="radio" name="mode" value="max"><span>Trail</span></label>
             <label><input type="radio" name="mode" value="compare"><span>Compare</span></label>
-            <label><input type="radio" name="mode" value="colour"><span>Blink in colours</span></label>
           </fieldset>
           <p class="mode-help" id="mode-help" aria-live="polite"></p>
-        </div>
-        <div class="compare-controls colour-controls" id="colour-controls" hidden>
-          <label>Survey pass <select id="colour-pass"></select></label>
-          <div class="colour-statuses"><span id="colour-status" role="status"></span><span id="colour-centre-status"></span></div>
         </div>
         <!-- Compare mode: pick image A, image B and the operation yourself (js/features/compare.js) -->
         <div class="compare-controls" id="compare-controls" hidden>
@@ -226,19 +221,6 @@
               <div><dt>MJD</dt><dd id="meta-mjd">—</dd></div>
               <div><dt>Flags</dt><dd id="meta-flags">—</dd></div>
             </dl>
-          </section>
-          <section id="colour-measurements" class="insp-sec" aria-labelledby="colour-measurements-title" hidden>
-            <h3 id="colour-measurements-title">Light in this frame</h3>
-            <dl class="meta">
-              <div><dt>Band centre</dt><dd id="colour-wavelength">—</dd></div>
-              <div><dt>Peak pixel (0–255)</dt><dd id="colour-peak">—</dd></div>
-              <div><dt>Background (0–255)</dt><dd id="colour-background">—</dd></div>
-              <div><dt>Light centre offset</dt><dd id="colour-offset">—</dd></div>
-            </dl>
-            <details class="muted small">
-              <summary>About these values</summary>
-              <p>These values use the display stretch. Estimating temperature requires calibrated fluxes across multiple bands and a model of the source.</p>
-            </details>
           </section>
           <section class="timeline" id="timeline" aria-labelledby="timeline-title" hidden>
             <div class="tl-head">
@@ -716,7 +698,7 @@
     <div class="dlg-head"><h2 id="simulation-note-title">About the simulation</h2><form method="dialog"><button class="btn btn-small">Close</button></form></div>
     <p class="dlg-body">The Planet X preset uses a simulated body 600 AU away. Its position is invented for testing the distant-body search.</p>
   </dialog>
-  <script type="module" src="js/main.js?v=13"></script>
+  <script type="module" src="js/main.js?v=14"></script>
   <script type="module" src="js/scienceExplain.js"></script>
   <script type="module" src="js/features/highContrast.js"></script>
 </body>

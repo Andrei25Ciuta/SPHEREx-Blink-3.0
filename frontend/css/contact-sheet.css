@@ -62,10 +62,6 @@
 .view-toolbar .mode-switch label { flex: 0 1 auto; min-width: 0; }
 .view-toolbar .mode-switch span { min-width: 0; padding: 7px 12px; white-space: nowrap; }
 .view-toolbar .mode-help { width: 100%; max-width: none; min-width: 0; min-height: 0; margin: 0; padding: 2px 0 5px; text-align: left; font-size: .82rem; line-height: 1.5; }
-.colour-controls { grid-template-columns: minmax(10rem,14rem) minmax(0,1fr); align-items: center; max-width: none; margin: 0 12px .7rem; }
-.colour-controls label { align-content: start; }
-.colour-statuses { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .8rem; min-width: 0; color: var(--text-muted); font-size: .82rem; line-height: 1.45; }
-.colour-statuses span { min-width: 0; }
 .image-well { background: #050607; border-block: 1px solid var(--border); }
 #workspace .image-well .stage { width: min(100%, max(24rem, 65svh), 54rem); max-width: none; border: 0; border-radius: 0; box-shadow: none; }
 .stage-tools { flex-direction: column; }
@@ -169,7 +165,6 @@
   #workspace .panel { padding: 12px; }
   #workspace .player { padding: 0; }
   #workspace .image-well .stage { width: 100%; }
-  .colour-controls { grid-template-columns: minmax(0,1fr); }
 }
 @media (pointer: coarse) {
   html[data-theme] :is(.btn,.chip,.mode-switch span,.panel-toggle) { min-height: 44px; }

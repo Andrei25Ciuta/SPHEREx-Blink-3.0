@@ -22,20 +22,18 @@
 // Zoom and pan (features/view.js): the player keeps `view = { zoom, cx, cy }`. Positions everywhere else stay image FRACTIONS (fx, fy);
 // only drawing goes through the view (`_px`), so the sky <-> image mapping of geometry.js is untouched by zoom and pan.
 
-import { lightCentre } from "./features/colourBlink.js?v=3";
 import { combine } from "./features/compare.js";
 import { createView, clampView, fracToCanvas, canvasToFrac, sourceRect, zoomAt, panBy, panStep, scaleBar, centreAndZoom, pathCentre, followView } from "./features/view.js";
 import { OVERLAY_COLORS, DRAW_ORDER, clampOpacity, normaliseOrder } from "./features/layers.js";
 import { gridLines } from "./features/grid.js";
 import { stepActive } from "./features/timeline.js";
 
-export const MODES = ["blink", "diff", "mean", "max", "compare", "colour"];
-const ANIMATED = new Set(["blink", "diff", "colour"]);
+export const MODES = ["blink", "diff", "mean", "max", "compare"];
+const ANIMATED = new Set(["blink", "diff"]);
 
 export class BlinkPlayer {
   constructor(canvas, { onFrameChange = () => {}, onPlayStateChange = () => {}, onViewChange = () => {}, onDraw = () => {} } = {}) {
     this.canvas = canvas;
-    this.reduceMotion = globalThis.matchMedia?.("(prefers-reduced-motion: reduce)");
     this.ctx = canvas.getContext("2d");
     this.onFrameChange = onFrameChange;           // called with (index, frame)
     this.onPlayStateChange = onPlayStateChange;   // called with (isPlaying)
@@ -50,7 +48,6 @@ export class BlinkPlayer {
     this.layerOpacity = {};                       // layer id -> 0..1 (missing = fully opaque)
     this.pixelScaleArcsec = null;                 // arcsec per image pixel, for the scale bar and the grid
     this.field = null;                            // { ra, dec } of the middle of the cutout, for the grid
-    this.colourOrder = [];
     this.active = null;                           // the timeline filter: sorted indices of the images the blink visits and Stack / Trail / Difference use; null = all
 
     this.frames = [];       // metadata objects (the Frame contract)
@@ -74,7 +71,6 @@ export class BlinkPlayer {
 
     // Pixel data, extracted lazily (only needed for diff/mean/max).
     this._grey = null;
-    this._colourMasks = new Map();      // array of Uint8ClampedArray (one per frame), or null
     this._derived = {};     // cached median/mean/max arrays
     this._scratch = document.createElement("canvas");   // natural-size off-screen canvas
   }
@@ -90,7 +86,6 @@ export class BlinkPlayer {
     this.images = [];
     this.flagImages = [];
     this._grey = null;
-    this._colourMasks = new Map();
     this._derived = {};
     this.compare = null;                            // frame indices of the old frames: invalid now
     this.catalogue = [];                            // points are per frame of the old frames
@@ -99,7 +94,6 @@ export class BlinkPlayer {
     this.selectedCandidate = -1;
     this.view = createView();                       // a new field: show all of it
     this.onViewChange(this.view);
-    this.colourOrder = [];
     this.active = null;                             // and all of its images
     let done = 0;
     onProgress(0, frames.length);
@@ -121,17 +115,9 @@ export class BlinkPlayer {
   get length() { return this.frames.length; }
   /** Indices of the images the timeline filter lets through (all of them when there is no filter). */
   get activeIndices() { return this.active ?? this.frames.map((_, i) => i); }
-  get playbackCount() { return this.mode === "colour" ? this.colourOrder.length : (this.active?.length ?? this.length); }
-  get firstPlaybackIndex() { return this.mode === "colour" ? (this.colourOrder[0] ?? this.index) : 0; }
-  get showsOriginal() { return this.mode === "blink" || this.mode === "colour"; }
+  get playbackCount() { return this.active?.length ?? this.length; }
+  get showsOriginal() { return this.mode === "blink"; }
 
-  setColourOrder(indices, { restart = false } = {}) {
-    this.colourOrder = indices;
-    if (this.playbackCount < 2) this.pause();
-    if (this.mode !== "colour" || !indices.length) return;
-    if (restart || !indices.includes(this.index)) this.goTo(indices[0]);
-    else this.onFrameChange(this.index, this.frames[this.index]);
-  }
   /**
    * The timeline filter: which images the blink steps through and which ones Stack, Trail and Difference combine. `indices` = sorted frame indices,
    * or null for all. It does not forbid looking at another image (goTo and the slider still show any), and the searches ignore it.
@@ -148,9 +134,7 @@ export class BlinkPlayer {
 
   setMode(mode) {
     if (!MODES.includes(mode)) return;
-    if (this.mode === "colour" && mode !== "colour") this.stopFollow();
     this.mode = mode;
-    if (mode === "colour" && this.selectedCandidate >= 0) this.setFollow(this.selectedCandidate);
     if (!this.isAnimated) this.pause();
     this.draw();
   }
@@ -164,8 +148,7 @@ export class BlinkPlayer {
   setCandidates(candidates, selected = -1) {
     this.candidates = candidates || [];
     this.selectedCandidate = selected;
-    if (this.mode === "colour" && selected >= 0) this.setFollow(selected);
-    else if (this.following !== null && (this.mode === "colour" || !this.candidates[this.following])) this.stopFollow();
+    if (this.following !== null && !this.candidates[this.following]) this.stopFollow();
     this.draw();
   }
   /** Grey pixels (0..255) of every frame, or null if the browser will not let us read them. */
@@ -190,14 +173,6 @@ export class BlinkPlayer {
   }
 
   step(direction) {
-    if (this.mode === "colour") {
-      const order = this.colourOrder;
-      if (!order.length) return;
-      const current = order.indexOf(this.index);
-      const next = current < 0 ? (direction > 0 ? 0 : order.length - 1) : (current + direction + order.length) % order.length;
-      this.goTo(order[next]);
-      return;
-    }
     this.goTo(this.active ? stepActive(this.index, this.active, direction) : this.index + direction);
   }
   next() { this.step(1); }
@@ -219,54 +194,8 @@ export class BlinkPlayer {
     }
 
     for (const id of this.layerOrder) this._drawLayer(id);          // back to front (features/layers.js DRAW_ORDER, changed from the layer list)
-    if (this.mode === "colour") this.onLightCentre?.(this._drawLightCentre());
     if (this.caption) this._drawCaption();
     this.onDraw();
-  }
-
-  _drawLightCentre() {
-    const size = this.naturalSize;
-    const fitted = this.candidates[this.selectedCandidate]?.points[this.index];
-    const predicted = this.tracks.length === 1 ? this.tracks[0].points[this.index] : null;
-    const point = this.selectedCandidate >= 0 ? fitted : (this.marker ?? predicted ?? { fx: 0.5, fy: 0.5 });
-    if (!point) return;
-    const grey = this._greys()?.[this.index];
-    if (!grey) return;
-    const flagImage = this.flagImages[this.index];
-    let canMeasure = !this.frames[this.index].flagsUrl || Boolean(flagImage);
-    if (flagImage && !this._colourMasks.has(this.index)) {
-      const scratch = this._scratch;
-      scratch.width = scratch.height = size;
-      const ctx = scratch.getContext("2d", { willReadFrequently: true });
-      ctx.drawImage(flagImage, 0, 0, size, size);
-      try {
-        const rgba = ctx.getImageData(0, 0, size, size).data;
-        const mask = Uint8Array.from(grey, (_, i) => rgba[4 * i + 3]);
-        this._colourMasks.set(this.index, mask);
-      } catch {
-        canMeasure = false;
-      }
-    }
-    const measured = canMeasure ? lightCentre(grey, size, point, this._colourMasks.get(this.index)) : null;
-    const centre = measured ?? (fitted || predicted ? point : null);
-    if (!centre) return;
-    const [x, y] = this._px(centre.fx, centre.fy);
-    const pulse = this.playing && !this.reduceMotion?.matches ? Math.sin(performance.now() / 420) : 0;
-    const radius = 29 + 3 * pulse;
-    const { ctx } = this;
-    const glow = ctx.createRadialGradient(x, y, 0, x, y, radius);
-    glow.addColorStop(0, "rgba(101, 69, 101, .06)");
-    glow.addColorStop(.48, "rgba(122, 77, 113, .12)");
-    glow.addColorStop(.62, "rgba(160, 93, 139, .68)");
-    glow.addColorStop(.71, "rgba(93, 161, 167, .76)");
-    glow.addColorStop(.81, "rgba(44, 133, 149, .44)");
-    glow.addColorStop(1, "rgba(44, 133, 149, 0)");
-    ctx.save();
-    ctx.globalAlpha = measured ? 1 : .48;
-    ctx.fillStyle = glow;
-    ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
-    ctx.restore();
-    return { kind: measured ? "measured" : "predicted", measurement: measured };
   }
 
   /** Is this layer on screen now (its switch is on and it has something to draw)? */
@@ -453,7 +382,6 @@ export class BlinkPlayer {
     this.playing = false;
     cancelAnimationFrame(this.rafId);
     this.onPlayStateChange(false);
-    if (this.mode === "colour") this.draw();
   }
 
   toggle() { this.playing ? this.pause() : this.play(); }
@@ -468,10 +396,6 @@ export class BlinkPlayer {
     if (now - this.lastTick >= 1000 / this.fps) {
       this.lastTick = now;
       this.next();
-      this.lastHaloDraw = now;
-    } else if (this.mode === "colour" && !this.reduceMotion?.matches && now - (this.lastHaloDraw ?? 0) >= 50) {
-      this.lastHaloDraw = now;
-      this.draw();
     }
     this.rafId = requestAnimationFrame(this.tick);
   };
@@ -656,7 +580,6 @@ export class BlinkPlayer {
       const pts = this._pts(c.points);
       if (!pts.length) return;
       const selected = i === this.selectedCandidate;
-      if (selected && this.mode === "colour") return;
       const [x, y] = this.isAnimated ? (pts[this.index] ?? pts[0]) : pts.at(-1);
       if (x < -20 || x > W + 20 || y < -20 || y > H + 20) { if (!selected) return; }   // off screen after zooming (the selected path still shows)
       ctx.strokeStyle = ctx.fillStyle = selected ? OVERLAY_COLORS.candidateSelected : OVERLAY_COLORS.candidates;

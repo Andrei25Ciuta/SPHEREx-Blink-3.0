@@ -49,7 +49,7 @@ export async function recordBlink(player, baseName, { minSeconds = 3, maxSteps =
   const wasPlaying = player.playing;
   player.pause();
   player.setCaption(caption);                        // printed into every frame of the video
-  player.goTo(player.firstPlaybackIndex);
+  player.goTo(0);
   rec.start(250);                                    // hand over data every 250 ms
   pushFrame();
 
