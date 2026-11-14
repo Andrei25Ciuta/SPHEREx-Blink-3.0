@@ -113,3 +113,9 @@ html[data-theme] .recovery-map .btn[aria-pressed="true"] {
 .recovery-line { fill: none; stroke: var(--accent-text); stroke-width: 2; }
 .recovery-point { fill: var(--accent-text); }
 #recovery-track figcaption, #recovery-track details { margin-top: .65rem; color: var(--text-muted); }
+
+.recovery-comparison { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: 1rem; margin-top: .8rem; }
+.recovery-comparison figcaption { margin-bottom: .4rem; }
+.recovery-point.current { fill: var(--warn); stroke: var(--text); stroke-width: 2; }
+#trial-comparison { margin-top: 1rem; }
+#trial-comparison input { max-width: 100%; }

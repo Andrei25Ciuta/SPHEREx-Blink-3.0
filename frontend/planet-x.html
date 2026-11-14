@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en" data-theme="midnight"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0B0F19">
-<title>Planet X Lab · SPHEREx Blink</title><script>try{var t=new URLSearchParams(location.search).get("theme")||localStorage.getItem("spherex-blink-theme");if(/^(midnight|nebula|deep-space|observatory|light|classic)$/.test(t))document.documentElement.dataset.theme=t}catch(e){}</script><link rel="stylesheet" href="css/styles.css?v=21"><link rel="stylesheet" href="css/exploration.css?v=4"><link rel="stylesheet" href="css/instrument.css">
+<title>Planet X Lab · SPHEREx Blink</title><script>try{var t=new URLSearchParams(location.search).get("theme")||localStorage.getItem("spherex-blink-theme");if(/^(midnight|nebula|deep-space|observatory|light|classic)$/.test(t))document.documentElement.dataset.theme=t}catch(e){}</script><link rel="stylesheet" href="css/styles.css?v=21"><link rel="stylesheet" href="css/exploration.css?v=5"><link rel="stylesheet" href="css/instrument.css">
   </head>
 <body><a class="skip-link" href="#lab">Skip to lab</a><header class="site-header" id="top" data-page="planet-x">
     <a class="site-brand" href="overview.html">SPHEREx Blink</a>
@@ -9,6 +9,15 @@
   <script type="module" src="js/siteHeader.js"></script>
   <div class="explore">
 <main id="lab" tabindex="-1"><h1>Planet X Lab</h1><p>Injection recovery on observed SPHEREx image backgrounds. The inserted sources are synthetic.</p>
+<section class="panel" id="body-inspector">
+<h2>Body to inspect</h2>
+<label>Source <select id="body-source"><option value="simulation">Simulated injection</option><option value="candidate">Workspace candidate</option></select></label>
+<div id="candidate-inspector" hidden>
+  <p id="candidate-summary"></p>
+  <svg class="plot recovery-plot" id="candidate-plot" viewBox="0 0 420 420" role="img" aria-label="Supporting candidate positions in the registered image plane"></svg>
+  <p id="candidate-note" class="small muted">Points show supporting detections in the registered image plane.</p>
+</div>
+</section>
 <section class="panel"><h2>Experiment settings</h2><p id="provenance" role="status">Loading experiment…</p><label>Injected distance <select id="distance"></select></label><label>Injected flux <select id="flux"></select></label></section>
 <section class="panel"><h2>Recovery results</h2>
 <p>Choose a cell to inspect its recorded trials. Each cell shows how many of the four synthetic injections were recovered.</p>
@@ -29,6 +38,14 @@
     <div class="table-scroll"><table><thead><tr><th scope="col">Date (UTC)</th><th scope="col">X (px)</th><th scope="col">Y (px)</th></tr></thead><tbody id="track-positions"></tbody></table></div>
   </details>
 </figure>
+<div id="trial-comparison" hidden>
+  <h3>Recovered and missed at the same settings</h3>
+  <label>Observation <input id="comparison-date" type="range" min="0" value="0"> <output id="comparison-date-label"></output></label>
+  <div class="recovery-comparison">
+    <figure><figcaption id="recovered-trial"></figcaption><svg class="plot recovery-plot" id="recovered-plot" viewBox="0 0 420 420" role="img" aria-label="Reconstructed path for a recovered trial"></svg></figure>
+    <figure><figcaption id="missed-trial"></figcaption><svg class="plot recovery-plot" id="missed-plot" viewBox="0 0 420 420" role="img" aria-label="Reconstructed path for a missed trial"></svg></figure>
+  </div>
+</div>
 </section>
 <h3>Method and limits</h3><p>Recovery intervals use the Wilson binomial method. They describe this small experiment at the tested locations and settings. Empty fields supply a separate false candidate check.</p></section>
-<section class="panel"><h2>Reproduce and inspect</h2><p>Run <code>scripts/parallax_recovery.mjs</code> against the local backend after obtaining the referenced IRSA FITS frames. The JSON records the observation dates, hashes, seed, injected positions, fitted distances and controls. <a href="data/parallax_recovery.json">Download the full experiment record</a>.</p><p><a id="workspace" hidden>Open the observed field in the workspace</a><span id="workspace-help" hidden>To inspect observed FITS frames, run the local backend and open the workspace there.</span></p></section></main></div><script type="module" src="js/planetXLab.js?v=3"></script></body></html>
+<section class="panel"><h2>Reproduce and inspect</h2><p>Run <code>scripts/parallax_recovery.mjs</code> against the local backend after obtaining the referenced IRSA FITS frames. The JSON records the observation dates, hashes, seed, injected positions, fitted distances and controls. <a href="data/parallax_recovery.json">Download the full experiment record</a>.</p><p><a id="workspace" hidden>Open the observed field in the workspace</a><span id="workspace-help" hidden>To inspect observed FITS frames, run the local backend and open the workspace there.</span></p></section></main></div><script type="module" src="js/planetXLab.js?v=4"></script></body></html>
