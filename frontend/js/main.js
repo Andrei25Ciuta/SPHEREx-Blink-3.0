@@ -36,7 +36,7 @@ import { applyIcons } from "./features/ui.js";
 import { openDialog, shortcutsHtml } from "./features/dialog.js";
 import { setupTimeline } from "./features/timelineView.js";
 import { FLAGGED_LIMIT } from "./features/timeline.js";
-import { SkyContext } from "./features/skyContext.js?v=4";
+import { SkyContext } from "./features/skyContext.js?v=5";
 import { setupFullscreen } from "./features/fullscreen.js";
 import { detectSources, describeMover, matchKnownObject, moverPositionAtMjd, passIndices, trackSupport, blendWarning, VERSION as MOVERS_VERSION, DEFAULTS as MOVER_DEFAULTS, ERROR_MODEL } from "./features/movers.js";
 import { blindCheckCandidate, VERSION as BLIND_CHECK_VERSION } from "./features/blindCheck.js";
@@ -432,6 +432,7 @@ function setPlayerEnabled(enabled) {
   observations.disabled = !enabled || !player.isAnimated;
   speedInput.disabled = !animated;
   $("save-png-btn").disabled = !enabled;
+  $("viewer-sky-map-btn").disabled = !enabled;
   $("record-btn").disabled = !animated || player.playbackCount < 2 || !canRecord();
   // Modes that combine frames need at least 2 of them.
   document.querySelectorAll('#mode-switch input:not([value="blink"])')
@@ -769,6 +770,7 @@ function clearMarker() {
 const sky = new SkyContext($("aladin-box"), $("aladin-status"), $("sky-geo-note"), {
   matchField: true,
   selectionStatusEl: $("sky-selection-status"),
+  backToField: $("sky-back-to-field"),
   onSelectPosition: ({ raText, decText }) => {
     // Same field form and loader used by the Pin Board; keep FOV and data source unchanged.
     raInput.value = raText;
@@ -792,12 +794,26 @@ const sky = new SkyContext($("aladin-box"), $("aladin-status"), $("sky-geo-note"
 setupFullscreen($("sky-frame"), $("sky-full-btn"));   // map + its controls fill the screen
 /** Open (or re-centre) the sky map on a position { ra, dec, fov }. */
 async function openSkyMap(q) {
-  $("aladin-btn").disabled = true;
-  await sky.open(q, $("survey-select").value);
-  $("aladin-btn").disabled = false;
-  $("aladin-btn").textContent = "Re-centre sky map";
-  $("sky-full-btn").hidden = !sky.isOpen;             // nothing to enlarge until the map is open
+  const button = $("aladin-btn");
+  if (button.disabled) return;
+  button.disabled = true;
+  try {
+    await sky.open(q, $("survey-select").value);
+  } finally {
+    button.disabled = false;
+    button.textContent = sky.isOpen ? "Re-centre sky map" : "Show sky map";
+    $("sky-full-btn").hidden = !sky.isOpen;
+  }
 }
+
+$("viewer-sky-map-btn").addEventListener("click", async () => {
+  if (!currentQuery || !player.length) return;
+  const title = $("context-title");
+  title.focus({ preventScroll: true });
+  title.scrollIntoView({ block: "start", behavior: prefersReducedMotion ? "auto" : "smooth" });
+  await openSkyMap(currentQuery);
+});
+
 $("aladin-btn").addEventListener("click", async () => {
   const q = readForm();
   if (!q) { $("aladin-status").textContent = "Enter coordinates first."; return; }
@@ -1813,6 +1829,7 @@ async function loadData(query) {
   currentQuery = null;
   detSelect.disabled = true;
   lastQuery = query;
+  sky.setWorkspaceField(null);
   if (sky.isOpen) sky.update(query);
   setLoading(true);
   setStatus("");
@@ -1848,6 +1865,7 @@ async function loadData(query) {
     currentDetector = det;
     renderOverview(frames, token);                     // runs in the background
     await showDetector(det);
+    if (token === loadToken) sky.setWorkspaceField(query);
     console.log(`Loaded ${frames.length} frames`, listDetectors(frames));
   } catch (err) {
     if (token !== loadToken) return;

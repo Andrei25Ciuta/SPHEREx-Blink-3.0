@@ -701,6 +701,19 @@ output { font-weight: 600; color: var(--accent); }
   padding: .3rem .6rem; border-radius: 8px; border: 1px solid var(--border);
   background: rgb(var(--bg-rgb) / .86); color: var(--text); font-size: .8rem; line-height: 1.35; font-variant-numeric: tabular-nums;
 }
+.sky-map-guide {
+  position: absolute; right: .5rem; bottom: 3.4rem; z-index: 6;
+  padding: .3rem .5rem; border: 1px solid var(--border); border-radius: 8px;
+  background: rgb(var(--bg-rgb) / .92); color: var(--text);
+  font: .75rem/1.35 var(--font-mono); pointer-events: none;
+}
+.sky-map-compass { display: flex; justify-content: center; gap: .6rem; }
+.sky-map-compass b { display: inline-block; }
+.sky-map-scale { margin-top: .2rem; text-align: center; }
+.sky-map-scale::after {
+  content: ""; display: block; width: var(--scale-width); height: .35rem; margin: 0 auto;
+  border: 1px solid currentColor; border-top: 0;
+}
 .sky-readout:empty { display: none; }
 .sky-cursor-coordinates {
   position: absolute;
@@ -1625,3 +1638,20 @@ main .panel > h2, main .panel .panel-head, main .pin-board .pb-head { padding-ri
 .pr-zoom button:hover { border-color: var(--accent); }
 .pr-zoom span { min-width: 3ch; text-align: center; color: var(--text-muted); font-size: .8rem; }
 .predict.is-empty .pr-zoom { display: none; }
+
+.btn.back-to-top {
+  position: fixed;
+  inset-inline-end: max(1rem, env(safe-area-inset-right));
+  inset-block-end: max(1rem, env(safe-area-inset-bottom));
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--raised);
+  color: var(--text);
+  font-size: 1.35rem;
+  line-height: 1;
+}
