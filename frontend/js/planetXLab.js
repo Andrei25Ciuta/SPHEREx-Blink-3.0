@@ -163,21 +163,24 @@ try {
     drawTrack($("missed-plot"), recoveryTrack(data, selectedCell, outcomes[missed]), data.n, index);
   }
   dateSlider.addEventListener("input", renderComparison);
+  let pathVisible = true;
   function renderTrial() {
     markSelectedTrial();
     figure.hidden = true;
     comparison.hidden = true;
-    reveal.textContent = "Reveal injected path";
-    reveal.setAttribute("aria-expanded", "false");
+
     const outcome = selectedCell?.outcomes?.[Number(trials.value)];
-    if (!outcome) return;
+    reveal.disabled = !outcome;
+    reveal.textContent = pathVisible && outcome ? "Hide injected path" : "Reveal injected path";
+    reveal.setAttribute("aria-expanded", String(Boolean(pathVisible && outcome)));
+    if (!outcome) {
+      $("trial-result").textContent = "";
+      return;
+    }
     const fitted = outcome.fittedAU.map(value => `${value.toFixed(1)} AU`).join(", ");
     $("trial-result").textContent = `${fitted ? `Recovered. Fitted distance: ${fitted}.` : "Injection missed."} Candidates in trial: ${outcome.candidates}.`;
-  }
-  trials.addEventListener("change", renderTrial);
-  reveal.addEventListener("click", () => {
-    if (!figure.hidden) { renderTrial(); return; }
-    const points = recoveryTrack(data, selectedCell, selectedCell.outcomes[Number(trials.value)]);
+    if (!pathVisible) return;
+    const points = recoveryTrack(data, selectedCell, outcome);
     const positions = $("track-positions");
     drawTrack($("track-plot"), points, data.n);
     positions.replaceChildren();
@@ -187,10 +190,13 @@ try {
         row.insertCell().textContent = value;
     });
     figure.hidden = false;
-    reveal.textContent = "Hide injected path";
-    reveal.setAttribute("aria-expanded", "true");
     dateSlider.value = "0";
     renderComparison();
+  }
+  trials.addEventListener("change", renderTrial);
+  reveal.addEventListener("click", () => {
+    pathVisible = !pathVisible;
+    renderTrial();
   });
 
   const render = () => {
