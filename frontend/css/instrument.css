@@ -94,5 +94,3 @@ input[type=range]::-webkit-slider-thumb { box-shadow: none; }
 html[data-theme] :is(.workspace-kicker,.atlas-kicker,.overview-kicker,.info-kicker,.result-links a) {
   text-transform: none; letter-spacing: normal; font-family: var(--font-body);
 }
-
-.colour-measurements p { margin: .5rem 0 0; }
