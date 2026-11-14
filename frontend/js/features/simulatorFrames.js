@@ -26,7 +26,8 @@ export function targetShiftPixels(offset, distanceAU) {
   // Exaggerate the actual arcsecond parallax to show it at small screen sizes.
   // The same scale is used at every epoch for a given target distance.
   const fullSixMonthSwing = 2 * 206264.806 / distanceAU;
-  const pixelsPerArcsec = 30 / fullSixMonthSwing;
+  // A modest illustrative displacement keeps the movement easy to follow.
+  const pixelsPerArcsec = 24 / fullSixMonthSwing;
   return { x: offset.east * pixelsPerArcsec, y: -offset.north * pixelsPerArcsec };
 }
 
@@ -38,4 +39,13 @@ export function exposureGeometry(offset, distanceAU, alignOnStars = false) {
     target: { x: 160 + jitter.x + shift.x, y: 100 + jitter.y + shift.y },
     relativeTargetShift: shift,
   };
+}
+
+// Exponential easing toward the latest model position. A frame-time-based step
+// makes target motion smooth without modifying the parallax calculation.
+export function easeTargetShift(current, desired, deltaMs) {
+  const dt = Math.max(0, Math.min(64, Number.isFinite(deltaMs) ? deltaMs : 0));
+  const mix = 1 - Math.exp(-dt / 230);
+  return { x: current.x + (desired.x - current.x) * mix,
+    y: current.y + (desired.y - current.y) * mix };
 }
