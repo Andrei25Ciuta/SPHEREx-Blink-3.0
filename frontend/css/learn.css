@@ -134,3 +134,5 @@ html[data-theme=midnight] .synthetic-notice{background:var(--learn-midnight-noti
 @keyframes gx-spin{to{transform:rotate(360deg)}}
 @keyframes gx-pulse{50%{transform:scale(1.5);opacity:.3}}
 @media (prefers-reduced-motion:reduce){.galaxy-svg .gx-spin,.galaxy-svg .gx-sun circle{animation:none}.orbit-art circle{transition:none}}
+/* breathing room between the missions list and the theory lessons */
+#missions.cm{padding-bottom:clamp(2rem,4vw,3.5rem);margin-bottom:clamp(1.5rem,3vw,2.5rem)}
