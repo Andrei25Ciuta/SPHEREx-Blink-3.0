@@ -29,39 +29,24 @@ const skySrc=readFileSync(new URL("../frontend/js/features/skyContext.js",import
 assert.match(html, /src="js\/main\.js\?v=\d+"/);
 assert.match(html, /id="sky-reset-light"[^>]*aria-label="Reset light settings"[^>]*><span aria-hidden="true">↺<\/span>/);
 assert.ok(html.includes('id="sky-map-guide"'));
-assert.ok(skySrc.includes('this.container.appendChild(this.resetLight)'));
+assert.match(html, /id="sky-map-surface"[^>]*>\s*<div id="aladin-box"[^>]*><\/div>\s*<button[^>]*id="sky-reset-light"/);
 assert.ok(!skySrc.includes('this.aladin.on("click"'));
 assert.ok(!main.includes('onSelectPosition:'));
 
 let reset;
 const resetLight = { addEventListener: (event, listener) => { reset = listener; } };
 const context = new SkyContext(null, null, null, { resetLight });
-function imageLayer(initial) {
-  const values = { ...initial };
-  return {
-    values,
-    getColorCfg: () => ({
-      getBrightness: () => values.brightness, getContrast: () => values.contrast,
-      getGamma: () => values.gamma, getSaturation: () => values.saturation,
-    }),
-    setOptions: (options) => Object.assign(values, options),
-  };
-}
-const first = imageLayer({ brightness: 0.1, contrast: 0.2, gamma: 1, saturation: 0 });
-const second = imageLayer({ brightness: 0.3, contrast: 0, gamma: 2, saturation: 0.4 });
-let layer = first;
+const updates = [];
+let layer;
 context.aladin = { getBaseImageLayer: () => layer };
-context.saveInitialLight();
+context.refreshLightControl();
+assert.equal(resetLight.hidden, true);
+reset();
+assert.equal(updates.length, 0);
+layer = { setOptions: (options) => updates.push(options) };
+context.refreshLightControl();
 assert.equal(resetLight.hidden, false);
-first.values.brightness = 0.8;
-context.saveInitialLight();
 reset();
-assert.equal(first.values.brightness, 0.1);
-layer = second;
-context.saveInitialLight();
-second.values.gamma = 4;
-reset();
-assert.equal(second.values.gamma, 2);
-assert.equal(first.values.gamma, 1);
+assert.deepEqual(updates, [{ brightness: 0, contrast: 0, gamma: 1, saturation: 0 }]);
 
 console.log("PASS Sky Context cursor coordinates and light reset without map click navigation");

@@ -6,14 +6,19 @@ const aladin = {
   getSize: () => [400, 300],
   getRaDec: () => [359.99, 0],
   pix2world: (x, y) => [180 - (x - 200) * degreesPerPixel, -(y - 150) * degreesPerPixel],
-  world2pix: (ra, dec) => [200 - (ra - 180) / degreesPerPixel, 150 - dec / degreesPerPixel],
 };
 
 const guide = skyMapGuide(aladin);
 assert.equal(guide.label, "1′");
 assert.ok(Math.abs(guide.width - 60) < 0.01);
 assert.equal(guide.north, -90);
-assert.equal(guide.east, 180);
+assert.equal(Math.abs(guide.east), 180);
+const rotated = skyMapGuide({
+  ...aladin,
+  pix2world: (x, y) => [180 - (y - 150) * degreesPerPixel, (x - 200) * degreesPerPixel],
+});
+assert.ok(Math.abs(rotated.north) < 0.001);
+assert.equal(rotated.east, -90);
 
 degreesPerPixel /= 2;
 assert.equal(skyMapGuide(aladin).label, "20″");

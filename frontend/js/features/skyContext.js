@@ -15,7 +15,7 @@ import { WORLD_URL, decodeCountries, overheadAt } from "./skyGeo.js";
 import { fieldCorners } from "./explorerGeometry.js";
 import { aladinSkyAt, selectionText } from "./skyContextClick.js";
 
-import { outsideWorkspaceField, skyMapGuide } from "./skyMapGuide.js";
+import { outsideWorkspaceField, skyMapGuide } from "./skyMapGuide.js?v=2";
 
 const ALADIN_URL = "https://cdn.jsdelivr.net/npm/aladin-lite@3.6.5/dist/aladin.js";
 const SIMBAD_TAP = "https://simbad.harvard.edu/simbad/sim-tap/sync";
@@ -112,19 +112,20 @@ function loadWorld() {
 }
 
 export class SkyContext {
-  constructor(container, statusEl, noteEl = null, { matchField = false, backToField = null, guide = null, scale = null, resetLight = null } = {}) {
+  constructor(container, statusEl, noteEl = null, { matchField = false, backToField = null, guide = null, surface = null, scale = null, resetLight = null } = {}) {
     this.container = container;
     this.statusEl = statusEl;
     this.matchField = matchField;
     this.backToField = backToField;
     this.guide = guide;
+    this.surface = surface;
     this.scale = scale;
     this.resetLight = resetLight;
-    this.lightDefaults = new WeakMap();
     resetLight?.addEventListener("click", () => {
       const layer = this.aladin?.getBaseImageLayer();
-      const defaults = layer && this.lightDefaults.get(layer);
-      if (defaults) layer.setOptions({ ...defaults });
+      if (!layer) return;
+      // Aladin's initial light values for a newly created colour configuration.
+      layer.setOptions({ brightness: 0, contrast: 0, gamma: 1, saturation: 0 });
     });
     this.workspaceField = null;
     backToField?.addEventListener("click", () => {
@@ -156,24 +157,16 @@ export class SkyContext {
     }
   }
 
-  saveInitialLight() {
-    if (!this.resetLight) return;
-    const layer = this.aladin.getBaseImageLayer();
-    if (layer && !this.lightDefaults.has(layer)) {
-      const color = layer.getColorCfg();
-      this.lightDefaults.set(layer, {
-        brightness: color.getBrightness(), contrast: color.getContrast(),
-        gamma: color.getGamma(), saturation: color.getSaturation(),
-      });
-    }
-    this.resetLight.hidden = !layer;
+  refreshLightControl() {
+    if (this.resetLight) this.resetLight.hidden = !this.aladin.getBaseImageLayer();
   }
 
   refreshMapGuide() {
     if (!this.guide || !this.scale || !this.aladin) return;
     if (this.backToField) this.backToField.hidden = !outsideWorkspaceField(this.aladin, this.workspaceField);
     const guide = skyMapGuide(this.aladin);
-    this.guide.hidden = this.scale.hidden = !guide;
+    this.guide.hidden = !guide || (guide.north === null && guide.east === null);
+    this.scale.hidden = !guide;
     if (!guide) return;
     for (const direction of ["north", "east"]) {
       const label = this.guide.querySelector(`[data-direction="${direction}"]`);
@@ -238,6 +231,7 @@ export class SkyContext {
   async open(query, survey) {
     this.survey = survey || this.survey;
     this.container.hidden = false;
+    if (this.surface) this.surface.hidden = false;
     this.statusEl.textContent = "Loading sky map…";
     let pictureSource;
     try {
@@ -245,6 +239,7 @@ export class SkyContext {
     } catch (err) {
       this.statusEl.textContent = err.message;
       this.container.hidden = true;
+      if (this.surface) this.surface.hidden = true;
       return;
     }
     const before = source;
@@ -272,10 +267,8 @@ export class SkyContext {
       this.coordinateHint.hidden = true;
       this.container.appendChild(this.coordinateHint);
       this.aladin.on("mouseMove", (e) => this.onHover(e));
-      if (this.scale) this.container.appendChild(this.scale);
-      if (this.resetLight) this.container.appendChild(this.resetLight);
       this.installMapGuide();
-      if (this.resetLight) this.aladin.on("layerChanged", () => this.saveInitialLight());
+      if (this.resetLight) this.aladin.on("layerChanged", () => this.refreshLightControl());
       this.aladin.on("positionChanged", () => {
         if (!this.hovering) this.showCentre();
         this.refreshMapGuide();
@@ -284,7 +277,7 @@ export class SkyContext {
     }
     // The source can change between two openings (e.g. the backend was started meanwhile).
     else if (before !== source) this.setSurvey(this.survey);
-    this.saveInitialLight();
+    this.refreshLightControl();
     this.statusEl.textContent = SOURCE_NOTE[source];
     if (this.noteEl) { this.noteEl.hidden = false; this.noteEl.textContent = this.world ? GEO_NOTE : "Loading country names…"; }
     this.update(query);
@@ -320,7 +313,7 @@ export class SkyContext {
     // API name changed between 3.x releases – support both.
     if (typeof this.aladin.setImageSurvey === "function") this.aladin.setImageSurvey(ref);
     else this.aladin.setBaseImageLayer(ref);
-    this.saveInitialLight();
+    this.refreshLightControl();
   }
 
   /** Re-centre on a new query and redraw the field square + SIMBAD objects. */

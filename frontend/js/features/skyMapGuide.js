@@ -29,20 +29,23 @@ export function skyMapGuide(aladin) {
     label: `${Number(amount.toPrecision(2))}${unit === 1 ? "°" : unit === 60 ? "′" : "″"}`,
   };
 
-  const offset = Math.min(span / 8, 0.1);
-  const { ra, dec } = centre;
-  const northStep = dec + offset < 90 ? offset : -offset;
-  const eastStep = offset / Math.cos(dec * Math.PI / 180);
-  const direction = (lon, lat, sign = 1) => {
-    try {
-      const p = aladin.world2pix((lon + 360) % 360, lat, "icrs");
-      if (!p?.every(Number.isFinite)) return null;
-      return Math.atan2(sign * (p[1] - y), sign * (p[0] - x)) * 180 / Math.PI;
-    } catch { return null; }
-  };
-  return {
-    ...scale,
-    north: Math.abs(dec) < 90 ? direction(ra, dec + northStep, Math.sign(northStep)) : null,
-    east: Math.abs(eastStep) < 90 ? direction(ra + eastStep, dec) : null,
-  };
+  // Recover the local screen directions from pixel samples in ICRS. This
+  // avoids world2pix's frame-argument incompatibility in Aladin Lite 3.6.5.
+  const delta = Math.min(8, sample, y / 2);
+  const right = aladinSkyAt(aladin, { x: x + delta, y });
+  const down = aladinSkyAt(aladin, { x, y: y + delta });
+  const eastOffset = ({ ra }) => ((ra - centre.ra + 540) % 360) - 180;
+  let north = null, east = null;
+  if (right && down && Math.abs(centre.dec) < 90) {
+    const eastRight = eastOffset(right), eastDown = eastOffset(down);
+    const northRight = right.dec - centre.dec, northDown = down.dec - centre.dec;
+    const determinant = eastRight * northDown - eastDown * northRight;
+    if (determinant) {
+      const sign = Math.sign(determinant);
+      const angle = (dx, dy) => Math.atan2(sign * dy, sign * dx) * 180 / Math.PI;
+      north = angle(-eastDown, eastRight);
+      east = angle(northDown, -northRight);
+    }
+  }
+  return { ...scale, north, east };
 }
