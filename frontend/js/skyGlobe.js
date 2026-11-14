@@ -13,8 +13,12 @@ if (canvas) {
       target, color: colors[index % colors.length], ...positionAtEpoch(target), point: null,
     }));
     const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
-    let width = 0, height = 0, radius = 0, yaw = -0.55, pitch = 0.2;
+    let width = 0, height = 0, radius = 0, yaw = -0.55, pitch = 0.2, frame = null;
     let selectedId = null, pointer = null, lastFrame = 0, spin = 0;
+
+    function scheduleDraw() {
+      if (frame === null) frame = requestAnimationFrame(draw);
+    }
 
     function resize() {
       const rect = canvas.getBoundingClientRect();
@@ -23,6 +27,7 @@ if (canvas) {
       width = rect.width; height = rect.height; radius = Math.min(width * 0.39, height * 0.44);
       canvas.width = Math.round(width * dpr); canvas.height = Math.round(height * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      scheduleDraw();
     }
 
     function project(ra, dec) {
@@ -37,12 +42,14 @@ if (canvas) {
     }
 
     function draw(now = 0) {
+      frame = null;
       if (!width || !height) resize();
-      if (!width || !height) { requestAnimationFrame(draw); return; }
-      const dt = lastFrame ? Math.min((now - lastFrame) / 1000, 0.05) : 0;
-      lastFrame = now;
-      if (!pointer && !reducedMotion.matches) yaw += dt * 0.055;
-      spin += dt;
+      if (!width || !height) return;
+      const animate = !reducedMotion.matches;
+      const dt = animate && lastFrame ? Math.min((now - lastFrame) / 1000, 0.05) : 0;
+      lastFrame = animate ? now : 0;
+      if (!pointer && animate) yaw += dt * 0.055;
+      if (animate) spin += dt;
       ctx.clearRect(0, 0, width, height);
       const cx = width / 2, cy = height / 2;
       const halo = ctx.createRadialGradient(cx, cy, radius * .68, cx, cy, radius * 1.34);
@@ -100,7 +107,7 @@ if (canvas) {
       }
       ctx.restore();
       ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.strokeStyle = "rgba(153,214,255,.55)"; ctx.lineWidth = 1.5; ctx.stroke();
-      requestAnimationFrame(draw);
+      if (animate) scheduleDraw();
     }
 
     function hit(x, y) {
@@ -117,6 +124,7 @@ if (canvas) {
       yaw += dx / Math.max(radius, 1) * 1.3;
       pitch = Math.max(-1.15, Math.min(1.15, pitch + dy / Math.max(radius, 1) * 1.3));
       pointer.x = event.clientX; pointer.y = event.clientY;
+      scheduleDraw();
     });
     canvas.addEventListener("pointerup", event => {
       if (!pointer || pointer.id !== event.pointerId) return;
@@ -124,17 +132,22 @@ if (canvas) {
       const selected = !pointer.moved && hit(event.clientX - rect.left, event.clientY - rect.top);
       pointer = null;
       if (selected) document.dispatchEvent(new CustomEvent("sky-target-select", { detail: { id: selected.target.id } }));
+      scheduleDraw();
     });
-    canvas.addEventListener("pointercancel", () => { pointer = null; });
+    canvas.addEventListener("pointercancel", () => { pointer = null; scheduleDraw(); });
     canvas.addEventListener("keydown", event => {
-      if (event.key === "ArrowLeft" || event.key === "ArrowRight") { yaw += event.key === "ArrowLeft" ? -.12 : .12; event.preventDefault(); }
-      if (event.key === "ArrowUp" || event.key === "ArrowDown") { pitch += event.key === "ArrowUp" ? .12 : -.12; event.preventDefault(); }
+      if (event.key === "ArrowLeft" || event.key === "ArrowRight") { yaw += event.key === "ArrowLeft" ? -.12 : .12; event.preventDefault(); scheduleDraw(); }
+      if (event.key === "ArrowUp" || event.key === "ArrowDown") { pitch += event.key === "ArrowUp" ? .12 : -.12; event.preventDefault(); scheduleDraw(); }
     });
     canvas.tabIndex = 0;
     canvas.setAttribute("aria-describedby", "globe-help");
-    document.addEventListener("sky-target-selected", event => { selectedId = event.detail?.id ?? null; });
+    document.addEventListener("sky-target-selected", event => { selectedId = event.detail?.id ?? null; scheduleDraw(); });
     new ResizeObserver(resize).observe(canvas);
-    reducedMotion.addEventListener?.("change", () => { lastFrame = 0; });
-    requestAnimationFrame(draw);
+    reducedMotion.addEventListener?.("change", () => {
+      lastFrame = 0;
+      if (reducedMotion.matches && frame !== null) { cancelAnimationFrame(frame); frame = null; }
+      scheduleDraw();
+    });
+    scheduleDraw();
   }
 }
