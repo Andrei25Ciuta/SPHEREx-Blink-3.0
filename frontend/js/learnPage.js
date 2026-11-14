@@ -396,10 +396,62 @@ $("#planet-picker").replaceChildren(...planets.map(([name, description], index) 
   const button = el("button", { type: "button", dataset: { planet: name }, "aria-pressed": "false" }, name);
   button.addEventListener("click", () => {
     $$("#planet-picker button").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
+    $$(".orbit-art circle").forEach((c, i) => c.classList.toggle("is-chosen", i === index + 1));   // circle 0 is the Sun
     $("#planet-readout").textContent = `${name} · Planet ${index + 1} · ${description}`;
   });
   return button;
 }));
+
+$$(".orbit-art circle").forEach((c, i) => { if (i) c.addEventListener("click", () => $$("#planet-picker button")[i - 1]?.click()); });
+
+// Galaxy Explorer: each galaxy gets its own illustration (schematic, not to scale)
+const SVGNS = "http://www.w3.org/2000/svg";
+const svgEl = (tag, attrs, parent) => { const n = document.createElementNS(SVGNS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v); parent?.append(n); return n; };
+function spiralArm(cx, cy, start, turns, a, b, squash = 1) {          // a logarithmic spiral arm r = a*e^(b*theta)
+  let d = "";
+  for (let t = 0; t <= turns * Math.PI * 2; t += 0.08) {
+    const r = a * Math.exp(b * t), x = cx + r * Math.cos(t + start), y = cy + r * Math.sin(t + start) * squash;
+    d += (d ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1);
+  }
+  return d;
+}
+function drawGalaxy(which) {
+  const svg = $("#galaxy-svg");
+  if (!svg) return;
+  svg.replaceChildren();
+  svg.dataset.galaxy = which;
+  const defs = svgEl("defs", {}, svg);
+  defs.innerHTML = `<radialGradient id="gx-core"><stop offset="0" stop-color="#fff6d8"/><stop offset=".35" stop-color="#ffd98a" stop-opacity=".9"/><stop offset="1" stop-color="#ffb35c" stop-opacity="0"/></radialGradient>
+    <radialGradient id="gx-halo"><stop offset="0" stop-color="#9d8bff" stop-opacity=".45"/><stop offset="1" stop-color="#9d8bff" stop-opacity="0"/></radialGradient>
+    <filter id="gx-soft"><feGaussianBlur stdDeviation="2.2"/></filter>`;
+  svgEl("rect", { width: 400, height: 220, fill: "#070b18" }, svg);
+  for (let i = 0; i < 60; i++) svgEl("circle", { cx: (i * 97) % 400, cy: (i * 53) % 220, r: i % 7 ? 0.7 : 1.3, fill: "#fff", "fill-opacity": 0.25 + (i % 5) * 0.12 }, svg);
+  const g = svgEl("g", { class: "gx-spin" }, svg);
+  if (which === "milky-way") {
+    svgEl("ellipse", { cx: 200, cy: 110, rx: 110, ry: 100, fill: "url(#gx-halo)" }, g);
+    for (const [start, w, op] of [[0, 9, .55], [Math.PI, 9, .55], [Math.PI / 2, 5, .35], [Math.PI * 1.5, 5, .35]])
+      svgEl("path", { d: spiralArm(200, 110, start, 1.15, 22, 0.28), fill: "none", stroke: "#b9c4ff", "stroke-width": w, "stroke-opacity": op, "stroke-linecap": "round", filter: "url(#gx-soft)" }, g);
+    svgEl("ellipse", { cx: 200, cy: 110, rx: 30, ry: 9, fill: "#ffd98a", "fill-opacity": .8, transform: "rotate(-25 200 110)", filter: "url(#gx-soft)" }, g);
+    svgEl("circle", { cx: 200, cy: 110, r: 22, fill: "url(#gx-core)" }, g);
+    const sun = svgEl("g", { class: "gx-sun" }, svg);
+    svgEl("circle", { cx: 262, cy: 160, r: 3.5, fill: "#ffe27a" }, sun);
+    svgEl("circle", { cx: 262, cy: 160, r: 9, fill: "none", stroke: "#ffe27a", "stroke-opacity": .8 }, sun);
+    svgEl("text", { x: 274, y: 172, fill: "#ffe27a", "font-size": 11 }, sun).textContent = "You are here (the Sun)";
+    $("#galaxy-caption").textContent = "Seen from above: a barred spiral with a bright central bar. Illustration, not to scale.";
+  } else {
+    svgEl("ellipse", { cx: 200, cy: 110, rx: 170, ry: 60, fill: "url(#gx-halo)", transform: "rotate(-30 200 110)" }, g);
+    for (const [start, op] of [[0, .6], [Math.PI, .6]])
+      svgEl("path", { d: spiralArm(200, 110, start, 1.6, 14, 0.24, 0.32), fill: "none", stroke: "#cbb8ff", "stroke-width": 6, "stroke-opacity": op, filter: "url(#gx-soft)", transform: "rotate(-30 200 110)" }, g);
+    svgEl("ellipse", { cx: 200, cy: 110, rx: 34, ry: 13, fill: "url(#gx-core)", transform: "rotate(-30 200 110)" }, g);
+    const c1 = svgEl("g", {}, svg);
+    svgEl("circle", { cx: 226, cy: 72, r: 6, fill: "url(#gx-core)" }, c1);
+    svgEl("text", { x: 236, y: 68, fill: "#d9d2ff", "font-size": 10 }, c1).textContent = "M32";
+    svgEl("ellipse", { cx: 128, cy: 178, rx: 11, ry: 6, fill: "url(#gx-core)", transform: "rotate(-40 128 178)" }, c1);
+    svgEl("text", { x: 142, y: 196, fill: "#d9d2ff", "font-size": 10 }, c1).textContent = "M110";
+    $("#galaxy-caption").textContent = "Seen almost edge-on from Earth, with two small companion galaxies, M32 and M110. Illustration, not to scale.";
+  }
+}
+drawGalaxy("andromeda");
 
 const galaxies = {
   andromeda: "Andromeda · spiral galaxy · about 2.5 million light-years away. Its halo stars span a wide range of ages, roughly 6–13 billion years.",
@@ -408,6 +460,7 @@ const galaxies = {
 $$('[data-galaxy]').forEach((button) => button.addEventListener("click", () => {
   $$("[data-galaxy]").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
   $("#galaxy-readout").textContent = galaxies[button.dataset.galaxy];
+  drawGalaxy(button.dataset.galaxy);
 }));
 
 function buildPrintable(level, includeKey = true) {

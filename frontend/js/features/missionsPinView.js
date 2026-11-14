@@ -36,7 +36,7 @@ export function setupMissions() {
       head.type = "button";
       head.className = "cm-topic-head";
       head.setAttribute("aria-expanded", String(openCat === cat));
-      head.innerHTML = `<span class="cm-topic-icon" aria-hidden="true">${info.icon}</span><span class="cm-topic-name">${esc(cat)}</span>
+      head.innerHTML = `<span class="cm-topic-name">${esc(cat)}</span>
         <span class="cm-topic-count">${done}/${list.length}</span><span class="cm-topic-bar"><span style="width:${(100 * done / list.length).toFixed(0)}%"></span></span>`;
       head.addEventListener("click", () => { openCat = openCat === cat ? null : cat; renderCatalogue(); });
       topic.appendChild(head);
@@ -72,9 +72,8 @@ export function setupMissions() {
     const m = current;
     const done = progress.completed.includes(m.id);
     const info = categoryInfo(m);
-    $("mission-icon").textContent = info.icon;
     $("mission-category").textContent = m.category;
-    $("mission-meta").innerHTML = `<span title="Difficulty">${stars(m.tier)}</span><span>⏱ about ${Math.max(2, m.steps.length * 2)} min</span><span>+${xpFor(m)} XP</span>${m.needsReal ? "<span>needs real data</span>" : ""}${done ? "<span>✓ completed</span>" : ""}`;
+    $("mission-meta").innerHTML = `<span title="Difficulty">${stars(m.tier)}</span><span>about ${Math.max(2, m.steps.length * 2)} min</span><span>+${xpFor(m)} XP</span>${m.needsReal ? "<span>needs real data</span>" : ""}${done ? "<span>✓ completed</span>" : ""}`;
     $("mission-title").textContent = m.title;
     $("mission-story").textContent = m.story;
     $("mission-intro").textContent = info.intro;
@@ -237,7 +236,7 @@ export function setupPinBoard({ getCandidate, getContext }) {
 
   function chips(p) {
     const c = [];
-    if (p.speedArcsecPerYear != null) c.push(`☄️ ${fmt(p.speedArcsecPerYear, 2)}″/yr`);
+    if (p.speedArcsecPerYear != null) c.push(`${fmt(p.speedArcsecPerYear, 2)}″/yr`);
     if (p.checks?.detections != null) c.push(`✓ seen in ${p.checks.detections}/${p.checks.images} images`);
     if (p.checks?.knownObject) c.push(`known: ${p.checks.knownObject}`);
     c.push(p.dataKind === "synthetic" ? "synthetic demo" : "real data");

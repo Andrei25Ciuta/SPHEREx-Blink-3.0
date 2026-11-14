@@ -8,8 +8,6 @@ import { findMission, stepMatches, checkMeasurement, STEP_NOTES, missionWhy, ste
 const store = (() => { try { return window.localStorage; } catch { return null; } })();
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const visible = (el) => Boolean(el && el.getClientRects().length && !el.closest("[hidden]"));
-const ICONS = { "Cockpit": "", "Blink": "✨", "Proper": "☄️", "Parallax": "📐", "Deep": "", "Sky": "", "Data": "", "Pro": "" };
-const iconFor = (cat) => ICONS[Object.keys(ICONS).find((k) => cat.startsWith(k))] ?? "";
 
 /** getCandidate(): the selected candidate or null; getCount(): how many candidates are listed. */
 export function startMissionRunner({ getCandidate = () => null, getCount = () => 0 } = {}) {
@@ -48,7 +46,6 @@ export function startMissionRunner({ getCandidate = () => null, getCount = () =>
     box.classList.toggle("is-won", done);
     box.innerHTML = `
       <header class="mr-head">
-        <span class="mr-icon" aria-hidden="true">${categoryInfo(mission).icon}</span>
         <div><p class="mr-kicker">${esc(mission.category)} · level ${mission.tier} · +${xpFor(mission)} XP</p><h2>${esc(mission.title)}</h2></div>
         <button type="button" class="mr-collapse" data-act="collapse" aria-expanded="${!collapsed}" aria-label="${collapsed ? "Expand" : "Collapse"} the mission console">${collapsed ? "▴" : "▾"}</button>
       </header>
