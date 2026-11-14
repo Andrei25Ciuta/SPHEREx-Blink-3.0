@@ -8,8 +8,8 @@ import { findMission, stepMatches, checkMeasurement, STEP_NOTES, missionWhy, ste
 const store = (() => { try { return window.localStorage; } catch { return null; } })();
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const visible = (el) => Boolean(el && el.getClientRects().length && !el.closest("[hidden]"));
-const ICONS = { "Cockpit": "🛰️", "Blink": "✨", "Proper": "☄️", "Parallax": "📐", "Deep": "🔭", "Sky": "🗺️", "Data": "💾", "Pro": "📌" };
-const iconFor = (cat) => ICONS[Object.keys(ICONS).find((k) => cat.startsWith(k))] ?? "🚀";
+const ICONS = { "Cockpit": "", "Blink": "✨", "Proper": "☄️", "Parallax": "📐", "Deep": "", "Sky": "", "Data": "", "Pro": "" };
+const iconFor = (cat) => ICONS[Object.keys(ICONS).find((k) => cat.startsWith(k))] ?? "";
 
 /** getCandidate(): the selected candidate or null; getCount(): how many candidates are listed. */
 export function startMissionRunner({ getCandidate = () => null, getCount = () => 0 } = {}) {
@@ -48,20 +48,20 @@ export function startMissionRunner({ getCandidate = () => null, getCount = () =>
     box.classList.toggle("is-won", done);
     box.innerHTML = `
       <header class="mr-head">
-        <span class="mr-icon" aria-hidden="true">${iconFor(mission.category)}</span>
+        <span class="mr-icon" aria-hidden="true">${categoryInfo(mission).icon}</span>
         <div><p class="mr-kicker">${esc(mission.category)} · level ${mission.tier} · +${xpFor(mission)} XP</p><h2>${esc(mission.title)}</h2></div>
         <button type="button" class="mr-collapse" data-act="collapse" aria-expanded="${!collapsed}" aria-label="${collapsed ? "Expand" : "Collapse"} the mission console">${collapsed ? "▴" : "▾"}</button>
       </header>
       <div class="mr-bar" role="progressbar" aria-valuemin="0" aria-valuemax="${n}" aria-valuenow="${Math.min(step, n)}" aria-label="Steps done"><span style="width:${(100 * Math.min(step, n) / n).toFixed(0)}%"></span></div>
       <div class="mr-body">
-      ${!started ? `<p class="mr-section">📜 Mission briefing</p><p class="mr-story">${esc(mission.story)}</p>
-        <p class="mr-section">🧭 What is this about?</p><p class="mr-why-text">${esc(categoryInfo(mission).intro)}</p>
-        <p class="mr-section">🔭 Why it matters</p><p class="mr-why-text">${esc(missionWhy(mission))}</p>
-        ${termsFor(mission).length ? `<details class="mr-words"><summary>📖 New words (${termsFor(mission).length}) · tap to read</summary><dl>${termsFor(mission).map((g) => `<dt>${esc(g.term)}</dt><dd>${esc(g.simple)}</dd>`).join("")}</dl></details>` : ""}
-        ${mission.needsReal && !REAL ? `<p class="mr-warn">🛰️ <strong>Needs real SPHEREx data.</strong> This tool works only when the page runs with the backend on real images (Learn Mode → “Search the real sky”). On this synthetic demo it explains why it cannot run, so the mission cannot be finished here.</p>` : ""}
-        <p class="mr-section">🧭 What you will do · ${n} steps</p>
+      ${!started ? `<p class="mr-section">Mission briefing</p><p class="mr-story">${esc(mission.story)}</p>
+        <p class="mr-section">What is this about?</p><p class="mr-why-text">${esc(categoryInfo(mission).intro)}</p>
+        <p class="mr-section">Why it matters</p><p class="mr-why-text">${esc(missionWhy(mission))}</p>
+        ${termsFor(mission).length ? `<details class="mr-words"><summary>New words (${termsFor(mission).length}) · tap to read</summary><dl>${termsFor(mission).map((g) => `<dt>${esc(g.term)}</dt><dd>${esc(g.simple)}</dd>`).join("")}</dl></details>` : ""}
+        ${mission.needsReal && !REAL ? `<p class="mr-warn"><strong>Needs real SPHEREx data.</strong> This tool works only when the page runs with the backend on real images (Learn Mode → “Search the real sky”). On this synthetic demo it explains why it cannot run, so the mission cannot be finished here.</p>` : ""}
+        <p class="mr-section">What you will do · ${n} steps</p>
         <ol class="mr-steps mr-steps-preview">${mission.steps.map((x, i) => `<li><span class="mr-dot" aria-hidden="true">${i + 1}</span><span>${esc(x.does)}</span></li>`).join("")}</ol>
-        <p class="mr-actions">${mission.needsReal && !REAL ? `<a class="btn btn-small btn-primary" href="${esc(missionHref(next, location.search))}">Try another mission: ${esc(next.title)} →</a> <button type="button" class="btn btn-small" data-act="start">Look anyway</button>` : `<button type="button" class="btn btn-small btn-primary" data-act="start">🚀 Start the mission</button> <button type="button" class="btn btn-small" data-act="quit">Not now</button>`}</p>
+        <p class="mr-actions">${mission.needsReal && !REAL ? `<a class="btn btn-small btn-primary" href="${esc(missionHref(next, location.search))}">Try another mission: ${esc(next.title)} →</a> <button type="button" class="btn btn-small" data-act="start">Look anyway</button>` : `<button type="button" class="btn btn-small btn-primary" data-act="start">Start the mission</button> <button type="button" class="btn btn-small" data-act="quit">Not now</button>`}</p>
       </div>` : `
       ${note ? `<p class="mr-note" role="status"><strong>What just happened:</strong> ${esc(note)}</p>` : ""}
       <ol class="mr-steps">${items}</ol>
@@ -71,11 +71,11 @@ export function startMissionRunner({ getCandidate = () => null, getCount = () =>
           <div class="mr-measure-row"><input id="mr-input" autocomplete="off" inputmode="${m.field === "compass" ? "text" : "decimal"}" placeholder="${m.unit ? "value in " + esc(m.unit) : "your answer"}">
           <button type="submit" class="btn btn-small btn-primary">Check</button></div>
           ${wrong ? `<p class="mr-wrong" role="alert">${esc(wrong)}</p>` : ""}</form>` : ""}
-      ${done ? `<div class="mr-win" role="status"><p class="mr-trophy" aria-hidden="true">🏆</p><p><strong>Mission complete! +${xpFor(mission)} XP</strong> · ${xp} XP · rank: ${esc(rankFor(xp))}</p>
+      ${done ? `<div class="mr-win" role="status"><p class="mr-trophy" aria-hidden="true"></p><p><strong>Mission complete! +${xpFor(mission)} XP</strong> · ${xp} XP · rank: ${esc(rankFor(xp))}</p>
           <p>${esc(mission.successFeedback)}</p></div>
         <p class="mr-actions"><a class="btn btn-small btn-primary" href="${esc(missionHref(next, location.search))}">Next mission: ${esc(next.title)} →</a>
         <a class="btn btn-small" href="learn.html#missions">Back to Learn Mode</a></p>`
-      : `<p class="mr-actions">${s?.check.on ? `<button type="button" class="btn btn-small" data-act="show">📍 Show me where</button>` : ""}
+      : `<p class="mr-actions">${s?.check.on ? `<button type="button" class="btn btn-small" data-act="show">Show me where</button>` : ""}
           <button type="button" class="btn btn-small" data-act="quit">Quit</button></p>`}
       </div>`}`;
     highlight();

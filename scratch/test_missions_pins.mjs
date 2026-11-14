@@ -59,7 +59,7 @@ let pins = addPin(addPin([], pin), pin); const s2 = mem(); savePins(s2, pins);
 check("duplicate not added; storage round-trip", pins.length === 1 && loadPins(s2).length === 1 && removePin(pins, pin.id).length === 0);
 const a = skyToMap(0, 90), b = skyToMap(180, -90);
 check("map projection", a.x === 1 && a.y === 0 && b.x === 0.5 && b.y === 1);
-check("page has the pin button and the dialog", html.includes('id="pin-report-btn"') && html.includes("Enter Observer Name / Handle:") && html.includes("📌 Pin &amp; Report Object"));
+check("page has the pin button and the dialog", html.includes('id="pin-report-btn"') && html.includes("Enter Observer Name / Handle:") && html.includes("Pin &amp; Report Object"));
 check("missions card is in Learn Mode", learn.includes('id="mission-card"') && !html.includes('id="mission-card"'));
 
 const { sharedConfig, fetchSharedPins, pushSharedPin, mergePins } = await import("../frontend/js/features/pinSync.js");

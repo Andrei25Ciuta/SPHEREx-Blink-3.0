@@ -7,7 +7,7 @@
 // Pure (no DOM): scratch/test_carryparams.mjs. patchLinks() is the DOM part, used by js/siteHeader.js on every page.
 
 export const CARRIED = ["data", "api", "embed", "theme"];
-export const PAGES = ["index.html", "overview.html", "sky.html", "planet-x.html", "simulator.html", "results.html"];
+export const PAGES = ["index.html", "overview.html", "sky.html", "simulator.html", "results.html"];
 
 /** Is `href` a link to another page of this site (not "#hash", not another site, not a file)? */
 export function isSitePage(href, baseHref) {

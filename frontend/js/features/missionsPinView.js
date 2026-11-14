@@ -51,7 +51,7 @@ export function setupMissions() {
           t.type = "button";
           const isDone = progress.completed.includes(m.id);
           t.className = "cm-tile" + (isDone ? " is-done" : "") + (m.id === current?.id ? " is-current" : "");
-          t.innerHTML = `<span class="cm-tile-title">${isDone ? "✓ " : ""}${esc(m.title)}</span><span class="cm-tile-meta">${stars(m.tier)} · ${m.steps.length} steps${m.needsReal ? " · 🛰️ real data" : ""}</span>`;
+          t.innerHTML = `<span class="cm-tile-title">${isDone ? "✓ " : ""}${esc(m.title)}</span><span class="cm-tile-meta">${stars(m.tier)} · ${m.steps.length} steps${m.needsReal ? " · real data" : ""}</span>`;
           t.addEventListener("click", () => { show(m); card.scrollIntoView({ behavior: "smooth", block: "start" }); });
           grid.appendChild(t);
         }
@@ -74,7 +74,7 @@ export function setupMissions() {
     const info = categoryInfo(m);
     $("mission-icon").textContent = info.icon;
     $("mission-category").textContent = m.category;
-    $("mission-meta").innerHTML = `<span title="Difficulty">${stars(m.tier)}</span><span>⏱ about ${Math.max(2, m.steps.length * 2)} min</span><span>+${xpFor(m)} XP</span>${m.needsReal ? "<span>🛰️ needs real data</span>" : ""}${done ? "<span>✓ completed</span>" : ""}`;
+    $("mission-meta").innerHTML = `<span title="Difficulty">${stars(m.tier)}</span><span>⏱ about ${Math.max(2, m.steps.length * 2)} min</span><span>+${xpFor(m)} XP</span>${m.needsReal ? "<span>needs real data</span>" : ""}${done ? "<span>✓ completed</span>" : ""}`;
     $("mission-title").textContent = m.title;
     $("mission-story").textContent = m.story;
     $("mission-intro").textContent = info.intro;
@@ -106,7 +106,7 @@ export function setupMissions() {
     $("mission-feedback").hidden = !done;
     $("mission-feedback").textContent = `What you learned: ${m.successFeedback}`;
     $("mission-go").href = missionHref(m, location.search);
-    $("mission-go").textContent = done ? "🔁 Play this mission again" : "🚀 Start this mission";
+    $("mission-go").textContent = done ? "Play this mission again" : "Start this mission";
     $("cm-progress").textContent = `Missions completed: ${progress.completed.length} of ${missionsDatabase.length}`;
     $("cm-progress-bar").max = missionsDatabase.length;
     $("cm-progress-bar").value = progress.completed.length;
@@ -139,7 +139,7 @@ export function setupPinBoard({ getCandidate, getContext }) {
   let pins = loadPins(store);
   let view = "sky";
   const shared = sharedConfig(PIN_BOARD_URL, PIN_BOARD_KEY);
-  let syncText = shared ? "🌍 Shared board: loading…" : "💾 Pins are kept in this browser only.";
+  let syncText = shared ? "Shared board: loading…" : "Pins are kept in this browser only.";
   let syncBad = false;
   let openId = null;
   const dialog = $("pin-dialog");
@@ -167,7 +167,7 @@ export function setupPinBoard({ getCandidate, getContext }) {
     const c = getCandidate(), allowed = canPin(c);
     for (const b of pinBtns) { b.disabled = !allowed.ok; b.title = allowed.ok ? "Pin this candidate to the shared Discovery Pin Board under your observer name" : allowed.reason; }
     const note = $("pin-known-note");
-    if (note) { note.hidden = !c || allowed.ok; note.textContent = c && !allowed.ok ? `📌 ${allowed.reason}` : ""; }
+    if (note) { note.hidden = !c || allowed.ok; note.textContent = c && !allowed.ok ? `${allowed.reason}` : ""; }
     const f = JSON.stringify(getContext().field);            // redraw when the field on screen changes ("you are here")
     if (f !== drawnField) { drawnField = f; render(); }
   }
@@ -239,8 +239,8 @@ export function setupPinBoard({ getCandidate, getContext }) {
     const c = [];
     if (p.speedArcsecPerYear != null) c.push(`☄️ ${fmt(p.speedArcsecPerYear, 2)}″/yr`);
     if (p.checks?.detections != null) c.push(`✓ seen in ${p.checks.detections}/${p.checks.images} images`);
-    if (p.checks?.knownObject) c.push(`🔎 known: ${p.checks.knownObject}`);
-    c.push(p.dataKind === "synthetic" ? "🧪 synthetic demo" : "🛰️ real data");
+    if (p.checks?.knownObject) c.push(`known: ${p.checks.knownObject}`);
+    c.push(p.dataKind === "synthetic" ? "synthetic demo" : "real data");
     return c.map((t) => `<span class="pb-chip">${esc(t)}</span>`).join("");
   }
   function fieldLink(p) {
@@ -289,7 +289,7 @@ export function setupPinBoard({ getCandidate, getContext }) {
       pins = mergePins(pins.filter((p) => !p.shared || remote.some((r) => r.hash === p.hash)), remote);
       savePins(store, pins);
       const people = new Set(remote.map((p) => p.observer)).size;
-      syncText = `🌍 Shared board: ${remote.length} pin${remote.length === 1 ? "" : "s"} from ${people} observer${people === 1 ? "" : "s"}, seen by everyone who opens this site. Updated ${new Date().toLocaleTimeString()}.` + (dropped ? ` ${dropped} record(s) failed their hash check and are not shown.` : "");
+      syncText = `Shared board: ${remote.length} pin${remote.length === 1 ? "" : "s"} from ${people} observer${people === 1 ? "" : "s"}, seen by everyone who opens this site. Updated ${new Date().toLocaleTimeString()}.` + (dropped ? ` ${dropped} record(s) failed their hash check and are not shown.` : "");
       syncBad = false;
     } catch (err) {
       syncText = `⚠ The shared board cannot be reached (${err.message}) Your pins are kept in this browser and will be sent when it answers again.`;
@@ -314,7 +314,7 @@ export function setupPinBoard({ getCandidate, getContext }) {
     for (const p of pins) {
       const li = document.createElement("li");
       li.className = "pin-item" + (p.id === openId ? " is-open" : "");
-      li.innerHTML = cardHtml(p) + `<p class="pb-popup-actions"><button type="button" class="btn btn-small" data-act="locate" data-id="${esc(p.id)}">📍 Show on map</button> <a class="btn btn-small" href="${esc(fieldLink(p))}">Open this field</a> ${p.shared ? `<span class="pb-chip">🌍 shared · permanent</span>` : p.pending ? `<span class="pb-chip">⏳ waiting to be sent</span>` : `${shared ? `<button type="button" class="btn btn-small btn-primary" data-act="share" data-id="${esc(p.id)}">🌍 Share with everyone</button> ` : ""}<span class="pb-chip">💾 only in this browser</span> <button type="button" class="btn btn-small" data-act="remove" data-id="${esc(p.id)}">Remove</button>`}</p>`;
+      li.innerHTML = cardHtml(p) + `<p class="pb-popup-actions"><button type="button" class="btn btn-small" data-act="locate" data-id="${esc(p.id)}">Show on map</button> <a class="btn btn-small" href="${esc(fieldLink(p))}">Open this field</a> ${p.shared ? `<span class="pb-chip">shared · permanent</span>` : p.pending ? `<span class="pb-chip">waiting to be sent</span>` : `${shared ? `<button type="button" class="btn btn-small btn-primary" data-act="share" data-id="${esc(p.id)}">Share with everyone</button> ` : ""}<span class="pb-chip">only in this browser</span> <button type="button" class="btn btn-small" data-act="remove" data-id="${esc(p.id)}">Remove</button>`}</p>`;
       list.appendChild(li);
     }
     verifyInto(list);
@@ -351,7 +351,7 @@ export function setupPinBoard({ getCandidate, getContext }) {
     const wrap = svg.closest(".pb-map-wrap");
     if (document.fullscreenElement) document.exitFullscreen?.(); else wrap.requestFullscreen?.().catch(() => wrap.classList.toggle("is-expanded"));
   });
-  document.addEventListener("fullscreenchange", () => { $("pb-fullscreen").textContent = document.fullscreenElement ? "✕ Exit full screen" : "⛶ Full screen"; if (!popup.hidden) showPopup(); });
+  document.addEventListener("fullscreenchange", () => { $("pb-fullscreen").textContent = document.fullscreenElement ? "✕ Exit full screen" : "Full screen"; if (!popup.hidden) showPopup(); });
   svg.addEventListener("keydown", (e) => { const g = e.target.closest(".pin-marker"); if (g && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openId = g.dataset.id; render(); } });
   popup.addEventListener("click", (e) => {
     const act = e.target.closest("[data-act]")?.dataset.act;
@@ -366,7 +366,7 @@ export function setupPinBoard({ getCandidate, getContext }) {
       if (!p || !confirm(`Share this pin with everyone? “${pinTag(p)}” and its position become public and permanent.`)) return;
       p.pending = true; savePins(store, pins);
       $("pin-status").textContent = "Sending the pin to the shared board…";
-      sync().then(() => { $("pin-status").textContent = p.pending ? "The shared board did not answer; the pin will be sent later." : `🌍 Shared with everyone: ${pinTag(p)}.`; });
+      sync().then(() => { $("pin-status").textContent = p.pending ? "The shared board did not answer; the pin will be sent later." : `Shared with everyone: ${pinTag(p)}.`; });
       return;
     }
     if (b.dataset.act === "remove") { pins = removePin(pins, b.dataset.id); if (openId === b.dataset.id) openId = null; savePins(store, pins); render(); }
@@ -407,8 +407,8 @@ export function setupPinBoard({ getCandidate, getContext }) {
       pins = addPin(pins, pin);
       try { store?.setItem("spherex-blink-observer", pin.observer); } catch {}
       savePins(store, pins);
-      $("pin-status").textContent = shared ? `📌 Pinned: ${pinTag(pin)}. Sending it to the shared board…` : `📌 Pinned: ${pinTag(pin)}.`;
-      if (shared) sync().then(() => { $("pin-status").textContent = pin.pending ? `📌 ${pinTag(pin)} is saved here; it will be shared when the board answers.` : `📌 Shared with everyone: ${pinTag(pin)}. It stays on the board permanently.`; });
+      $("pin-status").textContent = shared ? `Pinned: ${pinTag(pin)}. Sending it to the shared board…` : `Pinned: ${pinTag(pin)}.`;
+      if (shared) sync().then(() => { $("pin-status").textContent = pin.pending ? `${pinTag(pin)} is saved here; it will be shared when the board answers.` : `Shared with everyone: ${pinTag(pin)}. It stays on the board permanently.`; });
       dialog.close();
       openId = pin.id;
       if (view === "field" && !project(pin.ra, pin.dec).inside) setView("sky");
@@ -429,7 +429,7 @@ export function setupPinBoard({ getCandidate, getContext }) {
   if (shared) {
     let started = false;
     const start = () => { if (started) return; started = true; sync(); setInterval(() => { if (!document.hidden) sync(); }, 60000); };
-    if (navigator.webdriver) syncText = "🌍 Shared board not loaded automatically in an automated browser (tests stay offline). Press Refresh to load it.";
+    if (navigator.webdriver) syncText = "Shared board not loaded automatically in an automated browser (tests stay offline). Press Refresh to load it.";
     else if ("IntersectionObserver" in window) new IntersectionObserver((entries, obs) => { if (entries.some((e) => e.isIntersecting)) { obs.disconnect(); start(); } }).observe($("pin-board"));
     else start();
     $("pin-refresh-btn")?.addEventListener("click", () => { if (started) sync(); else start(); });

@@ -8,7 +8,7 @@ The project's existing synthetic demo remains explicitly labelled. Learn Mode di
 
 > **Two lines of work were merged here on 10 Nov 2026** (the earlier Blink 2.0 of this repository and the branch `blink-2.0` of `mateibut/SPHEREx`). What came from where, what was chosen where they differ, and what was not re-measured: [docs/MERGE_NOTES.md](docs/MERGE_NOTES.md).
 
-Start at [the landing page](frontend/overview.html) and choose [Science Mode](frontend/index.html) or [Learn Mode](frontend/learn.html). Additional research tools include [real-data results](frontend/results.html), [Sky Explorer](frontend/sky.html), [Planet X Lab](frontend/planet-x.html) and the [Solar System Simulator](frontend/simulator.html). [Feature status](docs/FEATURE_STATUS.md) and [scientific limitations](docs/SCIENTIFIC_LIMITATIONS.md) describe what has been verified.
+Start at [the landing page](frontend/overview.html) and choose [Science Mode](frontend/index.html) or [Learn Mode](frontend/learn.html). Additional research tools include [real-data results](frontend/results.html), [Sky Explorer](frontend/sky.html) and the [Solar System Simulator](frontend/simulator.html). Distant-body motion analysis is available inside the Workspace. [Feature status](docs/FEATURE_STATUS.md) and [scientific limitations](docs/SCIENTIFIC_LIMITATIONS.md) describe what has been verified.
 
 > **Notice:** this repository is a **personal practice / mock project** (built with AI assistance, Claude Code), started on 2026-11-05, **before** the NASA Space Apps 2026 hackathon (14-15 Nov 2026). It is not a competition submission.
 

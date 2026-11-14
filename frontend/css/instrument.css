@@ -94,3 +94,22 @@ input[type=range]::-webkit-slider-thumb { box-shadow: none; }
 html[data-theme] :is(.workspace-kicker,.atlas-kicker,.overview-kicker,.info-kicker,.result-links a) {
   text-transform: none; letter-spacing: normal; font-family: var(--font-body);
 }
+
+/* The telescope section of the Workspace page, in the style of the panels and the Results page: compact headings, numbers in cards, three notes in cards,
+   a plain table. Scoped to #telescope: .info-box is also used by the archived introduction of Results. */
+#telescope .info-box { padding: clamp(1rem, 2.4vw, 1.6rem); border-radius: 5px; backdrop-filter: none; -webkit-backdrop-filter: none; }
+#telescope .info-kicker { margin-bottom: .3rem; font-size: .82rem; color: var(--text-muted); }
+#telescope h2 { margin: 0 0 .6rem; font: 650 clamp(1.5rem, 3vw, 2.1rem)/1.15 var(--font-head); letter-spacing: -.025em; }
+#telescope h2::after { display: none; }
+#telescope h3 { font: 650 1rem/1.25 var(--font-head); letter-spacing: -.01em; }
+#telescope p.info-lead { max-width: 72ch; font-size: 1rem; line-height: 1.55; }
+#telescope .stats { grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: .6rem; margin-top: 1rem; }
+#telescope .stats li { display: grid; gap: .15rem; align-content: start; padding: .7rem .85rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--field); }
+#telescope .stats b { font: 650 clamp(1.15rem, 2.2vw, 1.5rem)/1.15 var(--font-head); color: var(--accent-text); overflow-wrap: anywhere; }
+#telescope .stats span { font-size: .82rem; letter-spacing: normal; }
+#telescope .info-cols { gap: .6rem; margin-top: .9rem; padding-top: 0; border-top: 0; }
+#telescope .info-cols > div { padding: .8rem .95rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--field); }
+#telescope .info-cols h3 { margin-bottom: .35rem; }
+#telescope .info-cols p { font-size: .9rem; }
+#telescope .det-table th { font-size: .82rem; letter-spacing: normal; text-transform: none; }
+#telescope .det-table td:first-child { font-family: var(--font-head); font-weight: 650; }
