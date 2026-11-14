@@ -41,9 +41,14 @@ const main=readFileSync(new URL("../frontend/js/main.js",import.meta.url),"utf8"
 const skySrc=readFileSync(new URL("../frontend/js/features/skyContext.js",import.meta.url),"utf8");
 assert.ok(html.includes('id="sky-selection-status"'));
 assert.ok(html.includes('src="js/main.js?v=13"'));
-assert.ok(skySrc.includes('this.aladin.on("click", (e) => this.onMapClick(e))'));
+assert.ok(skySrc.includes('this.aladin.on("click", (e) => {'));
+assert.ok(skySrc.includes('this.aladin.on("objectClicked", (object) => {'));
+assert.ok(skySrc.includes('if (!clickedSource) this.onMapClick(e);'));
+assert.ok(skySrc.includes('e?.isDragging'));
 assert.ok(skySrc.includes('this.onSelectPosition({ ...sky, ...fields })'));
 assert.ok(main.includes('onSelectPosition: ({ raText, decText }) =>'));
 assert.ok(main.includes('form.requestSubmit();'));
+assert.ok(main.includes('selectionStatusEl: $("sky-selection-status")'));
+assert.ok(main.includes('const nativeFullscreen = document.fullscreenElement === skyFrame'));
 assert.ok(main.includes('if ($("controls-body").hidden) $("panel-left-btn").click();'));
 console.log("PASS Sky Context cursor coordinates, copy fallbacks and Blink handoff");
