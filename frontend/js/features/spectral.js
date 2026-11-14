@@ -8,7 +8,7 @@
 //                       stretch is drawn as missing and never joined by a line across it
 //   missingSummary()    how many images were measured, how many had no usable data, how many were flagged, and the wavelength stretches nobody covers
 //
-// The wavelength range of each detector is the project's own table (docs/IRSA_FACTS.md section 3 and LESSON_SPHEREX.md): approximate and partly FROM MEMORY; only D2 (1.10-1.62 µm) is
+// The wavelength range of each detector is the project's own table (docs/IRSA_FACTS.md section 3): approximate and partly FROM MEMORY; only D2 (1.10-1.62 µm) is
 // confirmed by the documentation read. The range that is shown for an image the app HAS is always the one in that image's own header, never this table.
 
 /** The six detectors and where they look (µm). Approximate: see above. */

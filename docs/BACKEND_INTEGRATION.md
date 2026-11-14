@@ -49,7 +49,7 @@ Principiul de bază (deja în cod): **frontend-ul vorbește doar cu `getCutouts(
 
 ## 4. Contractul de date v2 (ce ar trebui să-i dăm frontend-ului)
 
-Pentru frontend-ul regândit (vezi [FRONTEND_PLAN.md](FRONTEND_PLAN.md)) contractul actual e prea sărac. Propuneri (se adaugă **fără să strice** câmpurile vechi):
+Pentru frontend-ul regândit contractul actual e prea sărac. Propuneri (se adaugă **fără să strice** câmpurile vechi):
 
 **Per cadru:**
 - `provenance`: `{ kind: "real" | "mock" | "synthetic-fits", productId, sourceUrl (link IRSA), processingVersion }`
