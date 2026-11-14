@@ -14,6 +14,31 @@ export function setupPredict({ getCandidate, getContext }) {
   const $ = (id) => document.getElementById(id);
   const svg = $("predict-chart"), slider = $("predict-days"), chips = $("predict-horizons");
   let days = HORIZONS[2].days;
+  // zoom and pan of the chart: zoom multiplies the scale, (cx, cy) is the centre of the view in arcseconds (east, north)
+  let zoom = 1, cx = 0, cy = 0, lastK = 1, lastCandidate = null;
+  const zoomLabel = $("predict-zoom-level");
+  function setZoom(z, atEast = cx, atNorth = cy) {
+    if (root.classList.contains("is-empty")) return;
+    const nz = Math.min(64, Math.max(1, z));
+    cx = atEast - (atEast - cx) * (zoom / nz); cy = atNorth - (atNorth - cy) * (zoom / nz);   // the point under the cursor stays put
+    zoom = nz; if (zoom === 1) { cx = 0; cy = 0; }
+    render();
+  }
+  const toSky = (ev) => { const b = svg.getBoundingClientRect(); const px = (ev.clientX - b.left) * W / b.width, py = (ev.clientY - b.top) * H / b.height;
+    return { east: cx - (px - W / 2) / lastK, north: cy - (py - H / 2) / lastK }; };
+  svg.addEventListener("wheel", (ev) => { if (root.classList.contains("is-empty")) return; ev.preventDefault(); const p = toSky(ev); setZoom(zoom * (ev.deltaY < 0 ? 1.25 : 0.8), p.east, p.north); }, { passive: false });
+  let drag = null;
+  svg.addEventListener("pointerdown", (ev) => { if (zoom === 1) return; drag = { x: ev.clientX, y: ev.clientY, cx, cy }; svg.setPointerCapture(ev.pointerId); svg.classList.add("is-dragging"); });
+  svg.addEventListener("pointermove", (ev) => { if (!drag) return; const b = svg.getBoundingClientRect();
+    cx = drag.cx + (ev.clientX - drag.x) * W / b.width / lastK; cy = drag.cy + (ev.clientY - drag.y) * H / b.height / lastK; render(); });
+  const endDrag = () => { drag = null; svg.classList.remove("is-dragging"); };
+  svg.addEventListener("pointerup", endDrag); svg.addEventListener("pointercancel", endDrag);
+  svg.addEventListener("dblclick", (ev) => { const p = toSky(ev); setZoom(zoom * 2, p.east, p.north); });
+  $("predict-zoom-in")?.addEventListener("click", () => setZoom(zoom * 1.5));
+  $("predict-zoom-out")?.addEventListener("click", () => setZoom(zoom / 1.5));
+  $("predict-zoom-reset")?.addEventListener("click", () => setZoom(1));
+  svg.tabIndex = 0;
+  svg.addEventListener("keydown", (ev) => { if (ev.key === "+" || ev.key === "=") setZoom(zoom * 1.5); else if (ev.key === "-") setZoom(zoom / 1.5); else if (ev.key === "0") setZoom(1); else return; ev.preventDefault(); });
 
   chips.replaceChildren(...HORIZONS.map((h) => {
     const b = document.createElement("button");
@@ -30,6 +55,7 @@ export function setupPredict({ getCandidate, getContext }) {
     const c = getCandidate(), ctx = getContext() ?? {};
     const scale = ctx.scaleArcsec;
     const m = c && motionOf(c, scale);
+    if (c !== lastCandidate) { lastCandidate = c; zoom = 1; cx = 0; cy = 0; }      // a new object starts at the full view
     root.classList.toggle("is-empty", !m);
     chips.querySelectorAll(".pr-chip").forEach((b) => b.setAttribute("aria-pressed", String(Math.abs(Number(b.dataset.days) - days) < 1)));
     svg.textContent = "";
@@ -51,18 +77,21 @@ export function setupPredict({ getCandidate, getContext }) {
     // view box in arcseconds: everything drawn, plus the uncertainty, with some room
     const xs = [0, now.east, ...past.map((p) => p.east)], ys = [0, now.north, ...past.map((p) => p.north)];
     const r = Math.max(...xs.map(Math.abs), ...ys.map(Math.abs), (now.sigma ?? 0) * 1.4, 3) * 1.25;
-    const k = Math.min((W - 2 * PAD) / (2 * r), (H - 2 * PAD) / (2 * r));
-    const X = (e) => W / 2 - e * k, Y = (n) => H / 2 - n * k;
+    const k = Math.min((W - 2 * PAD) / (2 * r), (H - 2 * PAD) / (2 * r)) * zoom;
+    lastK = k;
+    const X = (e) => W / 2 - (e - cx) * k, Y = (n) => H / 2 - (n - cy) * k;
+    const vr = r / zoom + Math.hypot(cx, cy);                         // half-size of what is visible, for the grid
 
     el("rect", { width: W, height: H, class: "pr-bg" });
     // grid every "nice" step
-    const step = [0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000].find((s) => s * k >= 42) ?? 10000;
-    for (let v = -Math.ceil(r / step) * step; v <= r; v += step) {
+    const step = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000].find((s) => s * k >= 42) ?? 10000;
+    for (let v = -Math.ceil(vr * 1.6 / step) * step; v <= vr * 1.6; v += step) {
       el("line", { x1: X(v), y1: 0, x2: X(v), y2: H, class: v ? "pr-grid" : "pr-axis" });
       el("line", { x1: 0, y1: Y(v), x2: W, y2: Y(v), class: v ? "pr-grid" : "pr-axis" });
     }
     label(8, 16, `grid: ${step}″`, "pr-lbl pr-faint");
     label(W - 10, 18, "N ↑   E ←", "pr-lbl pr-faint", "end");
+    if (zoomLabel) zoomLabel.textContent = zoom === 1 ? "1×" : `${zoom < 10 ? zoom.toFixed(1) : Math.round(zoom)}×`;
 
     // the uncertainty cone along the future path
     if (now.sigma !== null) {
