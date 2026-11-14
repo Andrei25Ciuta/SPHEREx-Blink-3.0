@@ -1,44 +1,9 @@
 import { CAN_USE_LOCAL_BACKEND } from "./config.js";
 
-import { mulberry32 } from "./data/mockSource.js";
+import { drawTrack, datedTrackPoints } from "./features/labTrackView.js";
 import { recoveryTrack } from "./features/recoveryTrack.js";
 
 const $ = id => document.getElementById(id);
-function drawTrack(plot, points, size, active = -1) {
-  const minX = Math.min(0, ...points.map(p => p.x));
-  const minY = Math.min(0, ...points.map(p => p.y));
-  const span = Math.max(size - minX, size - minY,
-    ...points.map(p => Math.max(p.x - minX, p.y - minY)));
-  const project = p => [24 + 372 * (p.x - minX) / span, 24 + 372 * (p.y - minY) / span];
-  const shape = (tag, attributes) => {
-    const node = document.createElementNS(plot.namespaceURI, tag);
-    for (const [name, value] of Object.entries(attributes)) node.setAttribute(name, value);
-    plot.append(node);
-    return node;
-  };
-  plot.replaceChildren();
-  const [x, y] = project({ x: 0, y: 0 });
-  shape("rect", { x, y, width: 372 * size / span, height: 372 * size / span, class: "recovery-boundary" });
-  // Keep the illustrative stars stationary when switching trials.
-  const random = mulberry32(1365);
-  for (let i = 0; i < 156; i++) {
-    const [cx, cy] = project({ x: size * (.025 + .95 * random()), y: size * (.025 + .95 * random()) });
-    const brightness = random() ** 3;
-    if (brightness > .72) {
-      shape("circle", { cx, cy, r: 4.2, class: "recovery-star", opacity: .10, "aria-hidden": "true" });
-    }
-    shape("circle", { cx, cy, r: .45 + 1.65 * brightness,
-      class: "recovery-star", opacity: .16 + .58 * brightness, "aria-hidden": "true" });
-  }
-  shape("polyline", { points: points.map(p => project(p).join(",")).join(" "), class: "recovery-line" });
-  points.forEach((point, i) => {
-    const [cx, cy] = project(point);
-    const dot = shape("circle", { cx, cy, r: i === active ? 6 : 3.5, class: i === active ? "recovery-point current" : "recovery-point" });
-    const title = document.createElementNS(plot.namespaceURI, "title");
-    title.textContent = point.dateISO;
-    dot.append(title);
-  });
-}
 
 const source = $("body-source");
 let workspaceCandidate;
@@ -62,9 +27,7 @@ function showBody() {
   $("candidate-summary").textContent = valid
     ? `${c.label} · ${c.synthetic ? "Synthetic workspace data" : "Workspace FITS data"} · fitted distance ${c.distance.toFixed(1)} AU (${c.range}) · ${c.points.length} supporting detections.`
     : "Select a distant-body result in Workspace and choose Inspect in Planet X Lab.";
-  if (valid) drawTrack($("candidate-plot"), c.points.map(p => ({
-    ...p, dateISO: new Date((p.mjd - 40587) * 86400000).toISOString(),
-  })), c.n);
+  if (valid) drawTrack($("candidate-plot"), datedTrackPoints(c.points), c.n);
 }
 source.addEventListener("change", showBody);
 showBody();

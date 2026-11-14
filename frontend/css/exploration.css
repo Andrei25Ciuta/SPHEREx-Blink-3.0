@@ -108,16 +108,10 @@ html[data-theme] .recovery-map .btn[aria-pressed="true"] {
 .trial-inspector { margin: 1.25rem 0; border-top: 1px solid var(--border); }
 .trial-controls { display: flex; flex-wrap: wrap; gap: .6rem 1rem; align-items: end; }
 .trial-controls label { display: grid; gap: .25rem; }
-.recovery-plot { max-width: 26rem; }
-.recovery-boundary { fill: #10151e; stroke: var(--border); }
-.recovery-star { fill: #dce9fb; }
-.recovery-line { fill: none; stroke: #f0bf73; stroke-width: 2; }
-.recovery-point { fill: #ffd693; }
 #recovery-track figcaption, #recovery-track details { margin-top: .65rem; color: var(--text-muted); }
 
 .recovery-comparison { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: 1rem; margin-top: .8rem; }
 .recovery-comparison figcaption { margin-bottom: .4rem; }
-.recovery-point.current { fill: #ffd693; stroke: #fff; stroke-width: 2; }
 #trial-comparison { margin-top: 1rem; }
 #trial-comparison input { max-width: 100%; }
 
