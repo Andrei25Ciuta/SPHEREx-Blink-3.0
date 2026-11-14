@@ -352,7 +352,7 @@ export function setupPinBoard({ getCandidate, getContext }) {
     cursorHint.style.top = Math.max(8, Math.min(e.clientY - r.top - cursorHint.offsetHeight - 12, r.height - cursorHint.offsetHeight - 8)) + "px";
   }
   function copyCoordinates(sky) {
-    const coordinates = `RA ${sky.ra.toFixed(5)}°, Dec ${sky.dec.toFixed(5)}°`;
+    const coordinates = `RA ${(Number(sky.ra.toFixed(5)) % 360).toFixed(5)}°, Dec ${sky.dec.toFixed(5)}°`;
     if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(coordinates).then(() => true, () => false);
     // Legacy fallback for browsers without the async Clipboard API.
     const temp = document.createElement("textarea");
