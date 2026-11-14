@@ -39,7 +39,7 @@ Suggested acknowledgement lines (check the exact wording on each archive's page 
 
 ## Adapted interface
 
-The 3D Overview presentation and illustrative spacecraft model are adapted from [EmanuelGeorge-c/proiect-nasa](https://github.com/EmanuelGeorge-c/proiect-nasa), used under its MIT licence. Copy and component details were revised for Blink 3.0's documented behavior and data limits.
+The 3D Overview presentation, illustrative Earth, orbit and spacecraft model are adapted from [EmanuelGeorge-c/proiect-nasa](https://github.com/EmanuelGeorge-c/proiect-nasa), used under its MIT licence. Copy and component details were revised for Blink 3.0's documented behavior and data limits.
 
 ## Software in the backend
 
