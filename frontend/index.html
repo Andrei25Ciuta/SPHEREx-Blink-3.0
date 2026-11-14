@@ -117,16 +117,6 @@
           <span id="colour-status" role="status"></span>
           <span id="colour-centre-status"></span>
         </div>
-        <section id="colour-measurements" class="colour-measurements" aria-labelledby="colour-measurements-title" hidden>
-          <h3 id="colour-measurements-title">Light in this frame</h3>
-          <dl>
-            <div><dt>Band centre</dt><dd id="colour-wavelength">—</dd></div>
-            <div><dt>Peak pixel (0–255)</dt><dd id="colour-peak">—</dd></div>
-            <div><dt>Local background (0–255)</dt><dd id="colour-background">—</dd></div>
-            <div><dt>Offset from reference position</dt><dd id="colour-offset">—</dd></div>
-          </dl>
-          <p class="muted small">Temperature in kelvin requires calibrated fluxes across multiple bands and a model of the source. These values use the display stretch.</p>
-        </section>
         <!-- Compare mode: pick image A, image B and the operation yourself (js/features/compare.js) -->
         <div class="compare-controls" id="compare-controls" hidden>
           <label>Image A <select id="cmp-a"></select></label>
@@ -236,6 +226,16 @@
               <div><dt>MJD</dt><dd id="meta-mjd">—</dd></div>
               <div><dt>Flags</dt><dd id="meta-flags">—</dd></div>
             </dl>
+          </section>
+          <section id="colour-measurements" class="insp-sec colour-measurements" aria-labelledby="colour-measurements-title" hidden>
+            <h3 id="colour-measurements-title">Light in this frame</h3>
+            <dl class="meta">
+              <div><dt>Band centre</dt><dd id="colour-wavelength">—</dd></div>
+              <div><dt>Peak pixel (0–255)</dt><dd id="colour-peak">—</dd></div>
+              <div><dt>Local background (0–255)</dt><dd id="colour-background">—</dd></div>
+              <div><dt>Offset from reference position</dt><dd id="colour-offset">—</dd></div>
+            </dl>
+            <p class="muted small">Temperature in kelvin requires calibrated fluxes across multiple bands and a model of the source. These values use the display stretch.</p>
           </section>
           <section class="timeline" id="timeline" aria-labelledby="timeline-title" hidden>
             <div class="tl-head">

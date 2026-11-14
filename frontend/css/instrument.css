@@ -95,9 +95,4 @@ html[data-theme] :is(.workspace-kicker,.atlas-kicker,.overview-kicker,.info-kick
   text-transform: none; letter-spacing: normal; font-family: var(--font-body);
 }
 
-.colour-measurements { padding: .65rem 1rem; border-bottom: 1px solid var(--border); }
-.colour-measurements h3, .colour-measurements p { margin: 0; }
-.colour-measurements h3 { font-size: .9rem; }
-.colour-measurements dl { display: flex; flex-wrap: wrap; gap: .4rem 1.5rem; margin: .4rem 0; }
-.colour-measurements dt { font-size: .75rem; color: var(--text-muted); }
-.colour-measurements dd { margin: 0; font-variant-numeric: tabular-nums; }
+.colour-measurements p { margin: .5rem 0 0; }
