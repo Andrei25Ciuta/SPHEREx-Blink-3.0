@@ -1,5 +1,9 @@
 # Development progress
 
+## 2026-11-14 — Blink in colours
+
+Added a linked workspace demo comparing centroids across two illustrative bands or two dates. It generates Gaussian stamps for a fixed blended pair, a moving source and a fixed reference star. The reference-corrected shifts passed `node scratch/test_colour_blink.mjs`. The fixture contains only synthetic pixels.
+
 ## 2026-11-11 — academic Overview refinement
 
 Simplified the public Overview into a quieter research-note presentation: reduced hero scale, more generous reading space, plain figure treatment, restrained monochrome illustration, compact capability line, hairline-separated mode descriptions, table-like target cards and a neutral workflow note. The formerly animated illustration is static by default, while the existing reduced-motion fallback remains. This is CSS-only; navigation, target deep links and all claims remain unchanged.
