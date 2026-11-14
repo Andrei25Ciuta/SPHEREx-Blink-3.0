@@ -280,7 +280,7 @@
     /* ── 3D CONTROLS OVERLAY HINT ── */
     .spacecraft-hint {
       position: absolute;
-      right: 8vw;
+      right: 4vw;
       top: 30%;
       transform: translateY(-50%);
       display: flex;
