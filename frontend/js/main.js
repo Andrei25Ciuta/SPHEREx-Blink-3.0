@@ -12,7 +12,7 @@ import { skyToCanvas, tanCanvasToSky, mjdToYear } from "./geometry.js";
 import { readUrlState, writeUrlState } from "./urlState.js";
 import { getCutouts, listDetectors } from "./data/getCutouts.js";
 import { DATA_SOURCE, API_BASE, CAN_USE_LOCAL_BACKEND } from "./config.js";
-import { BlinkPlayer, MODES, loadImage, meanImageData } from "./player.js?v=4";
+import { BlinkPlayer, MODES, loadImage, meanImageData } from "./player.js?v=5";
 import { canvasToSky, measureAndPlot, clearMeasurement, setSpectrumStyle, APERTURE_RADIUS_PX } from "./features/measure.js";
 import { setupViewer } from "./features/viewerControls.js";
 import { setupWorkspace } from "./features/workspaceView.js";
@@ -32,7 +32,7 @@ import { detectorCoverage, coverageText } from "./features/spectral.js";
 import { setupTooltips } from "./features/tooltip.js";
 import { applyIcons } from "./features/ui.js";
 import { openDialog, shortcutsHtml } from "./features/dialog.js";
-import { colourSequences } from "./features/colourBlink.js?v=2";
+import { colourSequences } from "./features/colourBlink.js?v=3";
 import { setupTimeline } from "./features/timelineView.js";
 import { FLAGGED_LIMIT } from "./features/timeline.js";
 import { SkyContext } from "./features/skyContext.js";
@@ -281,12 +281,24 @@ const player = new BlinkPlayer(canvas, {
   },
 });
 player.setFps(speedInput.value);
-player.onLightCentre = (kind) => {
+player.onLightCentre = ({ kind, measurement } = {}) => {
   const status = $("colour-centre-status");
   const message = kind === "measured" ? "Halo · estimated light centre"
     : kind === "predicted" ? "Faint halo · predicted position"
       : "No halo in this frame";
   if (status.textContent !== message) status.textContent = message;
+
+  const frame = player.frames[player.index];
+  const values = {
+    "colour-wavelength": ((frame.wavelengthMinUm + frame.wavelengthMaxUm) / 2).toFixed(3) + " µm",
+    "colour-peak": measurement ? String(measurement.peak) : "—",
+    "colour-background": measurement ? String(measurement.background) : "—",
+    "colour-offset": measurement ? measurement.offsetPx.toFixed(2) + " px" : "—",
+  };
+  for (const [id, value] of Object.entries(values)) {
+    const field = $(id);
+    if (field.textContent !== value) field.textContent = value;
+  }
 };
 
 // Zoom, pan, the readout under the pointer and the layer list (features/viewerControls.js). Set up BEFORE the click handler that measures:
@@ -486,6 +498,7 @@ const colourPass = $("colour-pass");
 function updateColourPlayback({ restart = false } = {}) {
   const enabled = player.mode === "colour";
   $("colour-controls").hidden = !enabled;
+  $("colour-measurements").hidden = !enabled;
   if (!enabled) return;
   const sequences = colourSequences(player.frames, player.activeIndices);
   const previous = colourPass.value;

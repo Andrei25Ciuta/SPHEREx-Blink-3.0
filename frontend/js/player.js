@@ -22,7 +22,7 @@
 // Zoom and pan (features/view.js): the player keeps `view = { zoom, cx, cy }`. Positions everywhere else stay image FRACTIONS (fx, fy);
 // only drawing goes through the view (`_px`), so the sky <-> image mapping of geometry.js is untouched by zoom and pan.
 
-import { lightCentre } from "./features/colourBlink.js?v=2";
+import { lightCentre } from "./features/colourBlink.js?v=3";
 import { combine } from "./features/compare.js";
 import { createView, clampView, fracToCanvas, canvasToFrac, sourceRect, zoomAt, panBy, panStep, scaleBar, centreAndZoom, pathCentre, followView } from "./features/view.js";
 import { OVERLAY_COLORS, DRAW_ORDER, clampOpacity, normaliseOrder } from "./features/layers.js";
@@ -266,7 +266,7 @@ export class BlinkPlayer {
     ctx.fillStyle = glow;
     ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
     ctx.restore();
-    return measured ? "measured" : "predicted";
+    return { kind: measured ? "measured" : "predicted", measurement: measured };
   }
 
   /** Is this layer on screen now (its switch is on and it has something to draw)? */

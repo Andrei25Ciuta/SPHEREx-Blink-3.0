@@ -53,6 +53,9 @@ pixels[3 * size + 3] = 255; // unrelated bright source outside the aperture
 const centre = lightCentre(pixels, size, target);
 assert.equal(centre.fx, 11.5 / size);
 assert.equal(centre.fy, 0.5);
+assert.equal(centre.peak, 90);
+assert.equal(centre.background, 12);
+assert.ok(Math.abs(centre.offsetPx - 1) < 1e-12);
 const mask = new Uint8Array(size ** 2);
 mask[10 * size + 11] = 1;
 assert.equal(lightCentre(pixels, size, target, mask), null);
@@ -86,10 +89,10 @@ Object.assign(haloPlayer, {
     save() {}, restore() {}, fillRect() {},
   },
 });
-assert.equal(haloPlayer._drawLightCentre(), "measured");
+assert.equal(haloPlayer._drawLightCentre().kind, "measured");
 assert.equal(gradientStops.length, 6);
 haloPlayer._colourMasks.set(0, mask);
-assert.equal(haloPlayer._drawLightCentre(), "predicted");
+assert.equal(haloPlayer._drawLightCentre().kind, "predicted");
 haloPlayer.candidates = [];
 haloPlayer.selectedCandidate = -1;
 assert.equal(haloPlayer._drawLightCentre(), undefined);
