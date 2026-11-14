@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="css/styles.css?v=26">
   <link rel="stylesheet" href="css/instrument.css?v=3">
   <link rel="stylesheet" href="css/lab-track.css">
-  <link rel="stylesheet" href="css/contact-sheet.css?v=26">
+  <link rel="stylesheet" href="css/contact-sheet.css?v=27">
 </head>
 <body>
   <a class="skip-link" href="#workspace">Skip to the workspace</a>
@@ -132,6 +132,7 @@
           <button type="button" class="btn btn-small" data-open-panel="image-layers" aria-controls="image-layers" aria-haspopup="dialog">
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3 2 8l10 5 10-5-10-5Zm-9 10 9 4.5 9-4.5M3 17l9 4.5 9-4.5"/></svg>
             Layers</button>
+          <button type="button" class="btn btn-small" id="expand-image-btn" aria-expanded="false" aria-controls="expanded-image-info">Expand image</button>
         </div>
 
         <div class="playback-strip">
@@ -181,6 +182,8 @@
           </div>
         </div>
 
+        <div class="expanded-image-info" id="expanded-image-info" hidden></div>
+
         <!-- Under the cursor: pixel, sky position, offset from the centre of the field, value (js/features/readout.js). Not a live region: it changes with every mouse move. -->
         <p class="readout" id="readout">
           <span class="readout-idle" id="readout-idle">Move the pointer over the image, or focus it with Tab, to read the pixel and the sky position (with the keyboard: at the centre of the view).</span>
@@ -212,7 +215,7 @@
           <button type="button" class="panel-toggle panel-toggle-right" id="panel-right-btn" aria-expanded="true" aria-controls="inspector-body" aria-keyshortcuts="]" title="Hide the inspector (])"><span class="panel-toggle-icon" aria-hidden="true"></span><span class="sr-only">Hide the inspector</span></button>
         </div>
         <div class="panel-body" id="inspector-body">
-          <section class="insp-sec" aria-labelledby="insp-image-title">
+          <section class="insp-sec" id="inspector-image" aria-labelledby="insp-image-title">
             <h3 id="insp-image-title">Image on screen</h3>
             <!-- Metadata of the current frame -->
             <dl class="meta" id="frame-meta">
@@ -698,7 +701,7 @@
     <div class="dlg-head"><h2 id="simulation-note-title">About the simulation</h2><form method="dialog"><button class="btn btn-small">Close</button></form></div>
     <p class="dlg-body">The Planet X preset uses a simulated body 600 AU away. Its position is invented for testing the distant-body search.</p>
   </dialog>
-  <script type="module" src="js/main.js?v=14"></script>
+  <script type="module" src="js/main.js?v=15"></script>
   <script type="module" src="js/scienceExplain.js"></script>
   <script type="module" src="js/features/highContrast.js"></script>
 </body>

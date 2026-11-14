@@ -169,3 +169,27 @@
 @media (pointer: coarse) {
   html[data-theme] :is(.btn,.chip,.mode-switch span,.panel-toggle) { min-height: 44px; }
 }
+
+/* Expanded image view keeps the current frame and observation controls together. */
+#workspace.layout.image-expanded {
+  max-width: 1640px;
+  grid-template-columns: minmax(0, 1fr);
+}
+#workspace.image-expanded > :is(#controls-panel, #inspector) { display: none; }
+#workspace.image-expanded .image-well .stage {
+  width: min(100%, max(30rem, 88svh), 75rem);
+}
+.expanded-image-info {
+  display: grid;
+  gap: .75rem;
+  width: min(100%, 75rem);
+  margin-inline: auto;
+  padding: .85rem;
+}
+.expanded-image-info .meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: .4rem .85rem;
+  margin: 0;
+}
+.expanded-image-info .tl-field { height: clamp(8rem, 22vh, 13rem); }

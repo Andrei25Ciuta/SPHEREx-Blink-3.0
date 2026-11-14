@@ -15,7 +15,7 @@ import { DATA_SOURCE, API_BASE, CAN_USE_LOCAL_BACKEND } from "./config.js";
 import { BlinkPlayer, MODES, loadImage, meanImageData } from "./player.js?v=8";
 import { canvasToSky, measureAndPlot, clearMeasurement, setSpectrumStyle, APERTURE_RADIUS_PX } from "./features/measure.js";
 import { setupViewer } from "./features/viewerControls.js";
-import { setupWorkspace } from "./features/workspaceView.js";
+import { setupWorkspace } from "./features/workspaceView.js?v=2";
 import { setupPlanetLab } from "./features/planetLabView.js";
 import { setupSkyExplorer } from "./features/skyExplorerView.js";
 import { setupSurveySearch } from "./features/surveyView.js";
@@ -326,6 +326,10 @@ updateMarkedPosition();
 setupWorkspace({
   root: $("workspace"), leftBtn: $("panel-left-btn"), rightBtn: $("panel-right-btn"),
   slot: $("inspector-slot"), empty: $("inspector-empty"), details: [$("mover-detail"), $("discover-detail")],
+  expand: {
+    button: $("expand-image-btn"), info: $("expanded-image-info"), inspector: $("inspector-body"),
+    sections: [$("inspector-image"), $("timeline")],
+  },
 });
 
 // Shared interface pieces (features/tooltip.js, ui.js, dialog.js): tooltips for the keyboard too, the icons, and the list of keyboard shortcuts.
