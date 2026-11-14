@@ -88,13 +88,22 @@ export function answerAstra(question) {
 
 export const SYSTEM_PROMPT = [
   "You are Astra, a friendly space guide on an educational website about NASA's SPHEREx infrared telescope and a tool that finds moving objects by blinking images.",
-  "Your readers are curious beginners about 10 to 15 years old. Answer in at most 5 short, clear sentences, in English, with an everyday comparison when it helps.",
+  "Your readers are curious beginners about 10 to 15 years old. Answer in at most 6 short, clear sentences, in English, with an everyday comparison when it helps.",
   "Use the reference notes you are given when they are relevant, and do not contradict them. If you are not sure of a fact, say so plainly instead of guessing.",
   "Never claim that this website or project discovered a new object or Planet X: a candidate is a lead to check, not a discovery.",
-  "If the question is not about space, astronomy, light or science, say kindly that you are a space guide and suggest a space question.",
+  "You may answer any question that is safe and suitable for students, on any school subject; keep it short and, when it fits, link it back to space or science. Politely refuse anything harmful, adult or unkind.",
+  "When you explain how to use this website, only describe tools named in the notes; if you do not know where something is, say so.",
 ].join(" ");
 
 /** The user message given to the model: the question and the matching notes. */
+/** Small AI models answer other languages badly (tried in Romanian, 14 Nov 2026): spot a question that is clearly not English so the page can ask for English. */
+export function looksNotEnglish(question) {
+  const q = ` ${normalize(question)} `;
+  if (/[ăâîșşțţ]/.test(q)) return true;
+  const ro = [" ce ", " este ", " sunt ", " cum ", " care ", " de ce ", " unde ", " cand ", " când ", " pentru ", " stelele ", " si ", " și ", " gaura ", " neagra "];
+  return ro.filter((w) => q.includes(w)).length >= 2;
+}
+
 export function astraPrompt(question, notes) {
   const ref = notes.length ? notes.map((n) => `- ${n.label}: ${n.answer}`).join("\n") : "- (no prepared note matches this question)";
   return `Reference notes:\n${ref}\n\nQuestion: ${String(question).slice(0, 300)}`;

@@ -45,6 +45,8 @@ The Learn Mode lesson summaries and interactive facts use the following NASA edu
 | **Aladin Lite** v3.6.5 (CDS) | **GPL-3.0** | Loaded unmodified from the jsDelivr CDN when the sky map opens. It is not bundled or redistributed here. Whether a page that loads a GPL library at run time must itself be GPL is a licensing question we have **not** settled; check it before choosing the final licence. |
 | **Plotly.js** (basic bundle) 2.35.2 | MIT | Spectrum and light-curve charts, loaded from jsDelivr on demand. |
 | **Three.js** r128 | MIT | Loaded from cdnjs on the Overview page for the optional illustrative 3D scene. |
+| **WebLLM** (@mlc-ai/web-llm) 0.2.87 | Apache-2.0 | Loaded from jsDelivr only when someone turns on Astra's free AI on a browser without a built-in AI; runs the model on the visitor's own graphics card. |
+| **Qwen2.5-3B-Instruct** (MLC build `Qwen2.5-3B-Instruct-q4f16_1-MLC`) | Qwen licence: from memory the 3B model is under the "Qwen Research License" (not Apache-2.0), which limits commercial use; check before relying on it | The model WebLLM downloads for Astra, from its public host; not stored in this repository. |
 | **Inter**, **Oswald**, **Space Grotesk**, **JetBrains Mono** | SIL Open Font License 1.1 | Loaded from Google Fonts. |
 | **Playwright** 1.59.1 (test-only, `playwright` on npm) | Microsoft, Apache-2.0 | Drives a real browser in `scratch/browser_*.cjs` and in the advisory CI job `browser`. Installed outside the repository on every run (`npm install playwright@1.59.1`); nothing of it is shipped or served. Licence from the npm registry listing. |
 
