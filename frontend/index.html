@@ -401,7 +401,7 @@
         <p class="pr-lead">Where the selected object will be, from its measured motion.</p>
       </div>
       <div class="pr-body">
-        <svg id="predict-chart" class="pr-chart" viewBox="0 0 640 320" role="img" aria-label="Chart of the object's measured positions and its predicted path, east to the left and north up"></svg>
+        <div class="pr-chart-wrap"><div class="pr-zoom" role="group" aria-label="Zoom the chart"><button type="button" id="predict-zoom-out" aria-label="Zoom out">−</button><span id="predict-zoom-level" aria-live="polite">1×</span><button type="button" id="predict-zoom-in" aria-label="Zoom in">+</button><button type="button" id="predict-zoom-reset">Reset</button></div><svg id="predict-chart" class="pr-chart" viewBox="0 0 640 320" role="img" aria-label="Chart of the object's measured positions and its predicted path, east to the left and north up"></svg></div>
         <div class="pr-side">
           <div class="pr-horizons" id="predict-horizons" role="group" aria-label="Predict for"></div>
           <label class="pr-slider-label" for="predict-days">Any date (up to 10 years)</label>

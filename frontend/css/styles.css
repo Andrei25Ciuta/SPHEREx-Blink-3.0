@@ -719,6 +719,7 @@ output { font-weight: 600; color: var(--accent); }
 .sky-cursor-coordinates[hidden] { display: none; }
 
 
+
 /* Full-screen map: the frame (controls + map + status line) fills the screen.
    `is-fullscreen` = real Fullscreen API or CSS fallback; `is-fallback` = CSS fallback only (see fullscreen.js). */
 .skyframe.is-fullscreen {
@@ -1614,3 +1615,13 @@ main .panel > h2, main .panel .panel-head, main .pin-board .pb-head { padding-ri
 .k-fit { background: #e8ebf2aa; } .k-future { background: repeating-linear-gradient(90deg, #f2c14e 0 5px, transparent 5px 8px); } .k-sigma { background: #7cc6fe66; height: 10px !important; }
 #predict.is-empty .pr-side { opacity: .55; pointer-events: none; }
 @media (max-width: 900px) { .pr-body { grid-template-columns: 1fr; } }
+
+/* Zoom of the forecast chart (predictView.js): wheel, double-click, drag to pan, + / − / 0 keys. */
+.pr-chart-wrap { position: relative; min-width: 0; }
+.pr-chart-wrap .pr-chart { touch-action: none; cursor: zoom-in; }
+.pr-chart.is-dragging { cursor: grabbing; }
+.pr-zoom { position: absolute; right: 10px; bottom: 10px; display: flex; align-items: center; gap: 4px; padding: 3px; border: 1px solid var(--border); border-radius: var(--radius-sm, 4px); background: var(--surface); }
+.pr-zoom button { min-width: 30px; min-height: 30px; padding: 0 8px; border: 1px solid var(--control-border); border-radius: 3px; background: var(--field); color: var(--text); font: 600 .9rem/1 var(--font-body); cursor: pointer; }
+.pr-zoom button:hover { border-color: var(--accent); }
+.pr-zoom span { min-width: 3ch; text-align: center; color: var(--text-muted); font-size: .8rem; }
+.predict.is-empty .pr-zoom { display: none; }
