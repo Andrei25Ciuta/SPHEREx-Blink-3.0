@@ -13,10 +13,10 @@
   <script type="module" src="js/siteHeader.js"></script>
   <div class="explore">
 <main id="simulation" class="simulator-page" tabindex="-1"><header class="sim-intro"><p class="atlas-kicker">Orbit geometry lab</p><h1>Solar System Simulator</h1>
-<p>Follow a symbolic SPHEREx satellite and compare synthetic snapshots of the same target over a year. See why its apparent position shifts at month 6 and nearly returns at month 12.</p></header>
+<p>Watch symbolic SPHEREx orbit a rotating Earth, then compare synthetic snapshots of the same target over a year. See why its apparent position shifts at month 6 and nearly returns at month 12.</p></header>
 <form class="simulator-layout" id="controls">
-<section class="panel sim-stage"><div class="sim-panel-heading"><h2>Observer and target</h2><p>Earth, the Sun, a symbolic SPHEREx satellite, and the target sightline in the selected projection.</p></div>
-<figure><svg viewBox="0 0 700 400" class="plot" id="scene" role="img" aria-label="Earth’s orbit, the Sun, a symbolic SPHEREx satellite and sightlines from two dates to the same target">
+<section class="panel sim-stage"><div class="sim-panel-heading"><h2>Observer and target</h2><p>Earth rotates as symbolic SPHEREx orbits it; the selected projection shows the Sun and target sightlines.</p></div>
+<figure><svg viewBox="0 0 700 400" class="plot" id="scene" role="img" aria-label="Earth rotating around its axis, symbolic SPHEREx orbiting Earth, the Sun and target sightlines from two dates">
   <defs>
     <radialGradient id="sun-glow">
       <stop stop-color="#efaa47" stop-opacity=".48"/><stop offset=".45" stop-color="#d88132" stop-opacity=".25"/><stop offset="1" stop-color="#d88132" stop-opacity="0"/>
@@ -68,7 +68,7 @@
   <p class="sim-alignment-caption" id="sim-alignment-caption" aria-live="polite">Before alignment: the reference stars appear doubled because the camera points slightly differently.</p>
 </section>
 <dl class="tool-output sim-readouts"><div><dt>Observer epoch</dt><dd id="epoch"></dd></div><div><dt>Earth position</dt><dd id="earth"></dd></div><div><dt>Apparent offset</dt><dd id="offset"></dd></div><div><dt>Target distance</dt><dd id="range"></dd></div></dl>
-<p class="sim-note"><strong>Model scope.</strong> The SPHEREx icon is symbolic, not a spacecraft orbit at scale. Calculations still use an Earth-centred observer and approximate heliocentric Earth ephemeris on J2000 equatorial axes; offsets are tangent-plane arcseconds relative to the reference date. Synthetic exposure stars, pointing error, brightness and apparent image scale are illustrations, not detector pixels or actual SPHEREx observations. The target is stationary in this model; spacecraft motion, target orbital motion, aberration and light-travel time are omitted.</p>
+<p class="sim-note"><strong>Model scope.</strong> Earth’s spin and the SPHEREx orbit are visual illustrations only; the spacecraft orbit is not to scale and does not affect the calculations. The model uses an Earth-centred observer and approximate heliocentric Earth ephemeris on J2000 equatorial axes; offsets are tangent-plane arcseconds relative to the reference date. Synthetic exposure stars, pointing error, brightness and apparent image scale are illustrations, not detector pixels or actual SPHEREx observations. The target is stationary in this model; spacecraft motion, target orbital motion, aberration and light-travel time are omitted.</p>
 <p id="status" role="status"></p></section>
 <section class="panel sim-inputs sim-controls"><div class="sim-panel-heading"><h2>Geometry</h2><p>Set the reference target, time and camera. Every input updates the model immediately.</p></div>
 <fieldset><legend>Target reference</legend><label>View <select id="mode"><option value="educational">Educational visualization</option><option value="scientific">Scientific geometry</option></select></label>

@@ -4,6 +4,7 @@ import { FRAME_WIDTH, FRAME_HEIGHT, MONTH_PRESETS, syntheticStars, exposureGeome
 
 const $ = id => document.getElementById(id);
 const svg = $("scene-bodies"), controls = $("controls");
+const motionAllowed = !matchMedia("(prefers-reduced-motion: reduce)").matches;
 let timer, lastEpoch, orbit;
 
 const stars = syntheticStars();
@@ -182,11 +183,15 @@ function draw() {
     return [350 + (x - (minX+maxX)/2) * pixelsPerAU, 200 - (y - (minY+maxY)/2) * pixelsPerAU];
   };
   const nodes = [];
-  function shape(tag, attrs, content) {
+  const animationSeconds = performance.now() / 1000;
+  const animationStart = duration => `${Math.floor(animationSeconds / duration) * duration}s`;
+  function shape(tag, attrs, content, parent = nodes) {
     const el = document.createElementNS(svg.namespaceURI, tag);
     for (const [key,value] of Object.entries(attrs)) el.setAttribute(key,value);
     if (content) el.textContent = content;
-    nodes.push(el);
+    if (Array.isArray(parent)) parent.push(el);
+    else parent.append(el);
+    return el;
   }
   function line(start, end, cls) {
     const [x1,y1] = project(start), [x2,y2] = project(end);
@@ -197,7 +202,12 @@ function draw() {
   }
   function earth(pos, name, cls, dy) {
     const [cx, cy] = project(pos);
-    shape("use", { href: "#earth-symbol", x: cx - 14, y: cy - 14, width: 28, height: 28, class: cls });
+    const globe = shape("g", { class: "earth-spin" });
+    shape("use", { href: "#earth-symbol", x: cx - 14, y: cy - 14, width: 28, height: 28, class: cls }, null, globe);
+    if (motionAllowed) shape("animateTransform", {
+      attributeName: "transform", type: "rotate", from: `0 ${cx} ${cy}`, to: `360 ${cx} ${cy}`,
+      dur: "36s", begin: animationStart(36), repeatCount: "indefinite"
+    }, null, globe);
     label(cx, cy + dy, name);
   }
   shape("polyline", { points: orbit.map(p => project(p).join(",")).join(" "), class: "orbit" });
@@ -212,12 +222,23 @@ function draw() {
   const overlap = Math.hypot(refX - obsX, refY - obsY) < 32;
   if (!overlap) earth(model.reference, "Reference Earth", "reference-earth", -22);
   earth(model.observer, overlap ? "Earth · both views" : "Observer Earth", "observer-earth", 30);
-  // The spacecraft marker is deliberately much larger than the actual low-Earth orbit on this AU diagram.
+  // The orbit and spacecraft are symbolic; their visual motion is not used by the parallax calculation.
   shape("circle", { cx: obsX, cy: obsY, r: 25, class: "spherex-orbit" });
   const side = obsX > 535 ? -1 : 1;
-  const craftX = obsX + side * 23, craftY = obsY - 15;
-  shape("use", { href: "#spherex-symbol", x: craftX - 15, y: craftY - 15, width: 30, height: 30 });
-  shape("text", { x: craftX + side * 18, y: craftY - 13, "text-anchor": side === 1 ? "start" : "end", class: "spherex-label" }, "SPHEREx");
+  const craftX = obsX + 25, craftY = obsY;
+  const spacecraft = shape("g", { class: "spherex-orbiting" });
+  if (motionAllowed) shape("animateTransform", {
+    attributeName: "transform", type: "rotate", from: `0 ${obsX} ${obsY}`, to: `360 ${obsX} ${obsY}`,
+    dur: "12s", begin: animationStart(12), repeatCount: "indefinite"
+  }, null, spacecraft);
+  shape("use", { href: "#spherex-symbol", x: craftX - 15, y: craftY - 15, width: 30, height: 30 }, null, spacecraft);
+  const labelX = craftX + side * 21, labelY = craftY - 16;
+  const craftLabel = shape("g", {}, null, spacecraft);
+  shape("text", { x: labelX, y: labelY, "text-anchor": side === 1 ? "start" : "end", class: "spherex-label" }, "SPHEREx", craftLabel);
+  if (motionAllowed) shape("animateTransform", {
+    attributeName: "transform", type: "rotate", from: `0 ${labelX} ${labelY}`, to: `-360 ${labelX} ${labelY}`,
+    dur: "12s", begin: animationStart(12), repeatCount: "indefinite"
+  }, null, craftLabel);
   const [targetX, targetY] = project(target);
   shape("circle", { cx: targetX, cy: targetY, r: 15, fill: "url(#target-glow)" });
   shape("circle", { cx: targetX, cy: targetY, r: 3, fill: "#f5f8ff" });
