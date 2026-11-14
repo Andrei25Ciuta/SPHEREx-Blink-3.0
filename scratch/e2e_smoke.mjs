@@ -200,6 +200,8 @@ async function main() {
       return `${await evaluate(`document.querySelectorAll("#assistant-out li").length`)} sentences`;
     });
     await step("the text analysis (tables, no picture) is built, lists the dots and the candidate, and its first line says the data are synthetic", async () => {
+      // Text analysis is inside the initially collapsed workspace-analysis disclosure.
+      await evaluate(`document.getElementById("workspace-analysis").open = true`);
       await click("#ta-build-btn");
       await waitFor(`!document.getElementById("ta-out").hidden`, "text analysis tables");
       const info = await evaluate(`({ status: document.getElementById("ta-status").textContent, first: document.querySelector("#ta-prov li")?.textContent ?? "", dots: document.querySelectorAll("#ta-sources tbody tr").length, cands: document.querySelectorAll("#ta-cands tbody tr").length,

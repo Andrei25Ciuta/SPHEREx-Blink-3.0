@@ -84,6 +84,27 @@ export function skyToMap(ra, dec) {
   return { x: 1 - (((ra % 360) + 360) % 360) / 360, y: (90 - Math.max(-90, Math.min(90, dec))) / 180 };
 }
 
+/** Undo the Pin Board's map projection at the cursor (RA/Dec in decimal degrees).
+ *  A field view uses the same small-angle approximation as fieldOffsetArcmin.
+ *  Returns null for clicks outside the map or when the field has no coordinates. */
+export function mapToSky(x, y, { view = "sky", field = null, width = 720, height = 360 } = {}) {
+  if (![x, y, width, height].every(Number.isFinite) || width <= 0 || height <= 0 ||
+      x < 0 || x > width || y < 0 || y > height) return null;
+  if (view === "sky") {
+    return { ra: (((1 - x / width) * 360) % 360 + 360) % 360,
+      dec: 90 - y / height * 180 };
+  }
+  if (view !== "field" || !Number.isFinite(field?.ra) || !Number.isFinite(field?.dec)) return null;
+  const half = Math.max(1, Number.isFinite(field.fov) ? field.fov : 5) * 0.75;
+  const k = (height / 2) / half;
+  const eastArcmin = (width / 2 - x) / k, northArcmin = (height / 2 - y) / k;
+  const cosDec = Math.cos(field.dec * Math.PI / 180);
+  return {
+    ra: (((field.ra + (Math.abs(cosDec) < 1e-8 ? 0 : eastArcmin / (60 * cosDec))) % 360) + 360) % 360,
+    dec: Math.max(-90, Math.min(90, field.dec + northArcmin / 60))
+  };
+}
+
 // ---------------------------------------------------------------- drawing helpers for the board (pure)
 
 /** The ecliptic (where the Sun, the planets and most asteroids travel) as [ra, dec] degrees; obliquity 23.44° (textbook value). */

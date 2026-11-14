@@ -2,6 +2,9 @@
    Deliberately leaves #scene, .plot and all SVG descendants untouched:
    the Sun, planets, orbital paths and sightlines keep their existing design. */
 
+html[data-theme]:has(body.simulator-body) {
+  --text-muted: #c4c4bf;
+}
 html[data-theme] body.simulator-body {
   min-height: 100vh;
   color-scheme: dark;
@@ -102,6 +105,7 @@ html[data-theme]:not([data-contrast="high"]):has(body.simulator-body) body.simul
   color: #f1f1ee;
   background:
     linear-gradient(145deg, rgba(28, 31, 39, .82), rgba(14, 18, 27, .82));
+  background-color: #141821; /* A real fallback surface for contrast checks beneath the translucent gradient. */
   backdrop-filter: blur(7px);
   -webkit-backdrop-filter: blur(7px);
   border: 1px solid rgba(239, 178, 79, .2);

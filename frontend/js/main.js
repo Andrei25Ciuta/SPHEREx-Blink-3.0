@@ -23,7 +23,7 @@ import { setupTextAnalysis } from "./features/textAnalysisView.js";
 import { setupBundle } from "./features/bundleView.js";
 import { fetchSurvey as askSurvey } from "./features/surveyCoverage.js";
 import { setupAssistant } from "./features/assistantView.js";
-import { setupPinBoard } from "./features/missionsPinView.js";
+import { setupPinBoard } from "./features/missionsPinView.js?v=2";
 import { setupPredict } from "./features/predictView.js";
 import { startMissionRunner } from "./features/missionRunner.js";
 import { runTask, isCancelled } from "./features/workerClient.js";

@@ -1,7 +1,7 @@
 // missionsPinView.js – the DOM part of missions.js (the mission card) and pinBoard.js (the pin board with its sky map and the observer-name dialog).
 
 import { missionWhy, termsFor, categoryInfo, stepWhy, xpFor, missionsDatabase, pickRandomMission, missionHref, loadProgress, saveProgress, markComplete, noteShown } from "./missions.js?v=2";
-import { makePin, pinTag, loadPins, savePins, addPin, removePin, skyToMap, verifyPin, eclipticPoints, galacticToEquatorial, fieldOffsetArcmin, initials, timeAgo, decorativeStars, canPin } from "./pinBoard.js";
+import { makePin, pinTag, loadPins, savePins, addPin, removePin, skyToMap, mapToSky, verifyPin, eclipticPoints, galacticToEquatorial, fieldOffsetArcmin, initials, timeAgo, decorativeStars, canPin } from "./pinBoard.js?v=2";
 import { formatRA, formatDec } from "../coords.js";
 import { sharedConfig, fetchSharedPins, pushSharedPin, mergePins } from "./pinSync.js";
 import { PIN_BOARD_URL, PIN_BOARD_KEY } from "../config.js";
@@ -145,6 +145,8 @@ export function setupPinBoard({ getCandidate, getContext }) {
   const pinBtns = [$("pin-report-btn"), $("pin-board-pin-btn")].filter(Boolean);
   const svg = $("pin-map");
   const popup = $("pin-popup");
+  const cursorHint = $("pb-hover-coords");
+  const cursorReadout = $("pb-cursor-readout");
   const el = (tag, attrs = {}, parent = svg) => { const n = document.createElementNS(SVG, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v); parent.appendChild(n); return n; };
   // zoom and pan: the map is drawn once in map units (W x H); the viewBox shows a part of it. Labels and pins keep their size on screen.
   let zoom = 1, cx = W / 2, cy = H / 2;
@@ -322,20 +324,117 @@ export function setupPinBoard({ getCandidate, getContext }) {
 
   // ---- events
   let drag = null, dragged = false;
-  svg.addEventListener("click", (e) => { if (dragged) { dragged = false; return; } const g = e.target.closest(".pin-marker"); openId = g ? (g.dataset.id === openId ? null : g.dataset.id) : null; render(); });
-  const toMap = (e) => { const r = svg.getBoundingClientRect(), v = vb(); return { x: v.x + (e.clientX - r.left) / r.width * v.w, y: v.y + (e.clientY - r.top) / r.height * v.h }; };
-  svg.addEventListener("pointerdown", (e) => { if (zoom > 1 && !e.target.closest(".pin-marker")) { drag = { x: e.clientX, y: e.clientY, cx, cy }; svg.setPointerCapture(e.pointerId); } });
+  const toMap = (e) => {
+    // Use the SVG's actual transform, including letterboxing in full-screen mode.
+    const ctm = svg.getScreenCTM?.();
+    if (ctm && svg.createSVGPoint) {
+      const pt = svg.createSVGPoint();
+      pt.x = e.clientX; pt.y = e.clientY;
+      const p = pt.matrixTransform(ctm.inverse());
+      return { x: p.x, y: p.y };
+    }
+    const r = svg.getBoundingClientRect(), v = vb();
+    return { x: v.x + (e.clientX - r.left) / r.width * v.w,
+      y: v.y + (e.clientY - r.top) / r.height * v.h };
+  };
+  const skyAt = (e) => {
+    const m = toMap(e);
+    return mapToSky(m.x, m.y, { view, field: getContext().field, width: W, height: H });
+  };
+  const hideCursorHint = () => { if (cursorHint) cursorHint.hidden = true; };
+  function showCursorHint(e, sky) {
+    if (!cursorHint || !cursorReadout) return;
+    if (!sky) { hideCursorHint(); return; }
+    cursorReadout.textContent = `RA ${formatRA(sky.ra)} · Dec ${formatDec(sky.dec)} (${sky.ra.toFixed(5)}°, ${sky.dec.toFixed(5)}°)`;
+    cursorHint.hidden = false;
+    const r = svg.closest(".pb-map-wrap").getBoundingClientRect();
+    cursorHint.style.left = Math.max(8, Math.min(e.clientX - r.left + 14, r.width - cursorHint.offsetWidth - 8)) + "px";
+    cursorHint.style.top = Math.max(8, Math.min(e.clientY - r.top - cursorHint.offsetHeight - 12, r.height - cursorHint.offsetHeight - 8)) + "px";
+  }
+  function copyCoordinates(sky) {
+    const coordinates = `RA ${(Number(sky.ra.toFixed(5)) % 360).toFixed(5)}°, Dec ${sky.dec.toFixed(5)}°`;
+    const fallbackCopy = () => {
+      const temp = document.createElement("textarea");
+      temp.value = coordinates;
+      temp.style.position = "fixed"; temp.style.opacity = "0";
+      document.body.appendChild(temp);
+      temp.select();
+      let copied = false;
+      try { copied = Boolean(document.execCommand?.("copy")); } catch {}
+      temp.remove();
+      return copied;
+    };
+    // The clipboard request starts synchronously from the click gesture.
+    if (navigator.clipboard?.writeText) {
+      try { return navigator.clipboard.writeText(coordinates).then(() => true, fallbackCopy); }
+      catch { return Promise.resolve(fallbackCopy()); }
+    }
+    return Promise.resolve(fallbackCopy());
+  }
+  function openMapPosition(sky) {
+    if (!sky) return;
+    // The Pin Board is on the same page as Blink: use its existing field loader.
+    const ra = $("ra-input"), dec = $("dec-input"), form = $("search-form");
+    ra.value = (Number(sky.ra.toFixed(5)) % 360).toFixed(5);
+    dec.value = sky.dec.toFixed(5);
+    ra.dispatchEvent(new Event("input", { bubbles: true }));
+    dec.dispatchEvent(new Event("input", { bubbles: true }));
+    if ($("controls-body")?.hidden) $("panel-left-btn")?.click();
+    form.requestSubmit();
+    openId = null;
+    popup.hidden = true;
+    hideCursorHint();
+    const moveToWorkspace = () => $("workspace").scrollIntoView({ behavior: "smooth", block: "start" });
+    if (document.fullscreenElement) {
+      const exit = document.exitFullscreen?.();
+      if (exit?.then) exit.then(moveToWorkspace, moveToWorkspace);
+      else moveToWorkspace();
+    } else {
+      svg.closest(".pb-map-wrap")?.classList.remove("is-expanded");
+      moveToWorkspace();
+    }
+  }
+  svg.addEventListener("click", (e) => {
+    if (dragged) { dragged = false; return; }
+    if (e.button !== 0) return;
+    const g = e.target.closest(".pin-marker");
+    if (g) { openId = g.dataset.id === openId ? null : g.dataset.id; render(); return; }
+    const sky = skyAt(e);
+    if (!sky) return;
+    // Start the copy inside the user gesture; loading the field does not depend on clipboard permission.
+    const copied = copyCoordinates(sky);
+    openMapPosition(sky);
+    copied.then((ok) => { $("pin-status").textContent = ok
+      ? "Sky coordinates copied and loaded in Workspace."
+      : "Coordinates loaded in Workspace. Clipboard copy was unavailable."; });
+  });
+  svg.addEventListener("pointerdown", (e) => {
+    if (e.button === 0 && zoom > 1 && !e.target.closest(".pin-marker")) {
+      drag = { x: e.clientX, y: e.clientY, cx, cy };
+      svg.setPointerCapture(e.pointerId);
+    }
+  });
   svg.addEventListener("pointermove", (e) => {
-    const m = toMap(e), out = $("pb-readout");
-    if (out) out.textContent = view === "sky" ? `RA ${formatRA((1 - m.x / W) * 360)} · Dec ${formatDec(90 - m.y / H * 180)}` : "";
+    const sky = skyAt(e), out = $("pb-readout");
+    if (out) out.textContent = sky
+      ? `RA ${formatRA(sky.ra)} · Dec ${formatDec(sky.dec)} · Left-click to open in Workspace`
+      : "Move over the map to read RA and Dec.";
+    showCursorHint(e, sky);
     if (!drag) return;
     const r = svg.getBoundingClientRect(), v = vb();
     const dx = (e.clientX - drag.x) / r.width * v.w, dy = (e.clientY - drag.y) / r.height * v.h;
     if (Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) > 4) dragged = true;
     cx = drag.cx - dx; cy = drag.cy - dy; applyView(); if (!popup.hidden) showPopup();
+    // Map coordinates can change during a drag; hide the hover hint until the next move.
+    hideCursorHint();
   });
   svg.addEventListener("pointerup", () => { if (drag && dragged) render(); drag = null; });
-  svg.addEventListener("pointerleave", () => { const out = $("pb-readout"); if (out) out.textContent = "Move over the map to read RA and Dec. Zoom with + / − (or Ctrl + scroll), drag to move."; });
+  svg.addEventListener("pointercancel", () => { drag = null; dragged = false; hideCursorHint(); });
+  svg.addEventListener("pointerleave", () => {
+    hideCursorHint();
+    const out = $("pb-readout");
+    if (out) out.textContent = "Move over the map to read RA and Dec. Left-click to copy and open in Workspace; drag to pan.";
+  });
   function zoomTo(z, at) {
     const nz = Math.min(16, Math.max(1, z));
     if (at) { cx = at.x + (cx - at.x) * zoom / nz; cy = at.y + (cy - at.y) * zoom / nz; }

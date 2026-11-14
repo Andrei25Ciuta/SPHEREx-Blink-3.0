@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Oswald:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 
   <script>if (/[?&]embed=1(&|$)/.test(location.search)) document.documentElement.classList.add("embed");</script>   <!-- ?embed=1: workspace only, for an <iframe> -->
-  <link rel="stylesheet" href="css/styles.css?v=24">
+  <link rel="stylesheet" href="css/styles.css?v=25">
   <link rel="stylesheet" href="css/instrument.css?v=3">
   <link rel="stylesheet" href="css/lab-track.css">
   <link rel="stylesheet" href="css/contact-sheet.css?v=25">
@@ -401,7 +401,7 @@
         <p class="pr-lead">Where the selected object will be, from its measured motion.</p>
       </div>
       <div class="pr-body">
-        <svg id="predict-chart" class="pr-chart" viewBox="0 0 640 320" role="img" aria-label="Chart of the object's measured positions and its predicted path, east to the left and north up"></svg>
+        <div class="pr-chart-wrap"><div class="pr-zoom" role="group" aria-label="Zoom the chart"><button type="button" id="predict-zoom-out" aria-label="Zoom out">−</button><span id="predict-zoom-level" aria-live="polite">1×</span><button type="button" id="predict-zoom-in" aria-label="Zoom in">+</button><button type="button" id="predict-zoom-reset">Reset</button></div><svg id="predict-chart" class="pr-chart" viewBox="0 0 640 320" role="img" aria-label="Chart of the object's measured positions and its predicted path, east to the left and north up"></svg></div>
         <div class="pr-side">
           <div class="pr-horizons" id="predict-horizons" role="group" aria-label="Predict for"></div>
           <label class="pr-slider-label" for="predict-days">Any date (up to 10 years)</label>
@@ -501,7 +501,11 @@
         <button type="button" class="btn btn-small btn-primary" id="pin-board-pin-btn" disabled>Pin the selected object</button>
       </div>
       <div class="pb-map-wrap">
-        <svg id="pin-map" class="pin-map" viewBox="0 0 720 360" role="img" aria-label="Sky map of the pins"></svg>
+        <svg id="pin-map" class="pin-map" viewBox="0 0 720 360" role="img" aria-label="Sky map of the pins. Hover to read RA and Dec; left-click empty sky to copy the coordinates and load that field in Blink Workspace."></svg>
+        <div class="pb-hover-coords" id="pb-hover-coords" role="tooltip" hidden>
+          <span id="pb-cursor-readout"></span>
+          <small>Left-click: copy + open in Workspace</small>
+        </div>
         <div class="pb-map-tools" role="group" aria-label="Map zoom">
           <button type="button" data-pb-zoom="in" aria-label="Zoom in">+</button>
           <span class="pb-zoom-level" id="pb-zoom-level">1×</span>
@@ -509,7 +513,7 @@
           <button type="button" data-pb-zoom="reset" aria-label="Show the whole map">⟲</button>
         </div>
         <button type="button" class="pb-fullscreen" id="pb-fullscreen">Full screen</button>
-        <p class="pb-readout" id="pb-readout" aria-live="off">Move over the map to read RA and Dec. Zoom with + / − (or Ctrl + scroll), drag to move.</p>
+        <p class="pb-readout" id="pb-readout" aria-live="off">Move over the map to read RA and Dec. Left-click to copy and open in Workspace; drag to pan.</p>
         <div class="pb-popup" id="pin-popup" hidden></div>
       </div>
       <p class="pb-sync small"><span id="pin-sync" role="status" aria-live="polite"></span> <button type="button" class="btn btn-small" id="pin-refresh-btn">Refresh</button></p>
@@ -710,7 +714,7 @@
     <div class="dlg-head"><h2 id="simulation-note-title">About the simulation</h2><form method="dialog"><button class="btn btn-small">Close</button></form></div>
     <p class="dlg-body">The Planet X preset uses a simulated body 600 AU away. Its position is invented for testing the distant-body search.</p>
   </dialog>
-  <script type="module" src="js/main.js?v=12"></script>
+  <script type="module" src="js/main.js?v=13"></script>
   <script type="module" src="js/scienceExplain.js"></script>
   <script type="module" src="js/features/highContrast.js"></script>
 </body>
