@@ -59,7 +59,7 @@ Checked with `scratch/audit_page.js` in the app's built-in browser (Chromium), p
 
 ## Colour themes and "Find everything" (added 8 Nov 2026)
 
-- **Themes** (Deep Space, Observatory, Light research, Classic): `scratch/test_theme.mjs` reads the CSS tokens and requires 4.5:1 for every text colour
+- **Themes** (Midnight / dark and the five Paper palettes: violet, blue, green, signal red, earth; the internal ids are `midnight`, `nebula`, `deep-space`, `observatory`, `light`, `classic`): `scratch/test_theme.mjs` reads the CSS tokens and requires 4.5:1 for every text colour
   (text, secondary text, links, warnings, errors, success, secondary accent) on every surface it can sit on, and for the text on an accent fill, in all four themes;
   inputs and buttons need a 3:1 border in the three new themes (Classic keeps its original faint border: a known gap).
 - The script audit (`scratch/audit_page.js`, with the background taken from the theme's `--bg` instead of the Classic colour) at 375 px, with real data and the

@@ -10,7 +10,7 @@ async function check() {
       const page = await browser.newPage({ viewport: { width, height: 800 }, reducedMotion: "reduce" });
       await page.route("**/*", route => new URL(route.request().url()).origin === new URL(base).origin
         ? route.continue() : route.abort());
-      await page.goto(base);
+      await page.goto(new URL("index.html#workspace", base).href);   // a bare index.html redirects to overview.html; a hash keeps the workspace
       await page.locator("#about").evaluate(el => { el.inert = true; });
       const opener = page.locator("#tour-btn");
       await opener.click();
@@ -19,8 +19,8 @@ async function check() {
       assert.equal(await dialog.getAttribute("aria-modal"), "true");
       assert.equal(await page.locator("#workspace").evaluate(el => el.inert), true,
         "workspace is inert while modal tour is open");
-      assert.equal(await page.locator(".hero").evaluate(el => el.inert), true,
-        "hero is inert while modal tour is open");
+      assert.equal(await page.locator(".site-header").evaluate(el => el.inert), true,
+        "site header is inert while modal tour is open");
       await assert.rejects(
         page.locator("#load-btn").click({ trial: true, timeout: 500 }),
         /Timeout.*exceeded/s,
@@ -35,7 +35,7 @@ async function check() {
       await page.keyboard.press("Escape");
       assert.equal(await dialog.count(), 0);
       assert.equal(await page.locator("#workspace").evaluate(el => el.inert), false);
-      assert.equal(await page.locator(".hero").evaluate(el => el.inert), false);
+      assert.equal(await page.locator(".site-header").evaluate(el => el.inert), false);
       assert.equal(await page.locator("#about").evaluate(el => el.inert), true,
         "an existing inert state is preserved");
       await page.locator("#load-btn").click({ trial: true });

@@ -43,7 +43,12 @@ class Elem {
   getAttribute(k) { return k in this.attrs ? this.attrs[k] : null; }
   setAttribute(k, v) { this.attrs[k] = String(v); }
   removeAttribute(k) { delete this.attrs[k]; }
-  closest() { for (let n = this; n; n = n.parent) if ("data-tip" in n.attrs || "title" in n.attrs) return n; return null; }
+  closest(selector) {
+    for (let n = this; n; n = n.parent) {
+      if (selector === "dialog[open]" ? n.tagName === "DIALOG" && "open" in n.attrs : "data-tip" in n.attrs || "title" in n.attrs) return n;
+    }
+    return null;
+  }
   contains(n) { for (let x = n; x; x = x.parent) if (x === this) return true; return false; }
   matches(sel) { return sel === ":focus-visible" ? this.focusVisible : false; }
   getBoundingClientRect() { return this.rect ?? { top: 300, left: 400, width: 100, height: 30 }; }
@@ -89,8 +94,8 @@ function tipPage() {
   check("tooltips: an element with no text gets none", p.timers.length === 0);
   const kb = new Elem("button", { title: "Hide the inspector (])", "aria-describedby": "other-id" });
   p.emit("focusin", { target: kb });
-  check("tooltips: keyboard focus shows the box at once, and the element's own description is put back afterwards",
-    p.box.hidden === false && p.box.textContent === "Hide the inspector (])" && kb.getAttribute("aria-describedby") === "tooltip");
+  check("tooltips: keyboard focus adds the tooltip to the existing accessible description",
+    p.box.hidden === false && p.box.textContent === "Hide the inspector (])" && kb.getAttribute("aria-describedby") === "other-id tooltip");
   p.emit("keydown", { key: "a" });
   check("tooltips: an ordinary key keeps the box", p.box.hidden === false);
   p.emit("keydown", { key: "Escape" });

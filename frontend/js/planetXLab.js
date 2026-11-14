@@ -1,7 +1,6 @@
 import { CAN_USE_LOCAL_BACKEND } from "./config.js";
 
 const $ = id => document.getElementById(id);
-$("workspace").hidden = !CAN_USE_LOCAL_BACKEND;
 $("workspace-help").hidden = CAN_USE_LOCAL_BACKEND;
 try {
   const response = await fetch("data/parallax_recovery.json");
@@ -27,6 +26,7 @@ try {
   const link = new URL("index.html", location.href);
   link.search = new URLSearchParams({ra:data.ra, dec:data.dec, fov:data.fov, det:data.det, data:"api"});
   $("workspace").href = link.href;
+  $("workspace").hidden = !CAN_USE_LOCAL_BACKEND;
 } catch (error) {
   $("provenance").textContent = `Experiment unavailable: ${error.message}`;
 }

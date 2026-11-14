@@ -63,7 +63,9 @@ export function setupTooltips({ doc = document, win = window, delay = 450, setTi
     const title = el.getAttribute("title");
     const describedBy = el.getAttribute("aria-describedby");
     if (title !== null) el.removeAttribute("title");       // or the browser draws its own box too
-    el.setAttribute("aria-describedby", box.id);
+    el.setAttribute("aria-describedby", [describedBy, box.id].filter(Boolean).join(" "));
+    const host = el.closest?.("dialog[open]") ?? doc.body;
+    if (box.parentNode !== host) host.append(box);
     current = { el, title, describedBy };
     box.textContent = text;
     box.hidden = false;

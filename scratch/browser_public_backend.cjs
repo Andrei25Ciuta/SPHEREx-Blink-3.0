@@ -24,7 +24,7 @@ async function check() {
     });
     await serveStatic(page, origin, prefix);
 
-    await page.goto(base + "index.html");
+    await page.goto(base + "index.html#workspace");   // a bare index.html redirects to overview.html
     await page.locator("#quick-pick-list button").first().waitFor();
     assert.equal(await page.locator('#data-source option[value="api"]').evaluate(option => option.disabled), true,
       "public static site cannot offer the local FITS backend as an actionable option");
@@ -37,7 +37,7 @@ async function check() {
     await page.locator("#stage-overlay.error").waitFor();
     assert.match(await page.locator("#stage-overlay .overlay-sub").textContent(), /public demo.*local backend/i);
     assert.deepEqual(localRequests, [], "public site never requests a visitor's loopback backend");
-    await page.locator(".workspace-settings summary").click();
+    await page.locator('[data-open-panel="viewer-settings"]').click();   // the settings are a dialog now
     await page.locator("#data-source").selectOption("mock");
     await page.locator("#stage-overlay.hidden").waitFor({ timeout: 30000 });
     assert.match(await page.locator("#data-source-badge").textContent(), /Synthetic demo/);

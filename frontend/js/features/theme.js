@@ -7,6 +7,8 @@
 // in the wrong colours: keep the two in step (the regular expression and the key).
 
 export const STORAGE_KEY = "spherex-blink-theme";
+// DEFAULT_THEME is only the FALLBACK of readTheme() when no page palette is given. Every page of the site passes defaultTheme "midnight" (js/siteHeader.js, and the
+// data-theme on <html>), so a first visit opens in Midnight / dark on all six pages; a saved choice or ?theme= wins over it (scratch/test_theme.mjs checks the order).
 export const DEFAULT_THEME = "light";
 export const THEMES = [
   { id: "midnight", label: "Midnight / dark", scheme: "dark", themeColor: "#0B0F19" },
@@ -25,11 +27,11 @@ function safe(fn, fallback = null) {
 }
 
 /** The theme to use: the address (?theme=), else the saved choice, else the default. Unknown names are ignored. */
-export function readTheme({ search = "", storage = null } = {}) {
+export function readTheme({ search = "", storage = null, defaultTheme = DEFAULT_THEME } = {}) {
   const fromUrl = safe(() => new URLSearchParams(search).get("theme"));
   if (isTheme(fromUrl)) return fromUrl;
   const saved = storage ? safe(() => storage.getItem(STORAGE_KEY)) : null;
-  return isTheme(saved) ? saved : DEFAULT_THEME;
+  return isTheme(saved) ? saved : defaultTheme;
 }
 
 /** Put a theme on the page (and the browser's own bars), and remember it unless it was only asked for in the address. */
@@ -47,7 +49,7 @@ export function applyTheme(id, { root = document.documentElement, storage = null
 export function setupThemeSwitcher(select, { win = window } = {}) {
   const storage = safe(() => win.localStorage);
   const fromUrl = isTheme(safe(() => new URLSearchParams(win.location.search).get("theme")));
-  const active = readTheme({ search: win.location.search, storage });
+  const active = readTheme({ search: win.location.search, storage, defaultTheme: select.dataset?.defaultTheme });
   select.replaceChildren(...THEMES.map((t) => Object.assign(win.document.createElement("option"), { value: t.id, textContent: t.label })));
   applyTheme(active, { storage, persist: false });
   select.value = active;

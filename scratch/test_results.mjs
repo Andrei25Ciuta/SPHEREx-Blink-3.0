@@ -136,7 +136,7 @@ check("charts that draw bars or dots are hidden from screen readers (the table s
   const missingAnchors = [...HTML.matchAll(/href="#([^"]+)"/g)].map((m) => m[1]).filter((id) => !ids.includes(id));
   const missingLabels = [...HTML.matchAll(/aria-labelledby="([^"]+)"/g)].map((m) => m[1]).filter((id) => !ids.includes(id));
   check("every #anchor and aria-labelledby points at an id", missingAnchors.length === 0 && missingLabels.length === 0, [...missingAnchors, ...missingLabels].join(", "));
-  check("one h1, a lang, a viewport, a skip link and a way back to the app", (HTML.match(/<h1[ >]/g) || []).length === 1 && /<html lang="en"[ >]/.test(HTML) && /name="viewport"/.test(HTML) && HTML.includes('class="skip-link"') && HTML.includes('href="index.html"'));
+  check("one h1, a lang, a viewport, a skip link and a way back to the app", (HTML.match(/<h1[ >]/g) || []).length === 1 && /<html lang="en"[ >]/.test(HTML) && /name="viewport"/.test(HTML) && HTML.includes('class="skip-link"') && HTML.includes('href="index.html#workspace"'));
   check("the page says the images are not published, shows the failure of the first blind Planet X search and the limits of the fair one",
     /No SPHEREx image or pixel is published/.test(HTML) && /blind search failed/i.test(HTML) && /A fair test/.test(HTML) && /default options the search found nothing/.test(HTML) && /not yet a result/.test(HTML));
   check("the status line and the module are there", HTML.includes('id="results-status"') && HTML.includes('src="js/results.js"') && HTML.includes("data-limits"));
