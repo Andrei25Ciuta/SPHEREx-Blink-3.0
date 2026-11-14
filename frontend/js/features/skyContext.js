@@ -15,6 +15,8 @@ import { WORLD_URL, decodeCountries, overheadAt } from "./skyGeo.js";
 import { fieldCorners } from "./explorerGeometry.js";
 import { aladinSkyAt, selectionText, copySkySelection } from "./skyContextClick.js";
 
+import { outsideWorkspaceField, skyMapGuide } from "./skyMapGuide.js";
+
 const ALADIN_URL = "https://cdn.jsdelivr.net/npm/aladin-lite@3.6.5/dist/aladin.js";
 const SIMBAD_TAP = "https://simbad.harvard.edu/simbad/sim-tap/sync";
 
@@ -110,12 +112,17 @@ function loadWorld() {
 }
 
 export class SkyContext {
-  constructor(container, statusEl, noteEl = null, { matchField = false, onSelectPosition = null, selectionStatusEl = null } = {}) {
+  constructor(container, statusEl, noteEl = null, { matchField = false, onSelectPosition = null, selectionStatusEl = null, backToField = null } = {}) {
     this.container = container;
     this.statusEl = statusEl;
     this.matchField = matchField;
     this.onSelectPosition = onSelectPosition;
     this.selectionStatusEl = selectionStatusEl;
+    this.backToField = backToField;
+    this.workspaceField = null;
+    backToField?.addEventListener("click", () => {
+      if (this.workspaceField) this.update(this.workspaceField);
+    });
     this.coordinateHint = null;
     this.clickedAladinObject = false;
     this.noteEl = noteEl;               // the paragraph that explains the country in brackets
@@ -129,6 +136,44 @@ export class SkyContext {
     this.hovering = false;
     this.lastMove = 0;
     this.shown = null;                  // { ra, dec, label } of the readout, to redraw it when the world map arrives
+  }
+
+  setWorkspaceField(field) {
+    this.workspaceField = field;
+    this.refreshMapGuide();
+  }
+
+  installMapGuide() {
+    if (!this.backToField) return;
+    const guide = document.createElement("div");
+    guide.className = "sky-map-guide";
+    guide.innerHTML = `<div class="sky-map-compass" aria-label="Orientation at map centre">
+      <span data-direction="north">N <b aria-hidden="true">→</b></span>
+      <span data-direction="east">E <b aria-hidden="true">→</b></span>
+    </div><div class="sky-map-scale" aria-label="Approximate angular scale"></div>`;
+    this.container.appendChild(guide);
+    this.guide = guide;
+    this.aladin.on("zoomChanged", () => this.refreshMapGuide());
+    this.aladin.on("cooFrameChanged", () => this.refreshMapGuide());
+    this.aladin.on("rotationChanged", () => this.refreshMapGuide());
+    new ResizeObserver(() => this.refreshMapGuide()).observe(this.container);
+  }
+
+  refreshMapGuide() {
+    if (!this.guide) return;
+    if (this.backToField) this.backToField.hidden = !outsideWorkspaceField(this.aladin, this.workspaceField);
+    const guide = skyMapGuide(this.aladin);
+    this.guide.hidden = !guide;
+    if (!guide) return;
+    for (const direction of ["north", "east"]) {
+      const label = this.guide.querySelector(`[data-direction="${direction}"]`);
+      label.hidden = guide[direction] === null;
+      label.querySelector("b").style.transform = `rotate(${guide[direction]}deg)`;
+    }
+    const scale = this.guide.querySelector(".sky-map-scale");
+    scale.style.setProperty("--scale-width", `${guide.width}px`);
+    scale.textContent = guide.label;
+    scale.setAttribute("aria-label", `Approximate angular scale ${guide.label}`);
   }
 
   /** Put coordinates (ICRS degrees) in the readout, with the country that sky point is straight above right now. */
@@ -244,7 +289,11 @@ export class SkyContext {
         this.clickedAladinObject = false;
         if (!clickedSource) this.onMapClick(e);
       });
-      this.aladin.on("positionChanged", () => { if (!this.hovering) this.showCentre(); });
+      this.installMapGuide();
+      this.aladin.on("positionChanged", () => {
+        if (!this.hovering) this.showCentre();
+        this.refreshMapGuide();
+      });
       this.container.addEventListener("pointerleave", () => { this.hidePointerCoordinates(); this.showCentre(); });
     }
     // The source can change between two openings (e.g. the backend was started meanwhile).
@@ -296,6 +345,7 @@ export class SkyContext {
     aladin.setFoV((this.matchField ? fov : Math.max(fov * 3, 6)) / 60);
     this.hovering = false;
     this.setReadout(ra, dec, "Centre");
+    this.refreshMapGuide();
 
     if (this.overlay) this.overlay.removeAll();
     else {

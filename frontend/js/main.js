@@ -36,7 +36,7 @@ import { applyIcons } from "./features/ui.js";
 import { openDialog, shortcutsHtml } from "./features/dialog.js";
 import { setupTimeline } from "./features/timelineView.js";
 import { FLAGGED_LIMIT } from "./features/timeline.js";
-import { SkyContext } from "./features/skyContext.js?v=4";
+import { SkyContext } from "./features/skyContext.js?v=5";
 import { setupFullscreen } from "./features/fullscreen.js";
 import { detectSources, describeMover, matchKnownObject, moverPositionAtMjd, passIndices, trackSupport, blendWarning, VERSION as MOVERS_VERSION, DEFAULTS as MOVER_DEFAULTS, ERROR_MODEL } from "./features/movers.js";
 import { blindCheckCandidate, VERSION as BLIND_CHECK_VERSION } from "./features/blindCheck.js";
@@ -769,6 +769,7 @@ function clearMarker() {
 const sky = new SkyContext($("aladin-box"), $("aladin-status"), $("sky-geo-note"), {
   matchField: true,
   selectionStatusEl: $("sky-selection-status"),
+  backToField: $("sky-back-to-field"),
   onSelectPosition: ({ raText, decText }) => {
     // Same field form and loader used by the Pin Board; keep FOV and data source unchanged.
     raInput.value = raText;
@@ -1813,6 +1814,7 @@ async function loadData(query) {
   currentQuery = null;
   detSelect.disabled = true;
   lastQuery = query;
+  sky.setWorkspaceField(null);
   if (sky.isOpen) sky.update(query);
   setLoading(true);
   setStatus("");
@@ -1848,6 +1850,7 @@ async function loadData(query) {
     currentDetector = det;
     renderOverview(frames, token);                     // runs in the background
     await showDetector(det);
+    if (token === loadToken) sky.setWorkspaceField(query);
     console.log(`Loaded ${frames.length} frames`, listDetectors(frames));
   } catch (err) {
     if (token !== loadToken) return;
