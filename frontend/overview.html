@@ -1,25 +1,717 @@
 <!doctype html>
 <html lang="en" data-theme="midnight">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#0B0F19"><title>Overview · SPHEREx Blink</title>
-  <script>try{var t=new URLSearchParams(location.search).get("theme")||localStorage.getItem("spherex-blink-theme");if(/^(midnight|nebula|deep-space|observatory|light|classic)$/.test(t))document.documentElement.dataset.theme=t}catch(e){}</script>
-  <link rel="stylesheet" href="css/styles.css?v=21"><link rel="stylesheet" href="css/overview.css?v=1"><link rel="stylesheet" href="css/overview-academic.css?v=1">
-<link rel="stylesheet" href="css/instrument.css">
-  </head>
-<body><a class="skip-link" href="#overview-main">Skip to overview</a>
-<header class="site-header" id="top" data-page="overview">
-    <a class="site-brand" href="overview.html">SPHEREx Blink</a>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0B0F19">
+  <title>SPHEREx Blink 3.0 · Explore the Infrared Sky</title>
+
+  <script>
+    try {
+      var t = new URLSearchParams(location.search).get("theme") || localStorage.getItem("spherex-blink-theme");
+      if (/^(midnight|nebula|deep-space|observatory|light|classic)$/.test(t)) document.documentElement.dataset.theme = t;
+    } catch(e) {}
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- App Styles -->
+  <link rel="stylesheet" href="css/styles.css?v=21">
+  <link rel="stylesheet" href="css/instrument.css">
+  <link rel="stylesheet" href="css/overview-3d.css">
+<!-- Three.js CDN; the rest of the overview remains usable if it is unavailable. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#overview-main">Skip to overview</a>
+  <!-- Custom interactive cursor -->
+  <div class="cursor-ring" id="cursorRing" aria-hidden="true"></div>
+  <div class="cursor-dot" id="cursorDot" aria-hidden="true"></div>
+
+  <!-- 3D Three.js WebGL canvas -->
+  <canvas id="bg-canvas" aria-hidden="true"></canvas>
+  <p class="model-caption">Illustration only — not SPHEREx observations. 3D model not to scale. Demo image data are synthetic.</p>
+
+  <!-- 3D Component Inspection HUD Card -->
+  <aside id="model-hud" role="region" aria-label="Model component details" aria-hidden="true">
+    <div class="hud-header">
+      <span class="hud-title" id="hudTitle">Model component</span>
+      <button class="hud-close" id="hudClose" type="button" aria-label="Close component details">&times;</button>
+    </div>
+    <p class="hud-desc" id="hudDesc">Illustrative component in a simplified, non-scale model. No engineering or observation data are represented.</p>
+    <dl class="hud-specs" id="hudSpecs">
+      <div><dt>Scale</dt><dd>Illustrative</dd></div>
+      <div><dt>Data</dt><dd>Not shown</dd></div>
+    </dl>
+  </aside>
+
+  <!-- Site Header -->
+  <header class="site-header" id="top" data-page="overview">
+    <a class="site-brand" href="overview.html">SPHEREx <span>Blink 3.0</span></a>
     <select id="theme-select" data-default-theme="midnight" aria-label="Colour theme"></select>
   </header>
   <script type="module" src="js/siteHeader.js"></script>
-<main id="overview-main">
-  <section class="overview-hero" aria-labelledby="overview-title"><div class="overview-copy"><p class="overview-kicker">Infrared time domain · synthetic demo</p><h1 id="overview-title">Find what<br>moves<span>.</span></h1><p>Blink through the infrared sky over time. Most stars stay put; the dot that jumps is worth investigating.</p><div class="overview-actions"><a class="overview-primary" href="index.html#workspace">Open the workspace <span aria-hidden="true">↗</span></a><a class="overview-secondary" href="sky.html">Explore the sky map</a></div><p class="overview-meta">Synthetic demo frames · Blink · Difference · Stack · Trail</p></div><figure class="overview-frame" aria-label="Illustration of a synthetic infrared image sequence"><div class="overview-frame-status"><span></span>Blinking · synthetic</div><div class="overview-stars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><b></b></div><figcaption>Illustration only — not SPHEREx observations.</figcaption></figure></section>
-  <p class="overview-ticker" aria-label="SPHEREx Blink capabilities"><span>Infrared image sequences</span><b>◆</b><span>Six detectors</span><b>◆</b><span>Inspect what changes</span><b>◆</b><span>Export with provenance</span></p>
-  <section class="overview-section" aria-labelledby="modes-title"><p class="overview-kicker">The instrument</p><h2 id="modes-title">Four ways to look at the same sky.</h2><div class="overview-modes"><article><div class="mode-image mode-blink" aria-hidden="true"></div><p>Blink</p><span>Frames one after another — the classic view.</span></article><article><div class="mode-image mode-difference" aria-hidden="true"></div><p>Difference</p><span>Subtract frames so only changes survive.</span></article><article><div class="mode-image mode-stack" aria-hidden="true"></div><p>Stack</p><span>Median of the sequence — the still sky.</span></article><article><div class="mode-image mode-trail" aria-hidden="true"></div><p>Trail</p><span>Maximum of each frame — the moving path.</span></article></div></section>
-  <section class="overview-method" aria-labelledby="method-title"><p class="overview-kicker">Method</p><h2 id="method-title">How blinking works.</h2><ol><li><span>01</span><h3>Define a field</h3><p>Choose right ascension, declination, field of view and detector, or start from a documented challenge target.</p></li><li><span>02</span><h3>Play the sequence</h3><p>Inspect the same patch of sky across different dates with blink, difference, stack and trail views.</p></li><li><span>03</span><h3>Inspect what moves</h3><p>Measure, compare, export and keep the provenance; a candidate remains a lead, not a discovery.</p></li></ol></section>
-  <section class="overview-section overview-presets" aria-labelledby="preset-title"><p class="overview-kicker">Preset fields</p><h2 id="preset-title">Start where the movers are.</h2><div class="overview-preset-grid"><a href="index.html?ra=331.0441466&dec=-56.7828442&fov=5&det=D2#workspace"><h3>Epsilon Indi B <span>↗</span></h3><p class="preset-coords">331.0441° · −56.7828°</p><p>Nearby brown dwarf binary; a documented Blink test target.</p></a><a href="index.html?ra=269.452077&dec=4.693365&fov=5&det=D2#workspace"><h3>Barnard's Star <span>↗</span></h3><p class="preset-coords">269.4521° · +4.6934°</p><p>High proper-motion nearby star used to test the mover workflow.</p></a><a href="index.html?ra=133.8189083&dec=-7.247048&fov=5&det=D2#workspace"><h3>WISE 0855 <span>↗</span></h3><p class="preset-coords">133.8189° · −7.2470°</p><p>Cold brown-dwarf target from the documented challenge list.</p></a><a href="index.html?ra=76.956526&dec=30.401438&fov=5&det=D1#workspace"><h3>RW Aurigae <span>↗</span></h3><p class="preset-coords">76.9565° · +30.4014°</p><p>Variable young star in a star-forming region.</p></a><a href="index.html?ra=248.167611&dec=66.754979&fov=30&det=D4#workspace"><h3>R Draconis <span>↗</span></h3><p class="preset-coords">248.1676° · +66.7550°</p><p>Mira variable in a wide challenge field.</p></a></div></section>
-  <section class="overview-callout"><p class="overview-kicker">Research workflow</p><h2>A dot that jumps frame to frame is a candidate.</h2><p>Use Find Movers to link bright dots across a sequence. The page reports motion, significance and each supporting detection, while keeping synthetic and observed inputs clearly labelled.</p><a class="overview-secondary" href="index.html#workspace">Run the workspace <span aria-hidden="true">↗</span></a></section>
-</main>
-<footer class="overview-footer"><span>SPHEREx Blink · NASA Space Apps Challenge 2026</span><span>Demo pixels are synthetic unless stated otherwise.</span></footer>
-</body></html>
+
+  <main id="overview-main">
+
+    <!-- ── HERO SECTION ── -->
+    <section class="overview-hero-3d" aria-labelledby="overview-title">
+      <div class="hero-content">
+        <div class="kicker-badge" id="heroKicker">
+          <span>SPHEREx Blink 3.0</span> · <span>Synthetic demo</span>
+        </div>
+        <h1 class="hero-title" id="overview-title">
+          Find what <em>moves</em>.
+        </h1>
+        <p class="hero-subtitle" id="heroSub">
+          Blink through infrared image sequences over time. Most stars stay in place; sources that move or change brightness stand out for closer inspection.
+        </p>
+        <div class="hero-cta-group" id="heroActions">
+          <a class="btn-main" href="index.html#workspace">
+            <span>Open Blink Workspace</span> →
+          </a>
+          <a class="btn-ghost" href="sky.html">
+            <span>Explore All-Sky Map</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- 3D Interactive Spacecraft Controls -->
+      <aside class="spacecraft-hint">
+        <div class="hint-chip">
+          <div class="icon-3d">↻</div>
+          <span>Drag to rotate the illustrative model · Scroll to explore</span>
+        </div>
+    <div class="component-tag-list" role="group" aria-label="Illustrative model components">
+          <button class="component-tag" data-part="shields">✦ Thermal shields</button>
+          <button class="component-tag" data-part="optics">✦ Telescope assembly</button>
+          <button class="component-tag" data-part="lvf">✦ Spectral instrument</button>
+          <button class="component-tag" data-part="solar">✦ Solar panels</button>
+          <button class="component-tag" data-part="antenna">✦ Communications antenna</button>
+        </div>
+      </aside>
+    </section>
+
+    <!-- ── TICKER ── -->
+    <div class="overview-ticker-3d" role="group" aria-label="Blink capabilities">
+      <div class="ticker-inner" aria-hidden="true">
+        <span>Infrared Image Sequences</span> ◆
+        <span>Six Spectral Detectors</span> ◆
+        <span>102 Spectral Channels</span> ◆
+        <span>Aperture Photometry</span> ◆
+        <span>Documented Target Fields</span> ◆
+        <span>Blink · Difference · Stack · Trail</span> ◆
+        <!-- loop duplicate -->
+        <span>Infrared Image Sequences</span> ◆
+        <span>Six Spectral Detectors</span> ◆
+        <span>102 Spectral Channels</span> ◆
+        <span>Aperture Photometry</span> ◆
+        <span>Documented Target Fields</span> ◆
+        <span>Blink · Difference · Stack · Trail</span> ◆
+      </div>
+    </div>
+
+    <!-- ── ACTIVE MISSIONS SECTION ── -->
+    <section class="section-3d" id="missions" aria-labelledby="missions-title">
+      <p class="section-kicker">Documented test fields</p>
+      <h2 class="section-heading" id="missions-title">
+        Start where the<br>movers are.
+      </h2>
+
+      <div class="mission-grid">
+        <a class="mission-card" href="index.html?ra=331.0441466&dec=-56.7828442&fov=5&det=D2#workspace" data-target="Epsilon Indi B">
+          <h3>Epsilon Indi B <span>↗</span></h3>
+          <span class="mission-coords">RA 331.0441° · Dec −56.7828° · 5′ · D2</span>
+          <p>Nearby brown dwarf binary included as a documented test target.</p>
+          <div class="mission-footer">
+            <span class="mission-pill">Open field</span>
+            <span class="mission-tag">Brown Dwarf</span>
+          </div>
+        </a>
+
+        <a class="mission-card" href="index.html?ra=269.452077&dec=4.693365&fov=5&det=D2#workspace" data-target="Barnard's Star">
+          <h3>Barnard's Star <span>↗</span></h3>
+          <span class="mission-coords">RA 269.4521° · Dec +4.6934° · 5′ · D2</span>
+          <p>A nearby star with high proper motion, used to inspect the mover workflow.</p>
+          <div class="mission-footer">
+            <span class="mission-pill">Open field</span>
+            <span class="mission-tag">High PM Star</span>
+          </div>
+        </a>
+
+        <a class="mission-card" href="index.html?ra=133.8189083&dec=-7.247048&fov=5&det=D2#workspace" data-target="WISE 0855">
+          <h3>WISE 0855−0714 <span>↗</span></h3>
+          <span class="mission-coords">RA 133.8189° · Dec −7.2470° · 5′ · D2</span>
+          <p>A very cold brown dwarf included among the documented test targets.</p>
+          <div class="mission-footer">
+            <span class="mission-pill">Open field</span>
+            <span class="mission-tag">Y-Dwarf</span>
+          </div>
+        </a>
+
+        <a class="mission-card" href="index.html?ra=76.956526&dec=30.401438&fov=5&det=D1#workspace" data-target="RW Aurigae">
+          <h3>RW Aurigae <span>↗</span></h3>
+          <span class="mission-coords">RA 76.9565° · Dec +30.4014° · 5′ · D1</span>
+          <p>A young variable star in a documented test field.</p>
+          <div class="mission-footer">
+            <span class="mission-pill">Open field</span>
+            <span class="mission-tag">Variable</span>
+          </div>
+        </a>
+
+        <a class="mission-card" href="index.html?ra=248.167611&dec=66.754979&fov=30&det=D4#workspace" data-target="R Draconis">
+          <h3>R Draconis <span>↗</span></h3>
+          <span class="mission-coords">RA 248.1676° · Dec +66.7550° · 30′ · D4</span>
+          <p>A variable star available as a wider-field test position.</p>
+          <div class="mission-footer">
+            <span class="mission-pill">Open field</span>
+            <span class="mission-tag">Mira Variable</span>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <!-- ── OBSERVATORY TOOLS ── -->
+    <section class="section-3d" id="tools" aria-labelledby="tools-title">
+      <p class="section-kicker">Interactive Analysis Suite</p>
+      <h2 class="section-heading" id="tools-title">
+        Four viewing modes.<br>Full analytical depth.
+      </h2>
+
+      <div class="tools-grid">
+        <div class="tool-card">
+          <div class="mode-image mode-blink" aria-hidden="true"></div>
+          <h4>Blink Animation</h4>
+          <span>Sequential time-series playback. Stationary stars remain fixed while moving targets jump.</span>
+        </div>
+
+        <div class="tool-card">
+          <div class="mode-image mode-difference" aria-hidden="true"></div>
+          <h4>Differential Mode</h4>
+          <span>Compare each frame with the median of other survey passes. Wavelength differences can leave residuals.</span>
+        </div>
+
+        <div class="tool-card">
+          <div class="mode-image mode-stack" aria-hidden="true"></div>
+          <h4>Median Stack</h4>
+          <span>Median-combine the sequence to inspect persistent sources across the field.</span>
+        </div>
+
+        <div class="tool-card">
+          <div class="mode-image mode-trail" aria-hidden="true"></div>
+          <h4>Maximum Trail</h4>
+          <span>Show each pixel's brightest value across the sequence to help inspect changing positions.</span>
+        </div>
+      </div>
+
+      <div class="lab-links-row">
+        <a class="lab-link-pill" href="sky.html">🌌 Sky Explorer & IRSA</a>
+        <a class="lab-link-pill" href="simulator.html">🪐 Solar System Geometry Simulator</a>
+        <a class="lab-link-pill" href="planet-x.html">🔭 Planet X Parallax Lab</a>
+        <a class="lab-link-pill" href="results.html">📊 Source Candidate Dossiers</a>
+      </div>
+    </section>
+
+    <!-- ── METHODOLOGY ── -->
+    <section class="section-3d" id="method" aria-labelledby="method-title">
+      <p class="section-kicker">Research Pipeline</p>
+      <h2 class="section-heading" id="method-title">How Blink detection works.</h2>
+
+      <div class="steps-container">
+        <div class="step-card">
+          <div class="step-number">01</div>
+          <h3>Select & Acquire</h3>
+          <p>Enter sky coordinates or open a documented target field. Available images depend on the selected data source and backend.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-number">02</div>
+          <h3>Blink & Subtract</h3>
+          <p>Inspect images across survey passes with blink and difference views. Passes may cover different wavelengths.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-number">03</div>
+          <h3>Inspect & export</h3>
+          <p>Review candidate motion and supporting detections, compare with available catalogues, and export results with provenance. A candidate is a lead, not a discovery.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── CALLOUT ── -->
+    <div class="callout-box">
+      <div class="callout-text">
+        <h2>Ready to spot what changed?</h2>
+        <p>Open the workspace to play image sequences, measure source brightness over time, and inspect candidate evidence.</p>
+      </div>
+      <a class="btn-main" href="index.html#workspace">
+        <span>Launch Full Workspace</span> →
+      </a>
+    </div>
+
+  </main>
+
+  <footer class="overview-footer">
+    <span>SPHEREx Blink 3.0 · Independent research interface demo</span>
+    <span><a href="index.html">Workspace</a> · <a href="sky.html">Sky Explorer</a> · <a href="simulator.html">Simulator</a></span>
+  </footer>
+
+  <!-- ════════════════════════════════════════════════════════════════
+       THREE.JS ADVANCED 3D SCENE & INTERACTIVE SPACECRAFT MODEL
+  ════════════════════════════════════════════════════════════════ -->
+  <script>
+  (function() {
+    "use strict";
+// ── 1. SETUP WEBGL SCENE ──
+    const canvas = document.getElementById('bg-canvas');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!window.THREE || !canvas) {
+      document.documentElement.classList.add('webgl-unavailable');
+      document.querySelector('.spacecraft-hint')?.setAttribute('hidden', '');
+      return;
+    }
+    let renderer;
+    try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true }); }
+    catch {
+      document.documentElement.classList.add('webgl-unavailable');
+      document.querySelector('.spacecraft-hint')?.setAttribute('hidden', '');
+      return;
+    }
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.2;
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x0b0f19, 0.0006);
+
+    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 4000);
+    camera.position.set(0, 0, 480);
+
+    // ── 2. LIGHTING ──
+    const ambientLight = new THREE.AmbientLight(0x222a3a, 1.2);
+    scene.add(ambientLight);
+
+    const sunLight = new THREE.DirectionalLight(0xfff4e0, 2.5);
+    sunLight.position.set(300, 200, 300);
+    scene.add(sunLight);
+
+    const goldGlow = new THREE.PointLight(0xefb24f, 2.5, 600);
+    goldGlow.position.set(-100, -80, 150);
+    scene.add(goldGlow);
+
+    // ── 3. 3D PARTICLE STARFIELD ──
+    const starCount = 6500;
+    const starGeo = new THREE.BufferGeometry();
+    const starPos = new Float32Array(starCount * 3);
+    const starCol = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount; i++) {
+      starPos[i*3] = (Math.random() - 0.5) * 2200;
+      starPos[i*3+1] = (Math.random() - 0.5) * 2200;
+      starPos[i*3+2] = (Math.random() - 0.5) * 2200;
+
+      if (Math.random() < 0.12) {
+        starCol[i*3] = 0.94; starCol[i*3+1] = 0.70; starCol[i*3+2] = 0.31; // gold
+      } else if (Math.random() < 0.08) {
+        starCol[i*3] = 0.5; starCol[i*3+1] = 0.7; starCol[i*3+2] = 1.0;   // blue-white
+      } else {
+        const b = 0.65 + Math.random() * 0.35;
+        starCol[i*3] = b; starCol[i*3+1] = b; starCol[i*3+2] = b;
+      }
+    }
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    starGeo.setAttribute('color', new THREE.BufferAttribute(starCol, 3));
+    const starMat = new THREE.PointsMaterial({ size: 1.6, vertexColors: true, transparent: true, opacity: 0.85 });
+    const stars = new THREE.Points(starGeo, starMat);
+    scene.add(stars);
+
+    // ── 4. DETAILED PROCEDURAL SPHEREx OBSERVATORY 3D MODEL ──
+    function buildDetailedSPHEREx() {
+      const craft = new THREE.Group();
+
+      // Materials
+      const goldMLI = new THREE.MeshStandardMaterial({
+        color: 0xd4af37,
+        metalness: 0.88,
+        roughness: 0.22,
+        emissive: 0x2a2005,
+        emissiveIntensity: 0.2
+      });
+
+      const titanium = new THREE.MeshStandardMaterial({
+        color: 0xa0a5aa,
+        metalness: 0.75,
+        roughness: 0.35
+      });
+
+      const matteBlack = new THREE.MeshStandardMaterial({
+        color: 0x0a0c10,
+        metalness: 0.1,
+        roughness: 0.85,
+        side: THREE.DoubleSide
+      });
+
+      const solarCellMat = new THREE.MeshStandardMaterial({
+        color: 0x0c1e38,
+        metalness: 0.85,
+        roughness: 0.18
+      });
+
+      // A) Service Module (Hexagonal Bus)
+      const busGeo = new THREE.CylinderGeometry(26, 28, 38, 6);
+      const bus = new THREE.Mesh(busGeo, goldMLI);
+      bus.position.y = -35;
+      craft.add(bus);
+
+      // Launcher interface ring
+      const ringGeo = new THREE.TorusGeometry(18, 2.5, 16, 48);
+      const ring = new THREE.Mesh(ringGeo, titanium);
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = -55;
+      craft.add(ring);
+
+      // B) 3-Tier Concentric Conical Photon Sunshields (Iconic SPHEREx Design)
+      const shieldsGroup = new THREE.Group();
+
+      // Outer cone
+      const cone1 = new THREE.Mesh(
+        new THREE.CylinderGeometry(56, 32, 48, 36, 1, true),
+        goldMLI
+      );
+      cone1.position.y = 8;
+      shieldsGroup.add(cone1);
+
+      // Inner cone liner (black to absorb stray light)
+      const cone1In = new THREE.Mesh(
+        new THREE.CylinderGeometry(55.6, 31.6, 47.8, 36, 1, true),
+        matteBlack
+      );
+      cone1In.position.y = 8;
+      shieldsGroup.add(cone1In);
+
+      // Middle cone tier
+      const cone2 = new THREE.Mesh(
+        new THREE.CylinderGeometry(44, 25, 42, 36, 1, true),
+        goldMLI
+      );
+      cone2.position.y = 12;
+      shieldsGroup.add(cone2);
+
+      // Inner cone tier
+      const cone3 = new THREE.Mesh(
+        new THREE.CylinderGeometry(34, 19, 36, 36, 1, true),
+        goldMLI
+      );
+      cone3.position.y = 16;
+      shieldsGroup.add(cone3);
+
+      craft.add(shieldsGroup);
+
+      // C) Central 20cm Telescope Assembly & Detector
+      const scopeGroup = new THREE.Group();
+      const barrel = new THREE.Mesh(
+        new THREE.CylinderGeometry(15, 16, 40, 24),
+        matteBlack
+      );
+      barrel.position.y = 18;
+      scopeGroup.add(barrel);
+
+      // Telescope aperture ring
+      const apRing = new THREE.Mesh(
+        new THREE.TorusGeometry(15, 1.2, 12, 36),
+        goldMLI
+      );
+      apRing.rotation.x = Math.PI / 2;
+      apRing.position.y = 38;
+      scopeGroup.add(apRing);
+
+      // Secondary mirror spider support
+      for (let s = 0; s < 3; s++) {
+        const vane = new THREE.Mesh(
+          new THREE.BoxGeometry(14, 0.4, 3),
+          titanium
+        );
+        vane.position.y = 37;
+        vane.rotation.y = (s * Math.PI * 2) / 3;
+        scopeGroup.add(vane);
+      }
+      const secMirror = new THREE.Mesh(
+        new THREE.CylinderGeometry(4.5, 4.5, 4, 16),
+        goldMLI
+      );
+      secMirror.position.y = 35;
+      scopeGroup.add(secMirror);
+
+      // LVF Detector focal plane package
+      const detectorBox = new THREE.Mesh(
+        new THREE.BoxGeometry(22, 6, 22),
+        goldMLI
+      );
+      detectorBox.position.y = -4;
+      scopeGroup.add(detectorBox);
+
+      // Detector aperture glow
+      const scopeGlow = new THREE.PointLight(0xefb24f, 1.8, 120);
+      scopeGlow.position.y = 20;
+      scopeGroup.add(scopeGlow);
+
+      craft.add(scopeGroup);
+
+      // D) Dual Deployable Solar Panel Wings
+      const wingsGroup = new THREE.Group();
+      [-1, 1].forEach(side => {
+        const wing = new THREE.Group();
+
+        // Main boom
+        const boom = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 25), titanium);
+        boom.rotation.z = Math.PI / 2;
+        boom.position.set(side * 22, -35, 0);
+        wing.add(boom);
+
+        // Solar panels (2 panels per side)
+        [-1, 1].forEach(p => {
+          const panel = new THREE.Mesh(
+            new THREE.BoxGeometry(45, 2, 28),
+            solarCellMat
+          );
+          panel.position.set(side * (48 + p * 24), -35, 0);
+
+          // Gold frame around panel
+          const frame = new THREE.Mesh(
+            new THREE.BoxGeometry(46, 2.2, 29),
+            goldMLI
+          );
+          frame.position.copy(panel.position);
+          frame.scale.set(1.02, 0.9, 1.02);
+          wing.add(frame);
+          wing.add(panel);
+        });
+
+        wingsGroup.add(wing);
+      });
+      craft.add(wingsGroup);
+
+      // E) Telemetry Antenna Dish
+      const dishGroup = new THREE.Group();
+      const dishGeo = new THREE.SphereGeometry(10, 24, 12, 0, Math.PI * 2, 0, Math.PI * 0.42);
+      const dish = new THREE.Mesh(dishGeo, goldMLI);
+      dish.rotation.x = Math.PI * 0.75;
+      dish.position.set(24, -30, 20);
+      dishGroup.add(dish);
+
+      const feed = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 8), titanium);
+      feed.position.set(24, -26, 25);
+      dishGroup.add(feed);
+      craft.add(dishGroup);
+
+      craft.scale.set(1.6, 1.6, 1.6);
+      return craft;
+    }
+
+    const observatory = buildDetailedSPHEREx();
+    observatory.position.set(120, 10, 160);
+    observatory.rotation.set(0.35, -0.6, 0.1);
+    scene.add(observatory);
+
+    // ── 5. INTERACTIVE 3D ORBIT & DRAG ROTATION ──
+    let isDragging = false;
+    let prevMouseX = 0, prevMouseY = 0;
+    let rotVelX = 0, rotVelY = 0;
+    let mouseNDC = { x: 0, y: 0 };
+
+    window.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'touch' && e.target !== canvas) return;
+      if (e.target.closest('#overview-main button, #overview-main a, .site-header, #model-hud')) return;
+      isDragging = true;
+      prevMouseX = e.clientX;
+      prevMouseY = e.clientY;
+      rotVelX = 0; rotVelY = 0;
+      const ring = document.getElementById('cursorRing');
+      if (ring) ring.classList.add('is-dragging');
+    });
+
+    window.addEventListener('pointerup', () => {
+      isDragging = false;
+      const ring = document.getElementById('cursorRing');
+      if (ring) ring.classList.remove('is-dragging');
+    });
+
+    window.addEventListener('pointermove', (e) => {
+      mouseNDC.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouseNDC.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+      if (isDragging) {
+        const dx = e.clientX - prevMouseX;
+        const dy = e.clientY - prevMouseY;
+        rotVelY = dx * 0.006;
+        rotVelX = dy * 0.006;
+        observatory.rotation.y += rotVelY;
+        observatory.rotation.x += rotVelX;
+        prevMouseX = e.clientX;
+        prevMouseY = e.clientY;
+      }
+    });
+
+    // ── 6. SCROLL WARP & CAMERA CHOREOGRAPHY ──
+    let scrollProgress = 0;
+    let targetScrollProgress = 0;
+
+    function onScroll() {
+      const maxScroll = document.body.scrollHeight - window.innerHeight;
+      targetScrollProgress = maxScroll > 0 ? window.scrollY / maxScroll : 0;
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    // ── 7. MAIN RENDER LOOP ──
+    let clockTime = 0;
+    function renderLoop() {
+      if (!reducedMotion) requestAnimationFrame(renderLoop);
+      if (!reducedMotion) {
+        clockTime += 0.015;
+        scrollProgress += (targetScrollProgress - scrollProgress) * 0.055;
+        camera.position.z = 480 - scrollProgress * 700;
+        stars.rotation.y += 0.0002;
+        stars.rotation.z = scrollProgress * 0.5;
+        if (!isDragging) {
+          observatory.rotation.y += 0.0025 + rotVelY;
+          observatory.rotation.x += rotVelX;
+          rotVelX *= 0.92;
+          rotVelY *= 0.92;
+          observatory.rotation.z = Math.sin(clockTime * 0.4) * 0.08 + mouseNDC.x * 0.15;
+        }
+        observatory.position.y = 10 + Math.sin(clockTime * 0.6) * 6;
+        const targetX = scrollProgress > 0.15 ? -130 - scrollProgress * 60 : 120;
+        observatory.position.x += (targetX - observatory.position.x) * 0.04;
+      }
+      renderer.render(scene, camera);
+    }
+    renderLoop();
+
+    // Resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // ── 8. 3D COMPONENT HUD DETAILS ──
+    const hud = document.getElementById('model-hud');
+    const hudTitle = document.getElementById('hudTitle');
+    const hudDesc = document.getElementById('hudDesc');
+    const hudSpecs = document.getElementById('hudSpecs');
+    const hudClose = document.getElementById('hudClose');
+
+    const componentData = {
+      shields: { title: "Thermal shields", desc: "An illustrative marker in a simplified, non-scale model. It does not represent flight hardware dimensions or thermal measurements." },
+      optics: { title: "Telescope assembly", desc: "An illustrative marker in a simplified, non-scale model. No optical performance or engineering dimensions are represented." },
+      lvf: { title: "Spectral instrument", desc: "An illustrative marker in a simplified, non-scale model. The model contains no observed image or spectral data." },
+      solar: { title: "Solar panels", desc: "An illustrative marker in a simplified, non-scale model. No spacecraft power or attitude data are represented." },
+      antenna: { title: "Communications antenna", desc: "An illustrative marker in a simplified, non-scale model. No communication system performance data are represented." }
+    };
+
+    document.querySelectorAll('.component-tag').forEach(tag => {
+      tag.addEventListener('click', () => {
+        const part = tag.dataset.part;
+        const data = componentData[part];
+        if (!data) return;
+
+        hudTitle.textContent = data.title;
+        hudDesc.textContent = data.desc;
+        hudSpecs.innerHTML = '<div><dt>Scale</dt><dd>Illustrative</dd></div><div><dt>Data</dt><dd>Not shown</dd></div>';
+        hud.classList.add('visible');
+        hud.setAttribute('aria-hidden', 'false');
+
+        document.querySelectorAll('.component-tag').forEach(t => t.classList.remove('active'));
+        tag.classList.add('active');
+
+        // Smoothly orient spacecraft toward the camera
+        if (window.gsap && !reducedMotion) gsap.to(observatory.rotation, {
+          y: Math.PI * 0.25,
+          x: 0.15,
+          duration: 1.2,
+          ease: 'power2.out'
+        });
+      });
+    });
+
+    if (hudClose) {
+      hudClose.addEventListener('click', () => {
+        hud.classList.remove('visible');
+        hud.setAttribute('aria-hidden', 'true');
+        const activeTag = document.querySelector('.component-tag.active');
+        document.querySelectorAll('.component-tag').forEach(t => t.classList.remove('active'));
+        activeTag?.focus();
+      });
+    }
+
+    // ── 9. SIMONE-DEV.COM STYLE CUSTOM CURSOR ──
+    const ring = document.getElementById('cursorRing');
+    const dot = document.getElementById('cursorDot');
+    let ringX = -100, ringY = -100;
+    let mouseX = -100, mouseY = -100;
+
+    document.addEventListener('mousemove', (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+      if (dot) {
+        dot.style.left = mouseX + 'px';
+        dot.style.top = mouseY + 'px';
+      }
+    });
+
+    function cursorAnimation() {
+      ringX += (mouseX - ringX) * 0.14;
+      ringY += (mouseY - ringY) * 0.14;
+      if (ring) {
+        ring.style.left = ringX + 'px';
+        ring.style.top = ringY + 'px';
+      }
+      requestAnimationFrame(cursorAnimation);
+    }
+    if (!reducedMotion) cursorAnimation();
+
+    // Hover expand cursor
+    const interactiveElements = document.querySelectorAll('a, button, .mission-card, .tool-card, select, .component-tag');
+    interactiveElements.forEach(el => {
+      el.addEventListener('mouseenter', () => ring && ring.classList.add('expanded'));
+      el.addEventListener('mouseleave', () => ring && ring.classList.remove('expanded'));
+    });
+
+    // ── 11. CHARACTER ENTRANCE ON HERO TITLE ──
+    const h1 = document.getElementById('overview-title');
+    if (h1 && window.gsap) {
+      // Split characters cleanly
+      const html = h1.innerHTML;
+      const walk = (node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          const frag = document.createDocumentFragment();
+          node.textContent.split('').forEach(ch => {
+            if (ch === ' ') {
+              frag.appendChild(document.createTextNode('\u00a0'));
+            } else {
+              const span = document.createElement('span');
+              span.className = 'char';
+              span.textContent = ch;
+              frag.appendChild(span);
+            }
+          });
+          node.parentNode.replaceChild(frag, node);
+        } else if (node.nodeType === Node.ELEMENT_NODE) {
+          Array.from(node.childNodes).forEach(walk);
+        }
+      };
+      Array.from(h1.childNodes).forEach(walk);
+
+      // Hero Timeline
+      const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+      tl.to('#heroKicker', { opacity: 1, duration: 0.6 })
+        .to('.char', { opacity: 1, y: 0, duration: 0.65, stagger: 0.025 }, '-=0.2')
+        .fromTo('#heroSub', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.6 }, '-=0.3')
+        .fromTo('#heroActions', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5 }, '-=0.3');
+    }
+
+  })();
+  </script>
+</body>
+</html>
