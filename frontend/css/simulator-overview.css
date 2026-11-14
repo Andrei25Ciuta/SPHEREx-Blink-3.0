@@ -2,10 +2,12 @@
    Deliberately leaves #scene, .plot and all SVG descendants untouched:
    the Sun, planets, orbital paths and sightlines keep their existing design. */
 
+html[data-theme]:has(body.simulator-body) {
+  --text-muted: #c4c4bf;
+}
 html[data-theme] body.simulator-body {
   min-height: 100vh;
   color-scheme: dark;
-  --text-muted: #c4c4bf;
 }
 html[data-theme]:not([data-contrast="high"]):has(body.simulator-body) body.simulator-body {
   background-image: var(--static-space-stars);
