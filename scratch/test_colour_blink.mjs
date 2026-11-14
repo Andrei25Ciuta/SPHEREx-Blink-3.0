@@ -74,3 +74,23 @@ for (const frame of barnardFrames) {
   assert.ok(centre && Math.hypot(centre.fx - point.fx, centre.fy - point.fy) < 2.5 / demo.size);
 }
 console.log("PASS  Barnard D1 demo yields local light centres");
+
+const gradientStops = [];
+const haloPlayer = Object.create(BlinkPlayer.prototype);
+Object.assign(haloPlayer, {
+  index: 0, frames: [{}], images: [{ naturalWidth: size }],
+  candidates: [{ points: [target] }], selectedCandidate: 0, tracks: [], flagImages: [],
+  _colourMasks: new Map(), _greys: () => [pixels], _px: (x, y) => [x * size, y * size],
+  ctx: {
+    createRadialGradient: () => ({ addColorStop: (...stop) => gradientStops.push(stop) }),
+    save() {}, restore() {}, fillRect() {},
+  },
+});
+assert.equal(haloPlayer._drawLightCentre(), "measured");
+assert.equal(gradientStops.length, 6);
+haloPlayer._colourMasks.set(0, mask);
+assert.equal(haloPlayer._drawLightCentre(), "predicted");
+haloPlayer.candidates = [];
+haloPlayer.selectedCandidate = -1;
+assert.equal(haloPlayer._drawLightCentre(), undefined);
+console.log("PASS  halo distinguishes measured, predicted and unavailable positions");
