@@ -65,7 +65,9 @@
           <span>SPHEREx Blink 3.0</span> · <span>Synthetic demo</span>
         </div>
         <h1 class="hero-title" id="overview-title">
-          Find what <em>moves</em>.
+          <span class="hero-word">Find</span>
+          <span class="hero-word">what</span>
+          <em class="hero-word hero-word--accent">moves</em><button class="hero-title-dot" id="heroTitleDot" type="button" aria-label="Title dot, original colour. Click to change colour." data-dot-color-index="-1">.</button>
         </h1>
         <p class="hero-subtitle" id="heroSub">
           Blink through infrared image sequences over time. Most stars stay in place; sources that move or change brightness stand out for closer inspection.
@@ -848,37 +850,46 @@
       el.addEventListener('mouseleave', () => ring && ring.classList.remove('expanded'));
     });
 
-    // ── 11. CHARACTER ENTRANCE ON HERO TITLE ──
-    const h1 = document.getElementById('overview-title');
-    if (h1 && window.gsap) {
-      // Split characters cleanly
-      const html = h1.innerHTML;
-      const walk = (node) => {
-        if (node.nodeType === Node.TEXT_NODE) {
-          const frag = document.createDocumentFragment();
-          node.textContent.split('').forEach(ch => {
-            if (ch === ' ') {
-              frag.appendChild(document.createTextNode('\u00a0'));
-            } else {
-              const span = document.createElement('span');
-              span.className = 'char';
-              span.textContent = ch;
-              frag.appendChild(span);
-            }
-          });
-          node.parentNode.replaceChild(frag, node);
-        } else if (node.nodeType === Node.ELEMENT_NODE) {
-          Array.from(node.childNodes).forEach(walk);
-        }
-      };
-      Array.from(h1.childNodes).forEach(walk);
+    // The title dot cycles through eight colours only when activated.
+    const heroTitleDot = document.getElementById('heroTitleDot');
+    if (heroTitleDot) {
+      const dotColours = [
+        { name: 'gold', value: '#efb24f' },
+        { name: 'cyan', value: '#55d6d2' },
+        { name: 'coral', value: '#ff7b72' },
+        { name: 'violet', value: '#b69cff' },
+        { name: 'lime', value: '#b8df70' },
+        { name: 'sky blue', value: '#72b7ff' },
+        { name: 'pink', value: '#ff8fc8' },
+        { name: 'orange', value: '#ff9d5c' }
+      ];
 
-      // Hero Timeline
+      heroTitleDot.addEventListener('click', () => {
+        const currentIndex = Number(heroTitleDot.dataset.dotColorIndex);
+        const nextIndex = (currentIndex + 1) % dotColours.length;
+        const nextColour = dotColours[nextIndex];
+        heroTitleDot.dataset.dotColorIndex = String(nextIndex);
+        heroTitleDot.style.setProperty('--hero-dot-color', nextColour.value);
+        heroTitleDot.setAttribute('aria-label', `Title dot, ${nextColour.name}. Click to change colour.`);
+      });
+    }
+
+    // ── 11. WORD-BASED ENTRANCE ON HERO TITLE ──
+    const h1 = document.getElementById('overview-title');
+    if (h1 && window.gsap && !reducedMotion) {
+      const heroWords = h1.querySelectorAll('.hero-word');
       const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
-      tl.to('#heroKicker', { opacity: 1, duration: 0.6 })
-        .to('.char', { opacity: 1, y: 0, duration: 0.65, stagger: 0.025 }, '-=0.2')
-        .fromTo('#heroSub', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.6 }, '-=0.3')
-        .fromTo('#heroActions', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5 }, '-=0.3');
+      tl.fromTo('#heroKicker', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.45 })
+        .fromTo(heroWords, { autoAlpha: 0, y: 24, rotateX: -8 }, {
+          autoAlpha: 1,
+          y: 0,
+          rotateX: 0,
+          duration: 0.55,
+          stagger: 0.12,
+          onComplete: () => h1.querySelector('.hero-word--accent')?.classList.add('is-sheening')
+        }, '-=0.12')
+        .fromTo('#heroSub', { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.5 }, '-=0.12')
+        .fromTo('#heroActions', { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.45 }, '-=0.12');
     }
 
   })();
