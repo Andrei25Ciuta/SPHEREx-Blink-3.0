@@ -1360,6 +1360,7 @@ function selectMover(k) {
   $("mover-colour").hidden = true;                  // belongs to the candidate that was selected before
   if (k < 0) return;
   const m = movers[k];
+  $("mover-lab-btn").hidden = !m.distant;
   $("mover-spectrum-btn").hidden = Boolean(m.distant);          // the measurement follows a straight path: not for a swinging body
   if (m.distant) {
     $("mover-detail-text").textContent =
@@ -1447,6 +1448,23 @@ player.onFollowChange = (i) => {
   b.setAttribute("aria-pressed", String(i !== null));
   b.textContent = i !== null ? "Stop following" : "Follow it";
 };
+
+$("mover-lab-btn").addEventListener("click", () => {
+  const candidate = movers[selectedMover];
+  if (!candidate?.distant) return;
+  const points = candidate.dots.map((p, i) => ({ x: p.x, y: p.y, mjd: candidate.dotDates?.[i] }))
+    .filter(p => [p.x, p.y, p.mjd].every(Number.isFinite))
+    .sort((a, b) => a.mjd - b.mjd);
+  try {
+    sessionStorage.setItem("spherex-lab-candidate", JSON.stringify({
+      label: candidate.label, distance: candidate.distanceAU, range: candidate.distant.rangeText,
+      points, synthetic: DATA_SOURCE !== "api", n: player.naturalSize,
+    }));
+    location.href = "planet-x.html?inspect=candidate#body-inspector";
+  } catch {
+    $("mover-detail-text").textContent += " Browser storage is unavailable. The candidate could not be sent to Planet X Lab.";
+  }
+});
 
 $("mover-map-btn").addEventListener("click", async () => {
   const m = movers[selectedMover];
