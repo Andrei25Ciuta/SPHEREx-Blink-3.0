@@ -36,7 +36,7 @@ import { applyIcons } from "./features/ui.js";
 import { openDialog, shortcutsHtml } from "./features/dialog.js";
 import { setupTimeline } from "./features/timelineView.js";
 import { FLAGGED_LIMIT } from "./features/timeline.js";
-import { SkyContext } from "./features/skyContext.js?v=5";
+import { SkyContext } from "./features/skyContext.js?v=6";
 import { setupFullscreen } from "./features/fullscreen.js";
 import { detectSources, describeMover, matchKnownObject, moverPositionAtMjd, passIndices, trackSupport, blendWarning, VERSION as MOVERS_VERSION, DEFAULTS as MOVER_DEFAULTS, ERROR_MODEL } from "./features/movers.js";
 import { blindCheckCandidate, VERSION as BLIND_CHECK_VERSION } from "./features/blindCheck.js";
@@ -771,6 +771,8 @@ const sky = new SkyContext($("aladin-box"), $("aladin-status"), $("sky-geo-note"
   matchField: true,
   selectionStatusEl: $("sky-selection-status"),
   backToField: $("sky-back-to-field"),
+  guide: $("sky-map-guide"),
+  resetLight: $("sky-reset-light"),
   onSelectPosition: ({ raText, decText }) => {
     // Same field form and loader used by the Pin Board; keep FOV and data source unchanged.
     raInput.value = raText;
@@ -778,15 +780,20 @@ const sky = new SkyContext($("aladin-box"), $("aladin-status"), $("sky-geo-note"
     raInput.dispatchEvent(new Event("input", { bubbles: true }));
     decInput.dispatchEvent(new Event("input", { bubbles: true }));
     if ($("controls-body").hidden) $("panel-left-btn").click();
+    setMode("blink");
     form.requestSubmit();
-    const scrollToBlink = () => $("workspace").scrollIntoView({
-      block: "start", behavior: prefersReducedMotion ? "auto" : "smooth"
-    });
+    const scrollToBlink = () => {
+      canvas.focus({ preventScroll: true });
+      $("stage").scrollIntoView({ block: "center", behavior: prefersReducedMotion ? "auto" : "smooth" });
+    };
     // Fullscreen must close first, or the Workspace remains hidden behind the sky map.
     const skyFrame = $("sky-frame");
     const wasFullscreen = skyFrame.classList.contains("is-fullscreen");
     const nativeFullscreen = document.fullscreenElement === skyFrame || document.webkitFullscreenElement === skyFrame;
-    if (nativeFullscreen) document.addEventListener("fullscreenchange", scrollToBlink, { once: true });
+    if (nativeFullscreen) {
+      const change = document.fullscreenElement ? "fullscreenchange" : "webkitfullscreenchange";
+      document.addEventListener(change, scrollToBlink, { once: true });
+    }
     if (wasFullscreen) $("sky-full-btn").click();
     if (!nativeFullscreen) scrollToBlink();
   }

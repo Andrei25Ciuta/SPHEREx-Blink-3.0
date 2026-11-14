@@ -1,5 +1,6 @@
 // Sky Context click-to-Workspace helpers. Run: node scratch/test_skycontext_click.mjs
 import assert from "node:assert/strict";
+import { SkyContext } from "../frontend/js/features/skyContext.js";
 import { readFileSync } from "node:fs";
 import { aladinSkyAt, selectionText, copySkySelection } from "../frontend/js/features/skyContextClick.js";
 
@@ -51,4 +52,39 @@ assert.ok(main.includes('form.requestSubmit();'));
 assert.ok(main.includes('selectionStatusEl: $("sky-selection-status")'));
 assert.ok(main.includes('const nativeFullscreen = document.fullscreenElement === skyFrame'));
 assert.ok(main.includes('if ($("controls-body").hidden) $("panel-left-btn").click();'));
+assert.ok(html.includes('id="sky-map-guide"'));
+assert.match(main, /setMode\("blink"\);\s*form\.requestSubmit\(\);/);
+assert.ok(main.includes('$("stage").scrollIntoView'));
+
+let reset;
+const resetLight = { addEventListener: (event, listener) => { reset = listener; } };
+const context = new SkyContext(null, null, null, { resetLight });
+function imageLayer(initial) {
+  const values = { ...initial };
+  return {
+    values,
+    getColorCfg: () => ({
+      getBrightness: () => values.brightness, getContrast: () => values.contrast,
+      getGamma: () => values.gamma, getSaturation: () => values.saturation,
+    }),
+    setOptions: (options) => Object.assign(values, options),
+  };
+}
+const first = imageLayer({ brightness: 0.1, contrast: 0.2, gamma: 1, saturation: 0 });
+const second = imageLayer({ brightness: 0.3, contrast: 0, gamma: 2, saturation: 0.4 });
+let layer = first;
+context.aladin = { getBaseImageLayer: () => layer };
+context.saveInitialLight();
+assert.equal(resetLight.hidden, false);
+first.values.brightness = 0.8;
+context.saveInitialLight();
+reset();
+assert.equal(first.values.brightness, 0.1);
+layer = second;
+context.saveInitialLight();
+second.values.gamma = 4;
+reset();
+assert.equal(second.values.gamma, 2);
+assert.equal(first.values.gamma, 1);
+
 console.log("PASS Sky Context cursor coordinates, copy fallbacks and Blink handoff");

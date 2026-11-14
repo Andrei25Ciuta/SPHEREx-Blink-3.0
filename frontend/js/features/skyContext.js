@@ -112,13 +112,21 @@ function loadWorld() {
 }
 
 export class SkyContext {
-  constructor(container, statusEl, noteEl = null, { matchField = false, onSelectPosition = null, selectionStatusEl = null, backToField = null } = {}) {
+  constructor(container, statusEl, noteEl = null, { matchField = false, onSelectPosition = null, selectionStatusEl = null, backToField = null, guide = null, resetLight = null } = {}) {
     this.container = container;
     this.statusEl = statusEl;
     this.matchField = matchField;
     this.onSelectPosition = onSelectPosition;
     this.selectionStatusEl = selectionStatusEl;
     this.backToField = backToField;
+    this.guide = guide;
+    this.resetLight = resetLight;
+    this.lightDefaults = new WeakMap();
+    resetLight?.addEventListener("click", () => {
+      const layer = this.aladin?.getBaseImageLayer();
+      const defaults = layer && this.lightDefaults.get(layer);
+      if (defaults) layer.setOptions({ ...defaults });
+    });
     this.workspaceField = null;
     backToField?.addEventListener("click", () => {
       if (this.workspaceField) this.update(this.workspaceField);
@@ -144,23 +152,27 @@ export class SkyContext {
   }
 
   installMapGuide() {
-    if (!this.backToField) return;
-    const guide = document.createElement("div");
-    guide.className = "sky-map-guide";
-    guide.innerHTML = `<div class="sky-map-compass" aria-label="Orientation at map centre">
-      <span data-direction="north">N <b aria-hidden="true">→</b></span>
-      <span data-direction="east">E <b aria-hidden="true">→</b></span>
-    </div><div class="sky-map-scale" aria-label="Approximate angular scale"></div>`;
-    this.container.appendChild(guide);
-    this.guide = guide;
-    this.aladin.on("zoomChanged", () => this.refreshMapGuide());
-    this.aladin.on("cooFrameChanged", () => this.refreshMapGuide());
-    this.aladin.on("rotationChanged", () => this.refreshMapGuide());
-    new ResizeObserver(() => this.refreshMapGuide()).observe(this.container);
+    if (!this.guide) return;
+    for (const event of ["zoomChanged", "cooFrameChanged", "resizeChanged", "projectionChanged"]) {
+      this.aladin.on(event, () => this.refreshMapGuide());
+    }
+  }
+
+  saveInitialLight() {
+    if (!this.resetLight) return;
+    const layer = this.aladin.getBaseImageLayer();
+    if (layer && !this.lightDefaults.has(layer)) {
+      const color = layer.getColorCfg();
+      this.lightDefaults.set(layer, {
+        brightness: color.getBrightness(), contrast: color.getContrast(),
+        gamma: color.getGamma(), saturation: color.getSaturation(),
+      });
+    }
+    this.resetLight.hidden = !layer;
   }
 
   refreshMapGuide() {
-    if (!this.guide) return;
+    if (!this.guide || !this.aladin) return;
     if (this.backToField) this.backToField.hidden = !outsideWorkspaceField(this.aladin, this.workspaceField);
     const guide = skyMapGuide(this.aladin);
     this.guide.hidden = !guide;
@@ -290,6 +302,7 @@ export class SkyContext {
         if (!clickedSource) this.onMapClick(e);
       });
       this.installMapGuide();
+      if (this.resetLight) this.aladin.on("layerChanged", () => this.saveInitialLight());
       this.aladin.on("positionChanged", () => {
         if (!this.hovering) this.showCentre();
         this.refreshMapGuide();
@@ -298,6 +311,7 @@ export class SkyContext {
     }
     // The source can change between two openings (e.g. the backend was started meanwhile).
     else if (before !== source) this.setSurvey(this.survey);
+    this.saveInitialLight();
     this.statusEl.textContent = SOURCE_NOTE[source];
     if (this.noteEl) { this.noteEl.hidden = false; this.noteEl.textContent = this.world ? GEO_NOTE : "Loading country names…"; }
     this.update(query);
@@ -333,6 +347,7 @@ export class SkyContext {
     // API name changed between 3.x releases – support both.
     if (typeof this.aladin.setImageSurvey === "function") this.aladin.setImageSurvey(ref);
     else this.aladin.setBaseImageLayer(ref);
+    this.saveInitialLight();
   }
 
   /** Re-centre on a new query and redraw the field square + SIMBAD objects. */
