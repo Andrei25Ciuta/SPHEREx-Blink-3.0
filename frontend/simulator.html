@@ -16,7 +16,7 @@
 <p>Follow a symbolic SPHEREx satellite and compare synthetic snapshots of the same target over a year. See why its apparent position shifts at month 6 and nearly returns at month 12.</p></header>
 <form class="simulator-layout" id="controls">
 <section class="panel sim-stage"><div class="sim-panel-heading"><h2>Observer and target</h2><p>Earth, the Sun, a symbolic SPHEREx satellite, and the target sightline in the selected projection.</p></div>
-<figure><svg viewBox="0 0 700 400" class="plot" id="scene" role="img" aria-label="Earth’s orbit, the Sun and sightlines from two dates to the same target">
+<figure><svg viewBox="0 0 700 400" class="plot" id="scene" role="img" aria-label="Earth’s orbit, the Sun, a symbolic SPHEREx satellite and sightlines from two dates to the same target">
   <defs>
     <radialGradient id="sun-glow">
       <stop stop-color="#efaa47" stop-opacity=".48"/><stop offset=".45" stop-color="#d88132" stop-opacity=".25"/><stop offset="1" stop-color="#d88132" stop-opacity="0"/>
@@ -45,13 +45,13 @@
     </symbol>
     <g id="scene-bodies"></g>
 </svg><figcaption id="scale"></figcaption></figure>
-<fieldset class="sim-time"><legend>Observer epoch</legend><label class="range-label"><span>Days since reference</span><output for="day" id="day-label">145</output><input type="range" id="day" min="0" max="365" value="145"></label><button type="button" id="play" class="btn btn-primary">Play year</button></fieldset>
+<fieldset class="sim-time"><legend>Observer epoch</legend><label class="range-label"><span>Days since reference</span><output for="day" id="day-label">0</output><input type="range" id="day" min="0" max="365" value="0"></label><button type="button" id="play" class="btn btn-primary">Play year</button></fieldset>
 <div class="sim-month-presets" role="group" aria-label="Jump to a simulated observation month">
   <span class="sim-presets-label">Compare observations:</span>
   <button type="button" data-sim-day="0">Month 0</button>
   <button type="button" data-sim-day="183">Month 6</button>
   <button type="button" data-sim-day="365">Month 12 ≈ 0</button>
-  <output id="sim-month-label" aria-live="polite">Month 5</output>
+  <output id="sim-month-label" aria-live="polite">Month 0</output>
 </div>
 <section class="sim-captures" aria-labelledby="sim-captures-title">
   <div class="sim-captures-header">
