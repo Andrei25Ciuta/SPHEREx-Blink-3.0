@@ -30,6 +30,10 @@ A candidate is a lead with its evidence, never a discovery. Nothing this applica
   found from **positions only**, and any flat-spectrum assumption (injection tests, the "absent in other passes" transient tag) is an approximation.
 - A cutout of all detectors together and one of a single detector are resampled differently; marginal results can differ between them.
 
+## Overview illustration
+
+- The Overview's procedural spacecraft and starfield are decorative illustrations. The model is not to scale and does not encode flight geometry, instrument specifications, or SPHEREx observations. Only the separately labelled synthetic demo is synthetic image data; the 3D scene itself is not a data product.
+
 ## Find movers
 
 - Needs images from at least 3 survey passes about 6 months apart; motion below about 0.8 pixel (5″) over the baseline looks like a still star.

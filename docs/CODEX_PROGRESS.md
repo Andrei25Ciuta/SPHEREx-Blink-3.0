@@ -82,6 +82,12 @@ Ran all 44 `scratch/test_*.mjs` scripts, `node scratch/e2e_smoke.mjs`, `node scr
 
 The frontend serves directly from `frontend/` with no build step. The available Python installations lacked pytest, so `python -m pytest backend -q` could not run. Live FITS, external catalogues and third-party sky map services were not exercised.
 
+## 2026-11-14 — 3D Overview interface port
+
+Replaced the public Overview presentation with the 3D experience adapted from `EmanuelGeorge-c/proiect-nasa` (MIT-licensed), while keeping Blink 3.0 routes, target-field links, theme storage, and the synthetic-data notice. The procedural spacecraft scene is labelled as illustrative and not to scale; its component panel avoids engineering specifications or observation claims. Removed the source page's unverified live-backend status, retained the shared theme script, added a static WebGL fallback, keyboard focus handling and reduced-motion behavior, and kept the mobile project navigation available as a scrollable row. Updated CREDITS, feature status, and display limitations. No analysis, backend, query, or data code changed.
+
+Review: `git diff --check` passed for the tracked diff after removing the only added trailing whitespace. Tests and browser review were not run for this port; the responsive layout, screen-reader behavior, and WebGL fallback remain to be checked in a browser.
+
 ## 2026-11-11 — academic Overview refinement
 
 Simplified the public Overview into a quieter research-note presentation: reduced hero scale, more generous reading space, plain figure treatment, restrained monochrome illustration, compact capability line, hairline-separated mode descriptions, table-like target cards and a neutral workflow note. The formerly animated illustration is static by default, while the existing reduced-motion fallback remains. This is CSS-only; navigation, target deep links and all claims remain unchanged.
