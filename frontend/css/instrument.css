@@ -68,8 +68,8 @@ input[type=range]::-webkit-slider-thumb { box-shadow: none; }
   background: var(--bg); border-bottom: 1px solid var(--border);
 }
 .site-brand { white-space: nowrap; color: var(--text); font: 700 1.3rem var(--font-head); letter-spacing: -.04em; text-decoration: none; }
-.project-menu { flex: 1; display: flex; align-items: center; justify-content: space-between; gap: 14px; }
-.project-menu nav { display: flex; align-items: center; gap: clamp(4px, 1vw, 18px); }
+.project-menu { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: flex-start; gap: 14px; }
+.project-menu nav { flex: 1; min-width: 0; display: flex; align-items: center; gap: clamp(4px, 1vw, 18px); }
 .project-menu nav a {
   display: flex; align-items: center; min-height: 59px; padding: 0 5px;
   border-bottom: 2px solid transparent; color: var(--text-muted); text-decoration: none;
@@ -79,7 +79,7 @@ input[type=range]::-webkit-slider-thumb { box-shadow: none; }
 .project-menu nav a[aria-current] { color: var(--accent-text); border-color: var(--accent); }
 .project-menu select { width: auto; max-width: 12rem; min-height: 36px; }
 #pages-toggle,.embed .site-header { display: none; }
-@media (max-width: 64rem) {
+@media (max-width: 75rem) {   /* was 64rem: the mode menu needs about 1200px on one line */
   .site-header { justify-content: space-between; min-height: 56px; }
   #pages-toggle { display: inline-flex; align-items: center; min-height: 44px; }
   .project-menu { display: none; position: absolute; top: 100%; right: 8px;

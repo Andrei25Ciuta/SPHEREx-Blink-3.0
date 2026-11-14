@@ -1,5 +1,13 @@
 # Scientific scope
 
+## Learn Mode and Astra
+
+- Learn Mode diagrams are schematic illustrations and synthetic examples, not SPHEREx observations. The page labels them and links the astronomy summaries to NASA learning sources.
+- The course contains eight short lessons and one progress check per level. These quizzes are not a validated measure of learning or mastery; XP, ranks, badges and streaks are motivational UI.
+- Astra is a small offline glossary and curated response guide. It is not a generative AI model, does not answer unrestricted questions reliably, and does not send user text anywhere. Unsupported questions get a fallback instead of an invented answer.
+- Progress and the classroom dashboard use local browser storage. There is no cloud backup, account, or cross-device teacher roster. If browser storage is disabled or cleared, progress may be lost.
+- Science Mode's Explain Simply controls translate panel titles and known glossary terms into prepared summaries. They do not change analysis values, uncertainty, provenance or scientific status.
+
 The default viewer generates synthetic frames. The results dashboard reads the saved real-data summary. Neither the navigation smoke test nor the offline module checks reproduce those observations.
 
 The imported validation report documents the small field sample, limitations of quick aperture fluxes, and confusion in blind parallax searches. Its targeted Makemake distance fit and its blind recovery experiment answer different questions. Keep their evidence separate. See [the original validation methods and results](VALIDATION.md).
@@ -33,12 +41,14 @@ A candidate is a lead with its evidence, never a discovery. Nothing this applica
 ## Overview illustration
 
 - The Overview's procedural Earth, orbit, spacecraft, scan beam and starfield are decorative illustrations. They are not to scale and do not encode flight geometry, instrument specifications, live Earth imagery, telescope pointing, or SPHEREx observations. Only the separately labelled synthetic demo is synthetic image data; the 3D scene itself is not a data product.
+- The Sky Explorer globe and its star field, grid and colored band are also decorative orientation graphics. Only the five labeled markers use the documented challenge target coordinates; the globe is not an all-sky survey image, coverage map, or live observation.
 
 ## Find movers
 
 - Needs images from at least 3 survey passes about 6 months apart; motion below about 0.8 pixel (5″) over the baseline looks like a still star.
 - In a field with a saturated star it is 20-30 times less sensitive; one image reaches about 0.6-0.9 mJy in a clean field.
 - The "chance lines expected" number is conservative in the empty-sky tests; it is not a probability of being real.
+- The leave-one-image-out check needs at least 4 detections spanning 4 survey passes. For each held-out detected image it refits a straight line from the other dots and measures aperture S/N at the predicted position; S/N ≥ 5 counts as supported. It reuses the detections that proposed the candidate, assumes a straight path and the existing image registration, and has only synthetic test coverage so far. A high count is consistency evidence, not independent confirmation or a probability that the source is real. It is not applied to the curved parallax candidates.
 
 ## Planet X mode
 
@@ -123,6 +133,15 @@ A candidate is a lead with its evidence, never a discovery. Nothing this applica
 - Sections 4-6 are remade too (VALIDATION 19): the Jansky scale uses zero points written from memory; the Arosa centre offset (1.0″) and the explanation of the WISE 0855 D2 excess are still typed; Arosa is one asteroid in two images.
 - Sections 7-10 (Makemake and the blind Planet X search, the fake-star calibration, the empty-sky test, the Planet X limits) are still the numbers of 7 Nov, typed from the reports of their commands; they do not move when the images do.
 
+## A file loaded into the Results page
+
+- The charts and numbers of a loaded file are **counts and ranges of its own rows**, drawn as they are. They say what is in the file, not that it is right: a candidate list is a list of leads, and the page repeats that for sources nothing explains. Nothing is checked against the images, which the page does not have.
+- A file is told by what it contains, and only four kinds are read (the candidate JSON and CSV of the workspace, a list of sources, validation numbers). The candidate JSON keeps the strict check of the workspace: a list with a count that does not agree with its own fit points is **refused, not repaired**. A CSV has fewer fields than the JSON (no fit points, so no positions plot, and its run time is the file date when it has none, which the page says).
+- The label of what the data is (real or synthetic) is read from the file and shown above everything; a candidate list that carries none of the known labels is refused, and a list of sources that says nothing about its data is shown as "data of unknown kind". **A label in a file can be edited by whoever edits the file**: the page shows it, it cannot prove it.
+- The commentary of sections 1-12 was written for the archived run and is **hidden whenever another file is shown**; a validation file loaded by a person gets its charts with no commentary, and the charts it cannot draw are named as missing. A validation file lacking a section is not completed from the archived one.
+- The sky map draws one degree of declination and of right ascension (times cos Dec) at the same length, from the positions in the file, with east to the left; a field larger than a few degrees would need a projection that is not used. The records of one file may come from several fields and then overlap on the map.
+- Not checked automatically: the look of the page in each theme and on a phone was inspected by eye in the in-app browser (overflow checked by script); `a11y_audit.mjs` covers the Workspace only. The sources table of section 11 (existing) still has focusable points inside an `aria-hidden` picture.
+
 ## Duplicate files, and the reproducibility bundle
 
 - **Until 10 Nov the backend counted three exposures of Barnard's Star in D2 twice** (byte-identical files). Every real-data result made with them treated Barnard D2 as 18 images instead of 15. Sections 1-6 of the results page were remade without them and reproduce the numbers of 7 Nov; sections 8 and 9 (and VALIDATION 10, 14, 16, 15.5) were not re-run and say so. An exposure counted twice is not an independent measurement: those Barnard D2 numbers are probably slightly optimistic.
@@ -164,3 +183,8 @@ A candidate is a lead with its evidence, never a discovery. Nothing this applica
 
 - The colour hint (flux at 4-5 µm over flux at 1-2 µm) cannot tell an M dwarf from an early T dwarf and is not a classification.
 - Spectra are built from images taken at different times: a variable source mixes variability with spectral shape.
+
+## Missions and the pin board
+
+- Mission texts (Barnard's Star at about 10″/yr and 6 light-years, 1 AU ≈ 150 million km, d[pc] = 1/p[″], infrared and cold bodies) are textbook facts **written from memory**, not measured here. Mission completion is detected from the learner's clicks and from results appearing on the page; it shows the learner used the tool, not that they understood it.
+- The pin tag reads "Discovered/Verified by <name>" at the author's request (14 Nov 2026). Scientifically a pin is still a candidate: the board says so, nothing is checked by anyone else, and synthetic-data pins say "(synthetic demo data)". Pins live in one browser's localStorage; nothing is shared between computers. The SHA-256 shows a pin was not edited afterwards in that browser; it is not a timestamped proof of priority (no outside witness).

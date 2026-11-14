@@ -6,7 +6,7 @@
 
 export const COLUMNS = [
   "candidate", "kind", "ra_deg", "dec_deg", "epoch_mjd", "speed_arcsec_per_yr", "pm_east_arcsec_per_yr", "pm_north_arcsec_per_yr",
-  "position_angle_deg", "detections", "images", "significance_sigma", "false_alarm_expected", "path_support_images", "path_images", "rms_px", "known_object",
+  "position_angle_deg", "detections", "images", "significance_sigma", "false_alarm_expected", "path_support_images", "path_images", "blind_check_supported", "blind_check_images", "rms_px", "known_object",
   "distance_au", "distance_range_lo_au", "distance_range_hi_au", "own_velocity_kms", "bound_to_sun",
   "asteroid_match", "asteroid_dates", "detector", "field_ra_deg", "field_dec_deg", "field_fov_arcmin", "data", "permalink",
   ...PROVENANCE_CSV_COLUMNS,                       // how the search was run: analysis, algorithm version, time, images used, settings (provenance.js)
@@ -48,6 +48,8 @@ export function candidateRecords(candidates, ctx) {
       false_alarm_expected: Number.isFinite(m.falseAlarm) ? Number(m.falseAlarm.toPrecision(2)) : null,
       // images in which the flux at the candidate's predicted spot is real (S/N >= 5), out of the images measured, also where no dot was found
       path_support_images: m.support?.measurable ? m.support.supported : null, path_images: m.support?.measurable ?? null, rms_px: round(m.rms, 3),
+      // Leave-one-image-out line fit and S/N check; not independent confirmation.
+      blind_check_supported: m.blindCheck?.checked ? m.blindCheck.supported : null, blind_check_images: m.blindCheck?.checked ?? null,
       known_object: m.known ?? "",
       distance_au: m.distant ? round(m.distanceAU, 0) : null,
       distance_range_lo_au: m.distant ? round(m.distanceRangeAU?.[0], 0) : null,

@@ -1,5 +1,19 @@
 # Implementation roadmap
 
+## Blink 4.0 · Research + Education addition
+
+The 3.0 research baseline is retained. The new delivery is split into independently checkable surfaces:
+
+| Workstream | Acceptance check |
+| --- | --- |
+| Landing and mode navigation | A plain visit reaches the chooser; Science and Learn destinations are keyboard reachable; all original science deep links continue to load the workspace. |
+| Curriculum, quizzes and rewards | Eight ordered levels unlock sequentially; every quiz type is usable; XP is awarded once; local profiles survive reload and malformed storage is handled. |
+| Astra and simple explanations | Key terms return reviewed child-friendly explanations; unsupported questions disclose the offline fallback; Science Mode panel controls work by keyboard. |
+| Interactive explorer and teacher tools | Spectrum/planet/galaxy controls update readouts; profile table reflects only this browser; worksheets print with a separate answer key. |
+| Compatibility | Existing science, results, URL state, embedded mode, exports, data labels and uncertainty behavior stay intact; Node and browser regressions cover both paths. |
+
+Architecture and known limitations: [EDUCATION_MODE.md](EDUCATION_MODE.md). The user-provided full brief was received on 2026-11-14; it ends mid-sentence after the deliverables list, so the implementation treats the requirements above as the complete current scope and records intentional offline/local-only limits.
+
 | Phase | State and next acceptance check |
 | --- | --- |
 | 0. Audit and baseline | Import and offline baseline recorded. Expand the feature audit as each subsystem changes. |

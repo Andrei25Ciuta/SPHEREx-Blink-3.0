@@ -25,12 +25,14 @@ function setupAtlas() {
   const group = $("atlas-targets");
   const choices = $("atlas-target-list");
   if (!svg || !group || !choices) return;
+  const selectTarget = new Map();
   const ns = svg.namespaceURI;
-  for (const target of TARGETS) {
+  for (const [index, target] of TARGETS.entries()) {
     const { ra, dec } = positionAtEpoch(target);
     const [x, y] = projectAtlas(ra, dec);
     const marker = document.createElementNS(ns, "g");
     marker.classList.add("atlas-marker");
+    marker.style.setProperty("--target-color", ["#ffcf70", "#70e1dc", "#ff8ab1", "#b4a0ff", "#a7ef9d"][index % 5]);
     marker.innerHTML = `<circle cx="${x}" cy="${y}" r="7"></circle><text x="${x + 12}" y="${y + 5}">${target.label}</text>`;
     const choose = () => {
       $("ra").value = ra.toFixed(7); $("dec").value = dec.toFixed(7);
@@ -40,13 +42,16 @@ function setupAtlas() {
       $("atlas-search").hidden = false;
       group.querySelectorAll(".is-selected").forEach(item => item.classList.remove("is-selected")); marker.classList.add("is-selected");
       choices.querySelectorAll("[aria-pressed]").forEach(item => item.setAttribute("aria-pressed", String(item === choice)));
+      document.dispatchEvent(new CustomEvent("sky-target-selected", { detail: { id: target.id } }));
     };
     marker.addEventListener("click", choose);
     const choice = Object.assign(document.createElement("button"), { type: "button", className: "btn btn-small", textContent: target.label });
     choice.setAttribute("aria-pressed", "false"); choice.addEventListener("click", choose);
+    selectTarget.set(target.id, choose);
     group.append(marker);
     choices.append(choice);
   }
+  document.addEventListener("sky-target-select", event => selectTarget.get(event.detail?.id)?.());
 }
 
 function readQuery() {

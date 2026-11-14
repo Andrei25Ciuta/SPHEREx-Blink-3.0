@@ -22,3 +22,8 @@ export const CAN_USE_LOCAL_BACKEND = typeof location === "undefined" ||
 //   "backend" -> our backend's relay of IRSA's copies (needs the backend running)
 //   "cds"     -> CDS (Strasbourg) directly; may be blocked on some networks
 export const SKY_TILES = "auto";
+
+// The shared Discovery Pin Board (features/pinSync.js): a Supabase table everyone can read and add to, nobody can change or delete from the site.
+// The publishable key is meant to be public; access is limited by the table's row-level security (docs/PIN_BOARD_SETUP.md). Empty = pins stay in each browser.
+export const PIN_BOARD_URL = "https://xmxhtkcmaijmapfyuwcg.supabase.co";
+export const PIN_BOARD_KEY = "sb_publishable_JT4A-xKALCWAKcyF9SfOxg_HVvJGbTY";

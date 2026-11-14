@@ -7,8 +7,8 @@
 // in the wrong colours: keep the two in step (the regular expression and the key).
 
 export const STORAGE_KEY = "spherex-blink-theme";
-// DEFAULT_THEME is only the FALLBACK of readTheme() when no page palette is given. Every page of the site passes defaultTheme "midnight" (js/siteHeader.js, and the
-// data-theme on <html>), so a first visit opens in Midnight / dark on all six pages; a saved choice or ?theme= wins over it (scratch/test_theme.mjs checks the order).
+// DEFAULT_THEME is the fallback when a page does not provide data-default-theme. The 4.0 Science and Overview pages start in the light signal-red palette;
+// Learn starts in Nebula. A saved choice or ?theme= overrides the page default (scratch/test_theme.mjs checks the order).
 export const DEFAULT_THEME = "light";
 export const THEMES = [
   { id: "midnight", label: "Midnight / dark", scheme: "dark", themeColor: "#0B0F19" },

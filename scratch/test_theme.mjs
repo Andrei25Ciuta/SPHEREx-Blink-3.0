@@ -150,9 +150,10 @@ for (const [name, html] of [["index.html", INDEX], ["results.html", RESULTS]]) {
   const m = /var t=new URLSearchParams\(location\.search\)\.get\("theme"\)\|\|localStorage\.getItem\("([^"]+)"\);if\(\/\^\(([^)]+)\)\$\/\.test\(t\)\)/.exec(html);
   check(`${name}: the inline script reads the same storage key and the same four names as theme.js`, Boolean(m) && m[1] === STORAGE_KEY && m[2].split("|").join() === THEMES.map((t) => t.id).join(), m ? `${m[1]} ${m[2]}` : "no inline theme script");
   check(`${name}: the default theme is on <html> (no flash and no JavaScript needed), there is a switch and a browser-bar colour`,
-    html.includes(`<html lang="en" data-theme="midnight">`) &&
+    // Blink 4.0 starts these pages in the light palette (theme.js DEFAULT_THEME = "light", commit a58c1ca); this check still said midnight.
+    html.includes(`<html lang="en" data-theme="light">`) &&
     html.includes('id="theme-select"') &&
-    html.includes(`<meta name="theme-color" content="#0B0F19">`));
+    html.includes(`<meta name="theme-color" content="#FBFBF9">`));
   check(`${name}: the monospace face is loaded with the other fonts`, /family=JetBrains\+Mono/.test(html) && /family=Inter:wght@400;500;600;700/.test(html));
 }
 
