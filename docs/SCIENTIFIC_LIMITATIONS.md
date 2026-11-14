@@ -4,7 +4,7 @@ The default viewer generates synthetic frames. The results dashboard reads the s
 
 The imported validation report documents the small field sample, limitations of quick aperture fluxes, and confusion in blind parallax searches. Its targeted Makemake distance fit and its blind recovery experiment answer different questions. Keep their evidence separate. See [the original validation methods and results](VALIDATION.md).
 
-Blink in colours reuses the loaded frames and can centre them on a fitted candidate track. Exposures within a pass may differ in time as well as wavelength. Residual pointing errors, band-dependent PSFs, saturation and blends can also change the appearance. This mode does not measure chromatic centroids or assign an astrophysical cause.
+Blink in colours reuses the loaded frames and can centre them on a fitted candidate track. Exposures within a pass may differ in time as well as wavelength. Residual pointing errors, band-dependent PSFs, saturation and blends can also change the appearance. The cyan dot is a local intensity-weighted centre from the stretched display, with a background and peak check. It is an illustration rather than calibrated chromatic astrometry, and a nearby source can bias it.
 
 The Planet X Lab uses synthetic Gaussian sources inserted into nine observed D2 cutout backgrounds in one field. Four trials per distance and flux setting give wide Wilson intervals. The recorded control fields yielded zero candidates in four runs, which is insufficient for a survey-wide false-positive claim. The Earth ephemeris and straight target drift are approximations. Profile distance intervals condition on the selected source association and model.
 

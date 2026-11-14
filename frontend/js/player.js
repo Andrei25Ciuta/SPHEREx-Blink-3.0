@@ -22,6 +22,7 @@
 // Zoom and pan (features/view.js): the player keeps `view = { zoom, cx, cy }`. Positions everywhere else stay image FRACTIONS (fx, fy);
 // only drawing goes through the view (`_px`), so the sky <-> image mapping of geometry.js is untouched by zoom and pan.
 
+import { lightCentre } from "./features/colourBlink.js";
 import { combine } from "./features/compare.js";
 import { createView, clampView, fracToCanvas, canvasToFrac, sourceRect, zoomAt, panBy, panStep, scaleBar, centreAndZoom, pathCentre, followView } from "./features/view.js";
 import { OVERLAY_COLORS, DRAW_ORDER, clampOpacity, normaliseOrder } from "./features/layers.js";
@@ -71,7 +72,8 @@ export class BlinkPlayer {
     this.rafId = null;
 
     // Pixel data, extracted lazily (only needed for diff/mean/max).
-    this._grey = null;      // array of Uint8ClampedArray (one per frame), or null
+    this._grey = null;
+    this._colourMasks = new Map();      // array of Uint8ClampedArray (one per frame), or null
     this._derived = {};     // cached median/mean/max arrays
     this._scratch = document.createElement("canvas");   // natural-size off-screen canvas
   }
@@ -87,6 +89,7 @@ export class BlinkPlayer {
     this.images = [];
     this.flagImages = [];
     this._grey = null;
+    this._colourMasks = new Map();
     this._derived = {};
     this.compare = null;                            // frame indices of the old frames: invalid now
     this.catalogue = [];                            // points are per frame of the old frames
@@ -215,8 +218,46 @@ export class BlinkPlayer {
     }
 
     for (const id of this.layerOrder) this._drawLayer(id);          // back to front (features/layers.js DRAW_ORDER, changed from the layer list)
+    if (this.mode === "colour") this._drawLightCentre();
     if (this.caption) this._drawCaption();
     this.onDraw();
+  }
+
+  _drawLightCentre() {
+    const size = this.naturalSize;
+    const fitted = this.candidates[this.selectedCandidate]?.points[this.index];
+    const point = this.selectedCandidate >= 0 ? fitted : (this.marker ?? { fx: 0.5, fy: 0.5 });
+    if (!point) return;
+    const grey = this._greys()?.[this.index];
+    if (!grey) return;
+    const flagImage = this.flagImages[this.index];
+    if (this.frames[this.index].flagsUrl && !flagImage) return;
+    if (flagImage && !this._colourMasks.has(this.index)) {
+      const scratch = this._scratch;
+      scratch.width = scratch.height = size;
+      const ctx = scratch.getContext("2d", { willReadFrequently: true });
+      ctx.drawImage(flagImage, 0, 0, size, size);
+      try {
+        const rgba = ctx.getImageData(0, 0, size, size).data;
+        const mask = Uint8Array.from(grey, (_, i) => rgba[4 * i + 3]);
+        this._colourMasks.set(this.index, mask);
+      } catch {
+        return;
+      }
+    }
+    const centre = lightCentre(grey, size, point, this._colourMasks.get(this.index));
+    if (!centre) return;
+    const [x, y] = this._px(centre.fx, centre.fy);
+    const { ctx } = this;
+    ctx.save();
+    ctx.strokeStyle = "#000";
+    ctx.fillStyle = OVERLAY_COLORS.lightCentre;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
   }
 
   /** Is this layer on screen now (its switch is on and it has something to draw)? */

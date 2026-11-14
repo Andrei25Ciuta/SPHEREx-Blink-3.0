@@ -470,7 +470,7 @@ const MODE_HELP = {
   diff: 'Each image minus the median of the images from <em>other</em> dates: still stars vanish. <span class="swatch" style="background:#ff9e33"></span> brighter than usual – the object is here now · <span class="swatch" style="background:#409eff"></span> fainter than usual.',
   mean: "Average of all images: deeper and less noisy. Moving objects get smeared or fade out.",
   max: "Brightest value of every pixel over all dates: a moving object leaves a <strong>trail of dots</strong>, a still star stays one dot.",
-  colour: "Blink from shorter to longer wavelengths within one survey pass. Select a search result to follow its fitted position. The frames retain their original intensity display.",
+  colour: "Blink from shorter to longer wavelengths within one survey pass. The cyan dot marks the local brightness centre near the selected candidate, a marked position, or the field centre. Weak or flagged measurements are omitted.",
   compare: 'Pick two images, or whole survey passes. <strong>A − B</strong>: <span class="swatch" style="background:#ff9e33"></span> brighter in A · <span class="swatch" style="background:#409eff"></span> fainter in A – a mover is an orange dot next to a blue one, still stars vanish. <strong>A + B</strong>: the average of both, a deeper picture. Other dates are also other wavelengths, so bright stars can leave a faint leftover even if they did not move.',
 };
 
