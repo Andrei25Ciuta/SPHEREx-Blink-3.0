@@ -36,7 +36,7 @@ import { applyIcons } from "./features/ui.js";
 import { openDialog, shortcutsHtml } from "./features/dialog.js";
 import { setupTimeline } from "./features/timelineView.js";
 import { FLAGGED_LIMIT } from "./features/timeline.js";
-import { SkyContext } from "./features/skyContext.js?v=6";
+import { SkyContext } from "./features/skyContext.js?v=7";
 import { setupFullscreen } from "./features/fullscreen.js";
 import { detectSources, describeMover, matchKnownObject, moverPositionAtMjd, passIndices, trackSupport, blendWarning, VERSION as MOVERS_VERSION, DEFAULTS as MOVER_DEFAULTS, ERROR_MODEL } from "./features/movers.js";
 import { blindCheckCandidate, VERSION as BLIND_CHECK_VERSION } from "./features/blindCheck.js";
@@ -772,6 +772,7 @@ const sky = new SkyContext($("aladin-box"), $("aladin-status"), $("sky-geo-note"
   selectionStatusEl: $("sky-selection-status"),
   backToField: $("sky-back-to-field"),
   guide: $("sky-map-guide"),
+  scale: $("sky-map-scale"),
   resetLight: $("sky-reset-light"),
   onSelectPosition: ({ raText, decText }) => {
     // Same field form and loader used by the Pin Board; keep FOV and data source unchanged.

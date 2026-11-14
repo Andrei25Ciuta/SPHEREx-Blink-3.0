@@ -710,7 +710,14 @@ output { font-weight: 600; color: var(--accent); }
 .sky-map-compass { display: flex; align-items: center; gap: .75rem; }
 .sky-map-compass [data-direction] { font-weight: 700; }
 .sky-map-compass b { display: inline-block; }
-.sky-map-scale { font-variant-numeric: tabular-nums; text-align: center; }
+.sky-map-scale {
+  position: absolute; right: .5rem; bottom: 3.4rem; z-index: 6;
+  padding: .3rem .5rem; border: 1px solid var(--border); border-radius: 8px;
+  background: rgb(var(--bg-rgb) / .92); color: var(--text);
+  font: .75rem/1.35 var(--font-mono); font-variant-numeric: tabular-nums;
+  text-align: center; pointer-events: none;
+}
+#sky-reset-light { position: absolute; top: .5rem; right: .5rem; z-index: 6; }
 .sky-map-scale::after {
   content: ""; display: block; width: var(--scale-width); height: .35rem; margin: 0 auto;
   border: 1px solid currentColor; border-top: 0;

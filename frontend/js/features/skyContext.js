@@ -112,7 +112,7 @@ function loadWorld() {
 }
 
 export class SkyContext {
-  constructor(container, statusEl, noteEl = null, { matchField = false, onSelectPosition = null, selectionStatusEl = null, backToField = null, guide = null, resetLight = null } = {}) {
+  constructor(container, statusEl, noteEl = null, { matchField = false, onSelectPosition = null, selectionStatusEl = null, backToField = null, guide = null, scale = null, resetLight = null } = {}) {
     this.container = container;
     this.statusEl = statusEl;
     this.matchField = matchField;
@@ -120,6 +120,7 @@ export class SkyContext {
     this.selectionStatusEl = selectionStatusEl;
     this.backToField = backToField;
     this.guide = guide;
+    this.scale = scale;
     this.resetLight = resetLight;
     this.lightDefaults = new WeakMap();
     resetLight?.addEventListener("click", () => {
@@ -172,17 +173,17 @@ export class SkyContext {
   }
 
   refreshMapGuide() {
-    if (!this.guide || !this.aladin) return;
+    if (!this.guide || !this.scale || !this.aladin) return;
     if (this.backToField) this.backToField.hidden = !outsideWorkspaceField(this.aladin, this.workspaceField);
     const guide = skyMapGuide(this.aladin);
-    this.guide.hidden = !guide;
+    this.guide.hidden = this.scale.hidden = !guide;
     if (!guide) return;
     for (const direction of ["north", "east"]) {
       const label = this.guide.querySelector(`[data-direction="${direction}"]`);
       label.hidden = guide[direction] === null;
       label.querySelector("b").style.transform = `rotate(${guide[direction]}deg)`;
     }
-    const scale = this.guide.querySelector(".sky-map-scale");
+    const scale = this.scale;
     scale.style.setProperty("--scale-width", `${guide.width}px`);
     scale.textContent = guide.label;
     scale.setAttribute("aria-label", `Approximate angular scale ${guide.label}`);
@@ -301,6 +302,8 @@ export class SkyContext {
         this.clickedAladinObject = false;
         if (!clickedSource) this.onMapClick(e);
       });
+      if (this.scale) this.container.appendChild(this.scale);
+      if (this.resetLight) this.container.appendChild(this.resetLight);
       this.installMapGuide();
       if (this.resetLight) this.aladin.on("layerChanged", () => this.saveInitialLight());
       this.aladin.on("positionChanged", () => {
