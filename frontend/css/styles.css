@@ -1505,6 +1505,23 @@ html[data-theme] .site-footer { border-top: 1px solid var(--border); background:
 .pb-zoom-level { font: 11px var(--font-mono); color: #ffffffc0; }
 .pb-fullscreen { position: absolute; top: 10px; left: 10px; padding: 6px 12px; border-radius: 999px; border: 1px solid rgb(255 255 255 / .18); background: rgb(5 8 15 / .7); color: #fff; font: inherit; font-size: .82rem; cursor: pointer; backdrop-filter: blur(6px); }
 .pb-readout { position: absolute; left: 10px; bottom: 8px; margin: 0; padding: 3px 10px; border-radius: 999px; background: rgb(5 8 15 / .7); color: #ffffffd0; font: 11px var(--font-mono); pointer-events: none; max-width: calc(100% - 20px); }
+.pb-hover-coords {
+  position: absolute;
+  z-index: 6;
+  max-width: min(310px, calc(100% - 16px));
+  padding: 7px 10px;
+  border: 1px solid rgb(var(--accent-rgb) / .65);
+  border-radius: 9px;
+  color: #fff;
+  background: rgb(6 12 23 / .96);
+  box-shadow: 0 8px 22px rgb(0 0 0 / .5);
+  font: 11px/1.5 var(--font-mono);
+  pointer-events: none;
+}
+.pb-hover-coords[hidden] { display: none; }
+.pb-hover-coords span { display: block; overflow-wrap: anywhere; }
+.pb-hover-coords small { display: block; margin-top: 2px; color: #ffd18b; font-size: 10px; }
+
 .pb-map-wrap:fullscreen, .pb-map-wrap.is-expanded { display: grid; place-items: center; background: #05080f; border-radius: 0; }
 .pb-map-wrap.is-expanded { position: fixed; inset: 0; z-index: 2000; }
 .pb-map-wrap:fullscreen .pin-map, .pb-map-wrap.is-expanded .pin-map { width: 100vw; height: 100vh; aspect-ratio: auto; }
