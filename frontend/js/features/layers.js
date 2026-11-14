@@ -9,7 +9,6 @@ export const OVERLAY_COLORS = {
   catalogue: "#90AEAD",             // catalogue stars (SIMBAD): pale teal
   asteroids: "#F2A93B",             // known asteroids (SkyBoT): amber
   candidates: "#EA4F39",            // movers found by the search: orange
-  lightCentre: "#68E4FC",          // measured centre of light in the wavelength blink
   candidateSelected: "#F4806A",     // the one picked in the list
   marker: "#FFFF29",                // the measuring circle: yellow (hsl(55 100% 60%))
   grid: "#8FB2E0",                  // the coordinate grid: pale blue, drawn thin and see-through so it never hides a dot

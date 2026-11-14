@@ -35,6 +35,7 @@ const ANIMATED = new Set(["blink", "diff", "colour"]);
 export class BlinkPlayer {
   constructor(canvas, { onFrameChange = () => {}, onPlayStateChange = () => {}, onViewChange = () => {}, onDraw = () => {} } = {}) {
     this.canvas = canvas;
+    this.reduceMotion = globalThis.matchMedia?.("(prefers-reduced-motion: reduce)");
     this.ctx = canvas.getContext("2d");
     this.onFrameChange = onFrameChange;           // called with (index, frame)
     this.onPlayStateChange = onPlayStateChange;   // called with (isPlaying)
@@ -232,7 +233,7 @@ export class BlinkPlayer {
     const grey = this._greys()?.[this.index];
     if (!grey) return;
     const flagImage = this.flagImages[this.index];
-    if (this.frames[this.index].flagsUrl && !flagImage) return;
+    let canMeasure = !this.frames[this.index].flagsUrl || Boolean(flagImage);
     if (flagImage && !this._colourMasks.has(this.index)) {
       const scratch = this._scratch;
       scratch.width = scratch.height = size;
@@ -243,23 +244,29 @@ export class BlinkPlayer {
         const mask = Uint8Array.from(grey, (_, i) => rgba[4 * i + 3]);
         this._colourMasks.set(this.index, mask);
       } catch {
-        return;
+        canMeasure = false;
       }
     }
-    const centre = lightCentre(grey, size, point, this._colourMasks.get(this.index));
+    const measured = canMeasure ? lightCentre(grey, size, point, this._colourMasks.get(this.index)) : null;
+    const centre = measured ?? (fitted || predicted ? point : null);
     if (!centre) return;
     const [x, y] = this._px(centre.fx, centre.fy);
+    const pulse = this.playing && !this.reduceMotion?.matches ? Math.sin(performance.now() / 420) : 0;
+    const radius = 29 + 3 * pulse;
     const { ctx } = this;
+    const glow = ctx.createRadialGradient(x, y, 0, x, y, radius);
+    glow.addColorStop(0, "rgba(255, 242, 251, .18)");
+    glow.addColorStop(.48, "rgba(255, 162, 209, .24)");
+    glow.addColorStop(.62, "rgba(255, 170, 215, .86)");
+    glow.addColorStop(.71, "rgba(214, 253, 255, .95)");
+    glow.addColorStop(.81, "rgba(83, 227, 255, .62)");
+    glow.addColorStop(1, "rgba(83, 227, 255, 0)");
     ctx.save();
-    ctx.strokeStyle = "#000";
-    ctx.fillStyle = OVERLAY_COLORS.lightCentre;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(x, y, 7, 0, 2 * Math.PI);
-    ctx.fill();
-    ctx.stroke();
+    ctx.globalAlpha = measured ? 1 : .48;
+    ctx.fillStyle = glow;
+    ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
     ctx.restore();
-    return true;
+    return measured ? "measured" : "predicted";
   }
 
   /** Is this layer on screen now (its switch is on and it has something to draw)? */
@@ -446,6 +453,7 @@ export class BlinkPlayer {
     this.playing = false;
     cancelAnimationFrame(this.rafId);
     this.onPlayStateChange(false);
+    if (this.mode === "colour") this.draw();
   }
 
   toggle() { this.playing ? this.pause() : this.play(); }
@@ -460,6 +468,10 @@ export class BlinkPlayer {
     if (now - this.lastTick >= 1000 / this.fps) {
       this.lastTick = now;
       this.next();
+      this.lastHaloDraw = now;
+    } else if (this.mode === "colour" && !this.reduceMotion?.matches && now - (this.lastHaloDraw ?? 0) >= 50) {
+      this.lastHaloDraw = now;
+      this.draw();
     }
     this.rafId = requestAnimationFrame(this.tick);
   };
@@ -644,6 +656,7 @@ export class BlinkPlayer {
       const pts = this._pts(c.points);
       if (!pts.length) return;
       const selected = i === this.selectedCandidate;
+      if (selected && this.mode === "colour") return;
       const [x, y] = this.isAnimated ? (pts[this.index] ?? pts[0]) : pts.at(-1);
       if (x < -20 || x > W + 20 || y < -20 || y > H + 20) { if (!selected) return; }   // off screen after zooming (the selected path still shows)
       ctx.strokeStyle = ctx.fillStyle = selected ? OVERLAY_COLORS.candidateSelected : OVERLAY_COLORS.candidates;
