@@ -56,7 +56,7 @@ import { fetchCatalogue, catalogueTracks } from "./features/catalogue.js";
 import { fetchSkybotForFrames, asteroidPoints, matchAsteroids } from "./features/skybot.js";
 import { setComparisonFrames } from "./features/detectorPair.js";
 import { savePng, recordBlink, canRecord, copyLink } from "./features/exporters.js?v=2";
-import { setupDiscoverPanel } from "./features/discoverPanel.js";
+import { setupDiscoverPanel } from "./features/discoverPanel.js?v=2";
 import { clampFov, maxFovForDataSource, REAL_DATA_MAX_FOV_ARCMIN } from "./features/fieldLimits.js";
 
 // Small helper: document.getElementById is long, so we alias it.
