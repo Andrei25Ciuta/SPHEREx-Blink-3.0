@@ -17,6 +17,7 @@ from fastapi import Body, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 
+from spherex import catalogues
 from spherex.storage import from_env, StoreError, download_verified
 from spherex.query import read_frame_file
 from spherex.photometry import measure
@@ -409,7 +410,7 @@ def create_app(
         request: Request,
         ra: float = Query(..., ge=0, lt=360),
         dec: float = Query(..., ge=-90, le=90),
-        fov: float = Query(5, ge=1, le=10),
+        fov: float = Query(5, ge=1, le=30),
         det: str = "all",
         request_id: str | None = Query(None, alias="request_id"),
     ):
@@ -470,6 +471,27 @@ def create_app(
             raise HTTPException(422, "Measurement position is outside the prepared sequences.")
         points.sort(key=lambda point: (point.get("mjd", 0), point.get("detector", "")))
         return {"points": points}
+
+    @app.get("/api/catalogue")
+    def catalogue(
+        cat: str = Query(..., description='"2mass", "allwise" or "gaia"'),
+        ra: float = Query(..., ge=0, lt=360, description="degrees, ICRS"),
+        dec: float = Query(..., ge=-90, le=90, description="degrees, ICRS"),
+        radius: float = Query(5, gt=0, le=catalogues.RADIUS_MAX_ARCMIN, description="arcmin"),
+        minpm: float = Query(
+            0,
+            ge=0,
+            le=catalogues.MIN_PM_MAX_MAS,
+            description="gaia only: minimum proper motion in mas/yr",
+        ),
+    ):
+        """Bounded cone search of the allowlisted 2MASS, AllWISE, or Gaia DR3 catalog."""
+        try:
+            return catalogues.cone_search(cat, ra, dec, radius, minpm)
+        except catalogues.NotAllowed as exc:
+            raise HTTPException(403, str(exc)) from exc
+        except catalogues.CatalogueError as exc:
+            return JSONResponse(status_code=502, content={"detail": str(exc)})
 
     @app.get("/api/{path:path}")
     def unavailable(path: str):

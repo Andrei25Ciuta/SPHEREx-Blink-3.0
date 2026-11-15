@@ -375,6 +375,80 @@ output { font-weight: 600; color: var(--accent); }
 .overlay-progress::-moz-progress-bar { background: var(--accent); border-radius: 999px; }
 .btn-retry { margin-top: 1rem; padding: .55rem 1.1rem; }
 .btn-retry:hover { border-color: var(--accent); }
+.field-request-panel {
+  position: absolute; z-index: 3; inset: .55rem; min-width: 0; min-height: 0;
+  display: flex; flex-direction: column; gap: .5rem; padding: .55rem; overflow: auto;
+  color: var(--text); text-align: left; background: rgb(var(--bg-rgb) / .94);
+  border: 1px solid var(--border); border-radius: var(--radius-sm); box-shadow: var(--shadow);
+}
+.field-request-head { display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: .15rem .6rem; min-width: 0; }
+#field-request-title { min-width: 0; font-size: .95rem; }
+.field-request-summary { color: var(--text-muted); font-size: .78rem; text-align: right; font-variant-numeric: tabular-nums; }
+.field-request-overall { grid-column: 1 / -1; width: 100%; height: 6px; margin: .1rem 0 0; appearance: none; border: 0; border-radius: 999px; background: rgb(var(--text-rgb) / .15); overflow: hidden; }
+.field-request-overall::-webkit-progress-bar { background: transparent; }
+.field-request-overall::-webkit-progress-value { background: var(--accent); border-radius: 999px; }
+.field-request-overall::-moz-progress-bar { background: var(--accent); border-radius: 999px; }
+.field-request-grid {
+  display: grid; flex: 1 1 auto; min-height: 0; gap: .4rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+.field-request-card {
+  min-width: 0; min-height: 0; padding: .35rem; display: grid;
+  grid-template-columns: 40px minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  align-content: start; gap: .12rem .4rem; color: var(--text); text-align: left;
+  background: var(--field); border: 1px solid var(--border); border-radius: var(--radius-sm);
+}
+button.field-request-card { font: inherit; cursor: pointer; }
+button.field-request-card:hover { border-color: var(--accent); }
+.field-request-card[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.field-request-card[data-status="failed"] { border-color: var(--danger); }
+.field-request-card[data-status="unavailable"] { border-style: dashed; }
+.field-request-thumb { grid-column: 1; grid-row: 1 / 4; display: block; width: 40px; height: 40px; align-self: start; image-rendering: pixelated; border-radius: 5px; background: #050708; }
+.field-request-name { grid-column: 2; grid-row: 1; min-width: 0; font-size: .82rem; font-weight: 700; }
+.field-request-phase { grid-column: 2; grid-row: 2; min-width: 0; color: var(--text-muted); font-size: .72rem; line-height: 1.2; overflow-wrap: anywhere; }
+.field-request-detail { grid-column: 1 / -1; grid-row: 3; min-width: 0; color: var(--text-muted); font-size: .68rem; line-height: 1.2; overflow-wrap: anywhere; }
+.field-request-card progress { grid-column: 1 / -1; grid-row: 4; width: 100%; height: 5px; margin-top: .1rem; appearance: none; border: 0; border-radius: 999px; background: rgb(var(--text-rgb) / .15); overflow: hidden; }
+.field-request-card progress::-webkit-progress-bar { background: transparent; }
+.field-request-card progress::-webkit-progress-value { background: var(--accent); border-radius: 999px; }
+.field-request-card progress::-moz-progress-bar { background: var(--accent); border-radius: 999px; }
+.field-request-percent { grid-column: 1 / -1; grid-row: 5; color: var(--text-faint); font-size: .65rem; text-align: right; font-variant-numeric: tabular-nums; }
+.field-request-panel.has-images { inset: auto .35rem .35rem; max-height: 42%; padding: .4rem; gap: .3rem; }
+.field-request-panel.has-images #field-request-title { font-size: .8rem; }
+.field-request-panel.has-images .field-request-overall { height: 4px; }
+.field-request-panel.has-images .field-request-grid { flex: none; grid-template-rows: repeat(2, minmax(0, 1fr)); }
+.field-request-panel.has-images .field-request-card { grid-template-columns: 28px minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr) auto auto; padding: .2rem; gap: .08rem .25rem; }
+.field-request-panel.has-images .field-request-thumb { grid-row: 1 / 4; width: 36px; height: 36px; }
+.field-request-panel.has-images .field-request-phase { font-size: .63rem; }
+.field-request-panel.has-images .field-request-detail { font-size: .58rem; }
+.field-request-panel.has-images .field-request-card progress { height: 4px; }
+.field-request-panel.has-images .field-request-percent { font-size: .57rem; }
+@media (max-width: 480px) {
+  .field-request-panel:not(.has-images) .field-request-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(0, 1fr)); }
+  .field-request-panel:not(.has-images) .field-request-card { grid-template-columns: 28px minmax(0, 1fr); grid-template-rows: 14px 23px minmax(0, 1fr) 4px 8px; padding: .22rem; gap: .06rem .22rem; }
+  .field-request-panel:not(.has-images) .field-request-thumb { grid-row: 1 / 3; width: 28px; height: 28px; }
+  .field-request-panel:not(.has-images) .field-request-name { font-size: .7rem; line-height: 1; }
+  .field-request-panel:not(.has-images) .field-request-phase { font-size: .58rem; line-height: 1.05; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+  .field-request-panel:not(.has-images) .field-request-detail { font-size: .52rem; line-height: 1.05; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+  .field-request-panel:not(.has-images) .field-request-card progress { grid-row: 4; height: 4px; }
+  .field-request-panel:not(.has-images) .field-request-percent { grid-row: 5; font-size: .5rem; }
+  .field-request-panel.has-images { max-height: 56%; }
+  .field-request-panel.has-images .field-request-head { gap: .1rem .3rem; }
+  .field-request-panel.has-images .field-request-summary { font-size: .64rem; }
+  .field-request-panel.has-images .field-request-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(2, 48px); gap: .18rem; }
+  .field-request-panel.has-images .field-request-card { grid-template-columns: 19px minmax(0, 1fr); grid-template-rows: 12px 17px 9px 4px; padding: .12rem; gap: 0 .16rem; }
+  .field-request-panel.has-images .field-request-thumb { grid-row: 1 / 3; width: 17px; height: 17px; }
+  .field-request-panel.has-images .field-request-name { grid-column: 2; grid-row: 1; font-size: .62rem; line-height: 1; }
+  .field-request-panel.has-images .field-request-phase { grid-column: 2; grid-row: 2; font-size: .52rem; line-height: 1.05; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+  .field-request-panel.has-images .field-request-detail { grid-column: 1 / -1; grid-row: 3; font-size: .48rem; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .field-request-panel.has-images .field-request-card progress { grid-column: 1; grid-row: 4; width: 100%; height: 3px; }
+  .field-request-panel.has-images .field-request-percent { grid-column: 2; grid-row: 4; font-size: .48rem; line-height: 1; }
+}
+@media (max-width: 360px) {
+  .field-request-panel:not(.has-images) .field-request-head { grid-template-columns: 1fr; }
+  .field-request-panel:not(.has-images) .field-request-summary { grid-column: 1; text-align: left; }
+  .field-request-panel.has-images { max-height: 74%; }
+  .field-request-panel.has-images .field-request-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(3, 52px); }
+}
 [hidden] { display: none !important; }
 
 /* Astra's local, child-friendly explanations are attached beside each Science Mode panel. */
@@ -705,15 +779,23 @@ output { font-weight: 600; color: var(--accent); }
   padding: .3rem .6rem; border-radius: 8px; border: 1px solid var(--border);
   background: rgb(var(--bg-rgb) / .86); color: var(--text); font-size: .8rem; line-height: 1.35; font-variant-numeric: tabular-nums;
 }
-.sky-map-guide {
+.sky-map-surface { position: relative; isolation: isolate; }
+.sky-map-surface .skymap { z-index: 0; }
+.sky-map-scale {
   position: absolute; right: .5rem; bottom: 3.4rem; z-index: 6;
   padding: .3rem .5rem; border: 1px solid var(--border); border-radius: 8px;
   background: rgb(var(--bg-rgb) / .92); color: var(--text);
-  font: .75rem/1.35 var(--font-mono); pointer-events: none;
+  font: .75rem/1.35 var(--font-mono); font-variant-numeric: tabular-nums;
+  text-align: center; pointer-events: none;
 }
-.sky-map-compass { display: flex; justify-content: center; gap: .6rem; }
-.sky-map-compass b { display: inline-block; }
-.sky-map-scale { margin-top: .2rem; text-align: center; }
+#sky-reset-status:empty { display: none; }
+#sky-reset-light {
+  user-select: none;
+  position: absolute; top: .5rem; right: .5rem; z-index: 6;
+  display: grid; place-items: center; width: 44px; height: 44px; padding: 0;
+  background: var(--raised); color: var(--text);
+  font-size: 1.55rem; line-height: 1;
+}
 .sky-map-scale::after {
   content: ""; display: block; width: var(--scale-width); height: .35rem; margin: 0 auto;
   border: 1px solid currentColor; border-top: 0;
@@ -745,7 +827,8 @@ output { font-weight: 600; color: var(--accent); }
   background: var(--bg);
 }
 .skyframe.is-fullscreen .context-controls { margin: 0; }
-.skyframe.is-fullscreen .skymap { flex: 1 1 auto; height: auto; min-height: 14rem; }
+.skyframe.is-fullscreen :is(.skymap, .sky-map-surface) { flex: 1 1 auto; height: auto; min-height: 14rem; }
+.skyframe.is-fullscreen .sky-map-surface { display: flex; flex-direction: column; }
 .skyframe.is-fullscreen .muted { margin: 0; }
 .skyframe.is-fallback { position: fixed; inset: 0; z-index: 1000; height: 100dvh; }
 .panel.no-blur { backdrop-filter: none; -webkit-backdrop-filter: none; }
@@ -1679,4 +1762,3 @@ main .panel > h2, main .panel .panel-head, main .pin-board .pb-head { padding-ri
 #inspector :where(h3) { margin-top: 20px; margin-bottom: 8px; }
 #inspector :where(h3:first-child) { margin-top: 0; }
 #inspector :where(p, dl, ul) { line-height: 1.6; }
-

@@ -16,8 +16,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Oswald:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 
   <script>if (/[?&]embed=1(&|$)/.test(location.search)) document.documentElement.classList.add("embed");</script>   <!-- ?embed=1: workspace only, for an <iframe> -->
-  <link rel="stylesheet" href="css/styles.css?v=30">
-  <link rel="stylesheet" href="css/instrument.css?v=3">
+  <link rel="stylesheet" href="css/styles.css?v=36">
+  <link rel="stylesheet" href="css/instrument.css?v=4">
   <link rel="stylesheet" href="css/lab-track.css">
   <link rel="stylesheet" href="css/contact-sheet.css?v=27">
 </head>
@@ -30,7 +30,7 @@
     <a class="site-brand" href="overview.html">SPHEREx Blink</a>
     <select id="theme-select" data-default-theme="midnight" aria-label="Colour theme"></select>
   </header>
-  <script type="module" src="js/siteHeader.js?v=2"></script>
+  <script type="module" src="js/siteHeader.js?v=4"></script>
 
   <!-- Embedded views also announce the data source. -->
   <p class="embed-note" id="embed-note"></p>
@@ -180,6 +180,16 @@
               <progress id="overlay-progress" class="overlay-progress" max="1" value="0" hidden></progress>
               <button type="button" id="retry-btn" class="btn btn-retry" hidden>Try again</button>
             </div>
+            <section class="field-request-panel" id="field-request-panel" aria-label="SPHEREx detector progress" hidden>
+              <div class="field-request-head">
+                <strong id="field-request-title">Preparing SPHEREx observations</strong>
+                <span id="field-request-summary" class="field-request-summary"></span>
+                <progress id="field-request-overall" class="field-request-overall" max="1" value="0" aria-label="Overall SPHEREx data preparation progress"></progress>
+              </div>
+              <div class="field-request-grid" id="field-request-grid" role="group" aria-label="Status of detectors D1 through D6"></div>
+              <p class="sr-only" id="field-request-live" role="status" aria-live="polite"></p>
+              <button type="button" id="field-request-retry" class="btn btn-retry" hidden>Retry failed detectors</button>
+            </section>
           </div>
         </div>
 
@@ -289,7 +299,7 @@
     <section class="analysis-workbench" aria-label="Search findings and source measurements">
     <section class="panel analysis-results" id="search-findings" aria-label="Search results">
       <h2>Search results</h2>
-      <p class="movers-status" id="movers-status" role="status" aria-live="polite">Compares the dots in all images and lists the ones that moved.</p>
+      <p class="movers-status" id="movers-status" role="status" aria-live="polite">Load a field first: choose a test target or enter coordinates and press Load images. Find movers unlocks when the field has images from at least 3 survey passes.</p>
       <p class="discover-status" id="discover-status" role="status" aria-live="polite"></p>
       <div class="movers" id="movers">
         <ol class="mover-list" id="mover-list" aria-label="Candidate movers" hidden></ol>
@@ -454,7 +464,7 @@
       <p class="muted">Other surveys at the same spot, with catalogued objects from SIMBAD.
         The map opens at the selected field width. The dashed square marks that field. The box in the corner gives the sky coordinates under the cursor
         and, in brackets, the country that spot of the sky is straight above right now.
-        Left-click on the map to copy RA/Dec and open that position directly in Blink Workspace; drag to move the sky.</p>
+        Drag to pan and scroll to zoom. The angular scale is in the lower-right corner.</p>
       <div class="skyframe" id="sky-frame">
         <div class="context-controls">
           <label for="survey-select">Survey</label>
@@ -467,9 +477,13 @@
           <button type="button" class="btn btn-small" id="sky-back-to-field" aria-controls="aladin-box" hidden>Back to field</button>
           <button type="button" class="btn btn-small" id="sky-full-btn" hidden>Full screen</button>
         </div>
-        <div id="aladin-box" class="skymap" hidden></div>
+        <div class="sky-map-surface" id="sky-map-surface" hidden>
+          <div id="aladin-box" class="skymap" hidden></div>
+          <button type="button" class="btn btn-small" id="sky-reset-light" aria-controls="aladin-box" aria-label="Reset light settings" title="Reset light settings" hidden><span aria-hidden="true">↺</span></button>
+          <span class="sky-map-scale" id="sky-map-scale" aria-label="Approximate angular scale" hidden></span>
+        </div>
+        <p class="muted small" id="sky-reset-status" role="status"></p>
         <p class="muted small" id="aladin-status" aria-live="polite"></p>
-        <p class="muted small" id="sky-selection-status" role="status" aria-live="polite"></p>
         <p class="muted small" id="sky-geo-note" hidden></p>
         <p class="muted small" id="sky-candidate-status" role="status" hidden></p>
       </div>
@@ -703,7 +717,7 @@
     <div class="dlg-head"><h2 id="simulation-note-title">About the simulation</h2><form method="dialog"><button class="btn btn-small">Close</button></form></div>
     <p class="dlg-body">The Planet X preset uses a simulated body 600 AU away. Its position is invented for testing the distant-body search.</p>
   </dialog>
-  <script type="module" src="js/main.js?v=18"></script>
+  <script type="module" src="js/main.js?v=26"></script>
   <script type="module" src="js/scienceExplain.js"></script>
   <script type="module" src="js/features/highContrast.js"></script>
 </body>

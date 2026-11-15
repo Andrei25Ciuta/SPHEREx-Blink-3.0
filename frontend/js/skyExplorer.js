@@ -1,7 +1,7 @@
 import { parseRA, parseDec } from "./coords.js";
 import { API_BASE, CAN_USE_LOCAL_BACKEND } from "./config.js?v=1";
 import { tangentPoint } from "./features/explorerGeometry.js";
-import { SkyContext } from "./features/skyContext.js";
+import { SkyContext } from "./features/skyContext.js?v=13";
 import { TARGETS, positionAtEpoch } from "./targets.js";
 
 const $ = id => document.getElementById(id);

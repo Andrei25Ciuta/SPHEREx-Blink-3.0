@@ -1,6 +1,6 @@
 // Public pages may use the project's HTTPS service, never a visitor's loopback server.
 export const PROJECT_CLOUD_API = "https://blink3-api-w3bm7ii4fq-ew.a.run.app";
-const PROJECT_PAGES_HOSTS = new Set(["iooonut.github.io", "mateibut.github.io"]);
+const PROJECT_PAGES_HOSTS = new Set(["iooonut.github.io", "mateibut.github.io", "andrei25ciuta.github.io"]);
 
 export function backendAddress(value, hostname = "localhost") {
   const localPage = ["localhost", "127.0.0.1", "[::1]"].includes(hostname);

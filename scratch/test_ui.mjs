@@ -15,6 +15,9 @@ const HTML = readFileSync(new URL("../frontend/index.html", import.meta.url), "u
 const CSS = readFileSync(new URL("../frontend/css/styles.css", import.meta.url), "utf8");
 const MAIN = readFileSync(new URL("../frontend/js/main.js", import.meta.url), "utf8");
 
+check("Find movers explains that a field must be loaded before the search can run",
+  /id="movers-status"[^>]*>[^<]*Load a field first[^<]*choose a test target[^<]*Load images/i.test(HTML));
+
 // ---------------------------------------------------------------- where the tooltip goes
 {
   const view = { width: 1000, height: 700 }, tip = { width: 200, height: 40 };

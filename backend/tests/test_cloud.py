@@ -89,9 +89,9 @@ def test_http_contract_and_photometry(product):
         points = client.get(f'/api/photometry?ra={ra}&dec={dec}&det=D2&radius=2').json()['points']
         assert points == measure([read_frame_file(p) for p in paths], ra, dec, 2)
     assert client.get('/api/cutouts?ra=150&dec=20&fov=6&det=D2').status_code == 422
-    too_wide = client.get('/api/cutouts?ra=150&dec=20&fov=10.1&det=D2')
+    too_wide = client.get('/api/cutouts?ra=150&dec=20&fov=30.1&det=D2')
     assert too_wide.status_code == 422
-    assert "less than or equal to 10" in too_wide.text
+    assert "less than or equal to 30" in too_wide.text
     assert client.get('/api/sequences/unknown').status_code == 404
     assert client.get('/api/sequences/test-d2/assets/input-0.fits').status_code == 404
     assert client.get('/api/sequences/test-d2/assets/' + doc['revision'] + '/input-0.fits').status_code == 404

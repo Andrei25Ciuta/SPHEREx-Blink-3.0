@@ -1,8 +1,10 @@
-# Developing SPHEREx Blink
+# Developing SPHEREx Blink 3.0
 
-Work in this checkout. This is SPHEREx-Blink-4.0 on `codex/blink4-education`, derived from Blink 3.0 and synced to its published `main` interface at `06ac378`. Learn Mode is an addition to the Science Mode baseline. Read docs/CODEX_PROGRESS.md, docs/IMPLEMENTATION_ROADMAP.md and docs/FEATURE_STATUS.md, then verify HEAD and the working tree. Historical instructions imported below describe earlier repositories; the current user's destination and scope take precedence. Do not publish unless the user asks.
+This checkout is `mateibut/SPHEREx-Blink-3.0`, the active repository the author selected on 15 Nov 2026. Do not switch to the author's fork or a Blink 4.0 worktree unless asked. Verify `git remote -v`, branch, HEAD and working tree before changing files. Read `docs/BACKEND_CONTRACT.md`, `docs/CLOUD_DEPLOYMENT.md`, the latest entry in `docs/CODEX_PROGRESS.md`, `docs/IMPLEMENTATION_ROADMAP.md` and `docs/FEATURE_STATUS.md`. The author has requested direct work on Matei's repository; do not publish further changes unless the user asks.
 
-Serve frontend/ over HTTP. Preserve index.html, results.html, query parameters and embedded mode. Keep Science Mode tools and analysis intact. The default workspace is synthetic and must remain explicitly labelled. Learn Mode progress is local to the browser; do not imply cloud sync or a connected AI model. Read docs/VALIDATION.md before changing scientific methods, units, or thresholds.
+For backend changes, preserve the existing 3.0 API and scientific pipeline. Treat `docs/BACKEND_CONTRACT.md` as the required interface and architecture: durable Firestore request/progress/catalog state, authenticated Cloud Tasks orchestration, the existing `blink3-prepare` Cloud Run job, private GCS products and the current versioned owner policy. Do not replace that shape with manual per-sequence registration or expose GCP credentials, original FITS files, or the private bucket. Check `docs/CLOUD_DEPLOYMENT.md` before production changes; do not provision billable resources or change production IAM without explicit approval.
+
+Serve `frontend/` over HTTP. Preserve `index.html`, `results.html`, query parameters and embedded mode. The default Workspace is synthetic and must remain explicitly labelled; keep Learn Mode independent from cloud processing. Keep all UI copy and project documents in English for this handoff. Read `docs/VALIDATION.md` before changing scientific methods, units, or thresholds.
 
 Run every scratch/test_*.mjs with Node and run python -m pytest backend -q with backend/requirements-dev.txt installed. Run the browser regression for navigation changes. Record commands, fixture provenance and untested paths in the progress log.
 

@@ -23,7 +23,7 @@ async function checkNavigation() {
       if (await menu.isVisible() && await menu.getAttribute("aria-expanded") === "false") await menu.click();
     }
     // Changed on purpose (14 Nov 2026): the menu shows the chosen mode's pages. In Science Mode: Home, its pages and a switch to Learn Mode;
-    // Overview keeps the classic project navigation without the removed standalone Planet X page.
+    // Overview is the mode choice landing page: its menu has Overview, Learn Mode, Science Mode.
     const destinations = [
       ["Sky Explorer", "sky.html"], ["Workspace", "index.html#workspace"],   // leave the workspace first: its own link is a same-page jump
       ["Simulator", "simulator.html"], ["Results", "results.html"], ["About", "about.html"]
@@ -61,7 +61,7 @@ async function checkNavigation() {
       }
       await page.goto(new URL("overview.html", base).href);
       await openNavigation();
-      assert.deepEqual(await nav.getByRole("link").allTextContents(), ["Overview", "Learn Mode", "Science Mode"], "Overview menu offers only the two modes (changed on request, 2026-11-15)");
+      assert.deepEqual(await nav.getByRole("link").allTextContents(), ["Overview", "Learn Mode", "Science Mode"], "Overview offers both modes, not the in-mode project menu");
       // Field coordinates belong to the Workspace; site navigation should not leak them into About or other pages.
       await page.goto(new URL("index.html?ra=133.8189&dec=-7.247&fov=5&det=D2#workspace", base).href);
       await page.waitForFunction(() => !document.querySelector("#play-btn").disabled);
