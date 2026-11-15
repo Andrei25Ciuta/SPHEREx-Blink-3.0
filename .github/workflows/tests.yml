@@ -91,6 +91,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Install synthetic cloud fixture dependencies
+        run: pip install -r backend/requirements-dev.txt
       - name: Install the pinned Playwright package (outside the repository; no browser download, the runner's Chrome is used)
         run: |
           mkdir -p "$RUNNER_TEMP/pw" && cd "$RUNNER_TEMP/pw"
@@ -104,7 +109,7 @@ jobs:
           python3 -m http.server 8765 --directory frontend --bind 127.0.0.1 >/dev/null 2>&1 &
           sleep 2
           status=0
-          for f in navigation layout_audit tour_modal public_backend sky_archive simulator_precision candidate_roundtrip workspace all; do
+          for f in navigation layout_audit tour_modal public_backend sky_archive simulator_precision candidate_roundtrip workspace all cloud_backend; do
             echo "::group::browser_$f"
             node "scratch/browser_$f.cjs" || status=1
             echo "::endgroup::"

@@ -4,7 +4,7 @@
 //
 // We only READ and WRITE strings here; validation stays in coords.js / main.js.
 
-const KEYS = ["ra", "dec", "fov", "det", "mode"];
+const KEYS = ["ra", "dec", "fov", "det", "mode", "dateFrom", "dateTo"];
 
 /**
  * Read the current URL query string.

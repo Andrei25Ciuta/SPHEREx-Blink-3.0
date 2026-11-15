@@ -5,7 +5,7 @@
 //   const explorer = setupExplorer();   explorer.show(dataset);   explorer.focusRow(id);   explorer.onSelect = (id) => { ... };
 
 import { selectRows, SORTS, evidenceReport, assistedReport } from "./candidateEvidence.js";
-import { CAN_USE_LOCAL_BACKEND } from "../config.js";
+import { CAN_USE_LOCAL_BACKEND } from "../config.js?v=1";
 
 const PAGE_SIZE = 20;
 const num = (v) => typeof v === "number" && Number.isFinite(v);

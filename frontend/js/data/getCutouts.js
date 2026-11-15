@@ -32,9 +32,9 @@
 // detector = "all" returns every frame; the UI then groups them per detector.
 // The UI ONLY talks to this file, so swapping mock <-> real never touches the UI.
 
-import { DATA_SOURCE } from "../config.js";
+import { DATA_SOURCE } from "../config.js?v=1";
 import { getCutoutsMock, getPhotometryMock } from "./mockSource.js";
-import { getCutoutsApi, getPhotometryApi } from "./apiSource.js";
+import { getCutoutsApi, getPhotometryApi } from "./apiSource.js?v=1";
 
 export async function getCutouts(query) {
   const source = DATA_SOURCE === "api" ? getCutoutsApi : getCutoutsMock;
