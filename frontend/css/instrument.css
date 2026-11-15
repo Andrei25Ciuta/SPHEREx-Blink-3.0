@@ -323,7 +323,7 @@ html[data-theme]:root .mission-runner .mr-why { border-radius: 12px; padding: 10
 
 /* Resize grip, top-left corner of the mission box */
 html[data-theme]:root .mission-runner .mr-grip {
-  position: absolute; top: 6px; left: 6px; z-index: 5; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 6px;
+  position: sticky; top: 6px; display: block; margin: 6px 0 -28px 6px; z-index: 5; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 6px;   /* sticky: stays in the corner however far the box is scrolled */
   cursor: nwse-resize; touch-action: none; background: transparent; opacity: .55; transition: opacity .2s, background .2s;
 }
 html[data-theme]:root .mission-runner .mr-grip::before {
@@ -356,3 +356,39 @@ html[data-theme]:root .mission-target {
   50%      { box-shadow: 0 0 0 6px rgb(255 255 255 / .08), 0 0 22px 6px rgb(255 255 255 / .3); }
 }
 @media (prefers-reduced-motion: reduce) { html[data-theme]:root .mission-target { animation: none; } }
+
+/* Observation tools: the keyboard hint and its options line up on the left, in a quiet box */
+html[data-theme]:root #shortcuts-hint {
+  max-width: none; margin: 18px 0 0; padding: 14px 16px; text-align: left; border-radius: 12px; line-height: 1.9;
+  background: rgb(var(--text-rgb) / .035); border: 1px solid rgb(var(--text-rgb) / .08); color: var(--text-muted);
+}
+html[data-theme]:root #shortcuts-hint kbd { border-radius: 6px; padding: 1px 7px; background: rgb(var(--text-rgb) / .08); border: 1px solid rgb(var(--text-rgb) / .14); }
+html[data-theme]:root .sequence-controls .player-options { justify-content: flex-start; gap: 12px 18px; margin: 14px 0 0; max-width: none; width: 100%; }
+
+/* Further research: a card like the other panels, with its links as buttons */
+html[data-theme]:root .field-research {
+  border-top: 0; border: 1px solid rgb(var(--text-rgb) / .1); border-radius: 22px; padding: 22px 26px 24px;
+  background: rgb(var(--surface-rgb) / var(--panel-alpha)); backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+  box-shadow: inset 0 1px 0 rgb(var(--text-rgb) / .05), 0 24px 50px -32px rgb(0 0 0 / .6);
+}
+html[data-theme]:root .field-research h2 { font-size: 1.35rem; margin: 0 0 8px; }
+html[data-theme]:root .field-research .research-nav { gap: 10px; margin-top: 14px; padding: 0; }
+html[data-theme]:root .field-research .research-nav a {
+  min-height: 0; padding: .45rem 1rem; border-radius: 999px; font-weight: 600; font-size: .9rem; text-decoration: none; color: var(--text);
+  border: 1px solid rgb(var(--text-rgb) / .16); background: linear-gradient(180deg, rgb(var(--text-rgb) / .07), rgb(var(--text-rgb) / .015));
+}
+html[data-theme]:root .field-research .research-nav a:hover { border-color: rgb(255 255 255 / .6); background: rgb(255 255 255 / .1); }
+
+
+/* The image panel keeps its own height when the Inspector beside it grows (no empty dark block under the picture) */
+html[data-theme]:root .observing-row { align-items: start; }
+
+/* The Inspector stays beside the picture while you scroll and never makes the row taller than the picture: it scrolls inside itself */
+@media (min-width: 1000px) {
+  html[data-theme]:root .observing-row > #inspector {
+    align-self: start; position: sticky; top: 76px; max-height: calc(100vh - 92px); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin;
+  }
+}
+
+html[data-theme]:root .mission-runner .mr-steps li.is-skipped .mr-dot { background: transparent; color: var(--text-muted); border-color: var(--border); }
+html[data-theme]:root .mission-runner .mr-steps li.is-skipped em { color: var(--text-faint); font-style: italic; }

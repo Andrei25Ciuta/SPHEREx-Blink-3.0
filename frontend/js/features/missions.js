@@ -35,11 +35,11 @@ const PLAY = on("Press Play under the picture.", "#play-btn");
 const PX = on("Press Planet X (simulated) in the left panel.", "#planetx-demo-btn");
 const DISTANT = on("Press Look for a distant body.", "#find-distant-btn");
 
-const SPEED = measure("Read the candidate's speed in its description and type it.", "speedArcsecPerYear", { unit: "″/yr", tol: 0.05, hint: "It is the first number after the candidate's label, e.g. “#1: 10.3″/yr”." });
-const PA = measure("Read its position angle (the direction, in degrees) and type it.", "positionAngleDeg", { unit: "°", tol: 2, hint: "Look for “position angle …°” in the description." });
-const COMPASS = measure("Which way is it moving? Type the compass point (N, NE, E, SE, S, SW, W, NW).", "compass", { hint: "The description says “toward …”." });
-const NDET = measure("In how many images was it seen? Type the number.", "nDet", { hint: "Look for “seen in … of … images”." });
-const COUNT = measure("How many candidates did the search list? Count them and type the number.", "count", { hint: "Count the items in the list under the picture." });
+const SPEED = measure("Read the candidate's speed in its description.", "speedArcsecPerYear", { unit: "″/yr", tol: 0.05, hint: "It is the first number after the candidate's label, e.g. “#1: 10.3″/yr”." });
+const PA = measure("Read its position angle (the direction, in degrees).", "positionAngleDeg", { unit: "°", tol: 2, hint: "Look for “position angle …°” in the description." });
+const COMPASS = measure("Which way is it moving? Read the compass point (N, NE, E, SE, S, SW, W, NW).", "compass", { hint: "The description says “toward …”." });
+const NDET = measure("In how many images was it seen? Read it in its description.", "nDet", { hint: "Look for “seen in … of … images”." });
+const COUNT = measure("How many candidates did the search list? Count them in the list.", "count", { hint: "Count the items in the list under the picture." });
 
 const B = { query: BARNARD };
 const at = (hash) => ({ query: BARNARD, hash });
