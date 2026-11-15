@@ -1662,3 +1662,21 @@ main .panel > h2, main .panel .panel-head, main .pin-board .pb-head { padding-ri
   font-size: 1.35rem;
   line-height: 1;
 }
+
+/* ---------- Airier workspace: more room around and between the dense parts; nothing hidden or removed ---------- */
+#workspace .panel { padding: 6px 20px 18px; }
+#workspace .panel-body > :where(* + *) { margin-top: 12px; }
+#workspace :where(.small, .muted.small, .mode-help, .tl-note, .tl-summary, .readout-idle, .shortcuts, .panel-intro) { font-size: .875rem; line-height: 1.65; }
+#workspace :where(p.small, .muted.small) { margin-bottom: 14px; }
+#workspace :where(.tools, .stage-tools, .viewer-tools, .observing-row, .measure-tools, .desk-command-row, .pb-map-tools, .pair-grid) { gap: 12px 14px; }
+#workspace :where(.overview-grid, .pb-grid) { gap: 16px; }
+#workspace :where(h2, h3) { margin-top: 18px; margin-bottom: 10px; }
+#workspace .panel-head :where(h2, h3) { margin-top: 0; }
+#workspace .ov-sub { line-height: 1.5; }
+#workspace .pb-readout { font-size: .8rem; line-height: 1.5; }
+#workspace .pr-legend { line-height: 1.7; }
+#inspector { padding: 20px 22px; }
+#inspector :where(h3) { margin-top: 20px; margin-bottom: 8px; }
+#inspector :where(h3:first-child) { margin-top: 0; }
+#inspector :where(p, dl, ul) { line-height: 1.6; }
+

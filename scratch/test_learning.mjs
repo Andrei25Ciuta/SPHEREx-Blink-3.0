@@ -38,5 +38,5 @@ const learn = readFileSync(new URL("../frontend/learn.html", import.meta.url), "
 const science = readFileSync(new URL("../frontend/js/scienceExplain.js", import.meta.url), "utf8");
 check("the landing offers both modes (since the merge into 3.0 it is the 3D overview with the mode cards; the 4.0 headline is gone on purpose)", home.includes('class="mode-choices') && home.includes("Learn Mode") && home.includes("Science Mode") && home.includes('href="learn.html"'));
 check("learn page includes all levels, Astra (the learner profile and classroom panels were removed on purpose, 14 Nov 2026)", learn.includes("Astra") && !learn.includes("learner-profile") && !learn.includes("classroom-dashboard") && learn.includes("SYNTHETIC") && learn.includes("aria-live"));
-check("Science Mode exposes a keyboard-operable simple explanation on each panel", science.includes('querySelectorAll("main .panel")') && science.includes('aria-expanded') && science.includes("Explain Simply"));
+check("Science Mode panels carry no Explain Simply buttons (removed on request); the More toggle stays", !science.includes("Explain Simply") && science.includes('querySelectorAll("main .panel")'));
 if (failed) process.exitCode = 1;
