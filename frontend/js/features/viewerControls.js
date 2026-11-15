@@ -162,7 +162,7 @@ export function setupViewer({ player, canvas, crosshair, zoomEls, readoutEls, la
 
   /** The pixel value under the pointer: real numbers where the backend served them, the 8-bit display level otherwise. null = none to show. */
   function valueAt(d, geo) {
-    if (player.mode !== "blink") {                                  // the other modes show a combination of images: its display levels, said to be such
+    if (!player.showsOriginal) {                                  // the other modes show a combination of images: its display levels, said to be such
       const v = player.levelsAt(d.ix, d.iy);
       return v ? { text: levelsText(player.mode, v) } : null;
     }

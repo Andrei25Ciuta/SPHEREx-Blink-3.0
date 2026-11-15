@@ -49,9 +49,9 @@ other browsers) instead of leaving it out.
 
 ## Branches and commits
 
-Blink 2.0 is on the branch `blink-2.0`; `main` is the reference and holds the demo that is published. Do not rewrite the history of `main`; do not
-force-push. A commit message says what changed and why, and for work done with an AI assistant ends with the co-author line the tool gives; the project
-describes that use truthfully (the notice at the top of the README and the last section of [CREDITS.md](CREDITS.md)). The author pushes and opens pull requests.
+The repository is `mateibut/SPHEREx-Blink-3.0`; `main` holds the demo that GitHub Pages publishes. Work on a branch and open a pull request into `main`;
+when it conflicts with `main`, merge `main` into the branch (no rebase of shared branches). Do not rewrite the history of `main`; do not force-push. A commit message says what changed and why, and for work done with an AI assistant ends with the co-author line the tool gives; the project
+describes that use truthfully (the notice at the top of the README and the last section of [CREDITS.md](CREDITS.md)). The author (or the team member who did the work) pushes and opens the pull request; the author merges.
 
 ## Reporting a problem
 

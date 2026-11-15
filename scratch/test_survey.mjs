@@ -140,8 +140,9 @@ const mk = (detector, mjd, over = {}) => ({ ...REAL, id: `${detector}@${mjd}`, d
   const read = (p) => readFileSync(new URL(p, import.meta.url), "utf8");
   const HTML = read("../frontend/index.html"), MAIN = read("../frontend/js/main.js"), CSS = read("../frontend/css/styles.css");
   const ids = ["survey-form", "survey-ra", "survey-dec", "survey-radius", "survey-det", "survey-limit", "survey-btn", "survey-field-btn", "survey-error", "survey-status", "survey-result", "survey-summary", "survey-plot", "survey-table", "survey-open-btn"];
+  const skySection = HTML.match(/<section\b[^>]*\bid="sky-explorer"[^>]*>([\s\S]*?)<\/section>/)?.[1] ?? "";
   check("page: every element the survey search needs is in index.html exactly once, inside the sky-explorer section, with a live status and an alert for errors",
-    ids.every((id) => (HTML.match(new RegExp(`id="${id}"`, "g")) || []).length === 1) && HTML.indexOf('id="survey-form"') > HTML.indexOf('id="sky-explorer"') && HTML.indexOf('id="survey-form"') < HTML.indexOf("7. The Solar System")
+    ids.every((id) => (HTML.match(new RegExp(`id="${id}"`, "g")) || []).length === 1 && skySection.includes(`id="${id}"`))
     && /id="survey-status" role="status" aria-live="polite"/.test(HTML) && /id="survey-error" role="alert"/.test(HTML) && /<button type="submit" class="btn btn-small btn-primary" id="survey-btn">Search IRSA<\/button>/.test(HTML));
   check("page: main.js wires it with the backend address only when the data come from the backend, and through askSurvey (the request of surveyCoverage.js)",
     /setupSurveySearch\(\{/.test(MAIN) && /hasBackend: DATA_SOURCE === "api"/.test(MAIN) && /fetchSurvey: \(params\) => askSurvey\(API_BASE, params\)/.test(MAIN));

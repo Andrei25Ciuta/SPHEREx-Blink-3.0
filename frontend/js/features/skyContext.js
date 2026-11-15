@@ -10,9 +10,12 @@
 // Catalogue objects: SIMBAD via its Harvard mirror (TAP), which sends CORS headers.
 // Older surveys are also handy for movers: a fast star sits somewhere ELSE in 2MASS (1999)!
 
-import { SKY_TILES, API_BASE } from "../config.js";
+import { SKY_TILES, API_BASE } from "../config.js?v=1";
 import { WORLD_URL, decodeCountries, overheadAt } from "./skyGeo.js";
 import { fieldCorners } from "./explorerGeometry.js";
+import { aladinSkyAt, selectionText, copySkySelection } from "./skyContextClick.js";
+
+import { outsideWorkspaceField, skyMapGuide } from "./skyMapGuide.js";
 
 const ALADIN_URL = "https://cdn.jsdelivr.net/npm/aladin-lite@3.6.5/dist/aladin.js";
 const SIMBAD_TAP = "https://simbad.harvard.edu/simbad/sim-tap/sync";
@@ -109,19 +112,68 @@ function loadWorld() {
 }
 
 export class SkyContext {
-  constructor(container, statusEl, noteEl = null) {
+  constructor(container, statusEl, noteEl = null, { matchField = false, onSelectPosition = null, selectionStatusEl = null, backToField = null } = {}) {
     this.container = container;
     this.statusEl = statusEl;
+    this.matchField = matchField;
+    this.onSelectPosition = onSelectPosition;
+    this.selectionStatusEl = selectionStatusEl;
+    this.backToField = backToField;
+    this.workspaceField = null;
+    backToField?.addEventListener("click", () => {
+      if (this.workspaceField) this.update(this.workspaceField);
+    });
+    this.coordinateHint = null;
+    this.clickedAladinObject = false;
     this.noteEl = noteEl;               // the paragraph that explains the country in brackets
     this.aladin = null;
     this.A = null;
     this.query = null;
+    this.candidateTrack = [];
     this.survey = "2mass";
     this.readout = null;                // the box in the corner: coordinates and, in brackets, the country overhead
     this.world = null;                  // countries (skyGeo.js), once loaded
     this.hovering = false;
     this.lastMove = 0;
     this.shown = null;                  // { ra, dec, label } of the readout, to redraw it when the world map arrives
+  }
+
+  setWorkspaceField(field) {
+    this.workspaceField = field;
+    this.refreshMapGuide();
+  }
+
+  installMapGuide() {
+    if (!this.backToField) return;
+    const guide = document.createElement("div");
+    guide.className = "sky-map-guide";
+    guide.innerHTML = `<div class="sky-map-compass" aria-label="Orientation at map centre">
+      <span data-direction="north">N <b aria-hidden="true">→</b></span>
+      <span data-direction="east">E <b aria-hidden="true">→</b></span>
+    </div><div class="sky-map-scale" aria-label="Approximate angular scale"></div>`;
+    this.container.appendChild(guide);
+    this.guide = guide;
+    this.aladin.on("zoomChanged", () => this.refreshMapGuide());
+    this.aladin.on("cooFrameChanged", () => this.refreshMapGuide());
+    this.aladin.on("rotationChanged", () => this.refreshMapGuide());
+    new ResizeObserver(() => this.refreshMapGuide()).observe(this.container);
+  }
+
+  refreshMapGuide() {
+    if (!this.guide) return;
+    if (this.backToField) this.backToField.hidden = !outsideWorkspaceField(this.aladin, this.workspaceField);
+    const guide = skyMapGuide(this.aladin);
+    this.guide.hidden = !guide;
+    if (!guide) return;
+    for (const direction of ["north", "east"]) {
+      const label = this.guide.querySelector(`[data-direction="${direction}"]`);
+      label.hidden = guide[direction] === null;
+      label.querySelector("b").style.transform = `rotate(${guide[direction]}deg)`;
+    }
+    const scale = this.guide.querySelector(".sky-map-scale");
+    scale.style.setProperty("--scale-width", `${guide.width}px`);
+    scale.textContent = guide.label;
+    scale.setAttribute("aria-label", `Approximate angular scale ${guide.label}`);
   }
 
   /** Put coordinates (ICRS degrees) in the readout, with the country that sky point is straight above right now. */
@@ -139,14 +191,47 @@ export class SkyContext {
     const c = this.aladin.getRaDec();                                  // always ICRS, whatever frame the map shows
     if (Number.isFinite(c?.[0]) && Number.isFinite(c?.[1])) this.setReadout(c[0], c[1], "Centre");
   }
+  showPointerCoordinates(sky, x, y) {
+    if (!this.coordinateHint || !Number.isFinite(x) || !Number.isFinite(y)) return;
+    const { raText, decText } = selectionText(sky);
+    this.coordinateHint.textContent = `RA ${raText}° · Dec ${decText}° · Click to open in Blink`;
+    this.coordinateHint.hidden = false;
+    const width = this.container.clientWidth, height = this.container.clientHeight;
+    const left = Math.max(8, Math.min(x + 14, width - this.coordinateHint.offsetWidth - 8));
+    const top = Math.max(8, Math.min(y - this.coordinateHint.offsetHeight - 12, height - this.coordinateHint.offsetHeight - 8));
+    this.coordinateHint.style.left = left + "px";
+    this.coordinateHint.style.top = top + "px";
+  }
+  hidePointerCoordinates() {
+    if (this.coordinateHint) this.coordinateHint.hidden = true;
+  }
   onHover(e) {
     const now = performance.now();
     if (now - this.lastMove < 60) return;                              // a few updates per second are enough
     this.lastMove = now;
-    const p = this.aladin.pix2world(e.x, e.y, "icrs");                 // the event's own ra/dec are in the frame being shown; this is always ICRS
-    if (!Number.isFinite(p?.[0]) || !Number.isFinite(p?.[1])) return;
+    const sky = aladinSkyAt(this.aladin, e);                             // ICRS even if the display frame changes
+    if (!sky) { this.hidePointerCoordinates(); return; }
     this.hovering = true;
-    this.setReadout(p[0], p[1], "Cursor");
+    this.setReadout(sky.ra, sky.dec, "Cursor");
+    this.showPointerCoordinates(sky, e.x, e.y);
+  }
+  onMapClick(e) {
+    // Aladin fires 'click' on mouse release, even after panning. Never load a new
+    // field when the user dragged the map or selected a catalogue source.
+    if (!this.onSelectPosition || e?.isDragging || e?.object ||
+        (e?.button !== undefined && e.button !== 0)) return;
+    const sky = aladinSkyAt(this.aladin, e);
+    if (!sky) return;
+    const fields = selectionText(sky);
+    // Clipboard access must begin during the click, before loading changes the view.
+    const copied = copySkySelection(fields.clipboardText);
+    this.onSelectPosition({ ...sky, ...fields });
+    this.hidePointerCoordinates();
+    copied.then((ok) => {
+      if (this.selectionStatusEl) this.selectionStatusEl.textContent = ok
+        ? "Sky position copied and loaded into Blink Workspace."
+        : "Sky position loaded into Blink Workspace. Clipboard permission was unavailable.";
+    });
   }
   /** Load the country map once and redraw the readout with it. */
   async ensureWorld() {
@@ -162,15 +247,16 @@ export class SkyContext {
     this.survey = survey || this.survey;
     this.container.hidden = false;
     this.statusEl.textContent = "Loading sky map…";
+    let pictureSource;
     try {
-      this.A = await loadAladin();
+      [this.A, pictureSource] = await Promise.all([loadAladin(), pickSource()]);
     } catch (err) {
       this.statusEl.textContent = err.message;
       this.container.hidden = true;
       return;
     }
     const before = source;
-    source = await pickSource();
+    source = pictureSource;
     if (!this.aladin) {
       this.aladin = this.A.aladin(this.container, {
         survey: surveyRef(this.survey),
@@ -188,16 +274,56 @@ export class SkyContext {
       this.readout.className = "sky-readout";
       this.readout.title = READOUT_HELP;
       this.container.appendChild(this.readout);
+      // A compact mouse-following label is separate from Aladin's centre/country readout.
+      this.coordinateHint = document.createElement("div");
+      this.coordinateHint.className = "sky-cursor-coordinates";
+      this.coordinateHint.hidden = true;
+      this.container.appendChild(this.coordinateHint);
       this.aladin.on("mouseMove", (e) => this.onHover(e));
-      this.aladin.on("positionChanged", () => { if (!this.hovering) this.showCentre(); });
-      this.container.addEventListener("pointerleave", () => this.showCentre());
+      this.aladin.on("objectClicked", (object) => {
+        // A source click should keep Aladin's own SIMBAD popup, not navigate away.
+        this.clickedAladinObject = Boolean(object);
+      });
+      this.aladin.on("click", (e) => {
+        const clickedSource = this.clickedAladinObject;
+        this.clickedAladinObject = false;
+        if (!clickedSource) this.onMapClick(e);
+      });
+      this.installMapGuide();
+      this.aladin.on("positionChanged", () => {
+        if (!this.hovering) this.showCentre();
+        this.refreshMapGuide();
+      });
+      this.container.addEventListener("pointerleave", () => { this.hidePointerCoordinates(); this.showCentre(); });
     }
     // The source can change between two openings (e.g. the backend was started meanwhile).
     else if (before !== source) this.setSurvey(this.survey);
     this.statusEl.textContent = SOURCE_NOTE[source];
     if (this.noteEl) { this.noteEl.hidden = false; this.noteEl.textContent = this.world ? GEO_NOTE : "Loading country names…"; }
     this.update(query);
+    this.setCandidateTrack(this.candidateTrack);
     this.ensureWorld();                  // not awaited: the map works at once, the country appears when the borders have arrived
+  }
+
+  /** Draw the selected candidate's supporting detections, in observation order. */
+  setCandidateTrack(points, onSelect = this.onCandidatePoint) {
+    this.candidateTrack = points;
+    this.onCandidatePoint = onSelect;
+    if (!this.aladin) return;
+    const { A, aladin } = this;
+    if (!this.trackOverlay && points.length) {
+      this.trackOverlay = A.graphicOverlay({ name: "Candidate trajectory", color: "#f0bf73", lineWidth: 2 });
+      aladin.addOverlay(this.trackOverlay);
+      this.trackCatalog = A.catalog({
+        name: "Supporting detections", color: "#ffd693", shape: "circle", sourceSize: 10,
+        onClick: source => this.onCandidatePoint?.(this.candidateTrack[source.data.index]),
+      });
+      aladin.addCatalog(this.trackCatalog);
+    }
+    this.trackOverlay?.removeAll();
+    this.trackCatalog?.removeAll();
+    if (points.length > 1) this.trackOverlay.add(A.polyline(points.map(({ ra, dec }) => [ra, dec])));
+    if (points.length) this.trackCatalog.addSources(points.map(({ ra, dec }, index) => A.source(ra, dec, { index })));
   }
 
   setSurvey(key) {
@@ -216,9 +342,10 @@ export class SkyContext {
     const { A, aladin } = this;
     const { ra, dec, fov } = query;
     aladin.gotoRaDec(ra, dec);
-    aladin.setFoV(Math.max(fov * 3, 6) / 60);          // show some context around the field
+    aladin.setFoV((this.matchField ? fov : Math.max(fov * 3, 6)) / 60);
     this.hovering = false;
     this.setReadout(ra, dec, "Centre");
+    this.refreshMapGuide();
 
     if (this.overlay) this.overlay.removeAll();
     else {

@@ -7,10 +7,10 @@
 //      light curve = flux vs date,       one colour per detector
 //    plus a plain table (accessibility: same data without colour or a mouse).
 
-import { getPhotometry } from "../data/getCutouts.js";
+import { getPhotometry } from "../data/getCutouts.js?v=1";
 import { formatRA, formatDec } from "../coords.js";
 import { canvasToSky } from "../geometry.js";
-import { DATA_SOURCE } from "../config.js";
+import { DATA_SOURCE } from "../config.js?v=1";
 import { fluxColumn } from "./spectrum.js";
 import { bandSeries, missingSummary, withAlpha } from "./spectral.js";
 

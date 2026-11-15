@@ -29,7 +29,7 @@ import { gridLines } from "./features/grid.js";
 import { stepActive } from "./features/timeline.js";
 
 export const MODES = ["blink", "diff", "mean", "max", "compare"];
-const ANIMATED = new Set(["blink", "diff"]);       // modes that step through time
+const ANIMATED = new Set(["blink", "diff"]);
 
 export class BlinkPlayer {
   constructor(canvas, { onFrameChange = () => {}, onPlayStateChange = () => {}, onViewChange = () => {}, onDraw = () => {} } = {}) {
@@ -70,7 +70,7 @@ export class BlinkPlayer {
     this.rafId = null;
 
     // Pixel data, extracted lazily (only needed for diff/mean/max).
-    this._grey = null;      // array of Uint8ClampedArray (one per frame), or null
+    this._grey = null;
     this._derived = {};     // cached median/mean/max arrays
     this._scratch = document.createElement("canvas");   // natural-size off-screen canvas
   }
@@ -115,14 +115,16 @@ export class BlinkPlayer {
   get length() { return this.frames.length; }
   /** Indices of the images the timeline filter lets through (all of them when there is no filter). */
   get activeIndices() { return this.active ?? this.frames.map((_, i) => i); }
-  get activeCount() { return this.active ? this.active.length : this.frames.length; }
+  get playbackCount() { return this.active?.length ?? this.length; }
+  get showsOriginal() { return this.mode === "blink"; }
+
   /**
    * The timeline filter: which images the blink steps through and which ones Stack, Trail and Difference combine. `indices` = sorted frame indices,
    * or null for all. It does not forbid looking at another image (goTo and the slider still show any), and the searches ignore it.
    */
   setActive(indices) {
     this.active = Array.isArray(indices) && indices.length !== this.frames.length ? [...indices].sort((a, b) => a - b) : null;
-    if (this.playing && this.activeCount < 2) this.pause();
+    if (this.playing && this.playbackCount < 2) this.pause();
     this.draw();
   }
   get isAnimated() { return ANIMATED.has(this.mode); }
@@ -146,7 +148,7 @@ export class BlinkPlayer {
   setCandidates(candidates, selected = -1) {
     this.candidates = candidates || [];
     this.selectedCandidate = selected;
-    if (this.following !== null && !this.candidates[this.following]) this.stopFollow();       // the list was replaced: the one followed is gone
+    if (this.following !== null && !this.candidates[this.following]) this.stopFollow();
     this.draw();
   }
   /** Grey pixels (0..255) of every frame, or null if the browser will not let us read them. */
@@ -170,8 +172,11 @@ export class BlinkPlayer {
     this.onFrameChange(this.index, this.frames[this.index]);
   }
 
-  next() { this.goTo(this.active ? stepActive(this.index, this.active, 1) : this.index + 1); }
-  prev() { this.goTo(this.active ? stepActive(this.index, this.active, -1) : this.index - 1); }
+  step(direction) {
+    this.goTo(this.active ? stepActive(this.index, this.active, direction) : this.index + direction);
+  }
+  next() { this.step(1); }
+  prev() { this.step(-1); }
 
   draw() {
     const img = this.images[this.index];
@@ -180,7 +185,7 @@ export class BlinkPlayer {
     ctx.imageSmoothingEnabled = false;            // keep SPHEREx pixels sharp
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (this.mode === "blink") {
+    if (this.showsOriginal) {
       this._blit(img);
     } else {
       const rgba = this._renderDerived();
@@ -365,7 +370,7 @@ export class BlinkPlayer {
   setFps(fps) { this.fps = Math.max(0.1, Number(fps) || 1); }
 
   play() {
-    if (this.playing || this.activeCount < 2 || !this.isAnimated) return;
+    if (this.playing || this.playbackCount < 2 || !this.isAnimated) return;
     this.playing = true;
     this.lastTick = performance.now();
     this.rafId = requestAnimationFrame(this.tick);

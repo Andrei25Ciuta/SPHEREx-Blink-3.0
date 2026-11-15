@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en" data-theme="midnight">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0B0F19">
+  <title>About · SPHEREx Blink</title>
+  <meta name="description" content="About SPHEREx Blink, the NASA Space Apps Challenge project, and the SPHEREx infrared telescope.">
+  <script>try{var t=new URLSearchParams(location.search).get("theme")||localStorage.getItem("spherex-blink-theme");if(/^(midnight|nebula|deep-space|observatory|light|classic)$/.test(t))document.documentElement.dataset.theme=t}catch(e){}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Oswald:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css?v=30">
+  <link rel="stylesheet" href="css/instrument.css?v=3">
+  <link rel="stylesheet" href="css/contact-sheet.css?v=25">
+  <link rel="stylesheet" href="css/telescope-redesign.css?v=1">
+  <link rel="stylesheet" href="css/about-theme.css">
+</head>
+<body>
+  <a class="skip-link" href="#about">Skip to About</a>
+  <div class="sky-bg" aria-hidden="true"></div>
+  <header class="site-header" id="top" data-page="about">
+    <a class="site-brand" href="overview.html">SPHEREx Blink</a>
+    <select id="theme-select" data-default-theme="midnight" aria-label="Colour theme"></select>
+  </header>
+  <script type="module" src="js/siteHeader.js?v=2"></script>
+  <main class="about-page" id="about-page">
+    <section class="info info-aside" id="about" aria-labelledby="about-title">
+      <div class="info-box">
+        <p class="info-kicker">About the project</p>
+        <h2 id="about-title">Spot what moves in the infrared sky</h2>
+        <div class="hero-title">
+          <p class="hero-eyebrow">NASA Space Apps 2026 &middot; Planet X and SPHEREx</p>
+          <p class="project-name"><span>SPHEREx</span><span>Blink</span></p>
+          <p class="hero-tag">Flip through the infrared sky over time &mdash; things that move, stand out.</p>
+          <a class="hero-cta" href="index.html#workspace">Start exploring</a>
+        </div>
+        <a class="hero-scroll" href="index.html#workspace" aria-label="Scroll down to the workspace">
+          <svg viewBox="0 0 120 120" aria-hidden="true" focusable="false">
+            <circle class="ring" cx="60" cy="60" r="54" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="2 4.2"/>
+            <path d="M60 34v50M42 68l18 18 18-18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+        <p class="hero-credit">Illustration, not SPHEREx data</p>
+        <div class="info-top">
+          <p class="info-lead">SPHEREx Blink lets you pick a spot on the sky and flip through infrared images of it taken on different dates. Stars stay put. Things that move or change brightness stand out.</p>
+          <ol class="steps">
+            <li><b>Pick a target</b>Type coordinates or choose one of the five test objects.</li>
+            <li><b>Blink and compare</b>Flip through the dates, or switch to Difference, Stack and Trail.</li>
+            <li><b>Measure</b>Click a source to see its spectrum and light curve.</li>
+            <li><b>Check what is known</b>Open the sky map to see catalogued objects around it.</li>
+          </ol>
+        </div>
+        <div class="info-cols">
+          <div>
+            <h3>Why look for movers?</h3>
+            <p>Nearby brown dwarfs, fast stars, asteroids and comets reveal themselves by changing position between observations. The same blinking method found Pluto in 1930, and it is how astronomers search for undiscovered worlds such as the hypothetical &ldquo;Planet X&rdquo;.</p>
+          </div>
+          <div>
+            <h3>About the data</h3>
+            <p>The default workspace uses <strong>synthetic data</strong> that imitates observations. The backend can serve local FITS files. Check the data-source badge for the current field. The real SPHEREx images are public at NASA/IPAC IRSA, and <a href="results.html">the real-data results page</a> shows earlier measurements (numbers and charts only, no images).</p>
+          </div>
+          <div>
+            <h3>Built for a challenge</h3>
+            <p>Made for the NASA Space Apps Challenge 2026, &ldquo;Planet X and SPHEREx&rdquo;, with AI assistance (Claude Code). The pictures in the header and background are generated artwork, not telescope images.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="info" id="telescope" aria-labelledby="telescope-title">
+    <div class="info-box">
+      <p class="info-kicker">The telescope</p>
+      <h2 id="telescope-title">SPHEREx maps the whole sky in 102 colours</h2>
+      <p class="info-lead">SPHEREx is a NASA space telescope that surveys the entire sky in near-infrared light. Instead of one picture, it records 102 different colours of every patch of sky, from 0.75 to 5 micrometres, and it maps the sky again about every six months.</p>
+      <ul class="stats" aria-label="SPHEREx key numbers">
+        <li><b>102</b><span>colours (wavelength bands)</span></li>
+        <li><b>0.75&ndash;5 &micro;m</b><span>near-infrared range</span></li>
+        <li><b>6</b><span>detectors, working in pairs</span></li>
+        <li><b>~6&Prime;</b><span>per pixel</span></li>
+        <li><b>4</b><span>all-sky surveys in about 2 years</span></li>
+      </ul>
+      <div class="info-cols">
+        <div>
+          <h3>How it sees colour</h3>
+          <p>Each detector sits behind a filter whose colour changes gradually across it. A source lands on a different spot in each exposure, so it is measured at a different wavelength every time, and its spectrum is assembled from many exposures. That is why this tool shows the wavelength of every frame.</p>
+        </div>
+        <div>
+          <h3>Why it helps find movers</h3>
+          <p>Because the sky is mapped again and again, the same spot is imaged on different dates, which is exactly what blinking needs. Cold objects such as brown dwarfs tend to be brightest at the long-wavelength end, so detectors D5 and D6 are the best place to look for them.</p>
+        </div>
+        <div>
+          <h3>What else it studies</h3>
+          <p>Beyond moving objects, SPHEREx studies how the universe began (cosmic inflation), how galaxies formed and grew, and where water and other ices are found in our galaxy.</p>
+        </div>
+      </div>
+      <h3 style="margin-top:1.6rem">The six detectors</h3>
+      <div class="table-scroll"><table class="det-table">
+        <thead><tr><th scope="col">Detector</th><th scope="col">Wavelength</th><th scope="col">What it is good for</th></tr></thead>
+        <tbody>
+          <tr><td>D1</td><td>0.75&ndash;1.09 &micro;m</td><td>Stars and galaxies; cold brown dwarfs are very faint here</td></tr>
+          <tr><td>D2</td><td>1.10&ndash;1.62 &micro;m</td><td>Stars and galaxies</td></tr>
+          <tr><td>D3</td><td>1.63&ndash;2.41 &micro;m</td><td>Cooler stars</td></tr>
+          <tr><td>D4</td><td>2.42&ndash;3.82 &micro;m</td><td>Water-ice feature near 3 &micro;m</td></tr>
+          <tr><td>D5</td><td>3.83&ndash;4.41 &micro;m</td><td>Cold brown dwarfs; CO<sub>2</sub> ice near 4.3 &micro;m</td></tr>
+          <tr><td>D6</td><td>4.42&ndash;5.00 &micro;m</td><td>Cold brown dwarfs; CO ice near 4.7 &micro;m</td></tr>
+        </tbody>
+      </table></div>
+      <p class="info-note">Detectors work in pairs (D1 with D4, D2 with D5, D3 with D6). The D2 range comes from the IRSA archive documentation; the split between D1 and D3 is approximate.</p>
+      <div class="info-links">
+        <a href="https://spherex.caltech.edu/" target="_blank" rel="noopener">SPHEREx mission site</a>
+        <a href="https://irsa.ipac.caltech.edu/" target="_blank" rel="noopener">NASA/IPAC IRSA data archive</a>
+      </div>
+    </div>
+  </section>
+  </main>
+  <footer class="site-footer">
+    <p>Built for NASA Space Apps Challenge 2026 · “Planet X and SPHEREx”. Real SPHEREx data: NASA/IPAC IRSA. Sky maps: 2MASS, AllWISE, DSS2 via IRSA. Catalogue objects: SIMBAD (CDS). Libraries: Aladin Lite, Plotly. Header and background images generated by the author. <a href="results.html">What the detector did on real SPHEREx images</a> (numbers only).</p>
+  </footer>
+  <script type="module" src="js/features/highContrast.js"></script>
+</body>
+</html>

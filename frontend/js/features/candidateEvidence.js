@@ -1,14 +1,15 @@
 import { dataLabel } from "./export.js";
 
 const inRange = (x, low, high) => Number.isFinite(x) && x >= low && x <= high;
-const isDetector = (x) => /^D[1-6]$/.test(x);
+const isDetector = (x) => /^D[1-6]$/.test(x) || x === "all";   // "all": a search over every detector at once (the workspace exports it so)
 const isText = (x) => typeof x === "string" && x.trim().length > 0 && x.length <= 512;
 const optionalNumber = x => x == null || Number.isFinite(x);
 const count = x => Number.isSafeInteger(x) && x >= 0;
 
-function fieldLink(field, real) {
+export function fieldLink(field, real) {
+  if (!field || !Number.isFinite(field.ra_deg) || !Number.isFinite(field.dec_deg) || !Number.isFinite(field.fov_arcmin)) return "";
   const params = new URLSearchParams({ ra: field.ra_deg, dec: field.dec_deg, fov: field.fov_arcmin });
-  if (field.detector) params.set("det", field.detector);
+  if (field.detector && field.detector !== "all") params.set("det", field.detector);
   if (real) params.set("data", "api");
   return `index.html?${params}#workspace`;
 }
@@ -22,11 +23,12 @@ export function archiveDataset(data) {
   // Field centers and 5 arcmin extraction are from the locked validation commands in docs/VALIDATION.md.
   const fields = { barnard: [269.4462, 4.769], eps: [331.0965, -56.8006] };
   const rows = data.movers.runs.map((r, index) => {
-    const [object, detector] = r.id.split("-");
-    const [ra, dec] = fields[object];
-    const field = { ra_deg: ra, dec_deg: dec, fov_arcmin: 5, detector: detector === "all" ? null : detector.toUpperCase() };
+    const [object, detector] = String(r.id).split("-");
+    const [ra, dec] = fields[object] ?? [null, null];                       // a run of a field this list does not know has no link to the workspace
+    const field = { ra_deg: ra, dec_deg: dec, fov_arcmin: 5, detector: detector === "all" ? null : String(detector ?? "").toUpperCase() };
     return {
-      id: r.id, label: r.label, detector: field.detector || "D2 + D6", motion: Math.hypot(...r.measured),
+      id: r.id, label: r.label, detector: field.detector || "D2 + D6", motion: Math.hypot(...r.measured), kind: "mover (straight line)",
+      ra, dec, sigma: r.sigma, chance: r.chanceLines, difference: r.difference,
       detections: r.seen[0], images: r.seen[1], pointer: `/movers/runs/${index}`, link: fieldLink(field, true),
       facts: [
         fact("Measured motion (east, north)", r.measured.join(", "), "measured", "arcsec/yr"),
@@ -94,6 +96,8 @@ export function importDataset(document, filename) {
     const parallax = r.kind === "distant body (parallax)";
     return {
       id: String(i), label: r.candidate, detector, motion: r.speed_arcsec_per_yr, detections: r.detections, images: r.images,
+      kind: r.kind, ra: r.ra_deg ?? null, dec: r.dec_deg ?? null, sigma: r.significance_sigma ?? null, chance: r.false_alarm_expected ?? null,
+      rms: r.rms_px ?? null, snr: r.mean_source_snr ?? null, distanceAU: r.distance_au ?? null,
       samples, match: r.known_object || "", pointer: `/candidates/${i}`, link: fieldLink(field, real),
       facts: [
         fact("Fit model", r.kind, "kind"),
@@ -111,12 +115,23 @@ export function importDataset(document, filename) {
     limitation: "The export documents fitted candidates. Catalogue associations and chance-line estimates require independent checks. Missing measurements are omitted." };
 }
 
-export function selectRows(rows, query, detector, sort) {
+/** The sort orders of the table: [label, function that gives the value to sort by (bigger first), the row key that must exist for the order to make sense]. */
+export const SORTS = {
+  original: ["Source order", null, null],
+  speed: ["Fastest first", (r) => r.motion, "motion"],
+  detections: ["Most detections", (r) => r.detections, "detections"],
+  sigma: ["Most significant", (r) => r.sigma, "sigma"],
+  snr: ["Highest signal-to-noise", (r) => r.snr, "snr"],
+  support: ["Best supported", (r) => r.support, "support"],
+};
+
+export function selectRows(rows, query, detector, sort, kind = "") {
   const term = query.trim().toLowerCase();
-  const out = rows.filter(r => (!detector || r.detector === detector)
-    && [r.label, r.detector, r.match, r.id].some(s => String(s ?? "").toLowerCase().includes(term)));
-  if (sort === "speed") out.sort((a, b) => (b.motion ?? -Infinity) - (a.motion ?? -Infinity));
-  if (sort === "detections") out.sort((a, b) => b.detections - a.detections);
+  const out = rows.filter(r => (!detector || r.detector === detector) && (!kind || (r.classLabel ?? r.kind) === kind)
+    && [r.label, r.detector, r.match, r.id, r.field, r.classLabel].some(s => String(s ?? "").toLowerCase().includes(term)));
+  const by = SORTS[sort]?.[1];
+  // a row without the number goes last, whichever way the table is sorted
+  if (by) out.sort((a, b) => (Number.isFinite(by(b)) ? by(b) : -Infinity) - (Number.isFinite(by(a)) ? by(a) : -Infinity));
   return out;
 }
 

@@ -101,14 +101,12 @@ const BOUND_AU = { Mercury: 0.0003, Venus: 0.0003, Earth: 0.0006, Mars: 0.0008, 
   check("ranges: four, in growing order, the last one far enough for a Planet X", RANGES_AU.length === 4 && RANGES_AU.every((r, i) => i === 0 || r.maxAU > RANGES_AU[i - 1].maxAU) && RANGES_AU.at(-1).maxAU >= 1000 && RANGES_AU[2].maxAU > 30.1);
 }
 
-// ---------------------------------------------------------------- the page (once there is one)
+// ---------------------------------------------------------------- Workspace removal and standalone simulator
 {
   const HTML = readFileSync(new URL("../frontend/index.html", import.meta.url), "utf8");
   const MAIN = readFileSync(new URL("../frontend/js/main.js", import.meta.url), "utf8");
-  const wired = [...(/setupSolarSystem\(\{\s*els: \{([\s\S]*?)\},\s*/.exec(MAIN)?.[1] ?? "").matchAll(/\$\("([\w-]+)"\)/g)].map((m) => m[1]);
-  check("page: main.js wires the simulator to ids that exist in index.html, and its section comes after the sky explorer", wired.length >= 8 && wired.every((id) => HTML.includes(`id="${id}"`)) && HTML.indexOf('id="solar-system"') > HTML.indexOf('id="sky-explorer"') && HTML.indexOf('id="solar-system"') < HTML.indexOf("</main>"), wired.filter((id) => !HTML.includes(`id="${id}"`)).join(", "));
-  const sec = HTML.slice(HTML.indexOf('id="solar-system"'));
-  check("page: the two modes are named for what they are: the scientific one (true scale, positions checked against JPL Horizons) and the educational one (distances compressed, NOT to scale)", /scientific/i.test(sec) && /educational/i.test(sec) && /not to scale/i.test(sec) && /Horizons/.test(sec));
+  const standalone = readFileSync(new URL("../frontend/simulator.html", import.meta.url), "utf8");
+  check("page: the embedded Solar System panel and its Workspace wiring are removed; the standalone Simulator remains", !HTML.includes('id="solar-system"') && !MAIN.includes("setupSolarSystem") && standalone.includes('id="scene"') && standalone.includes('src="js/simulator.js'));
 }
 
 console.log(failed ? `\n${failed} check(s) FAILED` : "\nAll checks passed");

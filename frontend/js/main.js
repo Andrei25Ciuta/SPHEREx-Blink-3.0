@@ -9,21 +9,25 @@
 import { parseRA, parseDec, formatRA, formatDec } from "./coords.js";
 import { TARGETS, positionAtEpoch, SPHEREX_REF_EPOCH, targetsInField, totalProperMotion } from "./targets.js";
 import { skyToCanvas, tanCanvasToSky, mjdToYear } from "./geometry.js";
-import { readUrlState, writeUrlState } from "./urlState.js";
-import { getCutouts, listDetectors } from "./data/getCutouts.js";
-import { DATA_SOURCE, API_BASE, CAN_USE_LOCAL_BACKEND } from "./config.js";
-import { BlinkPlayer, MODES, loadImage, meanImageData } from "./player.js";
+import { readUrlState, writeUrlState } from "./urlState.js?v=1";
+import { getCutouts, listDetectors } from "./data/getCutouts.js?v=1";
+import { requestFieldApi, getFieldRequestApi, retryFieldRequestApi } from "./data/apiSource.js?v=1";
+import { followFieldRequest, fieldRequestComplete } from "./data/fieldRequests.js";
+import { DATA_SOURCE, API_BASE, CAN_USE_BACKEND, IS_REMOTE_BACKEND, LEGACY_API_READ_ONLY } from "./config.js?v=1";
+import { BlinkPlayer, MODES, loadImage, meanImageData } from "./player.js?v=8";
 import { canvasToSky, measureAndPlot, clearMeasurement, setSpectrumStyle, APERTURE_RADIUS_PX } from "./features/measure.js";
 import { setupViewer } from "./features/viewerControls.js";
-import { setupWorkspace } from "./features/workspaceView.js";
+import { setupWorkspace } from "./features/workspaceView.js?v=2";
 import { setupPlanetLab } from "./features/planetLabView.js";
 import { setupSkyExplorer } from "./features/skyExplorerView.js";
 import { setupSurveySearch } from "./features/surveyView.js";
 import { setupTextAnalysis } from "./features/textAnalysisView.js";
 import { setupBundle } from "./features/bundleView.js";
 import { fetchSurvey as askSurvey } from "./features/surveyCoverage.js";
-import { setupSolarSystem } from "./features/solarSystemView.js";
 import { setupAssistant } from "./features/assistantView.js";
+import { setupPinBoard } from "./features/missionsPinView.js?v=2";
+import { setupPredict } from "./features/predictView.js";
+import { startMissionRunner } from "./features/missionRunner.js";
 import { runTask, isCancelled } from "./features/workerClient.js";
 import { estimateSearch, describeEstimate } from "./features/searchCost.js";
 import { runSearchTask } from "./features/searchTasks.js";
@@ -34,7 +38,7 @@ import { applyIcons } from "./features/ui.js";
 import { openDialog, shortcutsHtml } from "./features/dialog.js";
 import { setupTimeline } from "./features/timelineView.js";
 import { FLAGGED_LIMIT } from "./features/timeline.js";
-import { SkyContext } from "./features/skyContext.js";
+import { SkyContext } from "./features/skyContext.js?v=5";
 import { setupFullscreen } from "./features/fullscreen.js";
 import { detectSources, describeMover, matchKnownObject, moverPositionAtMjd, passIndices, trackSupport, blendWarning, VERSION as MOVERS_VERSION, DEFAULTS as MOVER_DEFAULTS, ERROR_MODEL } from "./features/movers.js";
 import { blindCheckCandidate, VERSION as BLIND_CHECK_VERSION } from "./features/blindCheck.js";
@@ -43,16 +47,27 @@ import { colourHint } from "./features/spectrum.js";
 import { describeDistant, classifyApparentMotion, VERSION as PARALLAX_VERSION, DISTANT_DEFAULTS } from "./features/parallax.js";
 import { candidatesToCsv, candidatesToJson, exportFileName } from "./features/export.js";
 import { startTour, WORKSPACE_STEPS } from "./features/tour.js";
+import { drawTrack, candidateTrackPoints, datedTrackPoints } from "./features/labTrackView.js";
 import { PLANET_X_DEMO } from "./data/mockSource.js";
 import { compareChoices, membersFor, defaultChoice, shortLabel, OPERATIONS } from "./features/compare.js";
 import { fetchCatalogue, catalogueTracks } from "./features/catalogue.js";
 import { fetchSkybotForFrames, asteroidPoints, matchAsteroids } from "./features/skybot.js";
 import { setComparisonFrames } from "./features/detectorPair.js";
-import { savePng, recordBlink, canRecord, copyLink } from "./features/exporters.js";
+import { savePng, recordBlink, canRecord, copyLink } from "./features/exporters.js?v=2";
 import { setupDiscoverPanel } from "./features/discoverPanel.js";
+import { clampFov, maxFovForDataSource, REAL_DATA_MAX_FOV_ARCMIN } from "./features/fieldLimits.js";
 
 // Small helper: document.getElementById is long, so we alias it.
 const $ = (id) => document.getElementById(id);
+
+// Links to a panel inside the collapsible analysis group should reveal it first.
+document.querySelectorAll('#workspace a[href^="#"]').forEach((link) => {
+  link.addEventListener("click", () => {
+    const target = $(link.hash.slice(1));
+    const group = $("workspace-analysis");
+    if (target && group?.contains(target)) group.open = true;
+  });
+});
 
 const form = $("search-form");
 const raInput = $("ra-input");
@@ -63,8 +78,12 @@ const detSelect = $("det-select");
 const canvas = $("blink-canvas");
 const observations = $("observation-select");        // a plain list of the images, beside the timeline (from the other Blink 2.0 line)
 $("data-source").value = DATA_SOURCE;
-$("data-source").querySelector('option[value="api"]').disabled = !CAN_USE_LOCAL_BACKEND;
-$("data-source-help").hidden = CAN_USE_LOCAL_BACKEND;
+$("data-source").querySelector('option[value="api"]').disabled = !CAN_USE_BACKEND;
+$("data-source-help").hidden = CAN_USE_BACKEND;
+$("data-source").querySelector('option[value="api"]').textContent = IS_REMOTE_BACKEND ? "SPHEREx data service" : "FITS backend";
+$("data-source-help").textContent = CAN_USE_BACKEND
+  ? "Real SPHEREx observations are loaded from the connected data service. Synthetic demo remains available."
+  : "No real-data service is configured for this site. Synthetic demo remains available.";
 $("data-source").addEventListener("change", event => {
   const url = new URL(location.href);
   url.searchParams.set("data", event.target.value);
@@ -75,8 +94,10 @@ $("data-source").addEventListener("change", event => {
 // so we remember the wish here and apply it then.
 let requestedDetector = null;
 
-// FOV limits – must match min/max of the slider in index.html.
-const FOV_MIN = 1, FOV_MAX = 30;
+// Keep the existing field-size control within the supported limit for the selected source.
+const FOV_MIN = 1, FOV_MAX = maxFovForDataSource(DATA_SOURCE);
+fovInput.max = String(FOV_MAX);
+document.querySelector(".range-scale span:last-child").textContent = `${FOV_MAX}′`;
 // "Skip flagged frames" threshold.
 const MAX_FLAGGED_FRACTION = FLAGGED_LIMIT;       // "Skip frames with > 1 % flagged pixels": the same limit marks a diamond on the timeline
 
@@ -88,6 +109,9 @@ let currentFrames = [];   // frames of the selected detector only (time-ordered)
 let currentDetector = null;
 let currentQuery = null;  // { ra, dec, fov } of the loaded data
 let loadToken = 0;        // increases on every load; protects against out-of-order responses
+let requestPollController = null;
+let activeFieldRequestId = null;
+let lastReadySignature = "";
 let lastQuery = null;     // remembered so "Try again" can repeat the failed request
 let discoverPanel = null; // the "Find everything" panel (set up further down)
 
@@ -104,7 +128,7 @@ speedInput.addEventListener("input", () => {
 // so we don't rewrite the URL dozens of times per second.
 fovInput.addEventListener("change", () => {
   writeUrlState({ fov: fovInput.value });
-  if (allFrames.length) form.requestSubmit();          // reload with the new FOV
+  if (allFrames.length || DATA_SOURCE === "api") form.requestSubmit(); // load cloud data when the field size changes
 });
 detSelect.addEventListener("change", () => selectDetector(detSelect.value));
 
@@ -234,7 +258,19 @@ const hideOverlay = () => {
   // Invisible (opacity 0) is not enough: screen readers would still read the old text.
   overlay.setAttribute("aria-hidden", "true");
 };
-retryBtn.addEventListener("click", () => { if (lastQuery) loadData(lastQuery); });
+retryBtn.addEventListener("click", async () => {
+  if (!lastQuery) return;
+  if (activeFieldRequestId && DATA_SOURCE === "api" && !LEGACY_API_READ_ONLY) {
+    try {
+      await retryFieldRequestApi(activeFieldRequestId);
+      loadData(lastQuery);
+    } catch (error) {
+      showOverlay("Could not retry data request", error.message || "Unknown error.", { error: true });
+    }
+    return;
+  }
+  loadData(lastQuery);
+});
 
 const setStatus = (text) => { $("status-msg").textContent = text || ""; };
 
@@ -314,6 +350,10 @@ updateMarkedPosition();
 setupWorkspace({
   root: $("workspace"), leftBtn: $("panel-left-btn"), rightBtn: $("panel-right-btn"),
   slot: $("inspector-slot"), empty: $("inspector-empty"), details: [$("mover-detail"), $("discover-detail")],
+  expand: {
+    button: $("expand-image-btn"), info: $("expanded-image-info"), inspector: $("inspector-body"),
+    sections: [$("inspector-image"), $("timeline")],
+  },
 });
 
 // Shared interface pieces (features/tooltip.js, ui.js, dialog.js): tooltips for the keyboard too, the icons, and the list of keyboard shortcuts.
@@ -410,13 +450,14 @@ function updateFrameInfo(i, frame) {
 /** Enable/disable the player controls according to frames + mode. */
 function setPlayerEnabled(enabled) {
   const animated = enabled && player.isAnimated && player.length > 1;
-  playBtn.disabled = !animated || player.activeCount < 2;     // the timeline filter may leave fewer than two images to step through
+  playBtn.disabled = !animated || player.playbackCount < 2;     // the timeline filter may leave fewer than two images to step through
   if (playBtn.disabled && player.playing) player.pause();
   frameSlider.disabled = !animated;
   observations.disabled = !enabled || !player.isAnimated;
   speedInput.disabled = !animated;
   $("save-png-btn").disabled = !enabled;
-  $("record-btn").disabled = !animated || !canRecord();
+  $("viewer-sky-map-btn").disabled = !enabled;
+  $("record-btn").disabled = !animated || player.playbackCount < 2 || !canRecord();
   // Modes that combine frames need at least 2 of them.
   document.querySelectorAll('#mode-switch input:not([value="blink"])')
     .forEach((r) => { r.disabled = !enabled || player.length < 2; });
@@ -449,7 +490,7 @@ document.addEventListener("keydown", (e) => {
   if (e.shiftKey && e.key.startsWith("Arrow")) return;   // Shift + arrows move a zoomed picture (viewerControls.js)
   if (e.key === "Escape" && player.marker) { clearMarker(); return; }
   if (!player.isAnimated) return;
-  const onButton = !!e.target.closest("button");
+  const onButton = !!e.target.closest("button, a");
   if (e.key === " " && !onButton) { e.preventDefault(); player.toggle(); }
   else if (e.key === "ArrowRight") { player.pause(); player.next(); }
   else if (e.key === "ArrowLeft") { player.pause(); player.prev(); }
@@ -613,7 +654,6 @@ async function showDetector(detector) {
   }
   const n = currentFrames.length;
   // Preload all images; the bar shows how many are ready.
-  solarSystem?.refresh();                                  // the dates of the survey passes and the direction of the field
   await player.setFrames(currentFrames, (done) => {
     if (current()) showOverlay("Preparing frames…", `${done} / ${n} ${detector} images ready`, { progress: done / n });
   }, current);
@@ -751,22 +791,65 @@ function clearMarker() {
 // ---------------------------------------------------------------
 // Sky context (Aladin Lite)
 // ---------------------------------------------------------------
-const sky = new SkyContext($("aladin-box"), $("aladin-status"), $("sky-geo-note"));
+const sky = new SkyContext($("aladin-box"), $("aladin-status"), $("sky-geo-note"), {
+  matchField: true,
+  selectionStatusEl: $("sky-selection-status"),
+  backToField: $("sky-back-to-field"),
+  onSelectPosition: ({ raText, decText }) => {
+    // Same field form and loader used by the Pin Board; keep FOV and data source unchanged.
+    raInput.value = raText;
+    decInput.value = decText;
+    raInput.dispatchEvent(new Event("input", { bubbles: true }));
+    decInput.dispatchEvent(new Event("input", { bubbles: true }));
+    if ($("controls-body").hidden) $("panel-left-btn").click();
+    form.requestSubmit();
+    const scrollToBlink = () => $("workspace").scrollIntoView({
+      block: "start", behavior: prefersReducedMotion ? "auto" : "smooth"
+    });
+    // Fullscreen must close first, or the Workspace remains hidden behind the sky map.
+    const skyFrame = $("sky-frame");
+    const wasFullscreen = skyFrame.classList.contains("is-fullscreen");
+    const nativeFullscreen = document.fullscreenElement === skyFrame || document.webkitFullscreenElement === skyFrame;
+    if (nativeFullscreen) document.addEventListener("fullscreenchange", scrollToBlink, { once: true });
+    if (wasFullscreen) $("sky-full-btn").click();
+    if (!nativeFullscreen) scrollToBlink();
+  }
+});
 setupFullscreen($("sky-frame"), $("sky-full-btn"));   // map + its controls fill the screen
 /** Open (or re-centre) the sky map on a position { ra, dec, fov }. */
 async function openSkyMap(q) {
-  $("aladin-btn").disabled = true;
-  await sky.open(q, $("survey-select").value);
-  $("aladin-btn").disabled = false;
-  $("aladin-btn").textContent = "Re-centre sky map";
-  $("sky-full-btn").hidden = !sky.isOpen;             // nothing to enlarge until the map is open
+  const button = $("aladin-btn");
+  if (button.disabled) return;
+  button.disabled = true;
+  try {
+    await sky.open(q, $("survey-select").value);
+  } finally {
+    button.disabled = false;
+    button.textContent = sky.isOpen ? "Re-centre sky map" : "Show sky map";
+    $("sky-full-btn").hidden = !sky.isOpen;
+  }
 }
+
+$("viewer-sky-map-btn").addEventListener("click", async () => {
+  if (!currentQuery || !player.length) return;
+  const title = $("context-title");
+  title.focus({ preventScroll: true });
+  title.scrollIntoView({ block: "start", behavior: prefersReducedMotion ? "auto" : "smooth" });
+  await openSkyMap(currentQuery);
+});
+
 $("aladin-btn").addEventListener("click", async () => {
-  const q = currentQuery || readForm();
+  const q = readForm();
   if (!q) { $("aladin-status").textContent = "Enter coordinates first."; return; }
   await openSkyMap(q);
 });
 $("survey-select").addEventListener("change", (e) => sky.setSurvey(e.target.value));
+fovInput.addEventListener("change", () => {
+  if (sky.isOpen && !allFrames.length) {
+    const query = readForm();
+    if (query) sky.update(query);
+  }
+});
 
 // ---------------------------------------------------------------
 // Catalogue (SIMBAD): overlay on the blink image, and the "known object" check of Find movers
@@ -894,6 +977,15 @@ const MIN_PASSES = 3;                      // same rule as in movers.js: a third
 let textAnalysis = null;                   // the text analysis (section 9), set up below; its candidate table is refreshed when the list changes
 let movers = [];                           // candidates for the detector on screen, best first
 let selectedMover = -1;
+startMissionRunner({ getCandidate: () => (selectedMover >= 0 ? movers[selectedMover] ?? null : null), getCount: () => movers.length });
+const predict = setupPredict({
+  getCandidate: () => (selectedMover >= 0 ? movers[selectedMover] ?? null : null),
+  getContext: () => (currentQuery && currentFrames?.length ? { scaleArcsec: currentFrames[0].pixelScaleArcsec ?? (currentQuery.fov * 60) / player.naturalSize, field: { ra: currentQuery.ra, dec: currentQuery.dec, fov: currentQuery.fov } } : null),
+});
+const pinBoard = setupPinBoard({
+  getCandidate: () => (selectedMover >= 0 ? movers[selectedMover] ?? null : null),
+  getContext: () => ({ realData: DATA_SOURCE === "api", field: currentQuery ? { ra: currentQuery.ra, dec: currentQuery.dec, fov: currentQuery.fov, det: currentQuery.det } : null }),
+});
 let assistant = null;                      // the explainer (features/assistantView.js), set up further down
 let planetLab = null;                      // the Planet X Lab (features/planetLabView.js), set up further down
 let moversCatalogueChecked = false;        // was SIMBAD consulted for the list on screen?
@@ -967,6 +1059,8 @@ function clearMovers() {
   moversRun = null;
   $("movers-provenance").hidden = true;
   selectedMover = -1;
+  updateObservationTrack(null);
+  updateSkyCandidate(null);
   player.setCandidates([]);
   $("mover-list").hidden = true;
   $("mover-list").replaceChildren();
@@ -1240,7 +1334,23 @@ function showMovers({ candidates, stats, reason }, catalogueObjects = null, { di
         (m.support?.measurable ? ` · on its path in ${m.support.supported}/${m.support.measurable}` : "") +
         (m.blindCheck?.checked ? ` · blind check ${m.blindCheck.supported}/${m.blindCheck.checked}` : "") +
         (m.foundIn && hasSeveralDetectors() ? ` · found with ${m.foundIn === "all detectors" ? "all detectors together" : m.foundIn + " alone"}` : "") });
-    btn.append(rank, main, sub);
+    // the finder card: a verdict badge, a direction arrow (north up, east left, as on the picture) and two evidence bars
+    const verdict = m.known ? ["is-known", "Known object"] : m.distant ? ["is-distant", DATA_SOURCE === "api" ? "Distant-body candidate" : "Simulated distant body"] : ["is-new", "Unexplained: check it"];
+    const badge = Object.assign(document.createElement("span"), { className: `mover-verdict ${verdict[0]}`, textContent: verdict[1] });
+    const arrow = document.createElement("span");
+    arrow.className = "mover-arrow";
+    arrow.setAttribute("aria-hidden", "true");
+    arrow.innerHTML = `<svg viewBox="-12 -12 24 24"><circle r="11"/><path d="M0 7V-7M-4 -3L0 -7L4 -3" transform="rotate(${(-(m.positionAngleDeg ?? 0)).toFixed(0)})"/></svg><b>${m.compass}</b>`;
+    const bar = (label, a, b) => {
+      const f = b ? Math.max(0, Math.min(1, a / b)) : 0;
+      return `<span class="mover-meter"><span class="mover-meter-label">${label} <b>${a}/${b}</b></span><span class="mover-meter-track"><span style="width:${(100 * f).toFixed(0)}%"></span></span></span>`;
+    };
+    const meters = document.createElement("span");
+    meters.className = "mover-meters";
+    meters.innerHTML = bar("seen in images", m.nDet, m.nFrames) + (m.support?.measurable ? bar("on its path", m.support.supported, m.support.measurable) : "");
+    const head = Object.assign(document.createElement("span"), { className: "mover-head" });
+    head.append(rank, badge, arrow);
+    btn.append(head, main, meters, sub);
     btn.addEventListener("click", () => selectMover(selectedMover === k ? -1 : k));
     li.append(btn);
     return li;
@@ -1276,7 +1386,7 @@ function dataProvenance() {
 
 function updateSourceLabels() {
   const source = dataProvenance();
-  const label = source === false ? "Synthetic demo data" : source === "synthetic"
+  const label = DATA_SOURCE === "api" && !allFrames.length ? "Real data service selected · no field loaded" : source === false ? "Synthetic demo data" : source === "synthetic"
     ? "Synthetic FITS test data" : source === "spherex_header"
       ? "SPHEREx-format FITS" : "FITS provenance unverified";
   badge.textContent = label;
@@ -1301,11 +1411,67 @@ $("export-json-btn").addEventListener("click", () => {
 });
 
 /** Highlight one candidate on the image (ring + path) and describe it; -1 = none. */
+function updateObservationTrack(candidate) {
+  const summary = $("observation-track-summary");
+  const figure = $("observation-track-figure");
+  const points = candidate?.distant ? candidateTrackPoints(candidate) : [];
+  const size = player.naturalSize;
+  figure.hidden = !points.length || !size;
+  if (figure.hidden) {
+    $("observation-track-plot").replaceChildren();
+    summary.textContent = "Run Look for a distant body and select a result to see its trajectory.";
+    return;
+  }
+  summary.textContent = `Candidate ${candidate.label} · fitted distance ${candidate.distanceAU.toFixed(1)} AU · ${points.length} supporting detections`;
+  drawTrack($("observation-track-plot"), datedTrackPoints(points), size);
+}
+
+function updateSkyCandidate(candidate) {
+  const status = $("sky-candidate-status");
+  status.hidden = !candidate;
+  const points = [];
+  if (candidate && currentQuery && player.naturalSize) {
+    const geo = currentGeo();
+    candidate.dots.forEach((dot, i) => {
+      const mjd = candidate.dotDates?.[i];
+      if (![dot.x, dot.y, mjd].every(Number.isFinite)) return;
+      // Distant-body shifts also contain the parallax term. Use only the pointing correction here.
+      const shift = candidate.distant ? candidate.registration?.[dot.frame] : candidate.shifts?.[dot.frame];
+      const position = inspectionPosition((dot.x + (shift?.dx ?? 0)) / geo.n, (dot.y + (shift?.dy ?? 0)) / geo.n, geo);
+      if (!Number.isFinite(position.ra) || !Number.isFinite(position.dec) || Math.abs(position.dec) > 90) return;
+      points.push({ ...position, mjd, frame: candidate.frameIds?.[dot.frame] });
+    });
+    points.sort((a, b) => a.mjd - b.mjd);
+  }
+  const message = points.length
+    ? `Candidate ${candidate.label} · ${points.length} supporting detections in gold.${DATA_SOURCE === "api" ? "" : " Synthetic path on survey imagery."}`
+    : "No supporting positions to plot for this candidate.";
+  status.textContent = message;
+  sky.setCandidateTrack(points, point => {
+    if (!point) return;
+    const index = player.frames.findIndex(frame => point.frame ? frameId(frame) === point.frame : frame.mjd === point.mjd);
+    if (index < 0) {
+      status.textContent = `${message} This observation is outside the current player sequence.`;
+      return;
+    }
+    player.pause();
+    if (!player.isAnimated) setMode("blink");
+    player.pause();
+    player.goTo(index);
+    status.textContent = `${message} Showing ${fmtDate(player.frames[index].dateISO)} in the player.`;
+    $("stage").scrollIntoView({ block: "nearest" });
+  });
+}
+
 function selectMover(k) {
   player.stopFollow();                              // the view followed the one selected before
   selectedMover = k;
+  updateObservationTrack(movers[k]);
+  updateSkyCandidate(movers[k]);
   planetLab?.refresh();                             // the lab compares the motions of the one selected
   assistant?.refresh();
+  pinBoard?.refresh();
+  predict?.refresh();
   document.querySelectorAll("#mover-list .mover-item").forEach((b) =>
     b.setAttribute("aria-pressed", String(Number(b.dataset.index) === k)));
   player.setCandidates(movers, k);
@@ -1314,7 +1480,8 @@ function selectMover(k) {
   $("mover-colour").hidden = true;                  // belongs to the candidate that was selected before
   if (k < 0) return;
   const m = movers[k];
-  $("mover-spectrum-btn").hidden = Boolean(m.distant);          // the measurement follows a straight path: not for a swinging body
+  $("mover-spectrum-btn").hidden = Boolean(m.distant);
+  $("mover-lab-btn").hidden = !m.distant;          // the measurement follows a straight path: not for a swinging body
   if (m.distant) {
     $("mover-detail-text").textContent =
       `${m.label}: ${m.distant.text} Its apparent path (drawn on the image) is the Earth's parallax swing plus that drift; ` +
@@ -1408,6 +1575,14 @@ player.onFollowChange = (i) => {
   b.setAttribute("aria-pressed", String(i !== null));
   b.textContent = i !== null ? "Stop following" : "Follow it";
 };
+
+$("mover-lab-btn").addEventListener("click", () => {
+  const candidate = movers[selectedMover];
+  if (!candidate?.distant) return;
+  $("workspace-analysis").open = true;
+  $("planet-lab").scrollIntoView({ block: "start", behavior: prefersReducedMotion ? "auto" : "smooth" });
+  $("lab-compare-btn").focus({ preventScroll: true });
+});
 
 $("mover-map-btn").addEventListener("click", async () => {
   const m = movers[selectedMover];
@@ -1648,17 +1823,6 @@ setupSurveySearch({
 });
 
 // ---------------------------------------------------------------
-// Solar System simulator (features/solarSystem.js, solarSystemView.js): the planets, and why a distant body seems to swing
-// ---------------------------------------------------------------
-const solarSystem = setupSolarSystem({
-  els: {
-    modes: [...document.querySelectorAll('input[name="ss-mode"]')], range: $("ss-range"), date: $("ss-date"), dateLabel: $("ss-date-label"), speed: $("ss-speed"), playBtn: $("ss-play"),
-    body: $("ss-body"), distance: $("ss-distance"), swing: $("ss-swing"), map: $("ss-map"), table: $("ss-table"), modeNote: $("ss-mode-note"),
-  },
-  getField: () => (currentQuery && currentFrames.length ? { ra: currentQuery.ra, dec: currentQuery.dec, mjds: currentFrames.map((f) => f.mjd) } : null),
-});
-
-// ---------------------------------------------------------------
 // Explainer (features/assistant.js, assistantView.js): the selected candidate in words, every sentence citing the measured values it is made of
 // ---------------------------------------------------------------
 assistant = setupAssistant({
@@ -1681,6 +1845,10 @@ assistant = setupAssistant({
 /** Fetch frames for a query and show them. */
 async function loadData(query) {
   const token = ++loadToken;
+  requestPollController?.abort();
+  requestPollController = null;
+  activeFieldRequestId = null;
+  lastReadySignature = "";
   setComparisonFrames([]);
   allFrames = [];
   updateSourceLabels();
@@ -1689,6 +1857,8 @@ async function loadData(query) {
   currentQuery = null;
   detSelect.disabled = true;
   lastQuery = query;
+  sky.setWorkspaceField(null);
+  if (sky.isOpen) sky.update(query);
   setLoading(true);
   setStatus("");
   player.pause();
@@ -1703,36 +1873,131 @@ async function loadData(query) {
   showOverlay("Loading images…", `RA ${formatRA(query.ra)}  Dec ${formatDec(query.dec)}  ·  ${query.fov}′ field`);
 
   try {
+    if (DATA_SOURCE === "api" && !LEGACY_API_READ_ONLY) {
+      const request = await requestFieldApi({ ra: query.ra, dec: query.dec, fov: query.fov });
+      if (token !== loadToken) return;
+      if (request) {
+        activeFieldRequestId = request.requestId;
+        requestPollController = new AbortController();
+        const status = await getFieldRequestApi(request.requestId, { signal: requestPollController.signal });
+        if (token !== loadToken) return;
+        renderFieldRequestStatus(status);
+        await updateFieldRequestView(status, query, token);
+        if (fieldRequestComplete(status)) {
+          finishFieldRequest(status);
+        } else {
+          continueFieldRequest(request.requestId, query, token, requestPollController.signal);
+        }
+        return;
+      }
+    }
     const frames = await getCutouts({ ra: query.ra, dec: query.dec, fovArcmin: query.fov, detector: "all" });
     if (token !== loadToken) return;                   // a newer request started meanwhile – ignore this one
-
-    allFrames = frames;
-    updateSourceLabels();
-    setComparisonFrames(frames);
-    currentQuery = query;
-    if (sky.isOpen) sky.update(query);
-    if (frames.length === 0) {
-      detSelect.innerHTML = '<option value="">No data</option>';
-      detSelect.disabled = true;
-      showOverlay("No SPHEREx images found here", "Try another position or a test object.");
-      return;
-    }
-    const det = populateDetectors(frames);
-    detSelect.value = det;
-    writeUrlState({ det });
-    currentDetector = det;
-    renderOverview(frames, token);                     // runs in the background
-    await showDetector(det);
-    console.log(`Loaded ${frames.length} frames`, listDetectors(frames));
+    await applyFrames(frames, query, token);
   } catch (err) {
-    if (token !== loadToken) return;
+    if (token !== loadToken || err?.name === "AbortError") return;
     console.error(err);
     allFrames = [];
     detSelect.innerHTML = '<option value="">No data</option>';
     detSelect.disabled = true;
+    if (DATA_SOURCE === "api") setStatus(err.message || "The data request failed.");
     showOverlay("Could not load images", err.message || "Unknown error.", { error: true });
   } finally {
     if (token === loadToken) setLoading(false);
+  }
+}
+
+async function continueFieldRequest(requestId, query, token, signal) {
+  try {
+    const status = await followFieldRequest({
+      requestId, getStatus: getFieldRequestApi, signal,
+      onStatus: async (next) => {
+        if (token !== loadToken || activeFieldRequestId !== requestId) return;
+        renderFieldRequestStatus(next);
+        await updateFieldRequestView(next, query, token);
+      },
+    });
+    if (token === loadToken && activeFieldRequestId === requestId) finishFieldRequest(status);
+  } catch (error) {
+    if (error?.name !== "AbortError" && token === loadToken && activeFieldRequestId === requestId) {
+      setStatus(`Progress updates stopped: ${error.message || "retry the same field to reconnect."}`);
+    }
+  }
+}
+
+async function updateFieldRequestView(status, query, token) {
+  if (token !== loadToken || status?.requestId !== activeFieldRequestId) return;
+  const signature = Object.entries(status.detectors ?? [])
+    .filter(([, item]) => item.status === "ready").map(([detector]) => detector).sort().join(",");
+  if (!signature || signature === lastReadySignature) return;
+  let frames;
+  try {
+    frames = await getCutouts({ ra: query.ra, dec: query.dec, fovArcmin: query.fov,
+      detector: "all", requestId: status.requestId });
+  } catch (error) {
+    setStatus(`Observations are ready, but their images could not be loaded: ${error.message}`);
+    return;
+  }
+  if (!frames.length || token !== loadToken || activeFieldRequestId !== status.requestId) return;
+  lastReadySignature = signature;
+  await applyFrames(frames, query, token);
+  renderFieldRequestStatus(status);
+}
+
+async function applyFrames(frames, query, token) {
+  if (token !== loadToken) return;
+  allFrames = frames;
+  updateSourceLabels();
+  setComparisonFrames(frames);
+  currentQuery = query;
+  pinBoard?.refresh();
+  if (sky.isOpen) sky.update(query);
+  if (!frames.length) {
+    detSelect.innerHTML = '<option value="">No data</option>';
+    detSelect.disabled = true;
+    showOverlay("No SPHEREx images found here", "Try another position or a test object.");
+    return;
+  }
+  const detector = populateDetectors(frames);
+  detSelect.value = detector;
+  writeUrlState({ det: detector });
+  currentDetector = detector;
+  renderOverview(frames, token);
+  await showDetector(detector);
+  if (token === loadToken) sky.setWorkspaceField(query);
+  console.log(`Loaded ${frames.length} frames`, listDetectors(frames));
+}
+
+function renderFieldRequestStatus(status) {
+  const detectors = Object.entries(status.detectors ?? {});
+  const ready = Number(status.readyDetectors) || detectors.filter(([, item]) => item.status === "ready").length;
+  const percent = Math.round((Number(status.progress) || 0) * 100);
+  const phases = detectors.filter(([, item]) => !["ready", "failed", "unavailable"].includes(item.status))
+    .map(([detector, item]) => `${detector}: ${item.phase || item.status}`).join(" · ");
+  const failures = detectors.filter(([, item]) => item.status === "failed");
+  setStatus(`SPHEREx archive · ${ready}/6 detectors ready · ${percent}%${phases ? ` · ${phases}` : ""}`);
+  if (!allFrames.length) {
+    overlay.querySelector(".overlay-title").textContent = "Preparing SPHEREx observations…";
+    overlay.querySelector(".overlay-sub").textContent = phases || `${ready} of 6 detectors ready · ${percent}%`;
+    overlayProgress.hidden = false;
+    overlayProgress.value = Number(status.progress) || 0;
+  }
+  if (status.pollError) setStatus("Connection interrupted; retrying progress updates.");
+  return failures;
+}
+
+function finishFieldRequest(status) {
+  const failures = renderFieldRequestStatus(status);
+  if (!allFrames.length) {
+    const details = failures.map(([, item]) => item.error).filter(Boolean).join(" · ");
+    const failed = failures.length > 0;
+    showOverlay(failed ? "Some SPHEREx observations could not be prepared" : "No SPHEREx images found here",
+      details || "No observations matched this position.", { error: failed });
+  } else if (!failures.length) {
+    setStatus(`${allFrames.length} SPHEREx images loaded.`);
+  } else {
+    const summary = failures.map(([detector, item]) => `${detector}: ${item.error || "failed"}`).join(" · ");
+    showOverlay("Some SPHEREx observations could not be prepared", summary, { error: true });
   }
 }
 

@@ -3,7 +3,9 @@ import {
   unlockedLevel, progressPercent, rankForXp, earnedAchievements, gradeAnswer,
   completeLevel, addProfile, selectProfile, renameActiveProfile, addLearningTime, recordQuizScore,
 } from "./features/learning.js";
-import { answerAstra, explanationFor } from "./features/spaceGuide.js";
+import { explanationFor, askAstra, aiAvailability, looksNotEnglish } from "./features/spaceGuide.js";
+import { createWebLlmModel } from "./features/webLlmModel.js";
+import { LESSON_ART } from "./features/lessonArt.js";
 
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
@@ -75,26 +77,13 @@ function makeMissionArt(level) {
     figure.append(band, el("figcaption", {}, "Diagram only · infrared wavelengths are longer than visible red light."));
     return figure;
   }
+  const art = LESSON_ART[level.visual] ?? LESSON_ART.atlas;
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("viewBox", "0 0 600 170");
+  svg.setAttribute("viewBox", "0 0 600 200");
   svg.setAttribute("role", "img");
-  const art = {
-    atlas: { label: "Schematic all-sky map made from colored bands", shapes: [["circle", 300, 85, 58, "var(--learn-galaxy)"], ["ellipse", 300, 85, 168, 45, "none"], ["ellipse", 300, 85, 225, 68, "none"]], caption: "Schematic · SPHEREx maps the whole sky in many infrared wavelengths." },
-    star: { label: "Illustration of a star shining in a dark sky", shapes: [["circle", 300, 85, 41, "var(--learn-sun)"], ["circle", 300, 85, 64, "none"], ["circle", 100, 38, 4, "var(--learn-star)"], ["circle", 470, 123, 5, "var(--learn-star)"]], caption: "Illustration · a star's light can carry clues about its temperature and surroundings." },
-    nebula: { label: "Illustration of a cloud of gas and dust", shapes: [["ellipse", 300, 85, 190, 47, "var(--learn-galaxy)"], ["ellipse", 250, 80, 114, 33, "var(--learn-nebula)"], ["ellipse", 370, 94, 96, 27, "var(--learn-nebula-warm)"], ["circle", 225, 65, 7, "var(--learn-star)"], ["circle", 394, 102, 8, "var(--learn-star)"]], caption: "Illustration · a nebula is a cloud of gas and dust; some are places where stars form." },
-    galaxy: { label: "Schematic spiral galaxy", shapes: [["circle", 300, 85, 15, "var(--learn-star)"], ["ellipse", 300, 85, 123, 36, "none"], ["ellipse", 300, 85, 91, 30, "none"], ["ellipse", 300, 85, 169, 47, "none"]], caption: "Schematic · a galaxy is a vast group of stars, gas and dust held by gravity." },
-    orbit: { label: "Schematic of Earth moving around the Sun and a distant object", shapes: [["circle", 115, 85, 17, "var(--learn-sun)"], ["ellipse", 115, 85, 64, 28, "none"], ["ellipse", 115, 85, 102, 47, "none"], ["circle", 180, 85, 7, "var(--learn-earth)"], ["circle", 495, 36, 8, "var(--learn-mover)"]], caption: "Model illustration · a distant body's apparent path can include Earth's motion. Not a Planet X detection." },
-    steward: { label: "Schematic checklist showing careful scientific review", shapes: [["rect", 177, 26, 246, 118, "var(--learn-night)"], ["circle", 213, 58, 10, "var(--learn-check)"], ["circle", 213, 85, 10, "var(--learn-check)"], ["circle", 213, 112, 10, "var(--learn-check)"], ["rect", 237, 53, 143, 7, "var(--learn-check-line)"], ["rect", 237, 80, 143, 7, "var(--learn-check-line)"], ["rect", 237, 107, 143, 7, "var(--learn-check-line)"]], caption: "Illustration · record the source, inspect evidence, and leave room for someone else to check." },
-  }[level.visual];
+  svg.setAttribute("class", "lesson-art-svg");
   svg.setAttribute("aria-label", art.label);
-  for (const [kind, x, y, a, b, fill] of art.shapes) {
-    const shape = document.createElementNS("http://www.w3.org/2000/svg", kind);
-    if (kind === "rect") { shape.setAttribute("x", x); shape.setAttribute("y", y); shape.setAttribute("width", a); shape.setAttribute("height", b); }
-    else { shape.setAttribute("cx", x); shape.setAttribute("cy", y); shape.setAttribute(kind === "circle" ? "r" : "rx", a); if (kind === "ellipse") shape.setAttribute("ry", b); }
-    shape.setAttribute("fill", fill);
-    if (fill === "none") shape.setAttribute("stroke", "var(--learn-outline)");
-    svg.append(shape);
-  }
+  svg.innerHTML = art.svg;
   figure.append(svg, el("figcaption", {}, art.caption));
   return figure;
 }
@@ -226,35 +215,39 @@ function renderSummary() {
   $("#xp-total").textContent = `${profile.xp} XP`;
   $("#rank-label").textContent = rankForXp(profile.xp);
   $("#streak-label").textContent = `${profile.streak} day${profile.streak === 1 ? "" : "s"} streak`;
-  $("#profile-xp").textContent = `${profile.xp} XP`;
-  $("#profile-rank").textContent = rankForXp(profile.xp);
-  $("#profile-completed").textContent = `${completed} / ${LEVELS.length}`;
-  const minutes = Math.floor(profile.timeSeconds / 60);
-  $("#profile-time").textContent = minutes ? `${minutes} min` : profile.timeSeconds ? "<1 min" : "0 min";
-  if (document.activeElement !== $("#profile-name")) $("#profile-name").value = profile.name;
-  const options = state.profiles.map((item) => el("option", { value: item.id, selected: item.id === state.activeProfileId }, item.name));
-  $("#profile-select").replaceChildren(...options);
-  const won = new Set(earnedAchievements(profile).map((item) => item.id));
-  $("#badge-list").replaceChildren(...ACHIEVEMENTS.map((badge) => {
-    const li = el("li", { className: won.has(badge.id) ? "is-earned" : "is-locked" });
-    const description = el("span");
-    description.append(el("strong", {}, badge.name), el("small", {}, badge.description));
-    li.append(el("span", { className: "badge-icon", "aria-hidden": "true" }, badge.icon), description);
-    return li;
-  }));
-  const rows = state.profiles.map((item) => {
-    const tr = el("tr");
-    const scores = Object.values(item.quizScores);
-    const average = scores.length ? `${Math.round(scores.reduce((sum, score) => sum + score.score, 0) / scores.length)}% · ${scores.reduce((sum, score) => sum + score.attempts, 0)} tries` : "—";
-    tr.append(el("th", { scope: "row" }, item.name), el("td", {}, `${item.completed.length} / ${LEVELS.length}`), el("td", {}, average), el("td", {}, `${item.xp} XP`), el("td", {}, rankForXp(item.xp)));
-    return tr;
-  });
-  $("#classroom-rows").replaceChildren(...rows);
-  const classAverage = Math.round(state.profiles.reduce((sum, item) => sum + progressPercent(item), 0) / state.profiles.length);
-  $("#class-progress").textContent = `${state.profiles.length} learner${state.profiles.length === 1 ? "" : "s"} · average learning path completion ${classAverage}%`;
-  if (document.activeElement !== $("#classroom-name")) $("#classroom-name").value = state.classroomName;
-  const worksheetSelect = $("#worksheet-level");
-  if (!worksheetSelect.options.length) worksheetSelect.replaceChildren(...LEVELS.map((item) => el("option", { value: String(item.id) }, `Level ${item.id} · ${item.title}`)));
+  if ($("#learner-profile")) {                        // the learner profile panel was removed from learn.html (author, 14 Nov 2026); kept working if it returns
+    $("#profile-xp").textContent = `${profile.xp} XP`;
+    $("#profile-rank").textContent = rankForXp(profile.xp);
+    $("#profile-completed").textContent = `${completed} / ${LEVELS.length}`;
+    const minutes = Math.floor(profile.timeSeconds / 60);
+    $("#profile-time").textContent = minutes ? `${minutes} min` : profile.timeSeconds ? "<1 min" : "0 min";
+    if (document.activeElement !== $("#profile-name")) $("#profile-name").value = profile.name;
+    const options = state.profiles.map((item) => el("option", { value: item.id, selected: item.id === state.activeProfileId }, item.name));
+    $("#profile-select").replaceChildren(...options);
+    const won = new Set(earnedAchievements(profile).map((item) => item.id));
+    $("#badge-list").replaceChildren(...ACHIEVEMENTS.map((badge) => {
+      const li = el("li", { className: won.has(badge.id) ? "is-earned" : "is-locked" });
+      const description = el("span");
+      description.append(el("strong", {}, badge.name), el("small", {}, badge.description));
+      li.append(el("span", { className: "badge-icon", "aria-hidden": "true" }, badge.icon), description);
+      return li;
+    }));
+  }
+  if ($("#classroom-rows")) {                        // the classroom dashboard and worksheets were removed from learn.html (author, 14 Nov 2026)
+    const rows = state.profiles.map((item) => {
+      const tr = el("tr");
+      const scores = Object.values(item.quizScores);
+      const average = scores.length ? `${Math.round(scores.reduce((sum, score) => sum + score.score, 0) / scores.length)}% · ${scores.reduce((sum, score) => sum + score.attempts, 0)} tries` : "—";
+      tr.append(el("th", { scope: "row" }, item.name), el("td", {}, `${item.completed.length} / ${LEVELS.length}`), el("td", {}, average), el("td", {}, `${item.xp} XP`), el("td", {}, rankForXp(item.xp)));
+      return tr;
+    });
+    $("#classroom-rows").replaceChildren(...rows);
+    const classAverage = Math.round(state.profiles.reduce((sum, item) => sum + progressPercent(item), 0) / state.profiles.length);
+    $("#class-progress").textContent = `${state.profiles.length} learner${state.profiles.length === 1 ? "" : "s"} · average learning path completion ${classAverage}%`;
+    if (document.activeElement !== $("#classroom-name")) $("#classroom-name").value = state.classroomName;
+    const worksheetSelect = $("#worksheet-level");
+    if (!worksheetSelect.options.length) worksheetSelect.replaceChildren(...LEVELS.map((item) => el("option", { value: String(item.id) }, `Level ${item.id} · ${item.title}`)));
+  }
 }
 
 function render() {
@@ -263,36 +256,106 @@ function render() {
   renderSummary();
 }
 
-$("#profile-select").addEventListener("change", (event) => { state = selectProfile(state, event.target.value); currentLevelId = unlockedLevel(activeProfile(state)); latestQuizAnswer = null; placements = {}; save(); render(); });
-$("#profile-form").addEventListener("submit", (event) => {
-  event.preventDefault();
-  const name = $("#profile-name").value.trim().slice(0, 40);
-  if (!name) return;
-  state = renameActiveProfile(state, name);
-  save();
-  renderSummary();
-});
-$("#add-learner-form").addEventListener("submit", (event) => {
-  event.preventDefault();
-  const name = $("#new-learner-name").value.trim();
-  if (!name) return;
-  state = addProfile(state, name, `learner-${Date.now()}`);
-  $("#new-learner-name").value = "";
-  currentLevelId = 1;
-  save();
-  render();
-});
-$("#classroom-name").addEventListener("change", (event) => { state.classroomName = event.target.value.trim().slice(0, 60) || "My classroom"; save(); });
+if ($("#learner-profile")) {
+  $("#profile-select").addEventListener("change", (event) => { state = selectProfile(state, event.target.value); currentLevelId = unlockedLevel(activeProfile(state)); latestQuizAnswer = null; placements = {}; save(); render(); });
+  $("#profile-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const name = $("#profile-name").value.trim().slice(0, 40);
+    if (!name) return;
+    state = renameActiveProfile(state, name);
+    save();
+    renderSummary();
+  });
+  $("#add-learner-form").addEventListener("submit", (event) => {
+    event.preventDefault();
+    const name = $("#new-learner-name").value.trim();
+    if (!name) return;
+    state = addProfile(state, name, `learner-${Date.now()}`);
+    $("#new-learner-name").value = "";
+    currentLevelId = 1;
+    save();
+    render();
+  });
+}
+$("#classroom-name")?.addEventListener("change", (event) => { state.classroomName = event.target.value.trim().slice(0, 60) || "My classroom"; save(); });
 
+// ---- Astra: prepared notes, or the AI built into the browser when the person turns it on (features/spaceGuide.js)
+const AI_KEY = "spherex-blink-astra-ai";
+let astraJob = null;
+let aiModel = null, aiKind = "none";                 // "builtin": the browser's own AI; "webllm": the free model downloaded into this browser
+async function setupAstraAi() {
+  const box = $("#astra-ai-on"), status = $("#astra-ai-status"), label = $("#astra-ai-label");
+  let state = await aiAvailability();
+  if (state !== "unavailable") { aiModel = globalThis.LanguageModel; aiKind = "builtin"; }
+  else {
+    const free = createWebLlmModel();
+    state = await free.availability();
+    if (state !== "unavailable") { aiModel = free; aiKind = "webllm"; }
+  }
+  if (!aiModel) { status.textContent = "This browser cannot run an AI model (it needs WebGPU: a recent Chrome, Edge or Brave on a computer), so Astra answers from its prepared notes."; return; }
+  if (aiKind === "webllm") label.textContent = "Let a free AI model in this browser answer (downloads about 2 GB once)";
+  box.disabled = false;
+  try { box.checked = localStorage.getItem(AI_KEY) === "on"; } catch { /* storage blocked: stays off */ }
+  const say = () => {
+    status.textContent = box.checked
+      ? (aiKind === "webllm" ? "On: a free AI model runs on this computer and can answer any question. The first answer waits for the download (about 2 GB); after that it is quick. Ask in English. It can make mistakes."
+        : "On: the AI on this device answers, using Astra's notes when they match. It can make mistakes.")
+      : aiKind === "webllm" ? "Off: answers come from the prepared notes. Turn it on to ask anything; nothing is downloaded until you do. It is free and your questions never leave this computer."
+      : state === "available" ? "Off: answers come from the prepared notes. The built-in AI is ready to use."
+      : "Off: answers come from the prepared notes. The first use downloads the browser's AI model (once; it can take a few minutes).";
+  };
+  say();
+  box.addEventListener("change", () => { try { localStorage.setItem(AI_KEY, box.checked ? "on" : "off"); } catch { /* not remembered */ } say(); });
+}
+function logTurn(question, answer, note) {
+  const log = $("#astra-log");
+  if (!log) return;
+  const q = el("li", { className: "astra-q" }, question);
+  const a = el("li", { className: "astra-a" }, answer);
+  if (note) a.append(el("small", {}, note));
+  log.append(q, a);
+  while (log.children.length > 20) log.firstElementChild.remove();
+  log.hidden = false;
+}
+async function ask(question) {
+  question = String(question ?? "").trim();
+  if (!question) return;
+  astraJob?.abort();
+  const job = astraJob = new AbortController();
+  const answer = $("#astra-answer"), source = $("#astra-source"), useAi = $("#astra-ai-on").checked && aiModel;
+  if (useAi && looksNotEnglish(question)) {
+    answer.textContent = "Astra's AI understands English best, so please ask your question in English. (Example: “What is a black hole?”)";
+    source.textContent = "The free AI model runs on your own computer and is small: in other languages its answers are often wrong.";
+    return;
+  }
+  answer.textContent = useAi ? "Astra is thinking…" : "";
+  source.textContent = "";
+  try {
+    const result = await askAstra(question, { model: useAi ? aiModel : null, signal: job.signal,
+      onChunk: (text) => { if (astraJob === job) answer.textContent = text; },
+      onDownload: (f) => { if (astraJob === job) answer.textContent = `${aiKind === "webllm" ? "Downloading the free AI model (only the first time)" : "Downloading the browser's AI model"}: ${Math.round(f * 100)} %`; } });
+    if (astraJob !== job) return;
+    answer.textContent = result.text;
+    source.textContent = result.source === "ai"
+      ? `Written by an AI running in your browser, which can be wrong.${result.notes.length ? ` Notes it was given: ${result.notes.join(", ")}.` : ""}`
+      : result.source === "notes"
+        ? `From Astra's prepared notes${result.error ? " (the AI could not answer this time)" : ""}.${result.notes.length > 1 ? ` Related: ${result.notes.slice(1).join(", ")}.` : ""}`
+        : `No prepared note matches this question.${aiModel && !$("#astra-ai-on").checked ? " Turn on the AI below and Astra can answer any question." : ""}`;
+    logTurn(question, result.text, source.textContent);
+    answer.textContent = "";          // the finished answer lives in the conversation above; this line only shows the answer while it is being written
+    source.textContent = "";
+    $("#astra-question").value = "";
+  } catch { /* a newer question replaced this one */ }
+}
+setupAstraAi();
 $("#astra-form").addEventListener("submit", (event) => {
   event.preventDefault();
-  const question = $("#astra-question").value.trim();
-  if (question) $("#astra-answer").textContent = answerAstra(question);
+  ask($("#astra-question").value);
 });
 $$('[data-ask]').forEach((button) => button.addEventListener("click", () => {
   const question = button.dataset.ask;
   $("#astra-question").value = question;
-  $("#astra-answer").textContent = answerAstra(question);
+  ask(question);
 }));
 $$('[data-explain]').forEach((button) => button.addEventListener("click", () => {
   const explanation = explanationFor(button.dataset.explain);
@@ -321,10 +384,62 @@ $("#planet-picker").replaceChildren(...planets.map(([name, description], index) 
   const button = el("button", { type: "button", dataset: { planet: name }, "aria-pressed": "false" }, name);
   button.addEventListener("click", () => {
     $$("#planet-picker button").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
+    $$(".orbit-art circle").forEach((c, i) => c.classList.toggle("is-chosen", i === index + 1));   // circle 0 is the Sun
     $("#planet-readout").textContent = `${name} · Planet ${index + 1} · ${description}`;
   });
   return button;
 }));
+
+$$(".orbit-art circle").forEach((c, i) => { if (i) c.addEventListener("click", () => $$("#planet-picker button")[i - 1]?.click()); });
+
+// Galaxy Explorer: each galaxy gets its own illustration (schematic, not to scale)
+const SVGNS = "http://www.w3.org/2000/svg";
+const svgEl = (tag, attrs, parent) => { const n = document.createElementNS(SVGNS, tag); for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v); parent?.append(n); return n; };
+function spiralArm(cx, cy, start, turns, a, b, squash = 1) {          // a logarithmic spiral arm r = a*e^(b*theta)
+  let d = "";
+  for (let t = 0; t <= turns * Math.PI * 2; t += 0.08) {
+    const r = a * Math.exp(b * t), x = cx + r * Math.cos(t + start), y = cy + r * Math.sin(t + start) * squash;
+    d += (d ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1);
+  }
+  return d;
+}
+function drawGalaxy(which) {
+  const svg = $("#galaxy-svg");
+  if (!svg) return;
+  svg.replaceChildren();
+  svg.dataset.galaxy = which;
+  const defs = svgEl("defs", {}, svg);
+  defs.innerHTML = `<radialGradient id="gx-core"><stop offset="0" stop-color="#fff6d8"/><stop offset=".35" stop-color="#ffd98a" stop-opacity=".9"/><stop offset="1" stop-color="#ffb35c" stop-opacity="0"/></radialGradient>
+    <radialGradient id="gx-halo"><stop offset="0" stop-color="#9d8bff" stop-opacity=".45"/><stop offset="1" stop-color="#9d8bff" stop-opacity="0"/></radialGradient>
+    <filter id="gx-soft"><feGaussianBlur stdDeviation="2.2"/></filter>`;
+  svgEl("rect", { width: 400, height: 220, fill: "#070b18" }, svg);
+  for (let i = 0; i < 60; i++) svgEl("circle", { cx: (i * 97) % 400, cy: (i * 53) % 220, r: i % 7 ? 0.7 : 1.3, fill: "#fff", "fill-opacity": 0.25 + (i % 5) * 0.12 }, svg);
+  const g = svgEl("g", { class: "gx-spin" }, svg);
+  if (which === "milky-way") {
+    svgEl("ellipse", { cx: 200, cy: 110, rx: 110, ry: 100, fill: "url(#gx-halo)" }, g);
+    for (const [start, w, op] of [[0, 9, .55], [Math.PI, 9, .55], [Math.PI / 2, 5, .35], [Math.PI * 1.5, 5, .35]])
+      svgEl("path", { d: spiralArm(200, 110, start, 1.15, 22, 0.28), fill: "none", stroke: "#b9c4ff", "stroke-width": w, "stroke-opacity": op, "stroke-linecap": "round", filter: "url(#gx-soft)" }, g);
+    svgEl("ellipse", { cx: 200, cy: 110, rx: 30, ry: 9, fill: "#ffd98a", "fill-opacity": .8, transform: "rotate(-25 200 110)", filter: "url(#gx-soft)" }, g);
+    svgEl("circle", { cx: 200, cy: 110, r: 22, fill: "url(#gx-core)" }, g);
+    const sun = svgEl("g", { class: "gx-sun" }, svg);
+    svgEl("circle", { cx: 262, cy: 160, r: 3.5, fill: "#ffe27a" }, sun);
+    svgEl("circle", { cx: 262, cy: 160, r: 9, fill: "none", stroke: "#ffe27a", "stroke-opacity": .8 }, sun);
+    svgEl("text", { x: 274, y: 172, fill: "#ffe27a", "font-size": 11 }, sun).textContent = "You are here (the Sun)";
+    $("#galaxy-caption").textContent = "Seen from above: a barred spiral with a bright central bar. Illustration, not to scale.";
+  } else {
+    svgEl("ellipse", { cx: 200, cy: 110, rx: 170, ry: 60, fill: "url(#gx-halo)", transform: "rotate(-30 200 110)" }, g);
+    for (const [start, op] of [[0, .6], [Math.PI, .6]])
+      svgEl("path", { d: spiralArm(200, 110, start, 1.6, 14, 0.24, 0.32), fill: "none", stroke: "#cbb8ff", "stroke-width": 6, "stroke-opacity": op, filter: "url(#gx-soft)", transform: "rotate(-30 200 110)" }, g);
+    svgEl("ellipse", { cx: 200, cy: 110, rx: 34, ry: 13, fill: "url(#gx-core)", transform: "rotate(-30 200 110)" }, g);
+    const c1 = svgEl("g", {}, svg);
+    svgEl("circle", { cx: 226, cy: 72, r: 6, fill: "url(#gx-core)" }, c1);
+    svgEl("text", { x: 236, y: 68, fill: "#d9d2ff", "font-size": 10 }, c1).textContent = "M32";
+    svgEl("ellipse", { cx: 128, cy: 178, rx: 11, ry: 6, fill: "url(#gx-core)", transform: "rotate(-40 128 178)" }, c1);
+    svgEl("text", { x: 142, y: 196, fill: "#d9d2ff", "font-size": 10 }, c1).textContent = "M110";
+    $("#galaxy-caption").textContent = "Seen almost edge-on from Earth, with two small companion galaxies, M32 and M110. Illustration, not to scale.";
+  }
+}
+drawGalaxy("andromeda");
 
 const galaxies = {
   andromeda: "Andromeda · spiral galaxy · about 2.5 million light-years away. Its halo stars span a wide range of ages, roughly 6–13 billion years.",
@@ -333,6 +448,7 @@ const galaxies = {
 $$('[data-galaxy]').forEach((button) => button.addEventListener("click", () => {
   $$("[data-galaxy]").forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
   $("#galaxy-readout").textContent = galaxies[button.dataset.galaxy];
+  drawGalaxy(button.dataset.galaxy);
 }));
 
 function buildPrintable(level, includeKey = true) {
@@ -357,14 +473,14 @@ function buildPrintable(level, includeKey = true) {
   return section;
 }
 
-$("#print-worksheet").addEventListener("click", () => {
+$("#print-worksheet")?.addEventListener("click", () => {
   const id = Number($("#worksheet-level").value);
   const level = LEVELS.find((item) => item.id === id);
   if (!level) return;
   $("#printable-content").replaceChildren(buildPrintable(level));
   window.print();
 });
-$("#print-class-report").addEventListener("click", () => {
+$("#print-class-report")?.addEventListener("click", () => {
   const printable = el("article", { className: "worksheet-sheet" });
   printable.append(el("p", { className: "learn-kicker" }, "SPHEREx Blink 4.0 · Teacher dashboard"), el("h1", {}, state.classroomName || "My classroom"), el("p", {}, `Learners on this device: ${state.profiles.length}`));
   const list = el("ul");

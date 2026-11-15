@@ -7,9 +7,9 @@
 // in the wrong colours: keep the two in step (the regular expression and the key).
 
 export const STORAGE_KEY = "spherex-blink-theme";
-// DEFAULT_THEME is the fallback when a page does not provide data-default-theme. The 4.0 Science and Overview pages start in the light signal-red palette;
-// Learn starts in Nebula. A saved choice or ?theme= overrides the page default (scratch/test_theme.mjs checks the order).
-export const DEFAULT_THEME = "light";
+// DEFAULT_THEME is the shared fallback for both Science and Learn pages. A saved choice or ?theme= overrides it
+// (scratch/test_theme.mjs checks the order).
+export const DEFAULT_THEME = "midnight";
 export const THEMES = [
   { id: "midnight", label: "Midnight / dark", scheme: "dark", themeColor: "#0B0F19" },
   { id: "nebula", label: "Paper / violet", scheme: "light", themeColor: "#FCFAFF" },

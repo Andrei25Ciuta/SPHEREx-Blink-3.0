@@ -6,6 +6,26 @@ html[data-theme] {
   --radius-sm: 4px;
 }
 html[data-theme] body { background: var(--bg); font: 400 15px/1.45 var(--font-body); }
+/* Still CSS starfield shared by the site: visual only, with no canvas or animation. */
+html[data-theme] {
+  --static-space-stars:
+    radial-gradient(1px 1px at 13% 21%, rgb(var(--text-rgb) / .42) 50%, transparent 60%),
+    radial-gradient(1.5px 1.5px at 72% 38%, rgb(var(--text-rgb) / .34) 50%, transparent 60%),
+    radial-gradient(1px 1px at 42% 82%, rgb(var(--text-rgb) / .3) 50%, transparent 60%),
+    radial-gradient(ellipse at 82% 8%, rgb(var(--accent-rgb) / .09), transparent 44%),
+    radial-gradient(ellipse at 12% 76%, rgb(var(--alt-rgb) / .06), transparent 42%);
+  --static-space-background: var(--static-space-stars), url("../img/earth-spherex-static.svg");
+  --panel-alpha: .87;
+}
+html[data-theme="midnight"] { --panel-alpha: .8; }
+html[data-theme]:not([data-contrast="high"]) body {
+  background-color: var(--bg);
+  background-image: var(--static-space-background);
+  background-size: 360px 360px, 440px 440px, 520px 520px, cover, cover, clamp(250px, 52vw, 720px) auto;
+  background-position: 0 0, 90px 70px, 220px 40px, center, center, right -5vw bottom 8vh;
+  background-repeat: repeat, repeat, repeat, no-repeat, no-repeat, no-repeat;
+  background-attachment: fixed;
+}
 html[data-theme] :is(h1,h2,h3) { font-weight: 650; letter-spacing: -.025em; line-height: 1.2; }
 html[data-theme] :is(.btn,.chip,.hero-cta,.stage-btn,select,input[type=text],input[type=search],input[type=date],input[type=number]) {
   font: 500 .875rem/1.25 var(--font-body);
@@ -29,6 +49,19 @@ html[data-theme] .btn-primary:hover:not(:disabled) { background: var(--accent-hi
 html[data-theme] .chip[aria-pressed=true] { color: var(--accent-text); border-color: var(--accent); background: var(--raised); }
 html[data-theme] .btn:disabled { opacity: .55; }
 html[data-theme] .panel { min-width: 0; border: 1px solid var(--border); border-radius: 5px; padding: 16px; }
+html[data-theme]:not([data-contrast="high"]) .panel,
+html[data-theme]:not([data-contrast="high"]) .info-box {
+  background: rgb(var(--surface-rgb) / var(--panel-alpha));
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+}
+html[data-theme]:not([data-contrast="high"]) #workspace > .workspace-analysis {
+  background: rgb(var(--surface-rgb) / var(--panel-alpha));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+html[data-contrast="high"] body { background: var(--bg); background-image: none; }
+html[data-contrast="high"] .info-box { background: var(--surface); backdrop-filter: none; -webkit-backdrop-filter: none; }
 html[data-theme] .panel h2 { font-size: 1.16rem; margin: 0 0 .7rem; }
 html[data-theme] .panel h3 { font-size: .95rem; }
 input[type=range] { accent-color: var(--accent); }
@@ -68,8 +101,8 @@ input[type=range]::-webkit-slider-thumb { box-shadow: none; }
   background: var(--bg); border-bottom: 1px solid var(--border);
 }
 .site-brand { white-space: nowrap; color: var(--text); font: 700 1.3rem var(--font-head); letter-spacing: -.04em; text-decoration: none; }
-.project-menu { flex: 1; display: flex; align-items: center; justify-content: space-between; gap: 14px; }
-.project-menu nav { display: flex; align-items: center; gap: clamp(4px, 1vw, 18px); }
+.project-menu { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: flex-start; gap: 14px; }
+.project-menu nav { flex: 1; min-width: 0; display: flex; align-items: center; gap: clamp(4px, 1vw, 18px); }
 .project-menu nav a {
   display: flex; align-items: center; min-height: 59px; padding: 0 5px;
   border-bottom: 2px solid transparent; color: var(--text-muted); text-decoration: none;
@@ -79,7 +112,7 @@ input[type=range]::-webkit-slider-thumb { box-shadow: none; }
 .project-menu nav a[aria-current] { color: var(--accent-text); border-color: var(--accent); }
 .project-menu select { width: auto; max-width: 12rem; min-height: 36px; }
 #pages-toggle,.embed .site-header { display: none; }
-@media (max-width: 64rem) {
+@media (max-width: 75rem) {   /* was 64rem: the mode menu needs about 1200px on one line */
   .site-header { justify-content: space-between; min-height: 56px; }
   #pages-toggle { display: inline-flex; align-items: center; min-height: 44px; }
   .project-menu { display: none; position: absolute; top: 100%; right: 8px;
@@ -94,3 +127,22 @@ input[type=range]::-webkit-slider-thumb { box-shadow: none; }
 html[data-theme] :is(.workspace-kicker,.atlas-kicker,.overview-kicker,.info-kicker,.result-links a) {
   text-transform: none; letter-spacing: normal; font-family: var(--font-body);
 }
+
+/* The telescope section of the Workspace page, in the style of the panels and the Results page: compact headings, numbers in cards, three notes in cards,
+   a plain table. Scoped to #telescope: .info-box is also used by the archived introduction of Results. */
+#telescope .info-box { padding: clamp(1rem, 2.4vw, 1.6rem); border-radius: 5px; backdrop-filter: none; -webkit-backdrop-filter: none; }
+#telescope .info-kicker { margin-bottom: .3rem; font-size: .82rem; color: var(--text-muted); }
+#telescope h2 { margin: 0 0 .6rem; font: 650 clamp(1.5rem, 3vw, 2.1rem)/1.15 var(--font-head); letter-spacing: -.025em; }
+#telescope h2::after { display: none; }
+#telescope h3 { font: 650 1rem/1.25 var(--font-head); letter-spacing: -.01em; }
+#telescope p.info-lead { max-width: 72ch; font-size: 1rem; line-height: 1.55; }
+#telescope .stats { grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: .6rem; margin-top: 1rem; }
+#telescope .stats li { display: grid; gap: .15rem; align-content: start; padding: .7rem .85rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--field); }
+#telescope .stats b { font: 650 clamp(1.15rem, 2.2vw, 1.5rem)/1.15 var(--font-head); color: var(--accent-text); overflow-wrap: anywhere; }
+#telescope .stats span { font-size: .82rem; letter-spacing: normal; }
+#telescope .info-cols { gap: .6rem; margin-top: .9rem; padding-top: 0; border-top: 0; }
+#telescope .info-cols > div { padding: .8rem .95rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--field); }
+#telescope .info-cols h3 { margin-bottom: .35rem; }
+#telescope .info-cols p { font-size: .9rem; }
+#telescope .det-table th { font-size: .82rem; letter-spacing: normal; text-transform: none; }
+#telescope .det-table td:first-child { font-family: var(--font-head); font-weight: 650; }

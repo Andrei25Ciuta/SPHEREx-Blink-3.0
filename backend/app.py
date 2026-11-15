@@ -35,7 +35,7 @@ from spherex.observations import observations
 from spherex.stretch import STRETCH_VERSION, flags_to_png, shared_stretch, to_png
 
 FRONTEND_DIR = Path(__file__).resolve().parents[1] / "frontend"
-FOV_MIN, FOV_MAX = 1.0, 30.0
+FOV_MIN, FOV_MAX = 1.0, 10.0
 MIN_VALID_FRACTION = 0.5     # skip frames where less than half the cutout has data (edge hits)
 
 app = FastAPI(title="SPHEREx Blink API", version="0.7")
@@ -58,7 +58,7 @@ def health():
 
 @app.get("/api/observations")
 def observation_search(ra: float = Query(..., ge=0, lt=360), dec: float = Query(..., ge=-90, le=90),
-                       fov: float = Query(5, ge=1, le=30), collection: str = "spherex_qr2"):
+                       fov: float = Query(5, ge=1, le=10), collection: str = "spherex_qr2"):
     """IRSA SIA2 product metadata and ICRS footprint vertices, without downloading FITS."""
     try:
         return observations(ra, dec, fov, collection)
@@ -77,7 +77,7 @@ def cutouts(
     request: Request,
     ra: float = Query(..., ge=0, lt=360, description="degrees, ICRS"),
     dec: float = Query(..., ge=-90, le=90, description="degrees, ICRS"),
-    fov: float = Query(5, ge=FOV_MIN, le=FOV_MAX, description="arcmin"),
+    fov: float = Query(5, ge=FOV_MIN, le=FOV_MAX, description="arcmin; real-data limit 10"),
     det: str = Query("all", description='"all" or a detector name like "D3"'),
 ):
     frames = archive.find(ra, dec, det)
@@ -117,47 +117,8 @@ def photometry(
     return {"points": measure(frames, ra, dec, radius, motion)}
 
 
-def _build(frames, ra, dec, fov, scale, key):
-    tgt, npix = target_wcs(ra, dec, fov, scale)
-
-    # Cut everything first, then stretch per detector (shared scale within a detector).
-    cut = []
-    for f in frames:
-        img, flags = cutout(f, tgt, npix)
-        if np.isfinite(img).mean() < MIN_VALID_FRACTION:
-            continue
-        cut.append((f, img, flags))
-
-    by_det = defaultdict(list)
-    for item in cut:
-        by_det[item[0].detector].append(item)
-
-    out = []
-    for det_items in by_det.values():
-        stretched = shared_stretch([img for _, img, _ in det_items])
-        for (f, img, flags), arr8 in zip(det_items, stretched):
-            i = len(out)
-            mask_png = flags_to_png(flags)
-            out.append({
-                "mjd": round(f.mjd, 6),
-                "dateISO": f.date_iso,
-                "detector": f.detector,
-                "provenance": f.provenance,
-                "wavelengthMinUm": round(f.wave_min_um, 4),
-                "wavelengthMaxUm": round(f.wave_max_um, 4),
-                "imageUrl": cache.save_png(key, i, to_png(arr8)),
-                # the same pixels as real numbers (float32, background-subtracted, north up): for detection
-                "dataUrl": cache.save_bytes(key, i, float_cutout_bytes(img), "f32"),
-                # 1 = a BAD flag bit is set here (a saturated core, hot pixels ...): the position of a bright star is fitted without them
-                "maskUrl": cache.save_bytes(key, f"{i}_mask", mask_cutout_bytes(flags, img.shape), "u8"),
-                "flags": flag_summary(flags),
-                "flagsUrl": cache.save_png(key, f"{i}_flags", mask_png) if mask_png else None,
-                "pixelScaleArcsec": round(scale, 4),
-                # the unit of the float pixels (BUNIT of the file, e.g. "MJy / sr"), or None if the file does not say; the viewer's readout shows it
-                "unit": f.bunit,
-            })
-    out.sort(key=lambda fr: fr["mjd"])
-    return out
+# Kept as an alias for existing callers and tests.
+from spherex.products import build as _build
 
 
 @app.get("/api/hips/{path:path}")

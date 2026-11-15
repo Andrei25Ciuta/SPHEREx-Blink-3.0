@@ -1,9 +1,95 @@
+## 2026-11-15 — Raise the acquisition job ceiling for testing
+
+Based on Matei's current `main` at `029d4e7`, raised the code and release configuration ceiling from three to 20 concurrent detector preparation jobs. The effective limit remains the lower of `BLINK_MAX_ACTIVE_DOWNLOAD_JOBS` and the central Firestore `maxConcurrentDownloads` value. The owner policy template is now v2 with 20 slots; the configuration tool requires `--migrate-policy-version` before replacing the existing v1 policy. Updated the backend contract, deployment instructions, feature status and handoff.
+
+This is source-only. No Cloud Run release, Firestore policy migration, or downloads were run, so production remains capped at three under the existing v1 policy. Twenty 2-vCPU/4-GiB preparations can request 40 vCPU and 80 GiB concurrently; Cloud Run regional quota may limit actual launches. No test suite was run in this change.
+
+## 2026-11-14 — Give About its own page
+
+Moved the project and SPHEREx telescope information out of the Workspace into `frontend/about.html`, updated the shared navigation, and made the Workspace analysis group start collapsed. Existing analysis actions can still open it when needed. `git diff --check` passed; tests and browser review were not run. This change is local and unpushed.
+
 # Development progress
+
+## 2026-11-15 — Sync the education branch with main and resolve PR conflicts
+
+Merged current `blink3/main` at `885e59c` into `codex/blink4-education`. Kept main's newer cloud pipeline, Science Mode workspace, 16-lesson Learn curriculum, globe and overview, and its removal of the separate Planet X page. Retained the Find movers empty-state guidance from this branch. The merge also exposed a Results page default theme that disagreed with the shared Midnight default; aligned its initial theme and browser-bar colour. All `scratch/test_*.mjs` scripts passed after that alignment; `git diff --check` passed. Browser smoke could not start Chrome (exit code 4294930433), and backend pytest could not start because this checkout's venv has no pytest installed.
 
 ## 2026-11-15 — Explain why Find movers starts disabled
 
-Clarified the initial empty-state message under Find movers: load a test target or enter coordinates and load images first; the search unlocks when the field has at least three survey passes. The search and its scientific threshold are unchanged. Added a UI regression check. `node scratch/test_ui.mjs` and `git diff --check` passed. The full Node suite had one unrelated existing failure in `test_theme.mjs` (it expects the old Midnight default while this Blink 4.0 checkout sets Light); the browser smoke could not start Chrome (exit code 4294930433), and backend pytest could not start because the WindowsApps Python launcher is unavailable.
+Clarified the initial empty-state message under Find movers: load a test target or enter coordinates and load images first; the search unlocks when the field has at least three survey passes. The search and its scientific threshold are unchanged. Added a UI regression check.
 
+## 2026-11-14 — Unify page background colours across Science and Learn
+
+Set all six pages and both modes to the same Midnight / dark default. The body, Simulator and Overview root now use the shared `--bg` token instead of page-specific overrides; saved themes and `?theme=` still apply consistently. Updated the existing theme checks to describe the new default. `git diff --check` passed; tests and browser review were not run. This change is local and unpushed.
+
+## 2026-11-14 — Remove static duplicate scene from Overview and Simulator
+
+Raised the Overview backdrop override to the shared theme rule's specificity so only its animated 3D scene appears. Kept the Simulator's shared static starfield while omitting the decorative Earth/SPHEREx image behind its own orbital model. `git diff --check` passed; browser review and tests were not run. This change is local and unpushed.
+
+## 2026-11-14 — Keep only the animated Overview scene
+
+Cleared the shared static backdrop from Overview so its animated 3D Earth and SPHEREx telescope remain the only planet-and-spacecraft scene there. Bumped the Overview stylesheet cache version. `git diff --check` passed; browser review and tests were not run. This change is local and unpushed.
+
+## 2026-11-14 — Match the Simulator page background
+
+Removed the Simulator's separate radial gradients and dot grid so it now uses the same shared static starfield and Earth/SPHEREx illustration as the other pages. Its controls and scene styling are unchanged. `git diff --check` passed; browser review and tests were not run. This change is local and unpushed.
+
+## 2026-11-14 — Put Earth and SPHEREx in the static site backdrop
+
+Added a fixed SVG illustration of Earth and the SPHEREx telescope to the CSS starfield used across the site, including Sky Explorer and Learn, and bumped the shared stylesheet cache version. The artwork is decorative and static; the interactive Sky Explorer globe and Overview scene remain their own page content. `git diff --check` passed; browser review and tests were not run. This change is local and unpushed.
+
+## 2026-11-14 — Static space backdrop across the site
+
+Added a still CSS starfield and subtle nebula accents to the shared instrument pages, including Learn; translucent, blurred surfaces let it show through. The Simulator keeps its existing still starfield with lighter panels. No new canvas or animation was added; high-contrast mode keeps opaque surfaces. `git diff --check` passed; browser review and tests were not run. This change is local and unpushed.
+
+## 2026-11-14 — Collapsible Workspace analysis group
+
+Grouped Distant-body analysis, Sky Explorer, Explain the selected candidate and Text analysis in one initially expanded native disclosure panel. Preserved each tool's existing ID and added reveal-on-navigation for links and the mover action. `git diff --check` passed; browser review and tests were not run. This change is local and unpushed.
+
+## 2026-11-14 — Widen Workspace Text analysis
+
+Made the Text analysis panel span both Workspace columns even before a report is built, removing the unused right-hand space in its empty state. Bumped the stylesheet URL to invalidate cached layout. `git diff --check` passed; browser review was not run. This change is local and unpushed.
+
+## 2026-11-14 — Remove the Solar System panel from Workspace
+
+Removed the embedded “The Solar System, seen from above” section, its More tools link, page renderer and section-only styling. The standalone Simulator page remains. Removed the three Learn missions that depended on the deleted panel's controls and updated the remaining parallax learning goals. The validated `solarSystem.js` calculation and its tests remain as reference material. `git diff --check` and JavaScript syntax checks passed; browser review and tests were not run. This follow-up is local and unpushed.
+
+## 2026-11-14 — Group Workspace analysis and remove standalone Planet X page
+
+Placed Search results and Source measurements in a paired responsive workbench, with More tools spanning beneath them on desktop and all three stacking on narrow screens. Removed the separate Planet X Lab page and its page-only renderer; kept distant-body analysis inside Workspace and redirected its candidate action to that in-page analysis. Removed stale navigation links and updated the page lists. `git diff --check` and JavaScript syntax checks passed; browser review and tests were not run. The preceding header and spacecraft-flicker changes were pushed to Blink 3.0 `main` at `53e1e96`; this follow-up is local and unpushed.
+
+## 2026-11-14 — Refresh Sky Explorer and About
+
+Added a rotatable celestial globe with the five propagated challenge targets. Selecting a globe marker synchronizes the existing atlas selection and archive coordinate fields; arrow keys rotate the globe, and reduced-motion preferences disable its idle rotation. Restyled About with a colorful hero and more readable workflow/topic cards while retaining its science copy and links. The globe grid, star field and color band are decorative; only target markers represent documented coordinates. `git diff --check` passed; browser review was not run.
+
+> **Where things stand (12 Nov 2026): read this first.** The repository for later changes is **SPHEREx-Blink-3.0** (the author's decision of 12 Nov). The default theme is
+> **Midnight / dark** on all six pages (`DEFAULT_THEME` in `theme.js` is only the fallback; each page passes `midnight`). Entries below that say the destination is Blink 2.0
+> (the 8 Nov "return to SPHEREx-Blink-2.0" entry), that "Deep Space is the default theme", or that the work is "on the branch `blink-2.0`" were true when written and are
+> **superseded**. SPHEREx-Blink-2.0 holds a parallel line of work (service-failure handling, chance baselines, a release audit, a Paper-theme redesign) that is **not merged into
+> this repository yet**; what differs is listed in `docs/MERGE_NOTES.md` and has to be decided before the two are joined.
+
+## 2026-11-14 — Overview-inspired Solar System Simulator interface
+
+Restyled the Simulator page with the Overview's dark space palette, warm gold accents, glass-like panels, hover illumination, responsive form controls and reduced-motion-aware transitions. The change is scoped to `simulator.html` and `simulator-overview.css`; it does not alter the SVG scene, Sun, planet markers, orbit paths, sightlines, geometry calculations, inputs or readouts. The existing simulator browser precision regression and a visual desktop/mobile review remain to be run.
+
+## 2026-11-12 — Navigation kept dropping the data source (branch `fix-navigation`)
+
+Reported by the author: on a local server with the real backend, Workspace -> Overview -> Workspace landed on the synthetic demo. Cause: the links between the pages were written without the choices held in the address (`?data=api`, `?api=<backend>`, `?embed=1`, `?theme=`), so every page change reset them; `index.html#workspace` and the preset links of the Overview were the common case. Planet X Lab and the candidate links also wrote `data=api` without the backend address, which fell back to port 8001. Fix: `frontend/js/features/carryParams.js` (pure `carryLink`, plus `patchLinks`) is applied from `js/siteHeader.js`, which all six pages load, to every link to another page of the site now and to links added later (the pages build some when their data arrives). A link that already makes its own choice keeps it; nothing is added on the synthetic demo; a field (`ra`, `dec`, `fov`, `det`) is not carried. `scratch/test_carryparams.mjs` (14 checks). Checked in the browser against the real backend on port 8003: the click path Workspace -> Overview -> Workspace stays on `?data=api&api=...` with the data-source select on "api". Also run: all 45 `scratch/test_*.mjs`, `e2e_smoke`, `a11y_audit` and the nine frontend-only Playwright scripts. **Not changed:** the field itself (position, field of view, detector) is still not remembered between pages; it is in the address only while the workspace is open.
+## 2026-11-14 — Add Earth behind the Overview telescope
+
+Added the missing procedural Earth, cloud layer, atmosphere and orbit behind the existing telescope model, following the source interface while keeping all scene elements labelled as illustration. Dragging rotates Earth with the telescope; a restrained decorative beam and spotlight point toward Earth's surface. The camera starts farther away and caps its scroll approach at `z=460`, before the Earth's front surface; scroll progress is clamped to the page range. `git diff --check` passed; browser review was not run.
+
+## 2026-11-14 — Blink in colours in the player
+
+Moved wavelength blinking into the observation player. Playback orders the selected pass by wavelength and respects the timeline filters. Selecting a candidate uses its existing fitted track to follow it on the canvas. The previous standalone synthetic illustration was removed.
+
+All 45 Node test scripts passed. The colour playback test also checks candidate following and resetting on mode changes. Chromium could not start in this environment, and no real FITS data were used for verification.
+
+## 2026-11-14 — Blink in colours
+
+Added a linked workspace demo comparing centroids across two illustrative bands or two dates. It generates Gaussian stamps for a fixed blended pair, a moving source and a fixed reference star. The reference-corrected shifts passed `node scratch/test_colour_blink.mjs`. The fixture contains only synthetic pixels.
+
+## 2026-11-12 — Tour pacing follow-up
 ## 2026-11-14 — SPHEREx Blink 4.0 dual-mode foundation
 
 Created a separate `codex/blink4-education` worktree from 3.0 commit `831a9cd`; no 4.0 directory existed, so this new checkout is the 4.0 destination and the 3.0 worktree remains unchanged. Recast Overview as the Science/Learn chooser, preserved the science workspace and query URLs, and added the first full Learn Mode foundation: an eight-level sequential path, local profiles/progress/XP/badges/streak/time, four quiz types, per-level quiz scores, Astra's reviewed offline glossary, simple explanations beside Science panels, interactive spectrum/planet/galaxy cards, classroom progress summaries, and printable worksheets with keys. Added a shared saved high-contrast setting. All Learn visuals are labelled schematic/synthetic. NASA educational sources are linked in the course and in CREDITS.md.
@@ -22,7 +108,61 @@ Verification so far: `node scratch/test_learning.mjs` and `node scratch/test_ove
 
 Added an automatic consistency check to Find movers. For each candidate, one detected image is held out, a straight line is fitted to detections from the other images, and aperture S/N is measured at the held-out prediction. Same-detector, same-time duplicate frames are excluded together from the fit to avoid leakage, but are measured separately. The candidate list and inspector show supported / measurable counts; CSV and JSON carry the counts and provenance labels the combined algorithm version. Candidates need at least four detections spanning four survey passes. The check is not used for curved parallax candidates. Its threshold and behavior have synthetic module tests only; no real-data calibration or independent confirmation claim is made.
 
+Moved the visual motion cues into the existing eight-step tour. Settings and Layers share the viewer toolbar. Steps now position the highlight immediately and fade the card for 180 ms, with the fade disabled for reduced motion. Removed the delayed reposition callback and overlapping spotlight transitions.
+
+Linux verification used the synthetic Barnard field at 320, 390, 768, 1024, 1366, 1440 and 1920 px. Completed all steps and exercised rapid Back/Next with normal motion, checked card bounds and reviewed desktop and phone screenshots. Ran scratch/browser_tour_modal.cjs on the explicit Workspace route for reduced-motion modal checks. All 44 scratch/test_*.mjs scripts, benchmark.mjs --check, e2e_smoke.mjs, a11y_audit.mjs, browser_navigation.cjs, browser_layout_audit.cjs and 190 backend pytest cases passed. No live FITS, physical devices or screen readers were exercised.
+
+## 2026-11-12 — Workspace viewer tools
+
+Grouped Settings, Layers and Viewing guide in a labelled, tinted row above playback with theme-coloured icons. The buttons wrap on small screens.
+
+Linux Chromium with the built-in synthetic Barnard field: opened all three dialogs, dismissed each with Escape and verified focus returned to its button at 320, 390, 768, 1024, 1366, 1440 and 1920 px. No horizontal page overflow. Reviewed toolbar screenshots at 390 and 1440 px. Ran every scratch/test_*.mjs, benchmark.mjs --check (three matching digests), e2e_smoke.mjs, a11y_audit.mjs, browser_navigation.cjs and browser_layout_audit.cjs. All passed. The isolated backend pytest run passed 190 tests with one FITS keyword warning. Live FITS, external catalogues, physical phones and screen readers were outside this check.
+## 2026-11-12 — Repair pass on branch `repair-docs` (documentation, Playwright scripts, CI)
+
+Fixed the seven findings of a read-only review of `main` at `4e207b8`:
+
+1. README: the themes row now lists Midnight / dark and the five Paper palettes (it still described the removed "Deep Space default"); `docs/ACCESSIBILITY.md` likewise.
+2. README: both demo links pointed at `iooonut.github.io`; they now point at `mateibut.github.io/SPHEREx-Blink-3.0/` (the Pages site of this repository, deployed by the green run of `4e207b8`).
+3. Themes: this was **not** an inconsistency in behaviour. All six pages open in Midnight on a first visit (`data-default-theme="midnight"`, `siteHeader.js`, and the `data-theme` on `<html>`); `DEFAULT_THEME = "light"` in `theme.js` is only the fallback. Documented in a comment in `theme.js` (no code behaviour changed) and in the README. The three pages that lacked a browser-bar colour (`planet-x`, `simulator`, `sky`) now have `<meta name="theme-color" content="#0B0F19">`.
+4. `AGENTS.md`: rule 4 said "never push, work on the branch `blink-2.0`" (from an earlier repository) while the first paragraph said to push to a `blink3` remote; it now says: never force-push or rewrite history, push only after the author's fresh explicit yes, plain push to this repository. The `?theme=` names and the open decision were updated.
+5. `CODEX_PROGRESS.md` and `ARCHITECTURE.md`: a "where things stand" block / note at the top; the 8 Nov "return to Blink-2.0" entry and the second half of both files are marked as historical (nothing deleted).
+6. Playwright: the scripts were never run by CI and had never been run against this page. Found and fixed: a bare `index.html` now redirects to `overview.html` (so `browser_tour_modal`, `browser_public_backend`, `browser_workspace`, `browser_all` loaded the wrong page; they use `index.html#workspace`), selectors of the removed hero and settings details (now `.site-header`, the `viewer-settings` dialog, `#theme-select`, `#zoom-in-btn`), a theme id `light-research` that no longer exists, and ports written into four scripts (`browser_workspace`, `_all`, `_real`, `_provenance` now read `BLINK_URL` / `BLINK_REAL_URL` and `BLINK_BROWSER`). One zoom assertion was changed because the control it tested (`#image-zoom`) no longer exists: it now checks that the zoom-in button changes the zoom level. Nine of the twelve scripts pass against a local server with Playwright 1.59.1 in Chrome (`browser_navigation`, `_layout_audit`, `_tour_modal`, `_public_backend`, `_sky_archive`, `_simulator_precision`, `_candidate_roundtrip`, `_workspace`, `_all`). `browser_real`, `_real_responsive` and `_provenance` need the real-data backend and were **not run**. A new CI job `browser` runs the nine (Playwright pinned to 1.59.1 and installed outside the repository; licence line in `CREDITS.md`); it is **advisory** (`continue-on-error`) until it has passed once on the runner, which has not been checked.
+7. Backend: `python -m pytest backend -q` ran here with the project's venv: **190 passed, 1 warning** (the known HIERARCH keyword warning).
+
+Also run on this branch: all 44 `scratch/test_*.mjs`, `node scratch/e2e_smoke.mjs`, `node scratch/a11y_audit.mjs`.
+
+## 2026-11-12 — Navigation and observing workflow cleanup
+
+Continued the contact-sheet checkout from 710256a. The six pages use the same project navigation, active destination, responsive menu and theme picker. The standalone research links now sit beside the field-specific tools. Settings, layers, simulation context and viewing help open in bounded dialogs. Playback and observation selection share a row above the square image. The Inspector contains the frame metadata and interactive timeline. Search findings follow their commands. Phone layouts start with field selection in the Workspace and the orbit in the Simulator.
+
+Verified the static frontend over HTTP in Chrome. Ran every `node scratch/test_*.mjs` script (44), `node scratch/benchmark.mjs --check` (three output digests matched), `node scratch/e2e_smoke.mjs`, `node scratch/a11y_audit.mjs`, `node scratch/browser_navigation.cjs` and `node scratch/browser_layout_audit.cjs` with the bundled Playwright and Chrome. All passed. Updated static expectations for the shared header, working Workspace URL, unnumbered tool heading and retained tooltip descriptions. The layout audit now selects actual saved themes and resolves the surface beneath a transparent panel. Installed the existing backend/requirements-dev.txt in an isolated Python environment and ran `python -m pytest backend -q`. All 190 tests passed with one Astropy FITS keyword warning.
+
+Additional local Playwright checks (`cleanup-final-review.cjs after`, `cleanup-public.cjs`, `cleanup-api-review.cjs` in the chat visualization folder) covered the six pages at 320, 390, 768, 1024, 1366, 1440 and 1920 px. No document-level horizontal overflow. Fixtures were the built-in synthetic Barnard and simulated Planet X fields, saved QR2 footprint records, archived candidates and injection-recovery JSON. At 1440 × 900 the canvas changed from 294 to 585 pixels square. Settings, guide, layer and simulation dialogs retained the canvas position, with focus restored after dismissal. Checked Simulator playback and projection, Sky target/saved product selection, Lab filtering, and candidate filtering/report generation. A touch-emulated public origin served local files and confirmed backend restrictions. Intercepted cutout loading, HTTP 503, retry and empty responses matched HEAD in request method, parameters and feedback. Before and after screenshots are in the chat visualization folder. Live FITS, external catalogues, survey tiles and physical-device/screen-reader testing were outside these checks.
+
+## Field controls follow-up
+
+Moved the existing tour and disclosures into a single row beneath the presets, with stacked touch targets on phones. The field collapse arrow now follows the vertical direction of the panel. Playwright opened and closed all three disclosures and collapsed and restored the field panel at 320, 390, 820, 1179, 1180 and 1440 px using the empty synthetic workspace. No document overflow was detected. The backend pytest run could not start because pytest was unavailable.
+
+## 2026-11-12 — Project-wide visual redesign
+
+Extended the workspace reference palette and control styles to the five companion pages. The field heading aligns with the coordinate form at the desktop breakpoint. The tablet simulator shows the orbit before the controls, and the Overview theme selector is available on phones.
+
+Checked the six routes with Playwright at 1440, 820 and 390 px using synthetic workspace frames, the saved QR2 field and archived experiment and candidate JSON. All six fit the viewport. The 44 frontend test scripts, browser layout and navigation regressions, workspace keyboard audit and synthetic end-to-end smoke test passed. Compared the original workspace control inventory and intercepted cutout requests through loading, HTTP 503, retry and empty responses. Backend pytest was unavailable. Live FITS and catalogue services were not tested. The pre-existing Planet X Lab header link labelled Workspace resolves to Overview through the original redirect.
+
+## 2026-11-11 — Contact Sheet workspace
+
+Restyled the image workspace on `redesign/contact-sheet` from `880777f`. The coordinate form and presets sit above the viewer, with frame metadata alongside it. Detector averages, search actions, exports, measurements and results use the existing controls. The first-visit workspace palette is charcoal and amber. Saved and URL-selected themes retain precedence.
+
+Ran all 44 `scratch/test_*.mjs` scripts, `node scratch/e2e_smoke.mjs`, `node scratch/a11y_audit.mjs`, and the Playwright navigation and layout checks in `scratch/browser_navigation.cjs` and `scratch/browser_layout_audit.cjs`. All passed. Playwright screenshots at 1536, 820, 390 and 320 px used the built-in WISE 0855 and simulated Planet X fields. A touch-emulated phone check exercised mode selection and display settings. A before-and-after comparison matched 129 static controls, links and forms, the cutout GET and parameters, and the loading, HTTP 503, retry and empty-field states using intercepted API responses.
+
+The frontend serves directly from `frontend/` with no build step. The available Python installations lacked pytest, so `python -m pytest backend -q` could not run. Live FITS, external catalogues and third-party sky map services were not exercised.
 Verification: all 45 `scratch/test_*.mjs` files passed, including `test_blindcheck.mjs`, `test_export.mjs` and `test_movers.mjs`; `git diff --check` passed. `scratch/e2e_smoke.mjs` could not start because its browser exited before readiness (code 4294930433). Backend pytest could not start: the `python` and `py` launchers point to unavailable WindowsApps executables, and this checkout has no `backend/.venv`. The blind check has synthetic module coverage, not a browser or real-data calibration yet.
+
+## 2026-11-14 — 3D Overview interface port
+
+Replaced the public Overview presentation with the 3D experience adapted from `EmanuelGeorge-c/proiect-nasa` (MIT-licensed), while keeping Blink 3.0 routes, target-field links, theme storage, and the synthetic-data notice. The procedural spacecraft scene is labelled as illustrative and not to scale; its component panel avoids engineering specifications or observation claims. Removed the source page's unverified live-backend status, retained the shared theme script, added a static WebGL fallback, keyboard focus handling and reduced-motion behavior, and kept the mobile project navigation available as a scrollable row. Updated CREDITS, feature status, and display limitations. No analysis, backend, query, or data code changed.
+
+Review: `git diff --check` passed for the tracked diff after removing the only added trailing whitespace. Tests and browser review were not run for this port; the responsive layout, screen-reader behavior, and WebGL fallback remain to be checked in a browser.
 
 ## 2026-11-11 — academic Overview refinement
 
@@ -372,3 +512,32 @@ See [PROJECT_AUDIT.md](PROJECT_AUDIT.md) §4. The ones that matter for the next 
 Copied the current SPHEREx-Blink-2.0 `main` tree at `28fa54c` into a branch that already descends from the Blink 3.0 history. The source includes the merged three-panel workspace, text analysis, search cancellation, evidence and accessibility work. The visual change makes Light research the default theme on the main and Results pages and the standalone tools, while retaining all five theme choices and stored preferences. Shared CSS now uses flat surfaces, smaller corners, quieter navigation, a compact header, and no decorative nebula or animated star background. The image viewer and scientific chart surfaces retain their dark treatment. Added narrow-screen wrapping for simulator controls and tables, and made the main workspace focusable from the skip link. No backend, scientific method, query format, or result data was changed in this branch.
 
 Verification: 42 `scratch/test_*.mjs` scripts and 190 backend pytest tests passed. `scratch/a11y_audit.mjs` passed its keyboard, names and announcement checks. `scratch/browser_layout_audit.cjs` passed the workspace, Results, Sky Explorer, Simulator and Planet X Lab at 320, 375, 768 and 1280 CSS pixels across its tested themes after the narrow-screen fix. `scratch/browser_navigation.cjs` passed four widths after the skip-link focus fix. `scratch/e2e_smoke.mjs` passed the synthetic load, worker search, saved image caption, Results and offline public-service states with no browser errors. The actual Blink 3.0 published origin and real FITS workflow have not been browser-tested for this visual branch; the local synthetic UI and structural checks were used.
+
+## 2026-11-14 — Results page reads one file
+
+Branch `results-from-file` (from `fix-navigation`, `41269d3`). Asked: the Results page must change all its data when a new file is input, with the tables and graphs in step with the file, and be redesigned after the Workspace. Done: a loader that tells the file by content (`features/resultsData.js`: candidate JSON and CSV, list of sources, validation numbers), the numbers and five charts computed from the rows (`resultsCharts.js`, plain HTML and CSS, a real table under each), the table, its columns and sort orders rebuilt per file (`resultsExplorer.js`), the page in the style of the Workspace (loader, samples, KPI strip, chart cards, records). The archived page is kept as the starting file; its commentary is hidden when another file is shown.
+
+Changed on purpose: `candidateEvidence.js` accepts the detector `"all"` (the workspace writes it for a search over every detector, and such an export could not be loaded before), keeps more numbers in each row, and a run of an unknown field has no workspace link instead of crashing; `selectRows` has a kind filter and more orders; `buildCharts` tries each numbered block on its own. No existing check was weakened.
+
+Verification: 46 `scratch/test_*.mjs` scripts passed (the new one has 56 checks, and three deliberate breakages of the code were each caught), 190 pytest passed, `scratch/e2e_smoke.mjs` passed. In the in-app browser: the default page, a list of sources, a candidate JSON equal to the one of `browser_candidate_roundtrip.cjs` ("Candidate export loaded.", 1 of 1 records, 3 centroid rows, the report, the workspace link), a refused text file, a validation file (12 charts), the way back to the archive, no horizontal overflow at 375 px, no control under 24 px. **Not run:** the Playwright scripts (`browser_*.cjs`, no Playwright here), a screenshot review of every theme (the pane would not draw most screenshots).
+## 2026-11-14 – Cosmic Missions and Discovery Pin Board (branch `missions-pinboard`)
+Added `features/missions.js`, `pinBoard.js`, `missionsPinView.js`, two panels in index.html, a pin button in the mover detail, `scratch/test_missions_pins.mjs`.
+Untested: the Node suite could not run on this machine (Node 18.15; the repo's ES modules need Node 22, every existing test_*.mjs fails here too). The same checks were run by hand in the browser (served by scripts/serve_frontend.py on 8765): 19 missions, Math.random reaches all, SHA-256("abc") correct, Find movers → select #1 → pin as Alex_Space99 → marker + list item, hash verifies, no console errors. Playwright regressions and pytest not run.
+
+
+## 2026-11-14 – SPHEREx synthetic monthly imaging (branch `codex/simulator-spherex-monthly-imaging`)
+Added a symbolic SPHEREx marker to the standalone simulator's Earth-centred orbit diagram and month 0/6/12 shortcuts. New deterministic, explicitly **synthetic** star fields show a reference exposure, a current exposure with an arbitrary camera-pointing offset, and a tunable blend. The Align & blend button registers the background stars by removing only the artificial pointing offset; the hypothetical target's apparent displacement comes from the existing `orbitScene` parallax output and remains visible. The source-to-image scale is exaggerated for education, not an instrument pixel calibration. No existing geometry, discovery algorithms or scientific thresholds were changed.
+
+Validation: source parsing of `simulator.js` and `simulatorFrames.js` passed; nine direct checks of actual source functions (zero at month 0, visible month-6 shift, approximate year return, repeatable stars, registration preserving parallax and invalid-input guard) passed, as did ten simulated-DOM interaction checks (render path, month presets, alignment and blend slider). The new repeatable Node test is `scratch/test_simulator_frames.mjs` and has not been executed by Node in a repository checkout in this environment. Not run: the complete `scratch/test_*.mjs` suite, backend pytest, Playwright/browser visual regression or human accessibility review; these require a runnable checkout and should be checked before merge.
+
+
+## 2026-11-14 – Map cursor coordinates → Blink Workspace (branch `codex/pin-map-click-to-workspace`)
+On the existing Discovery Pin Board in Science Mode, the live RA/Dec readout is also shown next to the pointer in both all-sky and current-field projections. Left-clicking empty sky writes decimal RA/Dec into the existing Workspace search form, submits the normal field loader, scrolls to the Blink Workspace, and attempts to copy the pair to the clipboard; a browser denied clipboard does not block the transfer. Existing pin-marker click-to-details, zoom/pan and data-source labels stay in place. The inverse sky projection accounts for the RA seam and field angular scale, and mouse coordinates use the SVG screen CTM where available (also for fullscreen letterboxing). Cache query versions bumped for the changed JS/CSS. Nothing is claimed about new observations.
+
+Validation performed here: source-based syntax checks for modified Pin Board modules; 8 pure inverse-projection checks (RA wrap, field round-trip, poles and out-of-map cases), and 9 exercised event-handler checks (hover label, click prefill, copy, submit, scroll, preserved pin click and leave hiding) passed in an isolated JavaScript harness. Added assertions to `scratch/test_missions_pins.mjs`. Not run: the full Node suite, Python pytest, actual-browser layout/navigation regression, screen-reader and mobile touch tests, since this environment has no repository checkout with network access.
+
+
+## 2026-11-15 – Sky Context cursor → Blink Workspace (draft branch `codex/sky-context-click-to-workspace`)
+The existing Aladin Lite Sky Context map now shows a small RA/Dec label beside the cursor in addition to its existing fixed readout and overhead-country explanation. Left-clicking empty sky copies the ICRS coordinates (with a clipboard fallback), fills the existing RA and Dec Workspace form fields, submits the ordinary Blink image loader, and navigates back to Workspace. Zoom/drag, SIMBAD object popups, country readout, selected survey, FOV and the data-source setting remain unchanged. The click handler checks Aladin's `isDragging` flag and `objectClicked` event so panning and selecting sources do not navigate. Exiting native/CSS map fullscreen is handled before the Workspace scroll.
+
+Verification in the available connected-source environment: syntax parsing for updated JS modules and 16 executable pure-helper/mocked-event checks (ICRS coordinate conversion, RA wrap, invalid declination, copy fallbacks, hover, drag/right-click/objects ignored, left-click selection). `scratch/test_skycontext_click.mjs` added with independent Node assertions and static wiring checks, but standalone Node, complete Node suite, backend pytest, browser visual/layout/navigation regression and screen-reader audit remain **not run** (no runnable checkout in this environment).

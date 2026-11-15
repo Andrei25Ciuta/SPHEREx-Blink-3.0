@@ -1,54 +1,901 @@
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en" data-theme="midnight">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#FBFBF9"><title>SPHEREx Blink 4.0 · Explore the Universe Your Way</title>
-  <script>try{var t=new URLSearchParams(location.search).get("theme")||localStorage.getItem("spherex-blink-theme");if(/^(midnight|nebula|deep-space|observatory|light|classic)$/.test(t))document.documentElement.dataset.theme=t}catch(e){}</script>
-  <link rel="stylesheet" href="css/styles.css?v=23"><link rel="stylesheet" href="css/instrument.css"><link rel="stylesheet" href="css/overview.css?v=2"><link rel="stylesheet" href="css/overview-academic.css?v=1">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0B0F19">
+  <title>SPHEREx Blink 3.0 · Explore the Infrared Sky</title>
+
+  <script>
+    try {
+      var t = new URLSearchParams(location.search).get("theme") || localStorage.getItem("spherex-blink-theme");
+      if (/^(midnight|nebula|deep-space|observatory|light|classic)$/.test(t)) document.documentElement.dataset.theme = t;
+    } catch(e) {}
+  </script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- App Styles -->
+  <link rel="stylesheet" href="css/styles.css?v=30">
+  <link rel="stylesheet" href="css/instrument.css?v=3">
+  <link rel="stylesheet" href="css/overview-3d.css?v=3">
+  <link rel="stylesheet" href="css/mode-choice.css">
+<!-- Three.js CDN; the rest of the overview remains usable if it is unavailable. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
-  <a class="skip-link" href="#overview-main">Skip to main content</a>
-  <header class="site-header overview-header" id="top" data-page="overview">
-    <a class="site-brand overview-brand" href="overview.html" aria-label="SPHEREx Blink 4.0 home"><span class="brand-logo" aria-hidden="true"></span><span>SPHEREx Blink 4.0</span></a>
-    <select id="theme-select" data-default-theme="light" aria-label="Colour theme"></select>
+  <a class="skip-link" href="#overview-main">Skip to overview</a>
+  <!-- Custom interactive cursor -->
+  <div class="cursor-ring" id="cursorRing" aria-hidden="true"></div>
+  <div class="cursor-dot" id="cursorDot" aria-hidden="true"></div>
+
+  <!-- 3D Three.js WebGL canvas -->
+  <canvas id="bg-canvas" aria-hidden="true"></canvas>
+  <p class="model-caption">Illustration only — not SPHEREx observations. Earth and SPHEREx model not to scale. Demo image data are synthetic.</p>
+
+  <!-- 3D Component Inspection HUD Card -->
+  <aside id="model-hud" role="region" aria-label="Model component details" aria-hidden="true">
+    <div class="hud-header">
+      <span class="hud-title" id="hudTitle">Model component</span>
+      <button class="hud-close" id="hudClose" type="button" aria-label="Close component details">&times;</button>
+    </div>
+    <p class="hud-desc" id="hudDesc">Illustrative component in a simplified, non-scale model. No engineering or observation data are represented.</p>
+    <dl class="hud-specs" id="hudSpecs">
+      <div><dt>Scale</dt><dd>Illustrative</dd></div>
+      <div><dt>Data</dt><dd>Not shown</dd></div>
+    </dl>
+  </aside>
+
+  <!-- Site Header -->
+  <header class="site-header" id="top" data-page="overview">
+    <a class="site-brand" href="overview.html">SPHEREx <span>Blink 3.0</span></a>
+    <select id="theme-select" data-default-theme="midnight" aria-label="Colour theme"></select>
   </header>
+  <script type="module" src="js/siteHeader.js?v=2"></script>
+
   <main id="overview-main">
-    <section class="overview-hero" aria-labelledby="overview-title">
-      <div class="overview-copy">
-        <p class="overview-kicker">NASA's infrared sky · two ways to explore</p>
-        <h1 id="overview-title">Explore the<br>Universe Your<br>Way<span>.</span></h1>
-        <p>Follow the evidence like a researcher, or learn the story one mission at a time. Start with the mode that fits you.</p>
-        <p class="overview-meta">Research tools · Guided lessons · Synthetic demo always labelled</p>
+
+    <!-- ── HERO SECTION ── -->
+    <section class="overview-hero-3d" aria-labelledby="overview-title">
+      <div class="hero-content">
+        <div class="kicker-badge" id="heroKicker">
+          <span>SPHEREx Blink 3.0</span> · <span id="heroDataSource" role="status" aria-live="polite">Synthetic demo</span>
+        </div>
+        <h1 class="hero-title" id="overview-title">
+          <span class="hero-word">Find</span>
+          <span class="hero-word">what</span>
+          <em class="hero-word hero-word--accent">moves</em><button class="hero-title-dot" id="heroTitleDot" type="button" aria-label="Title dot, original colour. Click to change colour." data-dot-color-index="-1">.</button>
+        </h1>
+        <p class="hero-subtitle" id="heroSub">
+          Blink through infrared image sequences over time. Most stars stay in place; sources that move or change brightness stand out for closer inspection.
+        </p>
+        <div class="hero-cta-group" id="heroActions">
+          <a class="btn-main" href="index.html#workspace">
+            <span>Open Blink Workspace</span> →
+          </a>
+          <a class="btn-ghost" href="sky.html">
+            <span>Explore All-Sky Map</span>
+          </a>
+        </div>
       </div>
-      <figure class="overview-frame" aria-label="Illustration of a synthetic infrared image sequence">
-        <div class="overview-frame-status"><span></span>Illustration · synthetic</div><div class="overview-stars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><b></b></div>
-        <figcaption>Illustration only — not SPHEREx observations.</figcaption>
-      </figure>
+
+      <!-- 3D Interactive Spacecraft Controls -->
+      <aside class="spacecraft-hint">
+        <div class="hint-chip">
+          <div class="icon-3d">↻</div>
+          <span>Drag to orbit Earth and the telescope · Scroll to explore</span>
+        </div>
+    <div class="component-tag-list" role="group" aria-label="Illustrative model components">
+          <button class="component-tag" data-part="shields">✦ Thermal shields</button>
+          <button class="component-tag" data-part="optics">✦ Telescope assembly</button>
+          <button class="component-tag" data-part="lvf">✦ Spectral instrument</button>
+          <button class="component-tag" data-part="solar">✦ Solar panels</button>
+          <button class="component-tag" data-part="antenna">✦ Communications antenna</button>
+        </div>
+      </aside>
     </section>
 
-    <section class="mode-choices" aria-label="Choose your experience">
+    <!-- ── ACTIVE MISSIONS SECTION ── -->
+    <!-- Learn Mode or Science Mode (Blink 4.0): choosing one sets the menu (js/siteHeader.js) -->
+    <section class="mode-choices mode-choices-3d" aria-label="Choose your experience">
       <a class="mode-card mode-card-science" href="index.html#workspace">
-        <span class="mode-card-icon" aria-hidden="true">🔬</span><span class="mode-card-kicker">For researchers · students</span>
+        <span class="mode-card-kicker">For researchers · students</span>
         <h2>Science Mode</h2><p>Advanced analysis and research tools</p><span class="mode-card-detail">Blink images, find movers, compare detectors, inspect provenance and export evidence.</span><span class="mode-card-cta">Open research workspace <span aria-hidden="true">↗</span></span>
       </a>
       <a class="mode-card mode-card-learn" href="learn.html">
-        <span class="mode-card-icon" aria-hidden="true">🎓</span><span class="mode-card-kicker">For curious minds · all ages</span>
+        <span class="mode-card-kicker">For curious minds · all ages</span>
         <h2>Learn Mode</h2><p>Guided lessons, missions and discoveries</p><span class="mode-card-detail">Start with the basics, explore interactive visuals, earn badges and ask Astra for a simple explanation.</span><span class="mode-card-cta">Start a space mission <span aria-hidden="true">↗</span></span>
       </a>
     </section>
 
-    <p class="overview-ticker" aria-label="SPHEREx Blink themes"><span>One sky</span><b>◆</b><span>Many wavelengths</span><b>◆</b><span>Curiosity for everyone</span></p>
+    <section class="section-3d" id="missions" aria-labelledby="missions-title">
+      <p class="section-kicker">Documented test fields</p>
+      <h2 class="section-heading" id="missions-title">
+        Start where the<br>movers are.
+      </h2>
 
-    <section class="overview-section" aria-labelledby="modes-title"><p class="overview-kicker">The same sky, different views</p><h2 id="modes-title">Find what moves. See what changes.</h2><div class="overview-modes"><article><div class="mode-image mode-blink" aria-hidden="true"></div><p>Blink</p><span>Watch images from different dates one after another.</span></article><article><div class="mode-image mode-difference" aria-hidden="true"></div><p>Difference</p><span>Compare images to make changes easier to spot.</span></article><article><div class="mode-image mode-stack" aria-hidden="true"></div><p>Stack</p><span>Combine images to see the still sky more clearly.</span></article><article><div class="mode-image mode-trail" aria-hidden="true"></div><p>Trail</p><span>See where a possible mover appears in the sequence.</span></article></div></section>
+      <div class="mission-grid">
+        <a class="mission-card" href="index.html?ra=331.0441466&dec=-56.7828442&fov=5&det=D2#workspace" data-target="Epsilon Indi B">
+          <h3>Epsilon Indi B <span>↗</span></h3>
+          <span class="mission-coords">RA 331.0441° · Dec −56.7828° · 5′ · D2</span>
+          <p>Nearby brown dwarf binary included as a documented test target.</p>
+          <div class="mission-footer">
+            <span class="mission-pill">Open field</span>
+            <span class="mission-tag">Brown Dwarf</span>
+          </div>
+        </a>
 
-    <section class="overview-method" aria-labelledby="method-title"><p class="overview-kicker">A careful way to explore</p><h2 id="method-title">From a question to evidence.</h2><ol><li><span>01</span><h3>Choose a path</h3><p>Go straight to the research workspace or begin a guided lesson with no astronomy background.</p></li><li><span>02</span><h3>Explore the light</h3><p>Compare pictures and wavelengths. SPHEREx measures infrared light our eyes cannot see.</p></li><li><span>03</span><h3>Check the clue</h3><p>A changing dot is a candidate to investigate. Keep the data source and uncertainty in view.</p></li></ol></section>
+        <a class="mission-card" href="index.html?ra=269.452077&dec=4.693365&fov=5&det=D2#workspace" data-target="Barnard's Star">
+          <h3>Barnard's Star <span>↗</span></h3>
+          <span class="mission-coords">RA 269.4521° · Dec +4.6934° · 5′ · D2</span>
+          <p>A nearby star with high proper motion, used to inspect the mover workflow.</p>
+          <div class="mission-footer">
+            <span class="mission-pill">Open field</span>
+            <span class="mission-tag">High PM Star</span>
+          </div>
+        </a>
 
-    <section class="overview-section overview-presets" aria-labelledby="preset-title"><p class="overview-kicker">Science Mode · example fields</p><h2 id="preset-title">Start with a documented target.</h2><div class="overview-preset-grid"><a href="index.html?ra=331.0441466&amp;dec=-56.7828442&amp;fov=5&amp;det=D2#workspace"><h3>Epsilon Indi B <span>↗</span></h3><p class="preset-coords">331.0441° · −56.7828°</p><p>A nearby brown dwarf binary; a documented Blink test target.</p></a><a href="index.html?ra=269.452077&amp;dec=4.693365&amp;fov=5&amp;det=D2#workspace"><h3>Barnard's Star <span>↗</span></h3><p class="preset-coords">269.4521° · +4.6934°</p><p>A fast-moving nearby star used to check the mover workflow.</p></a><a href="index.html?ra=133.8189083&amp;dec=-7.247048&amp;fov=5&amp;det=D2#workspace"><h3>WISE 0855 <span>↗</span></h3><p class="preset-coords">133.8189° · −7.2470°</p><p>A very cold brown dwarf from the documented challenge targets.</p></a><a href="index.html?ra=76.956526&amp;dec=30.401438&amp;fov=5&amp;det=D1#workspace"><h3>RW Aurigae <span>↗</span></h3><p class="preset-coords">76.9565° · +30.4014°</p><p>A variable young star in a star-forming region.</p></a><a href="index.html?ra=248.167611&amp;dec=66.754979&amp;fov=30&amp;det=D4#workspace"><h3>R Draconis <span>↗</span></h3><p class="preset-coords">248.1676° · +66.7550°</p><p>A Mira variable in a wide challenge field.</p></a></div></section>
+        <a class="mission-card" href="index.html?ra=133.8189083&dec=-7.247048&fov=5&det=D2#workspace" data-target="WISE 0855">
+          <h3>WISE 0855−0714 <span>↗</span></h3>
+          <span class="mission-coords">RA 133.8189° · Dec −7.2470° · 5′ · D2</span>
+          <p>A very cold brown dwarf included among the documented test targets.</p>
+          <div class="mission-footer">
+            <span class="mission-pill">Open field</span>
+            <span class="mission-tag">Y-Dwarf</span>
+          </div>
+        </a>
 
-    <section class="overview-callout"><p class="overview-kicker">Start wherever you are</p><h2>Big questions begin with a closer look.</h2><p>Every source is a clue. Every clue gets stronger when someone else can check it.</p><div class="overview-actions"><a class="overview-primary" href="learn.html">Learn the basics <span aria-hidden="true">↗</span></a><a class="overview-secondary" href="index.html#workspace">Open Science Mode <span aria-hidden="true">↗</span></a></div></section>
+        <a class="mission-card" href="index.html?ra=76.956526&dec=30.401438&fov=5&det=D1#workspace" data-target="RW Aurigae">
+          <h3>RW Aurigae <span>↗</span></h3>
+          <span class="mission-coords">RA 76.9565° · Dec +30.4014° · 5′ · D1</span>
+          <p>A young variable star in a documented test field.</p>
+          <div class="mission-footer">
+            <span class="mission-pill">Open field</span>
+            <span class="mission-tag">Variable</span>
+          </div>
+        </a>
+
+        <a class="mission-card" href="index.html?ra=248.167611&dec=66.754979&fov=30&det=D4#workspace" data-target="R Draconis">
+          <h3>R Draconis <span>↗</span></h3>
+          <span class="mission-coords">RA 248.1676° · Dec +66.7550° · 30′ · D4</span>
+          <p>A variable star available as a wider-field test position.</p>
+          <div class="mission-footer">
+            <span class="mission-pill">Open field</span>
+            <span class="mission-tag">Mira Variable</span>
+          </div>
+        </a>
+      </div>
+    </section>
+
+    <!-- ── OBSERVATORY TOOLS ── -->
+    <section class="section-3d" id="tools" aria-labelledby="tools-title">
+      <p class="section-kicker">Interactive Analysis Suite</p>
+      <h2 class="section-heading" id="tools-title">
+        Four viewing modes.<br>Full analytical depth.
+      </h2>
+
+      <div class="tools-grid">
+        <div class="tool-card">
+          <div class="mode-image mode-blink" aria-hidden="true"></div>
+          <h4>Blink Animation</h4>
+          <span>Sequential time-series playback. Stationary stars remain fixed while moving targets jump.</span>
+        </div>
+
+        <div class="tool-card">
+          <div class="mode-image mode-difference" aria-hidden="true"></div>
+          <h4>Differential Mode</h4>
+          <span>Compare each frame with the median of other survey passes. Wavelength differences can leave residuals.</span>
+        </div>
+
+        <div class="tool-card">
+          <div class="mode-image mode-stack" aria-hidden="true"></div>
+          <h4>Median Stack</h4>
+          <span>Median-combine the sequence to inspect persistent sources across the field.</span>
+        </div>
+
+        <div class="tool-card">
+          <div class="mode-image mode-trail" aria-hidden="true"></div>
+          <h4>Maximum Trail</h4>
+          <span>Show each pixel's brightest value across the sequence to help inspect changing positions.</span>
+        </div>
+      </div>
+
+      <div class="lab-links-row">
+        <a class="lab-link-pill" href="sky.html">Sky Explorer & IRSA</a>
+        <a class="lab-link-pill" href="simulator.html">Solar System Geometry Simulator</a>
+        <a class="lab-link-pill" href="results.html">📊 Source Candidate Dossiers</a>
+      </div>
+    </section>
+
+    <!-- ── METHODOLOGY ── -->
+    <section class="section-3d" id="method" aria-labelledby="method-title">
+      <p class="section-kicker">Research Pipeline</p>
+      <h2 class="section-heading" id="method-title">How Blink detection works.</h2>
+
+      <div class="steps-container">
+        <div class="step-card">
+          <div class="step-number">01</div>
+          <h3>Select & Acquire</h3>
+          <p>Enter sky coordinates or open a documented target field. Available images depend on the selected data source and backend.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-number">02</div>
+          <h3>Blink & Subtract</h3>
+          <p>Inspect images across survey passes with blink and difference views. Passes may cover different wavelengths.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-number">03</div>
+          <h3>Inspect & export</h3>
+          <p>Review candidate motion and supporting detections, compare with available catalogues, and export results with provenance. A candidate is a lead, not a discovery.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── CALLOUT ── -->
+    <div class="callout-box">
+      <div class="callout-text">
+        <h2>Ready to spot what changed?</h2>
+        <p>Open the workspace to play image sequences, measure source brightness over time, and inspect candidate evidence.</p>
+      </div>
+      <a class="btn-main" href="index.html#workspace">
+        <span>Launch Full Workspace</span> →
+      </a>
+    </div>
+
   </main>
-  <footer class="overview-footer"><span>SPHEREx Blink 4.0 · Research + Education</span><span>Demo images are synthetic unless clearly stated otherwise.</span></footer>
-  <script type="module" src="js/siteHeader.js"></script>
+
+  <script type="module" src="js/overviewDataSource.js?v=2"></script>
+
+  <footer class="overview-footer">
+    <span>SPHEREx Blink 3.0 · Independent research interface demo</span>
+    <span><a href="index.html">Workspace</a> · <a href="sky.html">Sky Explorer</a> · <a href="simulator.html">Simulator</a></span>
+  </footer>
+
+  <!-- ════════════════════════════════════════════════════════════════
+       THREE.JS ADVANCED 3D SCENE & INTERACTIVE SPACECRAFT MODEL
+  ════════════════════════════════════════════════════════════════ -->
+  <script>
+  (function() {
+    "use strict";
+// ── 1. SETUP WEBGL SCENE ──
+    const canvas = document.getElementById('bg-canvas');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!window.THREE || !canvas) {
+      document.documentElement.classList.add('webgl-unavailable');
+      document.querySelector('.spacecraft-hint')?.setAttribute('hidden', '');
+      return;
+    }
+    let renderer;
+    try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true }); }
+    catch {
+      document.documentElement.classList.add('webgl-unavailable');
+      document.querySelector('.spacecraft-hint')?.setAttribute('hidden', '');
+      return;
+    }
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.2;
+
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x0b0f19, 0.0006);
+
+    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 4000);
+    const cameraStartZ = 820;
+    const cameraStopZ = 460;
+    camera.position.set(0, 0, cameraStartZ);
+
+    // ── 2. LIGHTING ──
+    const ambientLight = new THREE.AmbientLight(0x222a3a, 1.2);
+    scene.add(ambientLight);
+
+    const sunLight = new THREE.DirectionalLight(0xfff4e0, 2.5);
+    sunLight.position.set(300, 200, 300);
+    scene.add(sunLight);
+
+    const goldGlow = new THREE.PointLight(0xefb24f, 2.5, 600);
+    goldGlow.position.set(-100, -80, 150);
+    scene.add(goldGlow);
+
+    // ── 3. 3D PARTICLE STARFIELD ──
+    const starCount = 6500;
+    const starGeo = new THREE.BufferGeometry();
+    const starPos = new Float32Array(starCount * 3);
+    const starCol = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount; i++) {
+      starPos[i*3] = (Math.random() - 0.5) * 2200;
+      starPos[i*3+1] = (Math.random() - 0.5) * 2200;
+      starPos[i*3+2] = (Math.random() - 0.5) * 2200;
+
+      if (Math.random() < 0.12) {
+        starCol[i*3] = 0.94; starCol[i*3+1] = 0.70; starCol[i*3+2] = 0.31; // gold
+      } else if (Math.random() < 0.08) {
+        starCol[i*3] = 0.5; starCol[i*3+1] = 0.7; starCol[i*3+2] = 1.0;   // blue-white
+      } else {
+        const b = 0.65 + Math.random() * 0.35;
+        starCol[i*3] = b; starCol[i*3+1] = b; starCol[i*3+2] = b;
+      }
+    }
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    starGeo.setAttribute('color', new THREE.BufferAttribute(starCol, 3));
+    const starMat = new THREE.PointsMaterial({ size: 1.6, vertexColors: true, transparent: true, opacity: 0.85 });
+    const stars = new THREE.Points(starGeo, starMat);
+    scene.add(stars);
+
+    // ── 4. DETAILED PROCEDURAL SPHEREx OBSERVATORY 3D MODEL ──
+    function buildDetailedSPHEREx() {
+      const craft = new THREE.Group();
+
+      // Materials
+      const goldMLI = new THREE.MeshStandardMaterial({
+        color: 0xd4af37,
+        metalness: 0.68,
+        roughness: 0.4,
+        emissive: 0x2a2005,
+        emissiveIntensity: 0.2
+      });
+
+      const titanium = new THREE.MeshStandardMaterial({
+        color: 0xa0a5aa,
+        metalness: 0.75,
+        roughness: 0.35
+      });
+
+      const matteBlack = new THREE.MeshStandardMaterial({
+        color: 0x0a0c10,
+        metalness: 0.1,
+        roughness: 0.85,
+        side: THREE.DoubleSide
+      });
+
+      const solarCellMat = new THREE.MeshStandardMaterial({
+        color: 0x0c1e38,
+        metalness: 0.55,
+        roughness: 0.38
+      });
+
+      // A) Service Module (Hexagonal Bus)
+      const busGeo = new THREE.CylinderGeometry(26, 28, 38, 6);
+      const bus = new THREE.Mesh(busGeo, goldMLI);
+      bus.position.y = -35;
+      craft.add(bus);
+
+      // Launcher interface ring
+      const ringGeo = new THREE.TorusGeometry(18, 2.5, 16, 48);
+      const ring = new THREE.Mesh(ringGeo, titanium);
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = -55;
+      craft.add(ring);
+
+      // B) 3-Tier Concentric Conical Photon Sunshields (Iconic SPHEREx Design)
+      const shieldsGroup = new THREE.Group();
+
+      // Outer cone
+      const cone1 = new THREE.Mesh(
+        new THREE.CylinderGeometry(56, 32, 48, 36, 1, true),
+        goldMLI
+      );
+      cone1.position.y = 8;
+      shieldsGroup.add(cone1);
+
+      // Inner cone liner (black to absorb stray light)
+      const cone1In = new THREE.Mesh(
+        new THREE.CylinderGeometry(55.6, 31.6, 47.8, 36, 1, true),
+        matteBlack
+      );
+      cone1In.position.y = 8;
+      shieldsGroup.add(cone1In);
+
+      // Middle cone tier
+      const cone2 = new THREE.Mesh(
+        new THREE.CylinderGeometry(44, 25, 42, 36, 1, true),
+        goldMLI
+      );
+      cone2.position.y = 12;
+      shieldsGroup.add(cone2);
+
+      // Inner cone tier
+      const cone3 = new THREE.Mesh(
+        new THREE.CylinderGeometry(34, 19, 36, 36, 1, true),
+        goldMLI
+      );
+      cone3.position.y = 16;
+      shieldsGroup.add(cone3);
+
+      craft.add(shieldsGroup);
+
+      // C) Central 20cm Telescope Assembly & Detector
+      const scopeGroup = new THREE.Group();
+      const barrel = new THREE.Mesh(
+        new THREE.CylinderGeometry(15, 16, 40, 24),
+        matteBlack
+      );
+      barrel.position.y = 18;
+      scopeGroup.add(barrel);
+
+      // Telescope aperture ring
+      const apRing = new THREE.Mesh(
+        new THREE.TorusGeometry(15, 1.2, 12, 36),
+        goldMLI
+      );
+      apRing.rotation.x = Math.PI / 2;
+      apRing.position.y = 38;
+      scopeGroup.add(apRing);
+
+      // Secondary mirror spider support
+      for (let s = 0; s < 3; s++) {
+        const vane = new THREE.Mesh(
+          new THREE.BoxGeometry(14, 0.4, 3),
+          titanium
+        );
+        vane.position.y = 37;
+        vane.rotation.y = (s * Math.PI * 2) / 3;
+        scopeGroup.add(vane);
+      }
+      const secMirror = new THREE.Mesh(
+        new THREE.CylinderGeometry(4.5, 4.5, 4, 16),
+        goldMLI
+      );
+      secMirror.position.y = 35;
+      scopeGroup.add(secMirror);
+
+      // LVF Detector focal plane package
+      const detectorBox = new THREE.Mesh(
+        new THREE.BoxGeometry(22, 6, 22),
+        goldMLI
+      );
+      detectorBox.position.y = -4;
+      scopeGroup.add(detectorBox);
+
+      // Detector aperture glow
+      const scopeGlow = new THREE.PointLight(0xefb24f, 1.8, 120);
+      scopeGlow.position.y = 20;
+      scopeGroup.add(scopeGlow);
+
+      craft.add(scopeGroup);
+
+      // D) Dual Deployable Solar Panel Wings
+      const wingsGroup = new THREE.Group();
+      [-1, 1].forEach(side => {
+        const wing = new THREE.Group();
+
+        // Main boom
+        const boom = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 25), titanium);
+        boom.rotation.z = Math.PI / 2;
+        boom.position.set(side * 22, -35, 0);
+        wing.add(boom);
+
+        // Solar panels (2 panels per side)
+        [-1, 1].forEach(p => {
+          const panel = new THREE.Mesh(
+            new THREE.BoxGeometry(45, 2, 28),
+            solarCellMat
+          );
+          panel.position.set(side * (48 + p * 24), -35, 0);
+
+          wing.add(panel);
+
+          // Gold perimeter rails sit just above each panel face. A single
+          // filled frame box overlapped the panel surface and caused z-fighting
+          // (visible as rapid gold/blue flicker while the spacecraft rotated).
+          for (const face of [-1, 1]) {
+            const railY = panel.position.y + face * 1.4;
+            const rails = [
+              [new THREE.BoxGeometry(46, 0.35, 1), panel.position.x, railY, panel.position.z - 14],
+              [new THREE.BoxGeometry(46, 0.35, 1), panel.position.x, railY, panel.position.z + 14],
+              [new THREE.BoxGeometry(1, 0.35, 27), panel.position.x - 22.5, railY, panel.position.z],
+              [new THREE.BoxGeometry(1, 0.35, 27), panel.position.x + 22.5, railY, panel.position.z],
+            ];
+            for (const [geometry, x, y, z] of rails) {
+              const rail = new THREE.Mesh(geometry, goldMLI);
+              rail.position.set(x, y, z);
+              wing.add(rail);
+            }
+          }
+        });
+
+        wingsGroup.add(wing);
+      });
+      craft.add(wingsGroup);
+
+      // E) Telemetry Antenna Dish
+      const dishGroup = new THREE.Group();
+      const dishGeo = new THREE.SphereGeometry(10, 24, 12, 0, Math.PI * 2, 0, Math.PI * 0.42);
+      const dish = new THREE.Mesh(dishGeo, goldMLI);
+      dish.rotation.x = Math.PI * 0.75;
+      dish.position.set(24, -30, 20);
+      dishGroup.add(dish);
+
+      const feed = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 8), titanium);
+      feed.position.set(24, -26, 25);
+      dishGroup.add(feed);
+      craft.add(dishGroup);
+
+      craft.scale.set(1.15, 1.15, 1.15);
+      return craft;
+    }
+
+    const observatory = buildDetailedSPHEREx();
+    observatory.position.set(120, 10, 160);
+    observatory.rotation.set(0.35, -0.6, 0.1);
+    scene.add(observatory);
+
+    // Procedural Earth illustration, kept behind the spacecraft in the Overview.
+    function createEarthSystem() {
+      const root = new THREE.Group();
+      const radius = 180;
+      const map = document.createElement('canvas');
+      map.width = 1536;
+      map.height = 768;
+      const ctx = map.getContext('2d');
+      const ocean = ctx.createLinearGradient(0, 0, 0, map.height);
+      ocean.addColorStop(0, '#244a69');
+      ocean.addColorStop(0.5, '#0c3556');
+      ocean.addColorStop(1, '#09263f');
+      ctx.fillStyle = ocean;
+      ctx.fillRect(0, 0, map.width, map.height);
+
+      const toXY = (lon, lat) => [((lon + 180) / 360) * map.width, ((90 - lat) / 180) * map.height];
+      const continents = [
+        [[-168,65],[-145,72],[-125,58],[-112,48],[-98,50],[-82,25],[-97,15],[-110,30],[-125,38],[-130,52],[-150,58]],
+        [[-80,12],[-62,8],[-48,-2],[-36,-10],[-45,-24],[-58,-38],[-68,-54],[-75,-37],[-72,-15]],
+        [[-12,36],[8,38],[31,30],[42,12],[35,-4],[28,-30],[17,-35],[9,-18],[1,5],[-15,12]],
+        [[-10,36],[3,52],[20,58],[30,48],[43,55],[60,66],[95,70],[125,60],[150,48],[143,36],[122,28],[110,10],[93,8],[78,24],[62,26],[48,40],[33,38],[24,48],[10,42]],
+        [[112,-11],[133,-10],[153,-25],[145,-39],[127,-36],[115,-28]],
+        [[-180,-68],[-120,-72],[-60,-70],[0,-74],[60,-70],[120,-72],[180,-68],[180,-90],[-180,-90]]
+      ];
+      for (const points of continents) {
+        ctx.beginPath();
+        points.forEach(([lon, lat], index) => {
+          const [x, y] = toXY(lon, lat);
+          if (index === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        });
+        ctx.closePath();
+        ctx.fillStyle = points[0][0] === -180 ? '#c7e3e8' : '#557d55';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(173, 209, 170, 0.36)';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+
+      // Soft, randomized cloud bands keep this clearly illustrative, not an image product.
+      const clouds = document.createElement('canvas');
+      clouds.width = 1024;
+      clouds.height = 512;
+      const cloudCtx = clouds.getContext('2d');
+      for (let i = 0; i < 100; i++) {
+        const x = Math.random() * clouds.width;
+        const y = 35 + Math.random() * 440;
+        const width = 35 + Math.random() * 150;
+        const height = 5 + Math.random() * 18;
+        const cloud = cloudCtx.createRadialGradient(x, y, 1, x, y, width / 2);
+        cloud.addColorStop(0, 'rgba(235, 248, 255, 0.48)');
+        cloud.addColorStop(0.72, 'rgba(220, 240, 250, 0.2)');
+        cloud.addColorStop(1, 'rgba(220, 240, 250, 0)');
+        cloudCtx.fillStyle = cloud;
+        cloudCtx.beginPath();
+        cloudCtx.ellipse(x, y, width / 2, height, 0, 0, Math.PI * 2);
+        cloudCtx.fill();
+      }
+
+      const orbitRadius = radius * 1.42;
+      const orbitPoints = new THREE.EllipseCurve(0, 0, orbitRadius, orbitRadius, 0, Math.PI * 2).getPoints(160);
+      const orbitGeometry = new THREE.BufferGeometry().setFromPoints(orbitPoints.map(point => new THREE.Vector3(point.x, 0, point.y)));
+      const orbitMaterial = new THREE.LineDashedMaterial({ color: 0xefb24f, dashSize: 8, gapSize: 6, transparent: true, opacity: 0.46 });
+      const orbit = new THREE.Line(orbitGeometry, orbitMaterial);
+      orbit.computeLineDistances();
+      orbit.rotation.x = 97.5 * Math.PI / 180;
+      root.add(orbit);
+
+      const earth = new THREE.Mesh(
+        new THREE.SphereGeometry(radius, 64, 48),
+        new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(map), roughness: 0.76, metalness: 0.04 })
+      );
+      root.add(earth);
+      const cloudLayer = new THREE.Mesh(
+        new THREE.SphereGeometry(radius * 1.012, 48, 36),
+        new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(clouds), transparent: true, opacity: 0.38, depthWrite: false })
+      );
+      root.add(cloudLayer);
+      const atmosphere = new THREE.Mesh(
+        new THREE.SphereGeometry(radius * 1.07, 48, 36),
+        new THREE.MeshBasicMaterial({ color: 0x56b7f2, transparent: true, opacity: 0.16, side: THREE.BackSide, blending: THREE.AdditiveBlending })
+      );
+      root.add(atmosphere);
+      root.position.set(60, -70, -80);
+      root.rotation.x = 0.35;
+      return { root, earth, cloudLayer, radius };
+    }
+
+    const earthSystem = createEarthSystem();
+    scene.add(earthSystem.root);
+
+    // Keep the SPHEREx model outside Earth's visual collision envelope.
+    // The clearance radius is measured from the observatory's own origin so
+    // rotating the telescope cannot make its solar panels clip through Earth.
+    observatory.updateMatrixWorld(true);
+    const observatoryBounds = new THREE.Box3().setFromObject(observatory);
+    const observatorySphere = observatoryBounds.getBoundingSphere(new THREE.Sphere());
+    const observatoryClearanceRadius =
+      observatorySphere.radius + observatorySphere.center.distanceTo(observatory.position);
+    const earthKeepOutRadius = earthSystem.radius * 1.07 + observatoryClearanceRadius + 24;
+
+    function keepObservatoryClearOfEarth() {
+      const earthCenter = earthSystem.root.position;
+      const dx = observatory.position.x - earthCenter.x;
+      const dy = observatory.position.y - earthCenter.y;
+      const requiredZOffset = Math.sqrt(
+        Math.max(0, earthKeepOutRadius * earthKeepOutRadius - dx * dx - dy * dy)
+      );
+
+      // Move the observatory toward the camera only as much as needed to keep
+      // its full bounding sphere outside Earth's atmosphere and safety margin.
+      observatory.position.z = earthCenter.z + Math.max(240, requiredZOffset);
+    }
+
+    keepObservatoryClearOfEarth();
+
+    // ── 5. INTERACTIVE 3D ORBIT & DRAG ROTATION ──
+    let dragPointerId = null;
+    let prevMouseX = 0, prevMouseY = 0;
+    let rotVelX = 0, rotVelY = 0;
+    const mouseNDC = { x: 0, y: 0 };
+    const dragRay = new THREE.Raycaster();
+    const dragPoint = new THREE.Vector2();
+
+    function hitsSatellite(e) {
+      const bounds = canvas.getBoundingClientRect();
+      if (!bounds.width || !bounds.height) return false;
+      dragPoint.set(
+        ((e.clientX - bounds.left) / bounds.width) * 2 - 1,
+        1 - ((e.clientY - bounds.top) / bounds.height) * 2
+      );
+      camera.updateMatrixWorld();
+      observatory.updateWorldMatrix(true, true);
+      dragRay.setFromCamera(dragPoint, camera);
+      return dragRay.intersectObject(observatory, true).length > 0;
+    }
+
+    window.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0 || dragPointerId !== null) return;
+      if (e.pointerType === 'touch' && e.target !== canvas) return;
+      const target = e.target;
+      if (target.closest('a, button, input, select, textarea, [contenteditable], .site-header, #model-hud')) return;
+      // Foreground text can overlap the background model. Let a drag starting on text select it.
+      if (target !== canvas) {
+        const caret = document.caretPositionFromPoint?.(e.clientX, e.clientY);
+        const text = caret?.offsetNode ?? document.caretRangeFromPoint?.(e.clientX, e.clientY)?.startContainer;
+        if (text?.nodeType === Node.TEXT_NODE) {
+          const textRange = document.createRange();
+          textRange.selectNodeContents(text);
+          if (Array.from(textRange.getClientRects()).some(rect =>
+            e.clientX >= rect.left && e.clientX < rect.right &&
+            e.clientY >= rect.top && e.clientY < rect.bottom)) return;
+        }
+      }
+      if (!hitsSatellite(e)) return;
+      dragPointerId = e.pointerId;
+      if (e.pointerType === 'mouse') e.preventDefault();
+      prevMouseX = e.clientX;
+      prevMouseY = e.clientY;
+      rotVelX = 0; rotVelY = 0;
+      const ring = document.getElementById('cursorRing');
+      if (ring) ring.classList.add('is-dragging');
+    });
+
+    function stopDrag() {
+      dragPointerId = null;
+      const ring = document.getElementById('cursorRing');
+      if (ring) ring.classList.remove('is-dragging');
+    }
+
+    function endPointerDrag(e) {
+      if (e.pointerId === dragPointerId) stopDrag();
+    }
+
+    window.addEventListener('pointerup', endPointerDrag);
+    window.addEventListener('pointercancel', endPointerDrag);
+    window.addEventListener('blur', stopDrag);
+    document.addEventListener('selectstart', (e) => {
+      if (dragPointerId !== null) e.preventDefault();
+    });
+
+    window.addEventListener('pointermove', (e) => {
+      mouseNDC.x = (e.clientX / window.innerWidth) * 2 - 1;
+      mouseNDC.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+      if (e.pointerId === dragPointerId) {
+        const dx = e.clientX - prevMouseX;
+        const dy = e.clientY - prevMouseY;
+        rotVelY = dx * 0.006;
+        rotVelX = dy * 0.006;
+        observatory.rotation.y += rotVelY;
+        observatory.rotation.x += rotVelX;
+        earthSystem.root.rotation.y += rotVelY;
+        earthSystem.root.rotation.x += rotVelX;
+        if (reducedMotion) {
+          renderer.render(scene, camera);
+        }
+        prevMouseX = e.clientX;
+        prevMouseY = e.clientY;
+      }
+    });
+
+    // ── 6. SCROLL WARP & CAMERA CHOREOGRAPHY ──
+    let scrollProgress = 0;
+    let targetScrollProgress = 0;
+
+    function onScroll() {
+      const maxScroll = document.body.scrollHeight - window.innerHeight;
+      targetScrollProgress = maxScroll > 0 ? Math.min(1, Math.max(0, window.scrollY / maxScroll)) : 0;
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    // ── 7. MAIN RENDER LOOP ──
+    let clockTime = 0;
+    function renderLoop() {
+      if (!reducedMotion) requestAnimationFrame(renderLoop);
+      if (!reducedMotion) {
+        clockTime += 0.015;
+        scrollProgress += (targetScrollProgress - scrollProgress) * 0.055;
+        camera.position.z = cameraStartZ - scrollProgress * (cameraStartZ - cameraStopZ);
+        earthSystem.earth.rotation.y += 0.00045;
+        earthSystem.cloudLayer.rotation.y += 0.00065;
+        stars.rotation.y += 0.0002;
+        stars.rotation.z = scrollProgress * 0.5;
+        if (dragPointerId === null) {
+          observatory.rotation.y += 0.0025 + rotVelY;
+          observatory.rotation.x += rotVelX;
+          rotVelX *= 0.92;
+          rotVelY *= 0.92;
+          observatory.rotation.z = Math.sin(clockTime * 0.4) * 0.08 + mouseNDC.x * 0.15;
+        }
+        observatory.position.y = 10 + Math.sin(clockTime * 0.6) * 6;
+        const targetX = scrollProgress > 0.15 ? -130 - scrollProgress * 60 : 120;
+        observatory.position.x += (targetX - observatory.position.x) * 0.04;
+        keepObservatoryClearOfEarth();
+      }
+      renderer.render(scene, camera);
+    }
+    renderLoop();
+
+    // Resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // ── 8. 3D COMPONENT HUD DETAILS ──
+    const hud = document.getElementById('model-hud');
+    const hudTitle = document.getElementById('hudTitle');
+    const hudDesc = document.getElementById('hudDesc');
+    const hudSpecs = document.getElementById('hudSpecs');
+    const hudClose = document.getElementById('hudClose');
+
+    const componentData = {
+      shields: { title: "Thermal shields", desc: "An illustrative marker in a simplified, non-scale model. It does not represent flight hardware dimensions or thermal measurements." },
+      optics: { title: "Telescope assembly", desc: "An illustrative marker in a simplified, non-scale model. No optical performance or engineering dimensions are represented." },
+      lvf: { title: "Spectral instrument", desc: "An illustrative marker in a simplified, non-scale model. The model contains no observed image or spectral data." },
+      solar: { title: "Solar panels", desc: "An illustrative marker in a simplified, non-scale model. No spacecraft power or attitude data are represented." },
+      antenna: { title: "Communications antenna", desc: "An illustrative marker in a simplified, non-scale model. No communication system performance data are represented." }
+    };
+
+    document.querySelectorAll('.component-tag').forEach(tag => {
+      tag.addEventListener('click', () => {
+        const part = tag.dataset.part;
+        const data = componentData[part];
+        if (!data) return;
+
+        hudTitle.textContent = data.title;
+        hudDesc.textContent = data.desc;
+        hudSpecs.innerHTML = '<div><dt>Scale</dt><dd>Illustrative</dd></div><div><dt>Data</dt><dd>Not shown</dd></div>';
+        hud.classList.add('visible');
+        hud.setAttribute('aria-hidden', 'false');
+
+        document.querySelectorAll('.component-tag').forEach(t => t.classList.remove('active'));
+        tag.classList.add('active');
+
+        // Smoothly orient spacecraft toward the camera
+        if (window.gsap && !reducedMotion) gsap.to(observatory.rotation, {
+          y: Math.PI * 0.25,
+          x: 0.15,
+          duration: 1.2,
+          ease: 'power2.out'
+        });
+      });
+    });
+
+    if (hudClose) {
+      hudClose.addEventListener('click', () => {
+        hud.classList.remove('visible');
+        hud.setAttribute('aria-hidden', 'true');
+        const activeTag = document.querySelector('.component-tag.active');
+        document.querySelectorAll('.component-tag').forEach(t => t.classList.remove('active'));
+        activeTag?.focus();
+      });
+    }
+
+    // ── 9. SIMONE-DEV.COM STYLE CUSTOM CURSOR ──
+    const ring = document.getElementById('cursorRing');
+    const dot = document.getElementById('cursorDot');
+    let ringX = -100, ringY = -100;
+    let mouseX = -100, mouseY = -100;
+
+    document.addEventListener('mousemove', (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+      if (dot) {
+        dot.style.left = mouseX + 'px';
+        dot.style.top = mouseY + 'px';
+      }
+    });
+
+    function cursorAnimation() {
+      ringX += (mouseX - ringX) * 0.14;
+      ringY += (mouseY - ringY) * 0.14;
+      if (ring) {
+        ring.style.left = ringX + 'px';
+        ring.style.top = ringY + 'px';
+      }
+      requestAnimationFrame(cursorAnimation);
+    }
+    if (!reducedMotion) cursorAnimation();
+
+    // Hover expand cursor
+    const interactiveElements = document.querySelectorAll('a, button, .mission-card, .tool-card, select, .component-tag');
+    interactiveElements.forEach(el => {
+      el.addEventListener('mouseenter', () => ring && ring.classList.add('expanded'));
+      el.addEventListener('mouseleave', () => ring && ring.classList.remove('expanded'));
+    });
+
+    // The title dot cycles through eight colours only when activated.
+    const heroTitleDot = document.getElementById('heroTitleDot');
+    if (heroTitleDot) {
+      const dotColours = [
+        { name: 'gold', value: '#efb24f' },
+        { name: 'cyan', value: '#55d6d2' },
+        { name: 'coral', value: '#ff7b72' },
+        { name: 'violet', value: '#b69cff' },
+        { name: 'lime', value: '#b8df70' },
+        { name: 'sky blue', value: '#72b7ff' },
+        { name: 'pink', value: '#ff8fc8' },
+        { name: 'orange', value: '#ff9d5c' }
+      ];
+
+      heroTitleDot.addEventListener('click', () => {
+        const currentIndex = Number(heroTitleDot.dataset.dotColorIndex);
+        const nextIndex = (currentIndex + 1) % dotColours.length;
+        const nextColour = dotColours[nextIndex];
+        heroTitleDot.dataset.dotColorIndex = String(nextIndex);
+        heroTitleDot.style.setProperty('--hero-dot-color', nextColour.value);
+        heroTitleDot.setAttribute('aria-label', `Title dot, ${nextColour.name}. Click to change colour.`);
+      });
+    }
+
+    // ── 11. WORD-BASED ENTRANCE ON HERO TITLE ──
+    const h1 = document.getElementById('overview-title');
+    if (h1 && window.gsap && !reducedMotion) {
+      const heroWords = h1.querySelectorAll('.hero-word');
+      const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+      tl.fromTo('#heroKicker', { autoAlpha: 0, y: 12 }, { autoAlpha: 1, y: 0, duration: 0.45 })
+        .fromTo(heroWords, { autoAlpha: 0, y: 24, rotateX: -8 }, {
+          autoAlpha: 1,
+          y: 0,
+          rotateX: 0,
+          duration: 0.55,
+          stagger: 0.12,
+          onComplete: () => h1.querySelector('.hero-word--accent')?.classList.add('is-sheening')
+        }, '-=0.12')
+        .fromTo('#heroSub', { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 0.5 }, '-=0.12')
+        .fromTo('#heroActions', { autoAlpha: 0, y: 14 }, { autoAlpha: 1, y: 0, duration: 0.45 }, '-=0.12');
+    }
+
+  })();
+  </script>
   <script type="module" src="js/features/highContrast.js"></script>
 </body>
 </html>

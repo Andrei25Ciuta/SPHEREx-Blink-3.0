@@ -4,7 +4,7 @@
 
 - Learn Mode diagrams are schematic illustrations and synthetic examples, not SPHEREx observations. The page labels them and links the astronomy summaries to NASA learning sources.
 - The course contains eight short lessons and one progress check per level. These quizzes are not a validated measure of learning or mastery; XP, ranks, badges and streaks are motivational UI.
-- Astra is a small offline glossary and curated response guide. It is not a generative AI model, does not answer unrestricted questions reliably, and does not send user text anywhere. Unsupported questions get a fallback instead of an invented answer.
+- Astra answers from about 60 reviewed offline notes. When the visitor turns the AI on, a language model (the browser's built-in one, or WebLLM with Qwen2.5-3B on the graphics card) writes the answer from those notes; it runs on the computer and sends no text to a server, but it can be wrong, and the page marks its answers as written by an AI. Without the AI, a question with no matching note gets a fallback instead of an invented answer.
 - Progress and the classroom dashboard use local browser storage. There is no cloud backup, account, or cross-device teacher roster. If browser storage is disabled or cleared, progress may be lost.
 - Science Mode's Explain Simply controls translate panel titles and known glossary terms into prepared summaries. They do not change analysis values, uncertainty, provenance or scientific status.
 
@@ -35,6 +35,11 @@ A candidate is a lead with its evidence, never a discovery. Nothing this applica
 - Through SPHEREx's variable filter each image of a star has a different wavelength, so its brightness changes from image to image: movers are
   found from **positions only**, and any flat-spectrum assumption (injection tests, the "absent in other passes" transient tag) is an approximation.
 - A cutout of all detectors together and one of a single detector are resampled differently; marginal results can differ between them.
+
+## Overview illustration
+
+- The Overview's procedural Earth, orbit, spacecraft, scan beam and starfield are decorative illustrations. They are not to scale and do not encode flight geometry, instrument specifications, live Earth imagery, telescope pointing, or SPHEREx observations. Only the separately labelled synthetic demo is synthetic image data; the 3D scene itself is not a data product.
+- The Sky Explorer globe and its star field, grid and colored band are also decorative orientation graphics. Only the five labeled markers use the documented challenge target coordinates; the globe is not an all-sky survey image, coverage map, or live observation.
 
 ## Find movers
 
@@ -97,7 +102,7 @@ A candidate is a lead with its evidence, never a discovery. Nothing this applica
   motion is 0.5-0.65″/yr off the catalogue in RA in every run, 1.7-2.3 times its error**: a systematic (the photocentre of a binary brown dwarf moves with the orbit; or the instrument), not explained here.
 - The **parallax search** (Planet X mode) still uses its old 0.15 px floor; its "σ" figures were not recalibrated.
 - The **explainer** is rule-based: it says what the measured numbers say, in sentences whose figures are checked against the values they cite, and it cannot know anything that was not given to it (no catalogue knowledge of its own, no judgement of whether a number is plausible beyond the fixed thresholds in its rules: a chance above 0.001, support under 80 %, dots in under 60 % of the images, a χ² per degree of freedom above 3). A sentence being grounded does not make the conclusion true: a candidate is a lead.
-- The **Solar System simulator** shows the eight planets from an approximate table (1800-2050, differences from JPL Horizons up to 0.013 AU for Saturn, VALIDATION 17), from above the ecliptic, without moons or small bodies; its educational mode is not to scale and says so; the body it can add does not move in space, so it shows the geometry of the swing, not an orbit.
+- The **standalone SPHEREx Simulator page** uses the Earth-centred observer position from the existing approximate ephemeris. Its SPHEREx spacecraft symbol is not at orbital scale or a predicted spacecraft location. The three synthetic star-field views are generated drawings, not simulated SPHEREx instrument exposures, detector calibration or NASA data. A fixed artificial pointing offset is removed by registering background stars; the target's model parallax remains after registration. Target pixel shifts are deliberately enlarged for visibility, and a stationary hypothetical target does not reproduce true month-by-month SPHEREx coverage, pointing, PSF, spectral bands or moving-object orbit. A 12-month return is approximate, not exactly identical to day 0.\n- The **Solar System simulator** shows the eight planets from an approximate table (1800-2050, differences from JPL Horizons up to 0.013 AU for Saturn, VALIDATION 17), from above the ecliptic, without moons or small bodies; its educational mode is not to scale and says so; the body it can add does not move in space, so it shows the geometry of the swing, not an orbit.
 - The **sky explorer** draws the footprints of the image files the backend holds (from their WCS), nothing of the SPHEREx survey; fields are images within 0.6 degrees of each other; the arcminute offsets of a field use the small-angle formula (cos Dec), fine for fields of a degree or less, not for a mosaic of many degrees.
 - The **Planet X Lab** measures the app's own search with SYNTHETIC bodies injected into real images (Gaussian PSF of 0.4 px, the same flux in every image, a drift of 0.5-1.0 times the circular speed, a random place): a completeness of this search on these images, not a statement about any real object, and not a prediction of what SPHEREx will find. The map is for one field; with the cadence of the Barnard D2 field (passes 1 and 3 a year apart) three of the four passes see a distant body at nearly the same place, which probably limits the search (a hypothesis not tested by changing the cadence). The comparison of motions assumes 0.15 px per axis for every dot (the parallax search's floor, not calibrated on real dots), and its distance range is only as good as that and as the Earth's low-precision position (VALIDATION 16).
 - A **PSF-fit centroid** exists (`psfFit`) and reaches the best possible on ideal injected stars, but on the real images it scatters more than the windowed centroid (the real PSF of the resampled cutouts is not a Gaussian of the header width): it is off by default and the reported position errors are those of the windowed centroid (VALIDATION 15.7).
@@ -125,6 +130,15 @@ A candidate is a lead with its evidence, never a discovery. Nothing this applica
 - The false lines of the **original rule** are a record of the code of 7 Nov: today's code finds fewer dots per image and no longer produces them. Their numbers are typed and dated, not remade.
 - Sections 4-6 are remade too (VALIDATION 19): the Jansky scale uses zero points written from memory; the Arosa centre offset (1.0″) and the explanation of the WISE 0855 D2 excess are still typed; Arosa is one asteroid in two images.
 - Sections 7-10 (Makemake and the blind Planet X search, the fake-star calibration, the empty-sky test, the Planet X limits) are still the numbers of 7 Nov, typed from the reports of their commands; they do not move when the images do.
+
+## A file loaded into the Results page
+
+- The charts and numbers of a loaded file are **counts and ranges of its own rows**, drawn as they are. They say what is in the file, not that it is right: a candidate list is a list of leads, and the page repeats that for sources nothing explains. Nothing is checked against the images, which the page does not have.
+- A file is told by what it contains, and only four kinds are read (the candidate JSON and CSV of the workspace, a list of sources, validation numbers). The candidate JSON keeps the strict check of the workspace: a list with a count that does not agree with its own fit points is **refused, not repaired**. A CSV has fewer fields than the JSON (no fit points, so no positions plot, and its run time is the file date when it has none, which the page says).
+- The label of what the data is (real or synthetic) is read from the file and shown above everything; a candidate list that carries none of the known labels is refused, and a list of sources that says nothing about its data is shown as "data of unknown kind". **A label in a file can be edited by whoever edits the file**: the page shows it, it cannot prove it.
+- The commentary of sections 1-12 was written for the archived run and is **hidden whenever another file is shown**; a validation file loaded by a person gets its charts with no commentary, and the charts it cannot draw are named as missing. A validation file lacking a section is not completed from the archived one.
+- The sky map draws one degree of declination and of right ascension (times cos Dec) at the same length, from the positions in the file, with east to the left; a field larger than a few degrees would need a projection that is not used. The records of one file may come from several fields and then overlap on the map.
+- Not checked automatically: the look of the page in each theme and on a phone was inspected by eye in the in-app browser (overflow checked by script); `a11y_audit.mjs` covers the Workspace only. The sources table of section 11 (existing) still has focusable points inside an `aria-hidden` picture.
 
 ## Duplicate files, and the reproducibility bundle
 
@@ -167,3 +181,12 @@ A candidate is a lead with its evidence, never a discovery. Nothing this applica
 
 - The colour hint (flux at 4-5 µm over flux at 1-2 µm) cannot tell an M dwarf from an early T dwarf and is not a classification.
 - Spectra are built from images taken at different times: a variable source mixes variability with spectral shape.
+
+## Missions and the pin board
+
+- Mission texts (Barnard's Star at about 10″/yr and 6 light-years, 1 AU ≈ 150 million km, d[pc] = 1/p[″], infrared and cold bodies) are textbook facts **written from memory**, not measured here. Mission completion is detected from the learner's clicks and from results appearing on the page; it shows the learner used the tool, not that they understood it.
+- The pin tag reads "Discovered/Verified by <name>" at the author's request (14 Nov 2026). Scientifically a pin is still a candidate: the board says so, nothing is checked by anyone else, and synthetic-data pins say "(synthetic demo data)". Pins live in one browser's localStorage; nothing is shared between computers. The SHA-256 shows a pin was not edited afterwards in that browser; it is not a timestamped proof of priority (no outside witness).
+
+## Predicting objects
+
+- The prediction is a straight-line extrapolation of the fitted motion. It leaves out acceleration, the curved apparent paths of Solar System bodies (they change within weeks) and the yearly parallax swing; the page says which applies. The 1-sigma range uses the errors the mover search reports (posErrPx, vErrPx), which VALIDATION 20 found about right in four fields, too small in Barnard D2 and with heavy tails, so the circle can understate the real spread.

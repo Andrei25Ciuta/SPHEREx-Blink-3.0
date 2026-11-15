@@ -1,0 +1,10 @@
+.recovery-plot { display: block; width: 100%; max-width: 26rem; }
+.recovery-boundary { fill: #10151e; stroke: var(--border); }
+.recovery-star { fill: #dce9fb; }
+.recovery-line { fill: none; stroke: #f0bf73; stroke-width: 2; }
+.recovery-point { fill: #ffd693; }
+.recovery-point.current { fill: #ffd693; stroke: #fff; stroke-width: 2; }
+
+.observation-track { margin: .85rem 0; }
+.observation-track figure { margin: .75rem 0; }
+.observation-track figcaption { margin-top: .65rem; color: var(--text-muted); font-size: .85rem; }

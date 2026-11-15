@@ -1,0 +1,526 @@
+/* Overview-inspired visual treatment for the Solar System Simulator.
+   Deliberately leaves #scene, .plot and all SVG descendants untouched:
+   the Sun, planets, orbital paths and sightlines keep their existing design. */
+
+html[data-theme]:has(body.simulator-body) {
+  --text-muted: #c4c4bf;
+}
+html[data-theme] body.simulator-body {
+  min-height: 100vh;
+  color-scheme: dark;
+}
+html[data-theme]:not([data-contrast="high"]):has(body.simulator-body) body.simulator-body {
+  background-image: var(--static-space-background);
+  background-size: 360px 360px, 440px 440px, 520px 520px, cover, cover, clamp(250px, 52vw, 720px) auto;
+  background-position: 0 0, 90px 70px, 220px 40px, center, center, right -5vw bottom 8vh;
+  background-repeat: repeat, repeat, repeat, no-repeat, no-repeat, no-repeat;
+  background-attachment: fixed;
+}
+.simulator-body .site-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  min-height: 68px;
+  background: rgba(11, 15, 25, .82);
+  border-bottom: 1px solid rgba(239, 178, 79, .22);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, .2);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.simulator-body .site-brand {
+  color: #f1f1ee;
+  font-family: "Space Grotesk", var(--font-head), sans-serif;
+  letter-spacing: -.035em;
+}
+
+.simulator-body .site-header select {
+  color: #f1f1ee;
+  background: rgba(24, 28, 37, .92);
+  border: 1px solid rgba(239, 178, 79, .3);
+  border-radius: 8px;
+}
+
+.simulator-body .explore {
+  position: relative;
+  z-index: 1;
+  max-width: 94rem;
+  padding: 1.5rem clamp(1rem, 4vw, 3.5rem) 4rem;
+}
+
+.simulator-body .simulator-page {
+  max-width: 88rem;
+}
+
+.simulator-body .sim-intro {
+  position: relative;
+  gap: .8rem 3rem;
+  padding: clamp(2.4rem, 5vw, 4.5rem) 0 2rem;
+  border-bottom: 1px solid rgba(239, 178, 79, .22);
+}
+
+.simulator-body .sim-intro .atlas-kicker {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  color: #efb24f;
+  font: 600 .72rem/1.4 "JetBrains Mono", var(--font-mono), monospace;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.simulator-body .sim-intro .atlas-kicker::before {
+  content: "";
+  width: 1.6rem;
+  height: 1px;
+  background: #efb24f;
+  box-shadow: 0 0 12px rgba(239, 178, 79, .75);
+}
+
+.simulator-body .sim-intro h1 {
+  color: #f6f4ef;
+  font: 600 clamp(2.8rem, 6vw, 5.4rem)/.98 "Space Grotesk", var(--font-head), sans-serif;
+  letter-spacing: -.065em;
+  text-wrap: balance;
+  text-shadow: 0 8px 34px rgba(0, 0, 0, .3);
+}
+
+.simulator-body .sim-intro > p:last-child {
+  max-width: 43rem;
+  color: rgba(231, 232, 236, .7);
+  font-size: clamp(.98rem, 1.35vw, 1.12rem);
+  line-height: 1.7;
+}
+
+.simulator-body .simulator-layout {
+  gap: clamp(1rem, 2.4vw, 2rem);
+  padding-top: 1.6rem;
+}
+
+html[data-theme] body.simulator-body .simulator-layout > .panel {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: clamp(1rem, 2.2vw, 1.7rem) !important;
+  color: #f1f1ee;
+  background:
+    linear-gradient(145deg, rgba(28, 31, 39, .82), rgba(14, 18, 27, .82));
+  background-color: #141821 !important; /* Keep a measurable dark surface beneath the translucent gradient. */
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  border: 1px solid rgba(239, 178, 79, .2);
+  border-radius: 14px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255,255,255,.035);
+  transition: border-color .25s ease, box-shadow .25s ease, transform .25s ease;
+}
+
+.simulator-body .simulator-layout > .panel:hover {
+  border-color: rgba(239, 178, 79, .48);
+  box-shadow: 0 22px 54px rgba(0, 0, 0, .34), 0 0 28px rgba(239, 178, 79, .075);
+  transform: translateY(-2px);
+}
+
+html[data-contrast="high"] .simulator-body { background: #000; }
+html[data-contrast="high"] .simulator-body .simulator-layout > .panel { background: #000; backdrop-filter: none; -webkit-backdrop-filter: none; }
+
+.simulator-body .sim-panel-heading {
+  padding-bottom: 1rem;
+  border-bottom-color: rgba(255, 255, 255, .1);
+}
+
+.simulator-body .sim-panel-heading h2 {
+  color: #f5f2eb;
+  font: 600 1.25rem/1.2 "Space Grotesk", var(--font-head), sans-serif;
+  letter-spacing: -.025em;
+}
+
+.simulator-body .sim-panel-heading p:last-child {
+  color: rgba(220, 222, 228, .62);
+  line-height: 1.55;
+}
+
+.simulator-body .sim-controls {
+  gap: 1.25rem;
+}
+
+.simulator-body .sim-controls fieldset:not(.sim-time) {
+  gap: 1rem;
+}
+
+.simulator-body .sim-controls fieldset:not(.sim-time) legend {
+  margin-bottom: .1rem;
+  color: #efb24f;
+  font: 600 .7rem/1.4 "JetBrains Mono", var(--font-mono), monospace;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+
+.simulator-body .sim-controls label {
+  color: rgba(239, 239, 235, .88);
+  font-size: .86rem;
+  font-weight: 500;
+}
+
+.simulator-body .field-unit {
+  color: rgba(224, 222, 215, .48);
+  font-size: .72rem;
+}
+
+.simulator-body .sim-controls :is(input[type="number"], input[type="date"], select) {
+  width: 100%;
+  min-height: 42px;
+  padding: .65rem .75rem;
+  color: #f3f1eb;
+  color-scheme: dark;
+  background: rgba(8, 12, 20, .72);
+  border: 1px solid rgba(255, 255, 255, .13);
+  border-radius: 8px;
+  font: 500 .86rem/1.3 "JetBrains Mono", var(--font-mono), monospace;
+  transition: border-color .2s ease, box-shadow .2s ease, background .2s ease;
+}
+
+.simulator-body .sim-controls :is(input[type="number"], input[type="date"], select):hover {
+  border-color: rgba(239, 178, 79, .45);
+}
+
+.simulator-body .sim-controls :is(input[type="number"], input[type="date"], select):focus-visible {
+  outline: none;
+  border-color: #efb24f;
+  background: rgba(15, 19, 28, .96);
+  box-shadow: 0 0 0 3px rgba(239, 178, 79, .13), 0 0 18px rgba(239, 178, 79, .1);
+}
+
+.simulator-body .sim-coordinate-pair {
+  gap: .7rem;
+}
+
+.simulator-body .sim-time {
+  gap: 12px 18px;
+  margin: .2rem 0 .9rem;
+  padding: 1rem 0;
+  border-block-color: rgba(239, 178, 79, .2);
+}
+
+.simulator-body .sim-time legend {
+  color: #efb24f;
+  font: 600 .7rem/1.4 "JetBrains Mono", var(--font-mono), monospace;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+
+.simulator-body .range-label > span {
+  color: rgba(239, 239, 235, .84);
+  font-size: .86rem;
+}
+
+.simulator-body .range-label output {
+  color: #ffd18b;
+  font: 600 .85rem "JetBrains Mono", var(--font-mono), monospace;
+}
+
+.simulator-body .sim-time input[type="range"],
+.simulator-body .sim-camera input[type="range"] {
+  accent-color: #efb24f;
+  cursor: pointer;
+}
+
+.simulator-body .sim-time input[type="range"]::-webkit-slider-thumb,
+.simulator-body .sim-camera input[type="range"]::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px rgba(239, 178, 79, .14), 0 0 14px rgba(239, 178, 79, .45);
+}
+
+.simulator-body .sim-time .btn {
+  min-height: 42px;
+  padding-inline: 1.1rem;
+  color: #17130d;
+  background: linear-gradient(135deg, #ffd18b, #efb24f 68%, #d99135);
+  border: 1px solid rgba(255, 222, 165, .75);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(239, 178, 79, .16);
+  font: 700 .78rem "Space Grotesk", sans-serif;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
+}
+
+.simulator-body .sim-time .btn:hover:not(:disabled) {
+  color: #17130d;
+  filter: brightness(1.08);
+  box-shadow: 0 8px 26px rgba(239, 178, 79, .28);
+  transform: translateY(-2px);
+}
+
+.simulator-body .sim-time .btn:active {
+  transform: translateY(0);
+}
+
+.simulator-body .sim-camera {
+  padding-top: 1rem;
+  border-top-color: rgba(255, 255, 255, .1);
+}
+
+.simulator-body .sim-camera summary {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  color: #f3eee4;
+  font: 600 .86rem "Space Grotesk", sans-serif;
+  cursor: pointer;
+  list-style: none;
+  transition: color .2s ease;
+}
+
+.simulator-body .sim-camera summary::-webkit-details-marker { display: none; }
+
+.simulator-body .sim-camera summary::before {
+  content: "+";
+  display: grid;
+  width: 1.45rem;
+  height: 1.45rem;
+  place-items: center;
+  color: #efb24f;
+  background: rgba(239, 178, 79, .1);
+  border: 1px solid rgba(239, 178, 79, .3);
+  border-radius: 50%;
+  transition: transform .2s ease, background .2s ease;
+}
+
+.simulator-body .sim-camera[open] summary { color: #ffd18b; }
+.simulator-body .sim-camera[open] summary::before {
+  content: "−";
+  background: rgba(239, 178, 79, .18);
+  transform: rotate(180deg);
+}
+
+.simulator-body .sim-camera[open] {
+  gap: .9rem;
+  padding-bottom: .3rem;
+}
+
+.simulator-body .sim-readouts {
+  overflow: hidden;
+  margin: 1.35rem 0;
+  background: rgba(7, 11, 18, .42);
+  border: 1px solid rgba(239, 178, 79, .2);
+  border-radius: 10px;
+}
+
+.simulator-body .sim-readouts > div {
+  position: relative;
+  padding: .95rem 1rem;
+  background: rgba(255, 255, 255, .012);
+  border-color: rgba(255, 255, 255, .075);
+  transition: background .22s ease, box-shadow .22s ease;
+}
+
+.simulator-body .sim-readouts > div:hover {
+  z-index: 1;
+  background: rgba(239, 178, 79, .075);
+  box-shadow: inset 3px 0 #efb24f, 0 0 22px rgba(239, 178, 79, .06);
+}
+
+.simulator-body .sim-readouts dt {
+  color: rgba(226, 224, 217, .62);
+  font: 600 .68rem "JetBrains Mono", var(--font-mono), monospace;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+
+.simulator-body .sim-readouts dd {
+  color: #f5d39c;
+  font: 500 .82rem/1.5 "JetBrains Mono", var(--font-mono), monospace;
+}
+
+.simulator-body .sim-note {
+  padding: 1rem 1.1rem;
+  color: rgba(224, 225, 229, .72);
+  background: linear-gradient(100deg, rgba(239, 178, 79, .09), rgba(255,255,255,.025));
+  border: 1px solid rgba(239, 178, 79, .2);
+  border-left: 3px solid #efb24f;
+  border-radius: 0 8px 8px 0;
+  line-height: 1.65;
+}
+
+.simulator-body .sim-note strong { color: #ffd18b; }
+
+.simulator-body .sim-stage #status:not(:empty) {
+  padding: .85rem 1rem;
+  color: #ffaaa4;
+  background: rgba(139, 40, 45, .12);
+  border: 1px solid rgba(255, 120, 112, .35);
+  border-radius: 8px;
+}
+
+.simulator-body :is(button, summary, input, select):focus-visible {
+  outline: 2px solid #ffd18b;
+  outline-offset: 3px;
+}
+
+@media (max-width: 860px) {
+  .simulator-body .explore { padding-top: .5rem; }
+  .simulator-body .sim-intro { padding-top: 2.5rem; }
+}
+
+@media (max-width: 540px) {
+  .simulator-body .site-header { min-height: 58px; padding-inline: 1rem; }
+  .simulator-body .sim-intro h1 { font-size: clamp(2.55rem, 13vw, 4rem); }
+  .simulator-body .simulator-layout { padding-top: 1rem; }
+  .simulator-body .simulator-layout > .panel { border-radius: 11px; }
+  .simulator-body .sim-readouts > div { padding: .8rem .85rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .simulator-body .simulator-layout > .panel,
+  .simulator-body .sim-controls *,
+  .simulator-body .sim-readouts > div {
+    transition: none !important;
+    animation: none !important;
+  }
+  .simulator-body .simulator-layout > .panel:hover { transform: none; }
+}
+
+
+/* Simulator: symbolic spacecraft and synthetic monthly exposure comparison. */
+.simulator-body .plot .spherex-orbit {
+  fill: none;
+  stroke: #f1bc62;
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+  opacity: .7;
+}
+.simulator-body .plot .spherex-label {
+  fill: #ffd18b;
+  font: 600 12px var(--font-body);
+  paint-order: stroke;
+  stroke: #0b111a;
+  stroke-width: 3px;
+}
+.simulator-body .sim-month-presets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .6rem;
+  margin: .8rem 0 1.35rem;
+}
+.simulator-body .sim-presets-label {
+  color: #e6dac4;
+  font-size: .83rem;
+  font-weight: 600;
+}
+.simulator-body .sim-month-presets button {
+  padding: .5rem .75rem;
+  color: #f2d4a0;
+  background: #171a22;
+  border: 1px solid rgba(239,178,79,.4);
+  border-radius: 7px;
+  font: 600 .78rem var(--font-body);
+}
+.simulator-body .sim-month-presets button[aria-pressed="true"] {
+  background: rgba(239,178,79,.2);
+  border-color: #ffd18b;
+  box-shadow: 0 0 0 1px rgba(239,178,79,.15);
+}
+.simulator-body #sim-month-label {
+  margin-left: auto;
+  color: #dcd4c9;
+  font: .77rem var(--font-mono);
+  white-space: nowrap;
+}
+.simulator-body .sim-captures {
+  margin: 1.3rem 0;
+  padding: 1.05rem;
+  border: 1px solid rgba(239,178,79,.3);
+  border-radius: 12px;
+  background: linear-gradient(135deg,rgba(10,18,29,.94),rgba(18,23,32,.94));
+}
+.simulator-body .sim-captures-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: .8rem;
+}
+.simulator-body .sim-captures-kicker {
+  margin: 0 0 .2rem;
+  color: #f3bc60;
+  font: 700 .65rem var(--font-mono);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.simulator-body .sim-captures h3 {
+  margin: 0;
+  color: #f2eee4;
+  font: 600 1.08rem var(--font-head);
+}
+.simulator-body #align-frames {
+  padding: .65rem .8rem;
+  color: #17120c;
+  background: #ffd18b;
+  border: 1px solid #ffe1b0;
+  border-radius: 7px;
+  font: 700 .78rem var(--font-body);
+}
+.simulator-body #align-frames[aria-pressed="true"] {
+  color: #f7f0df;
+  background: #225b5b;
+  border-color: #6dd3c2;
+}
+.simulator-body .sim-captures-intro,
+.simulator-body .sim-alignment-caption {
+  margin: .65rem 0 .9rem;
+  color: #bbc9d4;
+  font-size: .83rem;
+  line-height: 1.55;
+}
+.simulator-body .sim-frames {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .65rem;
+}
+.simulator-body .sim-frames figure { min-width: 0; margin: 0; }
+.simulator-body .sim-frames figcaption {
+  display: block;
+  padding: 0 0 .45rem;
+  color: #e2d7c5;
+  font: 600 .76rem var(--font-body);
+}
+.simulator-body .sim-frames canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 8 / 5;
+  border: 1px solid rgba(151,187,203,.32);
+  border-radius: 5px;
+  background: #07111f;
+}
+.simulator-body .sim-blend-controls {
+  display: grid;
+  gap: .4rem;
+  margin-top: 1rem;
+}
+.simulator-body .sim-blend-controls label {
+  display: flex;
+  justify-content: space-between;
+  gap: .5rem;
+  color: #e1d7c8;
+  font-size: .78rem;
+}
+.simulator-body .sim-blend-controls output {
+  color: #ffd18b;
+  font-family: var(--font-mono);
+}
+.simulator-body #sim-blend { width: 100%; accent-color: #efb24f; }
+.simulator-body .sim-alignment-caption {
+  margin-bottom: 0;
+  min-height: 2.3em;
+}
+html[data-contrast="high"] .simulator-body .sim-captures { background: #000; border-color: #fff; }
+@media (max-width: 1100px) {
+  .simulator-body .sim-frames { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .simulator-body .sim-frames figure:last-child { grid-column: 1 / -1; max-width: 25rem; width: 100%; }
+}
+@media (max-width: 580px) {
+  .simulator-body .sim-frames { grid-template-columns: 1fr; }
+  .simulator-body .sim-frames figure:last-child { grid-column: auto; max-width: none; }
+  .simulator-body #sim-month-label { margin-left: 0; width: 100%; }
+}

@@ -1,7 +1,7 @@
-# Backend for SPHEREx Blink (step 7). Tested with Python 3.14.
+# Backend for SPHEREx Blink. Tested with Python 3.14.
 fastapi>=0.115
 uvicorn>=0.30
 astropy>=7.1        # first astropy line with Python 3.14 wheels
 numpy>=2.1
 pillow>=11.0
-# pyvo – added in step 8, once we know the IRSA access method (SIA/TAP/cutout service)
+# No pyvo: IRSA TAP, Gaia TAP and the HiPS tiles are asked with the standard library (urllib), see spherex/catalogues.py and survey.py.

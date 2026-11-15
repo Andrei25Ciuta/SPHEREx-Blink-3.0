@@ -200,6 +200,8 @@ async function main() {
       return `${await evaluate(`document.querySelectorAll("#assistant-out li").length`)} sentences`;
     });
     await step("the text analysis (tables, no picture) is built, lists the dots and the candidate, and its first line says the data are synthetic", async () => {
+      // Text analysis is inside the initially collapsed workspace-analysis disclosure.
+      await evaluate(`document.getElementById("workspace-analysis").open = true`);
       await click("#ta-build-btn");
       await waitFor(`!document.getElementById("ta-out").hidden`, "text analysis tables");
       const info = await evaluate(`({ status: document.getElementById("ta-status").textContent, first: document.querySelector("#ta-prov li")?.textContent ?? "", dots: document.querySelectorAll("#ta-sources tbody tr").length, cands: document.querySelectorAll("#ta-cands tbody tr").length,
@@ -219,11 +221,6 @@ async function main() {
       if (/[?&](data|api)=/.test(info.link) || info.command !== null) throw new Error(`replay: ${info.link} ${info.command}`);
       return `${info.images} hashed images, ${info.search} search record`;
     });
-    await step("the Solar System view is drawn", async () => {
-      await waitFor(`document.getElementById("ss-map").innerHTML.length > 200`, "solar system map");
-      return (await text("#ss-swing")).trim().slice(0, 100) || "map drawn";
-    });
-
     await step("the survey search of IRSA has no backend here: its button is disabled and the page says why (no dead button, nothing invented)", async () => {
       const state = await evaluate(`({ disabled: document.getElementById("survey-btn").disabled, status: document.getElementById("survey-status").textContent, hidden: document.getElementById("survey-result").hidden })`);
       if (!state.disabled || !state.hidden) throw new Error(`the button is ${state.disabled ? "disabled" : "enabled"} and the result is ${state.hidden ? "hidden" : "shown"}`);
