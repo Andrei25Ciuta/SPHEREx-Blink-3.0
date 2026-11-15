@@ -2,3 +2,6 @@
 -r requirements.txt
 pytest>=8
 httpx==0.28.1
+
+# Cloud workflow tests import exception and auth types even with fake clients.
+google-api-core>=2,<3
