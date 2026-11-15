@@ -43,6 +43,20 @@ def _finite(value, label):
     return result
 
 
+def _request_detectors(request: dict) -> tuple[str, ...]:
+    """Accept both normalized API lists and Firestore's detector status map."""
+    value = request.get("detectors")
+    if isinstance(value, dict):
+        detectors = tuple(value.keys())
+    elif isinstance(value, (list, tuple)):
+        detectors = tuple(value)
+    else:
+        raise ValueError("Invalid SPHEREx TAP detector selection")
+    if not detectors or len(set(detectors)) != len(detectors) or any(d not in DETECTORS for d in detectors):
+        raise ValueError("Invalid SPHEREx TAP detector selection")
+    return detectors
+
+
 def build_query(request: dict) -> str:
     """Build bounded ADQL from a normalized field request, never raw SQL text."""
     query = request.get("query") or {}
@@ -55,9 +69,7 @@ def build_query(request: dict) -> str:
     collection = request.get("collection")
     if collection != SUPPORTED_COLLECTION:
         raise ValueError("IRSA TAP fallback currently supports only spherex_dr1")
-    detectors = request.get("detectors")
-    if not isinstance(detectors, (list, tuple)) or not detectors or any(d not in DETECTORS for d in detectors):
-        raise ValueError("Invalid SPHEREx TAP detector selection")
+    detectors = _request_detectors(request)
     # Values are from a fixed allowlist, not user-provided query fragments.
     bands = ", ".join("'SPHEREx-%s'" % d for d in dict.fromkeys(detectors))
     # SIA POS uses a circle radius of half the requested FOV diameter.
@@ -150,7 +162,7 @@ def normalize_rows(rows: list[dict], request: dict) -> list[dict]:
     collection = request.get("collection")
     if collection != SUPPORTED_COLLECTION:
         raise ValueError("IRSA TAP fallback currently supports only spherex_dr1")
-    detectors = set(request.get("detectors") or ())
+    detectors = set(_request_detectors(request))
     mjd_start = request.get("mjdStart")
     mjd_end = request.get("mjdEnd")
     seen = set()

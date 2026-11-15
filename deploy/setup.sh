@@ -80,6 +80,21 @@ gcloud tasks queues add-iam-policy-binding "$queue" --location="$region" --proje
   --member="serviceAccount:$api_sa" --role=roles/cloudtasks.enqueuer
 gcloud tasks queues add-iam-policy-binding "$queue" --location="$region" --project="$project" \
   --member="serviceAccount:$orchestrator_sa" --role=roles/cloudtasks.enqueuer
+# The reconciler checks whether its stable discovery task is still queued or
+# retrying before it repairs stale Firestore state. Keep that read permission
+# queue-scoped and separate from enqueue rights; do not grant project-wide
+# Cloud Tasks viewer access to the orchestrator.
+if ! gcloud iam roles describe blink3TaskInspector --project="$project" >/dev/null 2>&1; then
+  gcloud iam roles create blink3TaskInspector --project="$project" \
+    --title='Blink 3 acquisition task inspector' \
+    --description='Read named tasks in the Blink 3 acquisition queue for idempotent stale-request reconciliation.' \
+    --permissions=cloudtasks.tasks.get --stage=GA
+else
+  gcloud iam roles update blink3TaskInspector --project="$project" \
+    --permissions=cloudtasks.tasks.get --stage=GA
+fi
+gcloud tasks queues add-iam-policy-binding "$queue" --location="$region" --project="$project" \
+  --member="serviceAccount:$orchestrator_sa" --role="projects/$project/roles/blink3TaskInspector"
 gcloud iam service-accounts add-iam-policy-binding "$tasks_sa" --project="$project" \
   --member="serviceAccount:$api_sa" --role=roles/iam.serviceAccountUser
 gcloud iam service-accounts add-iam-policy-binding "$tasks_sa" --project="$project" \

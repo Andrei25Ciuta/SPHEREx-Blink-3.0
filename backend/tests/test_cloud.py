@@ -55,10 +55,10 @@ def test_monthly_execute_falls_back_until_a_verified_usable_image_is_found(tmp_p
             self.headers = {}
 
     files = [
-        {"obsId": "jan-404", "mjd": 61000.1, "month": "2025-01", "url": "https://irsa.ipac.caltech.edu/404.fits", "name": "input-000.fits"},
-        {"obsId": "jan-no-coverage", "mjd": 61000.2, "month": "2025-01", "url": "https://irsa.ipac.caltech.edu/no-coverage.fits", "name": "input-001.fits"},
-        {"obsId": "jan-good", "mjd": 61000.3, "month": "2025-01", "url": "https://irsa.ipac.caltech.edu/good.fits", "name": "input-002.fits"},
-        {"obsId": "feb-good", "mjd": 61031.3, "month": "2025-02", "url": "https://irsa.ipac.caltech.edu/feb.fits", "name": "input-003.fits"},
+        {"obsId": "jan-404", "mjd": 60676.1, "month": "2025-01", "url": "https://irsa.ipac.caltech.edu/404.fits", "name": "input-000.fits"},
+        {"obsId": "jan-no-coverage", "mjd": 60676.2, "month": "2025-01", "url": "https://irsa.ipac.caltech.edu/no-coverage.fits", "name": "input-001.fits"},
+        {"obsId": "jan-good", "mjd": 60676.3, "month": "2025-01", "url": "https://irsa.ipac.caltech.edu/good.fits", "name": "input-002.fits"},
+        {"obsId": "feb-good", "mjd": 60707.3, "month": "2025-02", "url": "https://irsa.ipac.caltech.edu/feb.fits", "name": "input-003.fits"},
     ]
     plan = {"version": 1, "sequenceId": "test-monthly-d1", "collection": "spherex_dr1",
             "query": {"ra": 10, "dec": -10, "fov": 5, "det": "D1"},
@@ -106,9 +106,9 @@ def test_monthly_fallback_bytes_stay_within_the_detector_cap(tmp_path, monkeypat
 
     payload = b"verified-fit"
     files = [
-        {"obsId": "jan-unusable", "mjd": 61000.1, "month": "2026-01",
+        {"obsId": "jan-unusable", "mjd": 61041.1, "month": "2026-01",
          "url": "https://irsa.ipac.caltech.edu/unusable.fits", "name": "input-000.fits"},
-        {"obsId": "jan-fallback", "mjd": 61000.2, "month": "2026-01",
+        {"obsId": "jan-fallback", "mjd": 61041.2, "month": "2026-01",
          "url": "https://irsa.ipac.caltech.edu/fallback.fits", "name": "input-001.fits"},
     ]
     plan = {"version": 1, "sequenceId": "test-monthly-cap-d1", "collection": "spherex_dr1",

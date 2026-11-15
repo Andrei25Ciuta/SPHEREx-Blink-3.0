@@ -35,6 +35,13 @@ def test_build_query_filters_circle_detectors_and_normalized_date_bounds():
     assert "TOP 4096" in adql and "ORDER BY p.time_bounds_lower" in adql
 
 
+def test_build_query_accepts_the_persisted_firestore_detector_status_map():
+    detectors = {f"D{i}": {"status": "discovering"} for i in range(1, 7)}
+    adql = tap_archive.build_query(request(detectors=detectors))
+    assert "p.energy_bandpassname IN ('SPHEREx-D1', 'SPHEREx-D2', 'SPHEREx-D3', 'SPHEREx-D4', 'SPHEREx-D5', 'SPHEREx-D6')" in adql
+    assert tap_archive.normalize_rows([tap_row()], request(detectors=detectors))[0]["obs_collection"] == "spherex_dr1"
+
+
 @pytest.mark.parametrize("bad", [
     {"query": {"ra": 360, "dec": 0, "fov": 5}},
     {"query": {"ra": 1, "dec": -91, "fov": 5}},
