@@ -6,7 +6,7 @@ Science Mode can select the HTTPS SPHEREx DR1 service. The existing field form s
 
 The live Firestore policy and Cloud Run orchestrator now permit up to 20 concurrent detector preparation jobs for testing and presentation. Policy v2 accepts the previous v1 version for requests already in progress.
 
-The deployed service currently returns HTTP 501 for its local-only `/api/survey`, `/api/catalogue`, `/api/footprints` and `/api/hips/*` routes. The Workspace survey search therefore cannot use those routes in cloud mode. The cloud `/api/photometry` endpoint returned HTTP 503 in a read-only check on 15 Nov 2026; recheck it before relying on image-click measurements with cloud data. Local backend mode continues to expose those local research endpoints.
+The source now provides `/api/catalogue` on the Cloud API, using the existing bounded server-side TAP relay for 2MASS, AllWISE and Gaia DR3. The deployed production image has not been updated for this change and still returns HTTP 501 for `/api/catalogue` until an approved release. `/api/survey`, `/api/footprints` and `/api/hips/*` remain unavailable in cloud mode. The cloud `/api/photometry` endpoint returned HTTP 503 in a read-only check on 15 Nov 2026; recheck it before relying on image-click measurements with cloud data. Local backend mode continues to expose its existing research endpoints.
 
 ## New in 4.0: Research + Education
 
