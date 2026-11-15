@@ -34,7 +34,7 @@ def validate_plan(p):
     if not (
         0 <= q["ra"] < 360
         and -90 <= q["dec"] <= 90
-        and 1 <= q["fov"] <= 30
+        and 1 <= q["fov"] <= 10
         and q["det"] in [f"D{i}" for i in range(1, 7)]
     ):
         raise ValueError("Invalid field")

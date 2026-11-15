@@ -2,11 +2,14 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 import json
 import logging
 import os
 import re
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
+import xml.etree.ElementTree as ET
 
 from .archive_plan import make_plan, metadata, open_archive, votable
 from .cloud_limits import MAX_ACTIVE_DOWNLOAD_JOBS
@@ -15,9 +18,35 @@ from .firestore_state import FirestoreState
 from .storage import from_env
 
 class WorkflowError(RuntimeError):
-    def __init__(self, detail, status_code=503):
+    def __init__(self, detail, status_code=503, retry_after=None):
         super().__init__(detail)
         self.status_code = status_code
+        self.retry_after = retry_after
+
+
+RETRYABLE_METADATA_HTTP = frozenset((408, 429, 500, 502, 503, 504))
+DEFAULT_METADATA_MAX_ATTEMPTS = 100
+
+
+def metadata_retry_after(exc):
+    """Return a bounded Retry-After delay for a Cloud Tasks retry response."""
+    headers = getattr(exc, "headers", None)
+    value = headers.get("Retry-After") if headers is not None else None
+    if not value:
+        return None
+    try:
+        seconds = float(value)
+    except (TypeError, ValueError):
+        try:
+            retry_at = parsedate_to_datetime(value)
+            if retry_at.tzinfo is None:
+                retry_at = retry_at.replace(tzinfo=timezone.utc)
+            seconds = (retry_at - datetime.now(timezone.utc)).total_seconds()
+        except (TypeError, ValueError, OverflowError):
+            return None
+    if seconds <= 0:
+        return None
+    return min(300, max(1, int(seconds + 0.999)))
 
 
 def task_archive_fetch(url):
@@ -195,6 +224,8 @@ class CloudWorkflow:
         self.max_active_jobs = max(1, min(MAX_ACTIVE_DOWNLOAD_JOBS, int(max_active_jobs)))
         self.archive_fetch = archive_fetch
         self.verify_identity = task_identity_verifier
+        self.metadata_max_attempts = max(1, min(
+            DEFAULT_METADATA_MAX_ATTEMPTS, int(os.getenv("BLINK_METADATA_MAX_ATTEMPTS", DEFAULT_METADATA_MAX_ATTEMPTS))))
         approved_path = os.getenv("BLINK_APPROVED_FILE", os.path.join(os.path.dirname(__file__), "..", "approved_sequences.json"))
         try:
             self.approved_sequences = json.loads(open(approved_path, encoding="utf-8").read()).get("approved", [])
@@ -204,6 +235,49 @@ class CloudWorkflow:
     def _require_task(self, request, audience, service_account):
         if not self.verify_identity(request, audience=audience, service_account=service_account):
             raise WorkflowError("Task authentication failed.", 401)
+
+    def _record_metadata_failure(self, request_id, attempt, message, *, http_status=None, retrying):
+        request = self.state.get_request(request_id) or {}
+        for detector, previous in request.get("detectors", {}).items():
+            if previous.get("status") in ("ready", "unavailable"):
+                continue
+            values = {
+                "status": "discovering" if retrying else "failed",
+                "phase": "metadata-retrying" if retrying else "metadata-failed",
+                "error": message,
+                "metadataAttemptCount": attempt,
+            }
+            if not retrying:
+                values["progress"] = 0.03
+            self.state.update_detector(request_id, detector, values)
+        self.state.update_request(request_id, {
+            "status": "discovering" if retrying else "failed",
+            "phase": "metadata-retrying" if retrying else "metadata-failed",
+            "metadataAttemptCount": attempt,
+            "metadataRetrying": retrying,
+            "metadataError": message,
+            "metadataHttpStatus": http_status,
+        })
+        if not retrying:
+            self._refresh_request_status(request_id)
+
+    def _retry_metadata(self, request_id, attempt, message, *, exc=None):
+        http_status = exc.code if isinstance(exc, HTTPError) else None
+        if attempt >= self.metadata_max_attempts:
+            terminal = (f"IRSA archive search stopped after {attempt} failed attempts. "
+                        "Use Retry failed detectors to start a fresh attempt.")
+            self._record_metadata_failure(request_id, attempt, terminal,
+                                          http_status=http_status, retrying=False)
+            return "failed"
+        self._record_metadata_failure(request_id, attempt, message,
+                                      http_status=http_status, retrying=True)
+        retry_after = metadata_retry_after(exc) if isinstance(exc, HTTPError) else None
+        raise WorkflowError(message, 503, retry_after=retry_after) from exc
+
+    def _fail_metadata(self, request_id, attempt, message, *, http_status=None):
+        self._record_metadata_failure(request_id, attempt, message,
+                                      http_status=http_status, retrying=False)
+        return "failed"
 
     def discover(self, request_id, lease_id=None):
         request = self.state.get_request(request_id)
@@ -216,28 +290,80 @@ class CloudWorkflow:
             owner = lease_id or f"discover-{request_id}-a{request.get('discoveryAttempt', 0)}"
             if not self.state.claim_work_lock(lock_id, owner):
                 return
-            self.state.update_request(request_id, {"status": "discovering", "phase": "metadata"})
-            for detector in request["detectors"]:
-                previous = request.get("detectors", {}).get(detector, {})
-                if previous.get("status") in ("ready", "unavailable"):
-                    continue
-                self.state.update_detector(request_id, detector, {
-                    "status": "discovering", "phase": "metadata", "progress": 0.03,
-                })
-            query = request["query"]
-            params = urlencode({"COLLECTION": request["collection"],
-                                "POS": f"circle {query['ra']} {query['dec']} {query['fov'] / 120}",
-                                "MAXREC": 4096, "RESPONSEFORMAT": "votable"})
             try:
-                rows = votable(self.archive_fetch("https://irsa.ipac.caltech.edu/SIA?" + params))
+                attempt = int(request.get("metadataAttemptCount", 0)) + 1
+                if attempt > self.metadata_max_attempts:
+                    return self._fail_metadata(
+                        request_id, self.metadata_max_attempts,
+                        f"IRSA archive search stopped after {self.metadata_max_attempts} failed attempts. "
+                        "Use Retry failed detectors to start a fresh attempt.",
+                        http_status=request.get("metadataHttpStatus"),
+                    )
+                self.state.update_request(request_id, {
+                    "status": "discovering", "phase": "metadata", "metadataAttemptCount": attempt,
+                    "metadataRetrying": False, "metadataError": None, "metadataHttpStatus": None,
+                })
+                for detector in request["detectors"]:
+                    previous = request.get("detectors", {}).get(detector, {})
+                    if previous.get("status") in ("ready", "unavailable"):
+                        continue
+                    self.state.update_detector(request_id, detector, {
+                        "status": "discovering", "phase": "metadata", "progress": 0.03,
+                        "error": None, "metadataAttemptCount": attempt,
+                    })
+                query = request["query"]
+                params = urlencode({"COLLECTION": request["collection"],
+                                    "POS": f"circle {query['ra']} {query['dec']} {query['fov'] / 120}",
+                                    "MAXREC": 4096, "RESPONSEFORMAT": "votable"})
+                archive_url = "https://irsa.ipac.caltech.edu/SIA?" + params
+                try:
+                    response = self.archive_fetch(archive_url)
+                except HTTPError as exc:
+                    if exc.code in RETRYABLE_METADATA_HTTP:
+                        return self._retry_metadata(
+                            request_id, attempt,
+                            f"IRSA archive search is temporarily unavailable (HTTP {exc.code}); Cloud Tasks will retry.",
+                            exc=exc,
+                        )
+                    return self._fail_metadata(
+                        request_id, attempt,
+                        f"IRSA rejected the metadata search (HTTP {exc.code}); no detector plans were created.",
+                        http_status=exc.code,
+                    )
+                except (URLError, TimeoutError, ConnectionError) as exc:
+                    return self._retry_metadata(
+                        request_id, attempt,
+                        "IRSA archive search timed out or could not connect; Cloud Tasks will retry.", exc=exc,
+                    )
+                except Exception as exc:
+                    logging.exception("Unexpected IRSA metadata request failure for %s", request_id)
+                    return self._retry_metadata(
+                        request_id, attempt,
+                        "IRSA archive search failed temporarily; Cloud Tasks will retry.", exc=exc,
+                    )
+                try:
+                    rows = votable(response)
+                except (ValueError, ET.ParseError) as exc:
+                    return self._fail_metadata(
+                        request_id, attempt,
+                        f"IRSA returned an unusable metadata response: {str(exc)[:160]}",
+                    )
                 metadata_key = f"requests/{request_id}/archive-metadata.json"
-                self.store.put_json(metadata_key, rows)
+                try:
+                    self.store.put_json(metadata_key, rows)
+                except Exception as exc:
+                    logging.exception("Could not store IRSA metadata for %s", request_id)
+                    return self._retry_metadata(
+                        request_id, attempt,
+                        "The archive response was received but could not be stored; Cloud Tasks will retry.",
+                        exc=exc,
+                    )
                 self.state.update_request(request_id, {"metadataKey": metadata_key,
-                                                        "status": "planning", "phase": "planning"})
-            except Exception:
+                                                        "status": "planning", "phase": "planning",
+                                                        "metadataRetrying": False, "metadataError": None,
+                                                        "metadataHttpStatus": None})
+            finally:
                 self.state.release_work_lock(lock_id, owner)
-                raise
-            self.state.release_work_lock(lock_id, owner)
         for detector in request["detectors"]:
             previous = (self.state.get_request(request_id) or {}).get("detectors", {}).get(detector, {})
             if previous.get("status") in ("ready", "unavailable"):
@@ -556,6 +682,10 @@ class PublicFieldRequests:
                 "progress": request.get("progress", 0.0), "query": request.get("query"),
                 "selection": request.get("selection", "latest"),
                 "policyVersion": request.get("policyVersion"), "readyDetectors": ready,
+                "metadataAttemptCount": int(request.get("metadataAttemptCount", 0)),
+                "metadataRetrying": request.get("metadataRetrying", False) is True,
+                "metadataError": request.get("metadataError"),
+                "metadataHttpStatus": request.get("metadataHttpStatus"),
                 "acknowledgement": request.get("acknowledgement"),
                 "dataDoi": request.get("dataDoi"),
                 "detectors": detectors, "readyForServing": ready > 0,
@@ -584,8 +714,11 @@ class PublicFieldRequests:
                 needs_discovery = True
         if not retried:
             return request
-        self.state.update_request(request_id, {"status": "queued", "progress": 0.0,
-                                               "discoveryAttempt": discovery_attempt})
+        values = {"status": "queued", "progress": 0.0, "discoveryAttempt": discovery_attempt}
+        if needs_discovery and not request.get("metadataKey"):
+            values.update({"metadataAttemptCount": 0, "metadataRetrying": False,
+                           "metadataError": None, "metadataHttpStatus": None})
+        self.state.update_request(request_id, values)
         if needs_discovery:
             task_name = f"discover-{request_id}-a{discovery_attempt}"
             self.tasks.enqueue("/internal/tasks/discover",

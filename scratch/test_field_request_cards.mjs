@@ -1,4 +1,5 @@
 import { strict as assert } from "node:assert";
+import { readFile } from "node:fs/promises";
 import { FIELD_DETECTOR_IDS, fieldRequestCardRows } from "../frontend/js/features/fieldRequestCards.js";
 
 const frames = [
@@ -34,4 +35,18 @@ assert.equal(rows[5].completedFiles, null);
 
 const clamped = fieldRequestCardRows({ detectors: { D1: { status: "processing", progress: 3 } } })[0];
 assert.equal(clamped.progress, 1);
+
+const markup = await readFile(new URL("../frontend/index.html", import.meta.url), "utf8");
+const overviewPosition = markup.indexOf('id="overview"');
+const statusPosition = markup.indexOf('id="field-request-panel"');
+assert.ok(overviewPosition >= 0 && statusPosition > overviewPosition,
+  "the normal detector overview buttons stay above the acquisition status strip");
+assert.doesNotMatch(markup, /field-request-grid/,
+  "the acquisition UI does not replace detector buttons with a second card grid");
+
+const main = await readFile(new URL("../frontend/js/main.js", import.meta.url), "utf8");
+assert.match(main, /renderOverview\(frames, token, \{ showMissing: true \}\)/,
+  "all six standard detector buttons remain visible while real data is pending");
+assert.match(main, /metadata-retrying/,
+  "the status strip identifies archive retry phases");
 console.log("field request cards show all six backend states without inventing progress");

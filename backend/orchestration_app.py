@@ -17,8 +17,11 @@ workflow = CloudWorkflow(max_active_jobs=int(os.getenv(
 
 @app.exception_handler(WorkflowError)
 async def workflow_failure(request, exc):
+    headers = {}
+    if exc.status_code in (429, 503):
+        headers["Retry-After"] = str(exc.retry_after or 5)
     return JSONResponse({"detail": str(exc)}, status_code=exc.status_code,
-                        headers={"Retry-After": "5"} if exc.status_code in (429, 503) else None)
+                        headers=headers)
 
 
 @app.exception_handler(StateUnavailable)

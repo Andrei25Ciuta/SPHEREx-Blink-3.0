@@ -1,4 +1,6 @@
 import json
+from io import BytesIO
+from urllib.error import HTTPError
 
 import pytest
 
@@ -271,6 +273,114 @@ def test_discovery_generates_one_idempotent_plan_task_for_each_detector(tmp_path
     assert set(planned) == set(DETECTORS)
     assert len({name for _path, _payload, name in tasks.enqueued}) == 6
     assert request["metadataKey"] == f"requests/{request['requestId']}/archive-metadata.json"
+
+
+def _metadata_request_fixture():
+    normalized = normalize_request({"ra": 10, "dec": -10, "fov": 5})
+    request = {
+        "requestId": normalized["requestId"], "status": "queued",
+        "query": normalized["query"], "collection": normalized["collection"],
+        "detectors": {det: {"status": "queued", "progress": 0.0, "attempt": 0} for det in DETECTORS},
+    }
+    policy = {"version": "policy-v1", "acknowledgement": "Approved official SPHEREx DR1 acknowledgement.",
+              "dataDoi": "10.26131/IRSA678"}
+    return request, policy
+
+
+@pytest.mark.parametrize("http_status", [408, 429, 500, 502, 503, 504])
+def test_transient_metadata_http_errors_are_persisted_and_retried(http_status):
+    request, policy = _metadata_request_fixture()
+    state, tasks = FakeState(request, policy), FakeTasks()
+    error = HTTPError("https://irsa.ipac.caltech.edu/SIA", http_status, "Temporary archive error",
+                      {"Retry-After": "17"}, BytesIO())
+    workflow = CloudWorkflow(state=state, tasks=tasks, launcher=object(), store=FakeStore([]),
+                             archive_fetch=lambda _url: (_ for _ in ()).throw(error))
+
+    with pytest.raises(WorkflowError, match="temporarily unavailable") as raised:
+        workflow.discover(request["requestId"], "discover-test")
+
+    assert raised.value.status_code == 503
+    assert raised.value.retry_after == 17
+    assert request["metadataAttemptCount"] == 1
+    assert request["metadataRetrying"] is True
+    assert request["metadataHttpStatus"] == http_status
+    assert "Cloud Tasks will retry" in request["metadataError"]
+    assert all(item["phase"] == "metadata-retrying" for item in request["detectors"].values())
+    assert not state.locks
+    assert tasks.enqueued == []
+
+    status = PublicFieldRequests(state=state, tasks=tasks).status(request["requestId"])
+    assert status["metadataRetrying"] is True
+    assert status["metadataAttemptCount"] == 1
+    assert status["metadataHttpStatus"] == http_status
+
+
+def test_metadata_retry_success_clears_error_and_continues_planning():
+    request, policy = _metadata_request_fixture()
+    state, tasks = FakeState(request, policy), FakeTasks()
+    error = HTTPError("https://irsa.ipac.caltech.edu/SIA", 503, "Unavailable",
+                      {"Retry-After": "5"}, BytesIO())
+    calls = 0
+
+    def fetch(_url):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise error
+        return _votable_all_detectors()
+
+    workflow = CloudWorkflow(state=state, tasks=tasks, launcher=object(), store=FakeStore([]), archive_fetch=fetch)
+    with pytest.raises(WorkflowError):
+        workflow.discover(request["requestId"], "discover-first")
+
+    workflow.discover(request["requestId"], "discover-second")
+
+    assert request["metadataAttemptCount"] == 2
+    assert request["metadataRetrying"] is False
+    assert request["metadataError"] is None
+    assert request["metadataHttpStatus"] is None
+    assert request["metadataKey"] == f"requests/{request['requestId']}/archive-metadata.json"
+    assert len([item for item in tasks.enqueued if item[0] == "/internal/tasks/plan"]) == 6
+
+
+def test_permanent_metadata_http_error_fails_request_without_retrying():
+    request, policy = _metadata_request_fixture()
+    state, tasks = FakeState(request, policy), FakeTasks()
+    error = HTTPError("https://irsa.ipac.caltech.edu/SIA", 404, "Not Found", {}, BytesIO())
+    workflow = CloudWorkflow(state=state, tasks=tasks, launcher=object(), store=FakeStore([]),
+                             archive_fetch=lambda _url: (_ for _ in ()).throw(error))
+
+    assert workflow.discover(request["requestId"], "discover-test") == "failed"
+
+    assert request["status"] == "failed"
+    assert request["metadataRetrying"] is False
+    assert request["metadataHttpStatus"] == 404
+    assert all(item["status"] == "failed" for item in request["detectors"].values())
+    assert tasks.enqueued == []
+
+
+def test_metadata_retry_limit_fails_terminally_and_explicit_retry_starts_a_fresh_attempt():
+    request, policy = _metadata_request_fixture()
+    request["metadataAttemptCount"] = 99
+    state, tasks = FakeState(request, policy), FakeTasks()
+    error = HTTPError("https://irsa.ipac.caltech.edu/SIA", 503, "Unavailable", {}, BytesIO())
+    workflow = CloudWorkflow(state=state, tasks=tasks, launcher=object(), store=FakeStore([]),
+                             archive_fetch=lambda _url: (_ for _ in ()).throw(error))
+
+    assert workflow.discover(request["requestId"], "discover-final") == "failed"
+    assert request["metadataAttemptCount"] == 100
+    assert request["metadataRetrying"] is False
+    assert request["phase"] == "metadata-failed"
+    assert all(item["status"] == "failed" for item in request["detectors"].values())
+    assert not state.locks
+    assert tasks.enqueued == []
+
+    PublicFieldRequests(state=state, tasks=tasks).retry(request["requestId"])
+    assert request["metadataAttemptCount"] == 0
+    assert request["metadataRetrying"] is False
+    assert request["metadataError"] is None
+    assert request["status"] == "queued"
+    assert any(path == "/internal/tasks/discover" for path, _, _ in tasks.enqueued)
 
 
 def test_cloud_run_v2_launch_overrides_and_execution_discovery():

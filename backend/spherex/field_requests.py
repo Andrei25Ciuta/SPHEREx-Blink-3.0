@@ -60,7 +60,7 @@ def normalize_request(payload, *, allowed_collections=(COLLECTION,), processing_
         raise RequestValidationError("A JSON object is required.")
     ra = _number(payload.get("ra"), "RA", 0, 360)
     dec = _number(payload.get("dec"), "Dec", -90, 90, high_inclusive=True)
-    fov = _number(payload.get("fov"), "FOV", 1, 30, high_inclusive=True)
+    fov = _number(payload.get("fov"), "FOV", 1, 10, high_inclusive=True)
     collection = payload.get("collection", COLLECTION)
     if collection not in allowed_collections:
         raise RequestValidationError("That SPHEREx collection is not enabled by the acquisition policy.")

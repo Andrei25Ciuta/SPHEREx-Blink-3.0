@@ -16,7 +16,7 @@ def validate_manifest(doc):
         if doc["dataKind"] not in ("real", "synthetic") or not isinstance(doc["acknowledgement"], str):
             raise ValueError()
         q = doc["query"]
-        if not (0 <= q["ra"] < 360 and -90 <= q["dec"] <= 90 and 1 <= q["fov"] <= 30):
+        if not (0 <= q["ra"] < 360 and -90 <= q["dec"] <= 90 and 1 <= q["fov"] <= 10):
             raise ValueError()
         if q["det"] not in [f"D{i}" for i in range(1, 7)]:
             raise ValueError()

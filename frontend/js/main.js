@@ -239,24 +239,23 @@ const overlay = $("stage-overlay");
 const overlayProgress = $("overlay-progress");
 const retryBtn = $("retry-btn");
 const fieldRequestPanel = $("field-request-panel");
-const fieldRequestGrid = $("field-request-grid");
 const fieldRequestTitle = $("field-request-title");
 const fieldRequestSummary = $("field-request-summary");
 const fieldRequestOverall = $("field-request-overall");
+const fieldRequestPhases = $("field-request-phases");
 const fieldRequestLive = $("field-request-live");
 const fieldRequestRetry = $("field-request-retry");
-let fieldRequestPreviewId = "";
+let fieldRequestStatusId = "";
 let fieldRequestLiveKey = "";
-const fieldRequestPreviewCache = new Map();
 
 function hideFieldRequestPanel() {
   fieldRequestPanel.hidden = true;
-  fieldRequestPanel.classList.remove("has-images", "has-failures");
+  fieldRequestPanel.classList.remove("has-failures");
   fieldRequestRetry.hidden = true;
   fieldRequestLive.textContent = "";
-  fieldRequestPreviewId = "";
+  fieldRequestPhases.textContent = "";
+  fieldRequestStatusId = "";
   fieldRequestLiveKey = "";
-  fieldRequestPreviewCache.clear();
 }
 
 /**
@@ -713,10 +712,10 @@ async function showDetector(detector) {
 // ---------------------------------------------------------------
 // Detector overview ("All"): one averaged thumbnail per detector
 // ---------------------------------------------------------------
-async function renderOverview(frames, token) {
+async function renderOverview(frames, token, { showMissing = false } = {}) {
   const box = $("overview"), grid = $("overview-grid");
   grid.innerHTML = "";
-  if (!frames.length) { box.hidden = true; return; }
+  if (!frames.length && !showMissing) { box.hidden = true; return; }
   box.hidden = false;
 
   // All six detectors side by side (features/spectral.js): the ones that have images here show their average; the others are shown as MISSING, with the band they would cover.
@@ -746,8 +745,8 @@ async function renderOverview(frames, token) {
     grid.appendChild(btn);
 
     // Draw the average image (async; a failure just leaves the thumbnail black).
-    const images = await Promise.all(frames.filter((f) => f.detector === d.detector)
-      .map((f) => loadImage(f.imageUrl, f).catch(() => null)));
+    const images = await mapConcurrent(frames.filter((f) => f.detector === d.detector), PIXEL_READ_CONCURRENCY,
+      (f) => loadImage(f.imageUrl, f).catch(() => null));
     if (token !== loadToken) return;
     const data = meanImageData(images.filter(Boolean));
     if (data) {
@@ -758,7 +757,7 @@ async function renderOverview(frames, token) {
   }
 }
 function markOverview(detector) {
-  document.querySelectorAll(".overview-item, .field-request-card").forEach((b) =>
+  document.querySelectorAll(".overview-item").forEach((b) =>
     b.setAttribute("aria-pressed", String(b.dataset.det === detector)));
 }
 
@@ -1985,17 +1984,14 @@ async function applyFrames(frames, query, token) {
   detSelect.value = detector;
   writeUrlState({ det: detector });
   currentDetector = detector;
-  if (activeFieldRequestId && DATA_SOURCE === "api" && !LEGACY_API_READ_ONLY) {
-    $("overview").hidden = true;
-  } else {
-    renderOverview(frames, token);
-  }
+  renderOverview(frames, token, { showMissing: true });
   await showDetector(detector);
   if (token === loadToken) sky.setWorkspaceField(query);
   console.log(`Loaded ${frames.length} frames`, listDetectors(frames));
 }
 
 function requestPhaseLabel(row) {
+  if (row.phase === "metadata-retrying") return "Retrying archive search";
   const labels = {
     waiting: "Waiting for status", queued: row.hasPlan ? "Waiting for a job slot" : "Queued",
     discovering: "Searching archive", planning: "Planning observations",
@@ -2006,67 +2002,26 @@ function requestPhaseLabel(row) {
   return labels[row.status] || row.phase?.replaceAll("-", " ") || row.status;
 }
 
-function requestDetailText(row) {
-  if (row.status === "failed" && row.error) return row.error;
-  if (row.status === "unavailable") return "No matching archive observations";
-  if (row.status === "ready") {
-    const count = row.frames.length || row.frameCount;
-    if (count) {
-      const newest = [...row.frames].sort((a, b) => Number(b.mjd) - Number(a.mjd))[0];
-      return `${count} image${count === 1 ? "" : "s"}${newest?.dateISO ? ` · latest ${newest.dateISO.slice(0, 10)}` : ""}`;
-    }
-    return "Loading prepared image frames";
-  }
-  if (row.totalFiles !== null && row.totalFiles > 0) {
-    return `${row.completedFiles ?? 0} of ${row.totalFiles} files`;
-  }
-  if (row.totalWork !== null && row.totalWork > 0) {
-    return `${row.completedWork ?? 0} of ${row.totalWork} processing steps`;
-  }
-  if (row.hasPlan && row.status === "queued") return "Plan ready · waiting for an available slot";
-  return row.phase?.replaceAll("-", " ") || "Waiting for archive status";
-}
-
-function requestCardPreview(canvas, row, requestId) {
-  const frame = [...row.frames].sort((a, b) => Number(b.mjd) - Number(a.mjd))[0];
-  if (!frame?.imageUrl) return;
-  let promise = fieldRequestPreviewCache.get(frame.imageUrl);
-  if (!promise) {
-    promise = loadImage(frame.imageUrl, frame).catch(() => null);
-    fieldRequestPreviewCache.set(frame.imageUrl, promise);
-  }
-  promise.then((image) => {
-    if (!image || !canvas.isConnected || activeFieldRequestId !== requestId) return;
-    canvas.width = image.naturalWidth || image.width || 1;
-    canvas.height = image.naturalHeight || image.height || 1;
-    canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height);
-  });
-}
-
 function renderFieldRequestStatus(status) {
-  const detectors = Object.entries(status.detectors ?? {});
   const rows = fieldRequestCardRows(status, allFrames);
   const ready = rows.filter((row) => row.status === "ready").length;
   const overall = Number(status.progress);
   const hasOverall = status.progress !== null && status.progress !== undefined && Number.isFinite(overall);
   const percent = hasOverall ? Math.round(Math.max(0, Math.min(1, overall)) * 100) : null;
-  const phases = detectors.filter(([, item]) => !["ready", "failed", "unavailable"].includes(item.status))
-    .map(([detector, item]) => `${detector}: ${item.phase || item.status}`).join(" · ");
-  const failures = detectors.filter(([, item]) => item.status === "failed");
+  const failures = rows.filter((row) => row.status === "failed");
   const requestId = status.requestId || activeFieldRequestId || "";
+  const metadataRetry = status.metadataRetrying
+    ? ` · archive retry ${Math.max(1, Number(status.metadataAttemptCount) || 1)}` : "";
 
   if (DATA_SOURCE === "api" && !LEGACY_API_READ_ONLY && requestId) {
-    if (requestId !== fieldRequestPreviewId) {
-      fieldRequestPreviewId = requestId;
-      fieldRequestPreviewCache.clear();
+    if (requestId !== fieldRequestStatusId) {
+      fieldRequestStatusId = requestId;
       fieldRequestLiveKey = "";
     }
     fieldRequestPanel.hidden = false;
-    fieldRequestPanel.classList.toggle("has-images", allFrames.length > 0);
     fieldRequestPanel.classList.toggle("has-failures", failures.length > 0);
-    $("overview").hidden = true;
     fieldRequestTitle.textContent = "SPHEREx data request";
-    fieldRequestSummary.textContent = `${ready}/6 detectors ready${percent === null ? "" : ` · ${percent}% overall`}${status.pollError ? " · reconnecting" : ""}`;
+    fieldRequestSummary.textContent = `${ready}/6 detectors ready${percent === null ? "" : ` · ${percent}% overall`}${metadataRetry}${status.pollError ? " · reconnecting" : ""}`;
     if (hasOverall) fieldRequestOverall.value = Math.max(0, Math.min(1, overall));
     else fieldRequestOverall.removeAttribute("value");
 
@@ -2077,55 +2032,30 @@ function renderFieldRequestStatus(status) {
         .map((row) => `${row.detector} ${requestPhaseLabel(row).toLowerCase()}`);
       fieldRequestLive.textContent = `${ready} of 6 detectors ready${active.length ? `. ${active.join("; ")}.` : "."}`;
     }
+    const detectorPhases = rows.map((row) => `${row.detector} ${requestPhaseLabel(row).toLowerCase()}`).join(" · ");
+    const metadataError = status.metadataRetrying && status.metadataError
+      ? `${status.metadataError} (attempt ${Math.max(1, Number(status.metadataAttemptCount) || 1)})` : "";
+    fieldRequestPhases.textContent = [detectorPhases, metadataError].filter(Boolean).join(" · ");
 
-    fieldRequestGrid.replaceChildren();
-    for (const row of rows) {
-      const card = document.createElement(row.canSelect ? "button" : "div");
-      card.className = "field-request-card";
-      card.dataset.det = row.detector;
-      card.dataset.status = row.status;
-      if (row.canSelect) {
-        card.type = "button";
-        card.setAttribute("aria-pressed", String(row.detector === currentDetector));
-        card.addEventListener("click", () => selectDetector(row.detector));
-      } else {
-        card.setAttribute("role", "group");
-      }
-      const phase = requestPhaseLabel(row);
-      const detail = requestDetailText(row);
-      const percentText = row.progress === null ? "" : `${Math.round(row.progress * 100)}%`;
-      card.setAttribute("aria-label", `${row.detector}: ${phase}. ${detail}${percentText ? `. ${percentText} complete` : ""}${row.canSelect ? ". Show this detector" : ""}`);
-      if (row.error) card.title = row.error;
-      const thumb = document.createElement("canvas");
-      thumb.className = "field-request-thumb";
-      thumb.width = 1; thumb.height = 1;
-      thumb.setAttribute("aria-hidden", "true");
-      const name = document.createElement("span");
-      name.className = "field-request-name"; name.textContent = row.detector;
-      const phaseNode = document.createElement("span");
-      phaseNode.className = "field-request-phase"; phaseNode.textContent = phase;
-      const detailNode = document.createElement("span");
-      detailNode.className = "field-request-detail"; detailNode.textContent = detail;
-      card.append(thumb, name, phaseNode, detailNode);
-      if (row.progress !== null) {
-        const progress = document.createElement("progress");
-        progress.max = 1; progress.value = row.progress;
-        progress.setAttribute("aria-label", `${row.detector} processing progress`);
-        const progressText = document.createElement("span");
-        progressText.className = "field-request-percent"; progressText.textContent = percentText;
-        card.append(progress, progressText);
-      }
-      fieldRequestGrid.appendChild(card);
-      if (row.canSelect) requestCardPreview(thumb, row, requestId);
+    if (!allFrames.length && $("overview").hidden) {
+      void renderOverview([], loadToken, { showMissing: true });
     }
 
     if (!overlay.classList.contains("error")) {
-      overlay.classList.add("hidden");
-      overlay.setAttribute("aria-hidden", "true");
-      overlayProgress.hidden = true;
+      if (allFrames.length) {
+        hideOverlay();
+      } else {
+        overlay.classList.remove("hidden");
+        overlay.setAttribute("aria-hidden", "false");
+        overlay.querySelector(".overlay-title").textContent = "Waiting for the first detector…";
+        overlay.querySelector(".overlay-sub").textContent = `${ready}/6 detectors ready${phasesSummary(rows) ? ` · ${phasesSummary(rows)}` : ""}`;
+        overlayProgress.hidden = true;
+      }
     }
     setStatus("");
   } else {
+    const phases = rows.filter((row) => !["ready", "failed", "unavailable"].includes(row.status))
+      .map((row) => `${row.detector}: ${requestPhaseLabel(row)}`).join(" · ");
     setStatus(`SPHEREx archive · ${ready}/6 detectors ready · ${percent ?? "—"}%${phases ? ` · ${phases}` : ""}`);
     if (!allFrames.length) {
       overlay.querySelector(".overlay-title").textContent = "Preparing SPHEREx observations…";
@@ -2140,35 +2070,44 @@ function renderFieldRequestStatus(status) {
   return failures;
 }
 
+function phasesSummary(rows) {
+  return rows.filter((row) => !["ready", "failed", "unavailable"].includes(row.status))
+    .map((row) => `${row.detector} ${requestPhaseLabel(row).toLowerCase()}`).join(" · ");
+}
+
 function finishFieldRequest(status) {
   const failures = renderFieldRequestStatus(status);
   if (activeFieldRequestId && DATA_SOURCE === "api" && !LEGACY_API_READ_ONLY && !fieldRequestPanel.hidden) {
     const ready = Object.values(status.detectors ?? {}).filter((item) => item.status === "ready").length;
-    const details = failures.map(([detector, item]) => `${detector}: ${item.error || "failed"}`).join(" · ");
+    const details = failures.map((row) => `${row.detector}: ${row.error || "failed"}`).join(" · ");
     fieldRequestRetry.hidden = failures.length === 0;
     if (failures.length) {
       fieldRequestPanel.classList.add("has-failures");
       fieldRequestTitle.textContent = allFrames.length ? "Partial SPHEREx results" : "Some detector data could not be prepared";
       fieldRequestSummary.textContent = `${ready}/6 detectors ready · ${details}`;
+      if (allFrames.length) hideOverlay();
+      else showOverlay("Some SPHEREx observations could not be prepared", details);
     } else if (!allFrames.length) {
       fieldRequestTitle.textContent = "No SPHEREx images found here";
       fieldRequestSummary.textContent = "No observations matched this position.";
+      showOverlay("No SPHEREx images found here", "Try another position or a test object.");
     } else {
       fieldRequestTitle.textContent = "SPHEREx observations ready";
       fieldRequestSummary.textContent = `${ready}/6 detectors ready · ${allFrames.length} frames loaded`;
+      hideOverlay();
     }
     setStatus("");
     return;
   }
   if (!allFrames.length) {
-    const details = failures.map(([, item]) => item.error).filter(Boolean).join(" · ");
+    const details = failures.map((row) => row.error).filter(Boolean).join(" · ");
     const failed = failures.length > 0;
     showOverlay(failed ? "Some SPHEREx observations could not be prepared" : "No SPHEREx images found here",
       details || "No observations matched this position.", { error: failed });
   } else if (!failures.length) {
     setStatus(`${allFrames.length} SPHEREx images loaded.`);
   } else {
-    const summary = failures.map(([detector, item]) => `${detector}: ${item.error || "failed"}`).join(" · ");
+    const summary = failures.map((row) => `${row.detector}: ${row.error || "failed"}`).join(" · ");
     showOverlay("Some SPHEREx observations could not be prepared", summary, { error: true });
   }
 }

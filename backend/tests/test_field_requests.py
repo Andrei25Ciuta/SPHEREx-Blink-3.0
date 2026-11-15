@@ -33,9 +33,9 @@ def test_date_range_changes_request_id_and_checks_calendar_dates():
             raise AssertionError("invalid date range accepted")
 
 
-def test_real_data_fov_is_limited_to_thirty_arcmin():
-    assert normalize_request({"ra": 10, "dec": -10, "fov": 30})["query"]["fov"] == 30
-    for fov in (0.9, 30.1):
+def test_real_data_fov_is_limited_to_ten_arcmin():
+    assert normalize_request({"ra": 10, "dec": -10, "fov": 10})["query"]["fov"] == 10
+    for fov in (0.9, 10.1, 30):
         try:
             normalize_request({"ra": 10, "dec": -10, "fov": fov})
         except RequestValidationError:
@@ -53,6 +53,28 @@ def test_latest_plan_keeps_newest_twelve_after_date_filter():
                      cutouts=True, newest=True, mjd_start=60010, mjd_end=60030)
     assert len(plan["files"]) == 12
     assert [item["mjd"] for item in plan["files"]] == list(map(float, range(60018, 60030)))
+
+
+def test_latest_selection_uses_newest_passes_and_date_ranges_spread_across_passes():
+    rows = []
+    for pass_start in (60000, 60035, 60070, 60105, 60140):
+        for offset in range(3):
+            mjd = pass_start + offset
+            rows.append({"obs_collection": "spherex_dr1", "energy_bandpassname": "SPHEREx-D1",
+                         "t_min": str(mjd), "obs_id": f"obs-{mjd}",
+                         "access_url": f"https://irsa.ipac.caltech.edu/ibe/data/spherex/{mjd}.fits",
+                         "access_format": "application/fits", "access_estsize": "10"})
+
+    latest = make_plan(rows, ra=10, dec=-10, fov=5, detector="D1", count=3, newest=True)
+    historic = make_plan(rows, ra=10, dec=-10, fov=5, detector="D1", count=3, newest=False)
+
+    assert [item["mjd"] for item in latest["files"]] == [60072.0, 60107.0, 60142.0]
+    assert [item["mjd"] for item in historic["files"]] == [60002.0, 60072.0, 60142.0]
+
+    newest_with_extra = make_plan(rows, ra=10, dec=-10, fov=5, detector="D1", count=6, newest=True)
+    assert [item["mjd"] for item in newest_with_extra["files"]] == [
+        60002.0, 60037.0, 60072.0, 60107.0, 60141.0, 60142.0,
+    ]
 
 
 def test_progress_aggregation_reports_partial_and_terminal_states():

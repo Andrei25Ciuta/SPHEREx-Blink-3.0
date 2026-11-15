@@ -180,16 +180,6 @@
               <progress id="overlay-progress" class="overlay-progress" max="1" value="0" hidden></progress>
               <button type="button" id="retry-btn" class="btn btn-retry" hidden>Try again</button>
             </div>
-            <section class="field-request-panel" id="field-request-panel" aria-label="SPHEREx detector progress" hidden>
-              <div class="field-request-head">
-                <strong id="field-request-title">Preparing SPHEREx observations</strong>
-                <span id="field-request-summary" class="field-request-summary"></span>
-                <progress id="field-request-overall" class="field-request-overall" max="1" value="0" aria-label="Overall SPHEREx data preparation progress"></progress>
-              </div>
-              <div class="field-request-grid" id="field-request-grid" role="group" aria-label="Status of detectors D1 through D6"></div>
-              <p class="sr-only" id="field-request-live" role="status" aria-live="polite"></p>
-              <button type="button" id="field-request-retry" class="btn btn-retry" hidden>Retry failed detectors</button>
-            </section>
           </div>
         </div>
 
@@ -216,6 +206,16 @@
           <h3>All detectors <span class="muted">(average of each &middot; click to blink)</span></h3>
           <div class="overview-grid" id="overview-grid"></div>
         </div>
+        <section class="field-request-panel" id="field-request-panel" aria-label="SPHEREx data request status" hidden>
+          <div class="field-request-head">
+            <strong id="field-request-title">Preparing SPHEREx observations</strong>
+            <span id="field-request-summary" class="field-request-summary"></span>
+            <button type="button" id="field-request-retry" class="btn btn-retry" hidden>Retry failed detectors</button>
+          </div>
+          <progress id="field-request-overall" class="field-request-overall" max="1" value="0" aria-label="Overall SPHEREx data preparation progress"></progress>
+          <p class="field-request-phases" id="field-request-phases"></p>
+          <p class="sr-only" id="field-request-live" role="status" aria-live="polite"></p>
+        </section>
       </section>
 
       <!-- ============ RIGHT: inspector (can be hidden: button, or the key ]) ============ -->

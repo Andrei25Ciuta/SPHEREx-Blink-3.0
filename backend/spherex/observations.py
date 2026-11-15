@@ -41,7 +41,7 @@ def image_product(raw):
 
 def observations(ra, dec, fov, collection):
     """Return products intersecting a circle with diameter fov arcmin."""
-    if collection not in COLLECTIONS or not (0 <= ra < 360 and -90 <= dec <= 90 and 1 <= fov <= 30):
+    if collection not in COLLECTIONS or not (0 <= ra < 360 and -90 <= dec <= 90 and 1 <= fov <= 10):
         raise ValueError("Invalid SPHEREx archive search")
     params = {"COLLECTION": collection, "POS": f"circle {ra} {dec} {fov / 120}",
               "MAXREC": LIMIT + 1, "RESPONSEFORMAT": "csv"}

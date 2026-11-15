@@ -103,14 +103,23 @@ def resolve_product(row, fetch=metadata):
     return url, int(size) if size else None
 
 
-def _select_pass_spread(rows, count):
-    """Choose frames across 30-day survey passes before adding within-pass coverage."""
+def _select_pass_spread(rows, count, *, newest=False):
+    """Choose frames across 30-day passes, preferring the latest passes by default."""
     passes = []
     for row in rows:
         if not passes or float(row['t_min']) - float(passes[-1][-1]['t_min']) >= 30:
             passes.append([row])
         else:
             passes[-1].append(row)
+
+    if newest:
+        if len(passes) > count:
+            passes = passes[-count:]
+        selected = [group[-1] for group in passes]
+        if len(selected) < count:
+            latest_first = (row for group in reversed(passes) for row in reversed(group[:-1]))
+            selected.extend(row for _, row in zip(range(count - len(selected)), latest_first))
+        return sorted(selected, key=lambda row: float(row['t_min']))
 
     if len(passes) > count:
         indices = [round(i * (len(passes) - 1) / (count - 1)) for i in range(count)] if count > 1 else [len(passes) - 1]
@@ -138,7 +147,7 @@ def make_plan(rows, *, ra, dec, fov, detector='D2', collection='spherex_dr1', co
               fetch=metadata, cutouts=False, newest=False, mjd_start=None, mjd_end=None):
     if collection not in COLLECTIONS or not (1 <= count <= 24):
         raise ValueError('Invalid collection or frame count')
-    if not (0 <= ra < 360 and -90 <= dec <= 90 and 1 <= fov <= 30) or detector not in [f'D{i}' for i in range(1, 7)]:
+    if not (0 <= ra < 360 and -90 <= dec <= 90 and 1 <= fov <= 10) or detector not in [f'D{i}' for i in range(1, 7)]:
         raise ValueError('Invalid field or detector')
     unique = {}
     for row in rows:
@@ -155,7 +164,7 @@ def make_plan(rows, *, ra, dec, fov, detector='D2', collection='spherex_dr1', co
     if not rows:
         raise ValueError('No matching observations')
     if len(rows) > count:
-        rows = _select_pass_spread(rows, count)
+        rows = _select_pass_spread(rows, count, newest=newest)
     files = []
     for i, row in enumerate(rows):
         url, size = resolve_product(row, fetch)
