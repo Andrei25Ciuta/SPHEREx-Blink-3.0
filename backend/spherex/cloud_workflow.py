@@ -528,11 +528,12 @@ class CloudWorkflow:
             self._refresh_request_status(request_id)
             return "cached"
         sid = sequence_id(request_id, detector)
+        sampling_mode = plan.get("samplingMode", "pass-spread")
         plan.update({
             "sequenceId": sid, "requestId": request_id,
             "fieldKey": request["fieldKey"], "policyVersion": request["policyVersion"],
             "processingVersion": request["processingVersion"],
-            "samplingMode": request.get("samplingMode", "pass-spread"),
+            "samplingMode": sampling_mode,
             "selection": request["selection"], "dateFrom": request.get("dateFrom"),
             "dateTo": request.get("dateTo"),
             "maxFileBytes": int(policy.get("maxFileBytes", 32 * 1024**2)),
@@ -547,13 +548,18 @@ class CloudWorkflow:
         except Exception:
             self.state.release_work_lock(lock_id, owner)
             raise
-        self.state.update_detector(request_id, detector, {
+        detector_update = {
             "status": "queued", "phase": "queued", "progress": 0.08,
             "totalFiles": len(plan["files"]), "completedFiles": 0,
-            "samplingMode": "monthly", "requestedMonths": plan["requestedMonths"],
-            "totalMonths": len(plan["requestedMonths"]), "completedMonths": 0,
+            "samplingMode": sampling_mode,
             "estimatedPasses": plan["passCount"], "planKey": plan_key,
-        })
+        }
+        if sampling_mode == "monthly":
+            detector_update.update({
+                "requestedMonths": plan["requestedMonths"],
+                "totalMonths": len(plan["requestedMonths"]), "completedMonths": 0,
+            })
+        self.state.update_detector(request_id, detector, detector_update)
         self.state.release_work_lock(lock_id, owner)
         attempt = int(current.get("attempt", 0))
         self.tasks.enqueue("/internal/tasks/detector", {"requestId": request_id, "detector": detector},

@@ -265,6 +265,45 @@ def test_detector_plan_is_written_once_and_dispatches_only_the_missing_detector(
     assert all(item["status"] == "queued" for item in request["detectors"].values() if item is not request["detectors"]["D1"])
 
 
+def test_legacy_detector_request_without_sampling_mode_uses_pass_spread_plan(tmp_path, monkeypatch):
+    approved = tmp_path / "approved.json"
+    approved.write_text(json.dumps({"approved": []}))
+    monkeypatch.setenv("BLINK_APPROVED_FILE", str(approved))
+    normalized = normalize_request({"ra": 10, "dec": -10, "fov": 5})
+    request = {
+        "requestId": normalized["requestId"], "fieldKey": normalized["fieldKey"],
+        "query": normalized["query"], "collection": normalized["collection"],
+        "processingVersion": normalized["processingVersion"],
+        "policyVersion": "policy-v1", "selection": "latest",
+        "metadataKey": "requests/test/archive-metadata.json",
+        "detectors": {detector: {"status": "queued", "attempt": 0} for detector in DETECTORS},
+    }
+    row = {
+        "obs_collection": "spherex_dr1", "energy_bandpassname": "SPHEREx-D1",
+        "t_min": "61000", "obs_id": "legacy-obs-d1",
+        "access_url": "https://irsa.ipac.caltech.edu/ibe/data/spherex/legacy-obs-d1.fits",
+        "access_format": "application/fits", "access_estsize": "10",
+    }
+    policy = {
+        "version": "policy-v1", "acknowledgement": "Approved official SPHEREx DR1 acknowledgement.",
+        "dataDoi": "10.26131/IRSA678", "maxObservationsPerDetector": 12,
+        "maxFileBytes": 32 * 1024**2, "maxTotalBytesPerDetector": 128 * 1024**2,
+    }
+    store, tasks = FakeStore([row]), FakeTasks()
+    workflow = CloudWorkflow(state=FakeState(request, policy), tasks=tasks,
+                             launcher=object(), store=store, max_active_jobs=3)
+
+    assert workflow.plan_detector(request["requestId"], "D1", request["metadataKey"], "legacy-plan") == "queued"
+
+    detector = request["detectors"]["D1"]
+    assert detector["samplingMode"] == "pass-spread"
+    assert "requestedMonths" not in detector
+    stored_plan = store.json(detector["planKey"])
+    assert stored_plan["samplingMode"] == "pass-spread"
+    assert "requestedMonths" not in stored_plan
+    assert len(tasks.enqueued) == 1
+
+
 def test_emergency_disable_keeps_existing_exact_cache_queryable_but_blocks_new_work():
     normalized = normalize_request({"ra": 10, "dec": -10, "fov": 5})
     policy = {
