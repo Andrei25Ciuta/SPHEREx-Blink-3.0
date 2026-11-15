@@ -11,7 +11,7 @@ ACKNOWLEDGEMENT = (
     "of Technology, and is funded by the National Aeronautics and Space Administration."
 )
 POLICY = {
-    "version": "spherex-dr1-owner-v1",
+    "version": "spherex-dr1-owner-v2",
     "enabled": False,
     "collection": "spherex_dr1",
     "allowedCollections": ["spherex_dr1"],
@@ -22,7 +22,7 @@ POLICY = {
     "maxObservationsPerDetector": 12,
     "maxFileBytes": 32 * 1024**2,
     "maxTotalBytesPerDetector": 128 * 1024**2,
-    "maxConcurrentDownloads": 3,
+    "maxConcurrentDownloads": 20,
 }
 
 
@@ -32,6 +32,10 @@ def main():
     parser.add_argument("--database", default="blink3-policy")
     parser.add_argument("--apply", action="store_true", help="write the policy using ADC")
     parser.add_argument("--enable", action="store_true", help="enable public field requests (owner decision)")
+    parser.add_argument(
+        "--migrate-policy-version", action="store_true",
+        help="allow replacing the existing owner policy version after reviewing the change",
+    )
     args = parser.parse_args()
     document = {**POLICY, "enabled": args.enable}
     print(json.dumps({"project": args.project, "database": args.database,
@@ -56,8 +60,12 @@ def main():
     existing = ref.get()
     if existing.exists:
         old = existing.to_dict() or {}
-        if old.get("version") != document["version"]:
-            raise SystemExit("A different policy version already exists; review it before migration.")
+        if (old.get("version") != document["version"]
+                and not args.migrate_policy_version):
+            raise SystemExit(
+                "A different policy version already exists; review the new version, "
+                "then rerun with --migrate-policy-version."
+            )
     ref.set(document)
 
 

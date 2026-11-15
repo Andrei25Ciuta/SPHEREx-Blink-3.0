@@ -4,6 +4,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 import os
 
+from .cloud_limits import MAX_ACTIVE_DOWNLOAD_JOBS
 from .field_requests import aggregate_progress, detector_progress
 
 
@@ -41,7 +42,8 @@ class FirestoreState:
         if (not 1 <= int(value.get("maxObservationsPerDetector", 12)) <= 12
                 or not 0 < int(value.get("maxFileBytes", 32 * 1024**2)) <= 32 * 1024**2
                 or not 0 < int(value.get("maxTotalBytesPerDetector", 128 * 1024**2)) <= 128 * 1024**2
-                or not 1 <= int(value.get("maxConcurrentDownloads", 3)) <= 3):
+                or not 1 <= int(value.get("maxConcurrentDownloads", MAX_ACTIVE_DOWNLOAD_JOBS))
+                <= MAX_ACTIVE_DOWNLOAD_JOBS):
             raise StateUnavailable("The configured workload exceeds the approved DR1 bounds")
         if not isinstance(value.get("acknowledgement"), str) or len(value["acknowledgement"].strip()) < 50:
             raise StateUnavailable("The configured SPHEREx acknowledgement is missing")
@@ -123,7 +125,8 @@ class FirestoreState:
 
         return update(transaction)
 
-    def claim_slot(self, request_id, detector, attempt_id, max_active=3):
+    def claim_slot(self, request_id, detector, attempt_id,
+                   max_active=MAX_ACTIVE_DOWNLOAD_JOBS):
         request_ref = self.db.collection("fieldRequests").document(request_id)
         slot_ref = self.db.collection("jobSlots").document(f"{request_id}-{detector.lower()}")
         control_ref = self.db.collection("jobControl").document("global")

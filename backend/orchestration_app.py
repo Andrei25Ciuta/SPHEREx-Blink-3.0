@@ -6,11 +6,13 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 
+from spherex.cloud_limits import MAX_ACTIVE_DOWNLOAD_JOBS
 from spherex.cloud_workflow import CloudWorkflow, WorkflowError
 from spherex.firestore_state import StateUnavailable
 
 app = FastAPI(title="SPHEREx Blink private orchestrator", docs_url=None, redoc_url=None, openapi_url=None)
-workflow = CloudWorkflow(max_active_jobs=int(os.getenv("BLINK_MAX_ACTIVE_DOWNLOAD_JOBS", "3")))
+workflow = CloudWorkflow(max_active_jobs=int(os.getenv(
+    "BLINK_MAX_ACTIVE_DOWNLOAD_JOBS", str(MAX_ACTIVE_DOWNLOAD_JOBS))))
 
 
 @app.exception_handler(WorkflowError)

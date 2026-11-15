@@ -48,7 +48,7 @@ class FakeState:
         self.locks.discard(lock_id)
         return True
 
-    def claim_slot(self, _request_id, _detector, _attempt_id, max_active=3):
+    def claim_slot(self, _request_id, _detector, _attempt_id, max_active=20):
         self.max_active = max_active
         return "claimed"
 
@@ -308,7 +308,7 @@ def test_detector_dispatch_uses_owner_limit_and_persists_starting_state():
         "requestId": normalized["requestId"],
         "detectors": {"D1": {"status": "queued", "attempt": 0, "planKey": "plans/test/d1.json"}},
     }
-    policy = {"enabled": True, "maxConcurrentDownloads": 3}
+    policy = {"enabled": True, "maxConcurrentDownloads": 20}
 
     class Launcher:
         def launch(self, request_id, detector, plan_key, attempt):
@@ -319,6 +319,6 @@ def test_detector_dispatch_uses_owner_limit_and_persists_starting_state():
     workflow = CloudWorkflow(state=state, tasks=FakeTasks(), launcher=Launcher(), store=FakeStore([]))
 
     assert workflow.dispatch_detector(normalized["requestId"], "D1") == "launched"
-    assert state.max_active == 3
+    assert state.max_active == 20
     assert request["detectors"]["D1"]["status"] == "downloading"
     assert request["detectors"]["D1"]["attempt"] == 1

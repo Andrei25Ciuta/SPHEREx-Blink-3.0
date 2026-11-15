@@ -15,12 +15,12 @@ service_url=$(gcloud run services describe blink3-api --project="$project" --reg
 gcloud builds submit . --project="$project" --region="$region" --config=deploy/cloudbuild.yaml \
   --service-account="projects/$project/serviceAccounts/blink3-build@$project.iam.gserviceaccount.com" \
   --substitutions="_IMAGE_BASE=$images,_TAG=$tag"
-# Let the private task handlers scale independently; Firestore still caps active downloads at 3.
+# Let private task handlers scale independently; Firestore and the owner policy cap active jobs at 20.
 gcloud run deploy blink3-orchestrator --project="$project" --region="$region" --image="$images/api:$tag" \
   --command=uvicorn --args=orchestration_app:app,--app-dir,backend,--host,0.0.0.0,--port,8080 \
   --service-account="blink3-orchestrator@$project.iam.gserviceaccount.com" --no-allow-unauthenticated \
   --min=0 --max=3 --cpu=1 --memory=1Gi --concurrency=10 --timeout=1800 \
-  --set-env-vars="GOOGLE_CLOUD_PROJECT=$project,BLINK_GCS_BUCKET=spherex-blink-blink3-products,BLINK_GCS_PREFIX=blink3,BLINK_TASK_SERVICE_ACCOUNT=blink3-tasks@$project.iam.gserviceaccount.com,BLINK_FIRESTORE_DATABASE=blink3-state,BLINK_POLICY_FIRESTORE_DATABASE=blink3-policy,BLINK_REGION=$region,BLINK_PREPARE_JOB=blink3-prepare,BLINK_MAX_ACTIVE_DOWNLOAD_JOBS=3"
+  --set-env-vars="GOOGLE_CLOUD_PROJECT=$project,BLINK_GCS_BUCKET=spherex-blink-blink3-products,BLINK_GCS_PREFIX=blink3,BLINK_TASK_SERVICE_ACCOUNT=blink3-tasks@$project.iam.gserviceaccount.com,BLINK_FIRESTORE_DATABASE=blink3-state,BLINK_POLICY_FIRESTORE_DATABASE=blink3-policy,BLINK_REGION=$region,BLINK_PREPARE_JOB=blink3-prepare,BLINK_MAX_ACTIVE_DOWNLOAD_JOBS=20"
 orchestrator_url=$(gcloud run services describe blink3-orchestrator --project="$project" --region="$region" --format='value(status.url)')
 gcloud run services update blink3-orchestrator --project="$project" --region="$region" \
   --update-env-vars="BLINK_ORCHESTRATION_URL=$orchestrator_url"
@@ -30,7 +30,7 @@ gcloud run services add-iam-policy-binding blink3-orchestrator --project="$proje
 gcloud run deploy blink3-api --project="$project" --region="$region" --image="$images/api:$tag" \
   --service-account="blink3-api@$project.iam.gserviceaccount.com" --allow-unauthenticated \
   --min=0 --max=1 --cpu=1 --memory=1Gi --concurrency=8 --timeout=60 \
-  --update-env-vars="^|^GOOGLE_CLOUD_PROJECT=$project|BLINK_GCS_BUCKET=spherex-blink-blink3-products|BLINK_GCS_PREFIX=blink3|BLINK_CORS_ORIGINS=https://iooonut.github.io,https://mateibut.github.io|BLINK_WORKFLOW_ENABLED=true|BLINK_PUBLIC_BASE_URL=$service_url|BLINK_ORCHESTRATION_URL=$orchestrator_url|BLINK_TASK_QUEUE=blink3-acquisition|BLINK_TASK_SERVICE_ACCOUNT=blink3-tasks@$project.iam.gserviceaccount.com|BLINK_FIRESTORE_DATABASE=blink3-state|BLINK_POLICY_FIRESTORE_DATABASE=blink3-policy|BLINK_REGION=$region|BLINK_MAX_ACTIVE_DOWNLOAD_JOBS=3"
+  --update-env-vars="^|^GOOGLE_CLOUD_PROJECT=$project|BLINK_GCS_BUCKET=spherex-blink-blink3-products|BLINK_GCS_PREFIX=blink3|BLINK_CORS_ORIGINS=https://iooonut.github.io,https://mateibut.github.io|BLINK_WORKFLOW_ENABLED=true|BLINK_PUBLIC_BASE_URL=$service_url|BLINK_ORCHESTRATION_URL=$orchestrator_url|BLINK_TASK_QUEUE=blink3-acquisition|BLINK_TASK_SERVICE_ACCOUNT=blink3-tasks@$project.iam.gserviceaccount.com|BLINK_FIRESTORE_DATABASE=blink3-state|BLINK_POLICY_FIRESTORE_DATABASE=blink3-policy|BLINK_REGION=$region|BLINK_MAX_ACTIVE_DOWNLOAD_JOBS=20"
 service_url=$(gcloud run services describe blink3-api --project="$project" --region="$region" --format='value(status.url)')
 gcloud run services update blink3-api --project="$project" --region="$region" --update-env-vars="BLINK_PUBLIC_BASE_URL=$service_url"
 gcloud run jobs deploy blink3-prepare --project="$project" --region="$region" --image="$images/job:$tag" \

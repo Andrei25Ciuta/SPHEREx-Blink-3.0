@@ -10,6 +10,8 @@ Canonical public service URL: `https://blink3-api-w3bm7ii4fq-ew.a.run.app`. Init
 
 The current integration branch adds a 10 arcmin maximum in the frontend and local/cloud API source. The deployed API revision predates this cap, so direct requests to production may not yet enforce it. Deploy the reviewed branch before relying on the bound server-side.
 
+The source patch in this checkout raises the supported global detector-job cap to 20. Production still uses the three-job `spherex-dr1-owner-v1` policy and its existing Cloud Run revision until a separately approved release and policy migration are applied. Twenty active preparations can request up to 40 vCPU and 80 GiB of memory at the current 2-vCPU/4-GiB job size; regional quotas may reject or delay launches.
+
 ### Orchestrator capacity incident, 15 Nov
 
 Slow synchronous IRSA and Google token-validation calls were running directly inside async request handlers, blocking the event loop. The task routes now offload synchronous network/database work to a worker thread. Discovery and planning make one bounded archive attempt per task delivery so Cloud Tasks provides durable backoff; the preparation downloader keeps its eight-attempt retry/resume behavior. The Cloud Scheduler reconciliation job was refreshed and verified HTTP 200. Two requests supplied during debugging are recovering: the 5′ request reached planning and has detector dispatch tasks waiting behind the three active global job slots; the 20′ request still encounters IRSA metadata timeouts and is being retried by Cloud Tasks. No duplicate detector executions were launched for those requests. See the current incident entry in `docs/CODEX_PROGRESS.md` for exact request IDs and verification limits.
@@ -18,15 +20,15 @@ Slow synchronous IRSA and Google token-validation calls were running directly in
 
 - **GitHub Pages frontend:** submits coordinates, FOV (1–10 arcmin for real data), optional UTC date bounds and the fixed D1–D6 detector set. Blank dates select the 12 newest observations per detector. It polls real Firestore progress every few seconds and loads detector frames as soon as each is ready. No GCP credentials are present in the browser. Synthetic mode remains available up to 30 arcmin.
 - **Public Cloud Run `blink3-api`:** serves existing static and Firestore-registered immutable image products, creates/reuses request documents, enqueues Cloud Tasks and reports request status. It has no permission to execute Cloud Run Jobs.
-- **Private Cloud Run `blink3-orchestrator`:** accepts only OIDC-authenticated Cloud Tasks/Cloud Scheduler calls. It queries IRSA metadata, writes private detector plans, enforces a transactional three-job global semaphore, launches the existing `blink3-prepare` job, and reconciles stalled executions.
+- **Private Cloud Run `blink3-orchestrator`:** accepts only OIDC-authenticated Cloud Tasks/Cloud Scheduler calls. It queries IRSA metadata, writes private detector plans, enforces a transactional global semaphore capped at 20 detector jobs, launches the existing `blink3-prepare` job, and reconciles stalled executions. Cloud Tasks dispatch concurrency is a separate setting.
 - **Cloud Run Job `blink3-prepare`:** runs the existing FITS validation and scientific processing unchanged. It retries transient archive failures up to eight attempts, resumes verified private staging files, writes a versioned manifest last, validates it against the current owner policy, then registers it in Firestore.
 - **Firestore:** `blink3-state` stores stable field requests, per-detector progress, coordination and dynamic manifest index. `blink3-policy` stores the centrally managed owner policy. Runtime accounts have write access only to the state database and read-only access to the policy database. **Cloud Tasks:** delivers reliable authenticated work. **GCS:** stays private and holds plans, staging FITS, originals, manifests and products.
 
-There is no sign-in, per-user quota, daily/monthly limit or CAPTCHA. These are not required for the current development deployment. Keep the global maximum at **three** active archive downloads, the emergency policy disable switch, DR1-only allowlist, FOV/frame/file bounds and private bucket. The existing $25 budget alert notifies; it is not a hard spend cap.
+There is no sign-in, per-user quota, daily/monthly limit or CAPTCHA. The source cap is **20** active detector preparation jobs for testing and presentation; the live policy still limits production to three until migrated. Keep the emergency policy disable switch, DR1-only allowlist, FOV/frame/file bounds and private bucket. The existing $25 budget alert notifies; it is not a hard spend cap.
 
 ## Owner policy and data selection
 
-`config/acquisition-policy` is versioned and written by `deploy/configure_policy.py`. It starts disabled. The included DR1 policy permits D1–D6, the approved official SPHEREx DR1 acknowledgement/DOI, 12 newest observations per detector by default, optional date bounds for historic observations, 32 MiB per FITS file, 128 MiB per detector and at most three concurrent download jobs. The website cannot set policy or approval fields. Other collections are rejected.
+`config/acquisition-policy` is versioned and written by `deploy/configure_policy.py`. It starts disabled. Source policy v2 permits D1–D6, the approved official SPHEREx DR1 acknowledgement/DOI, 12 newest observations per detector by default, optional date bounds for historic observations, 32 MiB per FITS file, 128 MiB per detector and at most 20 concurrent detector jobs. The website cannot set policy or approval fields. Other collections are rejected. The active live v1 policy remains at three until migrated.
 
 The emergency stop is `enabled=false` on the Firestore policy. It prevents new requests; previously completed exact requests and existing serving remain available. The application exposes no policy-mutation endpoint, and browser input cannot set approval fields. The separate `blink3-policy` database and database-scoped read-only runtime grants prevent those services from changing the owner policy. Configure access through the documented policy script using an administrator identity. Manifests record the policy version and acknowledgement that authorized them.
 
@@ -61,6 +63,14 @@ Once deployment, IAM, index readiness, static-data serving and no-download smoke
 ```bash
 python3 deploy/configure_policy.py --project spherex-blink --apply --enable
 ```
+
+To migrate the existing enabled v1 policy to v2 after reviewing the 20-job cap, use `--migrate-policy-version` explicitly:
+
+```bash
+python3 deploy/configure_policy.py --project spherex-blink --apply --enable --migrate-policy-version
+```
+
+This command changes Firestore policy only; it does not deploy Cloud Run. Do not run it until the new orchestrator image is deployed and the owner approves the higher concurrency. The release script sets `BLINK_MAX_ACTIVE_DOWNLOAD_JOBS=20`; the effective global limit is the lower of this value and Firestore's `maxConcurrentDownloads`.
 
 Production deployment, IAM setup, policy activation, Cloud Run job executions and new FITS downloads were performed with the owner's explicit approval on 15 Nov 2026. The complete first-request result and tests are in the latest `docs/CODEX_PROGRESS.md` entry.
 

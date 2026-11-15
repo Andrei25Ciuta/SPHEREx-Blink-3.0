@@ -9,6 +9,7 @@ import re
 from urllib.parse import urlencode
 
 from .archive_plan import make_plan, metadata, open_archive, votable
+from .cloud_limits import MAX_ACTIVE_DOWNLOAD_JOBS
 from .field_requests import PROCESSING_VERSION, normalize_request, sequence_id
 from .firestore_state import FirestoreState
 from .storage import from_env
@@ -184,13 +185,14 @@ def verify_task_identity(request, *, audience, service_account):
 
 class CloudWorkflow:
     def __init__(self, state=None, tasks=None, launcher=None, store=None,
-                 *, max_active_jobs=3, task_identity_verifier=verify_task_identity,
+                 *, max_active_jobs=MAX_ACTIVE_DOWNLOAD_JOBS,
+                 task_identity_verifier=verify_task_identity,
                  archive_fetch=task_archive_fetch):
         self.state = state or FirestoreState()
         self.tasks = tasks or CloudTasksQueue()
         self.launcher = launcher or CloudRunJobLauncher()
         self.store = store or from_env()
-        self.max_active_jobs = max(1, min(3, int(max_active_jobs)))
+        self.max_active_jobs = max(1, min(MAX_ACTIVE_DOWNLOAD_JOBS, int(max_active_jobs)))
         self.archive_fetch = archive_fetch
         self.verify_identity = task_identity_verifier
         approved_path = os.getenv("BLINK_APPROVED_FILE", os.path.join(os.path.dirname(__file__), "..", "approved_sequences.json"))
@@ -385,7 +387,8 @@ class CloudWorkflow:
         attempt_id = f"{request_id}:{detector}:{attempt}"
         claim = self.state.claim_slot(request_id, detector, attempt_id,
                                       max_active=min(self.max_active_jobs,
-                                          int(policy.get("maxConcurrentDownloads", 3))))
+                                          int(policy.get("maxConcurrentDownloads",
+                                                          MAX_ACTIVE_DOWNLOAD_JOBS))))
         if claim == "full":
             return "retry"
         if claim != "claimed":
