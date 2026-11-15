@@ -69,7 +69,7 @@ if (showMode) {
   const sw = document.createElement("a");
   sw.className = "mode-switch-link";
   sw.href = MODES[other].home;
-  sw.innerHTML = `<span class="msl-icon" aria-hidden="true">⇄</span><span><span class="msl-long">Switch to </span>${MODES[other].label}</span>`;
+  sw.innerHTML = `<span class="msl-icon" aria-hidden="true">⇄</span> <span><span class="msl-long">Switch to </span>${MODES[other].label}</span>`;
   sw.addEventListener("click", () => saveMode(other));
   nav.append(sw);
 }
