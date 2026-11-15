@@ -1,6 +1,6 @@
 // Sky Context coordinates and reset control. Run: node scratch/test_skycontext_click.mjs
 import assert from "node:assert/strict";
-import { SkyContext } from "../frontend/js/features/skyContext.js";
+import { SkyContext, pickSkySource } from "../frontend/js/features/skyContext.js";
 import { readFileSync } from "node:fs";
 import { aladinSkyAt, selectionText } from "../frontend/js/features/skyContextClick.js";
 
@@ -73,5 +73,21 @@ assert.deepEqual(updates, ["base", "overlay"]);
 assert.deepEqual(base, initial);
 assert.deepEqual(overlay, { ...initial, minCut: 0.1, maxCut: 0.9 });
 assert.equal(resetStatus.textContent, "Map display reset.");
+
+const probes = [];
+const fetchSurvey = async (url) => {
+  probes.push(url);
+  return { ok: true, text: async () => url.includes("esa.int") ? "<html>Unavailable</html>" : "hips_tile_format = jpeg" };
+};
+assert.equal(await pickSkySource("allwise", { localRelay: false, fetchImpl: fetchSurvey }), "irsa");
+assert.ok(probes.every((url) => /AllWISE/.test(url)));
+assert.equal(await pickSkySource("dss2", {
+  localRelay: false,
+  fetchImpl: async (url) => ({ ok: url.includes("esa.int"), text: async () => "hips_tile_format = jpeg" }),
+}), "esa");
+assert.equal(await pickSkySource("2mass", {
+  localRelay: false,
+  fetchImpl: async () => ({ ok: true, text: async () => "<html>Unavailable</html>" }),
+}), "cds");
 
 console.log("PASS Sky Context cursor coordinates and light reset without map click navigation");

@@ -24,7 +24,8 @@ export const CAN_USE_LOCAL_BACKEND = typeof location === "undefined" ||
   ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
 
 // Where the sky map (Aladin) gets its survey pictures:
-//   "auto"    -> the first of these that answers within 2.5 s: "esa", then "backend", then "cds"
+//   "auto"    -> try IRSA directly, then ESA, the local relay and CDS
+//   "irsa"    -> IRSA’s public HiPS archive
 //   "esa"     -> ESA's public mirror of the CDS surveys (skies.esac.esa.int)
 //   "backend" -> our backend's relay of IRSA's copies (needs the backend running)
 //   "cds"     -> CDS (Strasbourg) directly; may be blocked on some networks
