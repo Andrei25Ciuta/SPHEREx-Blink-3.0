@@ -13,9 +13,9 @@
 import { SKY_TILES, API_BASE } from "../config.js?v=1";
 import { WORLD_URL, decodeCountries, overheadAt } from "./skyGeo.js";
 import { fieldCorners } from "./explorerGeometry.js";
-import { aladinSkyAt, selectionText, copySkySelection } from "./skyContextClick.js";
+import { aladinSkyAt, selectionText } from "./skyContextClick.js";
 
-import { outsideWorkspaceField, skyMapGuide } from "./skyMapGuide.js";
+import { outsideWorkspaceField, skyMapScale } from "./skyMapGuide.js?v=3";
 
 const ALADIN_URL = "https://cdn.jsdelivr.net/npm/aladin-lite@3.6.5/dist/aladin.js";
 const SIMBAD_TAP = "https://simbad.harvard.edu/simbad/sim-tap/sync";
@@ -112,19 +112,25 @@ function loadWorld() {
 }
 
 export class SkyContext {
-  constructor(container, statusEl, noteEl = null, { matchField = false, onSelectPosition = null, selectionStatusEl = null, backToField = null } = {}) {
+  constructor(container, statusEl, noteEl = null, { matchField = false, backToField = null, surface = null, scale = null, resetLight = null, resetStatus = null } = {}) {
     this.container = container;
     this.statusEl = statusEl;
     this.matchField = matchField;
-    this.onSelectPosition = onSelectPosition;
-    this.selectionStatusEl = selectionStatusEl;
     this.backToField = backToField;
+    this.surface = surface;
+    this.scale = scale;
+    this.resetLight = resetLight;
+    this.initialDisplay = new WeakMap();
+    resetLight?.addEventListener("click", () => {
+      const layers = this.displayLayers().filter((layer) => this.initialDisplay.has(layer));
+      for (const layer of layers) layer.setOptions({ ...this.initialDisplay.get(layer) });
+      if (resetStatus) resetStatus.textContent = layers.length ? "Map display reset." : "Wait for the map image to load.";
+    });
     this.workspaceField = null;
     backToField?.addEventListener("click", () => {
       if (this.workspaceField) this.update(this.workspaceField);
     });
     this.coordinateHint = null;
-    this.clickedAladinObject = false;
     this.noteEl = noteEl;               // the paragraph that explains the country in brackets
     this.aladin = null;
     this.A = null;
@@ -140,40 +146,51 @@ export class SkyContext {
 
   setWorkspaceField(field) {
     this.workspaceField = field;
-    this.refreshMapGuide();
+    this.refreshMapControls();
   }
 
-  installMapGuide() {
-    if (!this.backToField) return;
-    const guide = document.createElement("div");
-    guide.className = "sky-map-guide";
-    guide.innerHTML = `<div class="sky-map-compass" aria-label="Orientation at map centre">
-      <span data-direction="north">N <b aria-hidden="true">→</b></span>
-      <span data-direction="east">E <b aria-hidden="true">→</b></span>
-    </div><div class="sky-map-scale" aria-label="Approximate angular scale"></div>`;
-    this.container.appendChild(guide);
-    this.guide = guide;
-    this.aladin.on("zoomChanged", () => this.refreshMapGuide());
-    this.aladin.on("cooFrameChanged", () => this.refreshMapGuide());
-    this.aladin.on("rotationChanged", () => this.refreshMapGuide());
-    new ResizeObserver(() => this.refreshMapGuide()).observe(this.container);
-  }
-
-  refreshMapGuide() {
-    if (!this.guide) return;
-    if (this.backToField) this.backToField.hidden = !outsideWorkspaceField(this.aladin, this.workspaceField);
-    const guide = skyMapGuide(this.aladin);
-    this.guide.hidden = !guide;
-    if (!guide) return;
-    for (const direction of ["north", "east"]) {
-      const label = this.guide.querySelector(`[data-direction="${direction}"]`);
-      label.hidden = guide[direction] === null;
-      label.querySelector("b").style.transform = `rotate(${guide[direction]}deg)`;
+  installScaleUpdates() {
+    if (!this.scale) return;
+    for (const event of ["zoomChanged", "cooFrameChanged", "resizeChanged", "projectionChanged"]) {
+      this.aladin.on(event, () => this.refreshMapControls());
     }
-    const scale = this.guide.querySelector(".sky-map-scale");
-    scale.style.setProperty("--scale-width", `${guide.width}px`);
-    scale.textContent = guide.label;
-    scale.setAttribute("aria-label", `Approximate angular scale ${guide.label}`);
+  }
+
+  displayLayers() {
+    if (!this.aladin) return [];
+    const ids = this.aladin.getStackLayers();
+    return ids.map((id) => this.aladin.getOverlayImageLayer(id)).filter(Boolean);
+  }
+
+  refreshLightControl() {
+    if (!this.resetLight) return;
+    const layers = this.displayLayers();
+    for (const layer of layers) {
+      if (this.initialDisplay.has(layer)) continue;
+      const { opacity, color } = layer.getColorCfg().get();
+      const fits = layer.imgFormat === "fits";
+      // The pinned Aladin version ignores undefined cutoff values on reset.
+      this.initialDisplay.set(layer, {
+        brightness: color.kBrightness, contrast: color.kContrast,
+        gamma: color.kGamma, saturation: color.kSaturation,
+        minCut: color.minCut ?? (fits ? layer.defaultFitsMinCut : undefined) ?? 0,
+        maxCut: color.maxCut ?? (fits ? layer.defaultFitsMaxCut : undefined) ?? 1,
+        stretch: color.stretch, colormap: color.cmapName, reversed: color.reversed, opacity,
+      });
+    }
+    this.resetLight.hidden = !layers.length;
+  }
+
+  refreshMapControls() {
+    if (!this.aladin) return;
+    if (this.backToField) this.backToField.hidden = !outsideWorkspaceField(this.aladin, this.workspaceField);
+    if (!this.scale) return;
+    const scale = skyMapScale(this.aladin);
+    this.scale.hidden = !scale;
+    if (!scale) return;
+    this.scale.style.setProperty("--scale-width", `${scale.width}px`);
+    this.scale.textContent = scale.label;
+    this.scale.setAttribute("aria-label", `Approximate angular scale ${scale.label}`);
   }
 
   /** Put coordinates (ICRS degrees) in the readout, with the country that sky point is straight above right now. */
@@ -194,7 +211,7 @@ export class SkyContext {
   showPointerCoordinates(sky, x, y) {
     if (!this.coordinateHint || !Number.isFinite(x) || !Number.isFinite(y)) return;
     const { raText, decText } = selectionText(sky);
-    this.coordinateHint.textContent = `RA ${raText}° · Dec ${decText}° · Click to open in Blink`;
+    this.coordinateHint.textContent = `RA ${raText}° · Dec ${decText}°`;
     this.coordinateHint.hidden = false;
     const width = this.container.clientWidth, height = this.container.clientHeight;
     const left = Math.max(8, Math.min(x + 14, width - this.coordinateHint.offsetWidth - 8));
@@ -215,24 +232,6 @@ export class SkyContext {
     this.setReadout(sky.ra, sky.dec, "Cursor");
     this.showPointerCoordinates(sky, e.x, e.y);
   }
-  onMapClick(e) {
-    // Aladin fires 'click' on mouse release, even after panning. Never load a new
-    // field when the user dragged the map or selected a catalogue source.
-    if (!this.onSelectPosition || e?.isDragging || e?.object ||
-        (e?.button !== undefined && e.button !== 0)) return;
-    const sky = aladinSkyAt(this.aladin, e);
-    if (!sky) return;
-    const fields = selectionText(sky);
-    // Clipboard access must begin during the click, before loading changes the view.
-    const copied = copySkySelection(fields.clipboardText);
-    this.onSelectPosition({ ...sky, ...fields });
-    this.hidePointerCoordinates();
-    copied.then((ok) => {
-      if (this.selectionStatusEl) this.selectionStatusEl.textContent = ok
-        ? "Sky position copied and loaded into Blink Workspace."
-        : "Sky position loaded into Blink Workspace. Clipboard permission was unavailable.";
-    });
-  }
   /** Load the country map once and redraw the readout with it. */
   async ensureWorld() {
     if (this.world) return;
@@ -246,6 +245,7 @@ export class SkyContext {
   async open(query, survey) {
     this.survey = survey || this.survey;
     this.container.hidden = false;
+    if (this.surface) this.surface.hidden = false;
     this.statusEl.textContent = "Loading sky map…";
     let pictureSource;
     try {
@@ -253,6 +253,7 @@ export class SkyContext {
     } catch (err) {
       this.statusEl.textContent = err.message;
       this.container.hidden = true;
+      if (this.surface) this.surface.hidden = true;
       return;
     }
     const before = source;
@@ -280,24 +281,17 @@ export class SkyContext {
       this.coordinateHint.hidden = true;
       this.container.appendChild(this.coordinateHint);
       this.aladin.on("mouseMove", (e) => this.onHover(e));
-      this.aladin.on("objectClicked", (object) => {
-        // A source click should keep Aladin's own SIMBAD popup, not navigate away.
-        this.clickedAladinObject = Boolean(object);
-      });
-      this.aladin.on("click", (e) => {
-        const clickedSource = this.clickedAladinObject;
-        this.clickedAladinObject = false;
-        if (!clickedSource) this.onMapClick(e);
-      });
-      this.installMapGuide();
+      this.installScaleUpdates();
+      if (this.resetLight) this.aladin.on("layerChanged", () => this.refreshLightControl());
       this.aladin.on("positionChanged", () => {
         if (!this.hovering) this.showCentre();
-        this.refreshMapGuide();
+        this.refreshMapControls();
       });
       this.container.addEventListener("pointerleave", () => { this.hidePointerCoordinates(); this.showCentre(); });
     }
     // The source can change between two openings (e.g. the backend was started meanwhile).
     else if (before !== source) this.setSurvey(this.survey);
+    this.refreshLightControl();
     this.statusEl.textContent = SOURCE_NOTE[source];
     if (this.noteEl) { this.noteEl.hidden = false; this.noteEl.textContent = this.world ? GEO_NOTE : "Loading country names…"; }
     this.update(query);
@@ -333,6 +327,7 @@ export class SkyContext {
     // API name changed between 3.x releases – support both.
     if (typeof this.aladin.setImageSurvey === "function") this.aladin.setImageSurvey(ref);
     else this.aladin.setBaseImageLayer(ref);
+    this.refreshLightControl();
   }
 
   /** Re-centre on a new query and redraw the field square + SIMBAD objects. */
@@ -345,7 +340,7 @@ export class SkyContext {
     aladin.setFoV((this.matchField ? fov : Math.max(fov * 3, 6)) / 60);
     this.hovering = false;
     this.setReadout(ra, dec, "Centre");
-    this.refreshMapGuide();
+    this.refreshMapControls();
 
     if (this.overlay) this.overlay.removeAll();
     else {

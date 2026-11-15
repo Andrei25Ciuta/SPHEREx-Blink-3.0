@@ -8,7 +8,7 @@ export function outsideWorkspaceField(aladin, field) {
 }
 
 /** Sample the projection locally, so the guide follows the zoom and coordinate frame. */
-export function skyMapGuide(aladin) {
+export function skyMapScale(aladin) {
   const [width, height] = aladin.getSize();
   const x = width / 2, y = height / 2;
   const sample = Math.min(80, x - 1);
@@ -24,25 +24,8 @@ export function skyMapGuide(aladin) {
   const power = 10 ** Math.floor(Math.log10(magnitude));
   const step = [5, 2, 1].find((factor) => factor * power <= magnitude) ?? 1;
   const amount = step * power;
-  const scale = {
+  return {
     width: sample * amount / magnitude,
     label: `${Number(amount.toPrecision(2))}${unit === 1 ? "°" : unit === 60 ? "′" : "″"}`,
-  };
-
-  const offset = Math.min(span / 8, 0.1);
-  const { ra, dec } = centre;
-  const northStep = dec + offset < 90 ? offset : -offset;
-  const eastStep = offset / Math.cos(dec * Math.PI / 180);
-  const direction = (lon, lat, sign = 1) => {
-    try {
-      const p = aladin.world2pix((lon + 360) % 360, lat, "icrs");
-      if (!p?.every(Number.isFinite)) return null;
-      return Math.atan2(sign * (p[1] - y), sign * (p[0] - x)) * 180 / Math.PI;
-    } catch { return null; }
-  };
-  return {
-    ...scale,
-    north: Math.abs(dec) < 90 ? direction(ra, dec + northStep, Math.sign(northStep)) : null,
-    east: Math.abs(eastStep) < 90 ? direction(ra + eastStep, dec) : null,
   };
 }
