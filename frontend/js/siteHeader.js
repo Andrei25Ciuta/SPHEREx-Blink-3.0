@@ -1,5 +1,6 @@
 import { setupThemeSwitcher, readTheme, applyTheme, STORAGE_KEY } from "./features/theme.js";
 import { patchLinks } from "./features/carryParams.js";
+import { createHeaderScrollController } from "./features/scrollHeader.js";
 
 const header = document.querySelector(".site-header");
 const current = header.dataset.page;
@@ -108,9 +109,35 @@ toggle.setAttribute("aria-controls", menu.id);
 toggle.setAttribute("aria-expanded", "false");
 header.append(toggle, menu);
 
+const scrollHeader = createHeaderScrollController();
+scrollHeader.reset(window.scrollY);
+let headerFramePending = false;
+function revealHeader() {
+  scrollHeader.reveal();
+  header.classList.remove("is-hidden");
+}
+function syncHeaderVisibility() {
+  headerFramePending = false;
+  const focusedControl = header.contains(document.activeElement);
+  const keepVisible = menu.classList.contains("is-open") || focusedControl;
+  header.classList.toggle("is-hidden", scrollHeader.update(window.scrollY, { keepVisible }));
+}
+function scheduleHeaderVisibility() {
+  if (headerFramePending) return;
+  headerFramePending = true;
+  window.requestAnimationFrame(syncHeaderVisibility);
+}
+window.addEventListener("scroll", scheduleHeaderVisibility, { passive: true });
+window.addEventListener("pageshow", () => {
+  scrollHeader.reset(window.scrollY);
+  header.classList.remove("is-hidden");
+});
+header.addEventListener("focusin", revealHeader);
+
 function setOpen(open) {
   toggle.setAttribute("aria-expanded", String(open));
   menu.classList.toggle("is-open", open);
+  if (open) revealHeader();
 }
 toggle.addEventListener("click", () => setOpen(!menu.classList.contains("is-open")));
 document.addEventListener("click", event => {
