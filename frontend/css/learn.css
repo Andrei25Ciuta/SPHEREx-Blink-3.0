@@ -147,3 +147,6 @@ html[data-theme=midnight] .synthetic-notice{background:var(--learn-midnight-noti
 /* breathing room between the missions list and the theory lessons */
 #missions.cm{padding-bottom:clamp(2rem,4vw,3.5rem);margin-bottom:clamp(1.5rem,3vw,2.5rem)}
 .lesson-art-svg{display:block;width:100%;height:auto;border-radius:.9rem}
+/* Keep the Learn Mode wordmark clean: hide the two animated gold blink dots. */
+.learn-header .brand-logo::before,
+.learn-header .brand-logo::after { display: none; }
