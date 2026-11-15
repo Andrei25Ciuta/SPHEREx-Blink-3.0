@@ -1,6 +1,7 @@
 // Tests for the pure helpers of frontend/js/features/discoverPanel.js (texts, filters, sorting, stamps). The page part is checked in the browser.
 // Run: node scratch/test_discover_panel.mjs
-import { headline, subline, leadSentence, FILTERS, SORTS, pointsFor, pickStamps, stampPixels, medianFlux, explorerRow, spectrumPoints } from "../frontend/js/features/discoverPanel.js";
+import { headline, subline, leadSentence, FILTERS, SORTS, pointsFor, pickStamps, stampPixels, medianFlux, explorerRow, spectrumPoints, DISCOVER_PAGE_SIZE, visibleSourceCount } from "../frontend/js/features/discoverPanel.js";
+import { readFileSync } from "node:fs";
 import { NEEDS_CHECKING_SCORE, CLASSES } from "../frontend/js/features/discovery.js";
 
 let failed = 0;
@@ -17,6 +18,25 @@ const base = {
   rawPositions: Array.from({ length: 9 }, (_, k) => ({ x: 20 + k * 0.1, y: 30 })),
 };
 const make = (over) => ({ ...base, ...over });
+
+// ---------------------------------------------------------------- compact presentation, leaving all data and exports intact
+{
+  check("first ten sources are shown by default", DISCOVER_PAGE_SIZE === 10 && visibleSourceCount(307) === 10);
+  check("Show more reveals ten more", visibleSourceCount(307, 20) === 20 && visibleSourceCount(307, 30) === 30);
+  check("Show less returns to the first ten", visibleSourceCount(307, DISCOVER_PAGE_SIZE) === 10);
+  check("short searches and empty results stay correct", visibleSourceCount(4, 10) === 4 && visibleSourceCount(0, 10) === 0);
+  check("existing 300-card cap remains; full CSV and table are still available", visibleSourceCount(307, 500) === 300 && visibleSourceCount(900, 10000) === 300);
+  check("unexpected page limits are safe", visibleSourceCount(307, NaN) === 10 && visibleSourceCount(307, -2) === 10);
+  const html = readFileSync(new URL("../frontend/index.html", import.meta.url), "utf8");
+  const js = readFileSync(new URL("../frontend/js/features/discoverPanel.js", import.meta.url), "utf8");
+  check("Search results has accessible hide/show controls",
+    html.includes('id="search-results-toggle"') && html.includes('aria-controls="search-results-content"')
+      && html.includes('id="search-results-content"') && js.includes('els.sectionContent.hidden = !open'));
+  check("source cards have both paging controls",
+    html.includes('id="discover-list-pager"') && html.includes('id="discover-list-more"') && html.includes('id="discover-list-less"'));
+  check("filter and sort reset to the first ten", js.includes('els.filter.addEventListener("change", resetListPage)') && js.includes('els.sort.addEventListener("change", resetListPage)'));
+  check("table view keeps its own paginated explorer and full export", js.includes('els.pager.hidden = view !== "cards"') && js.includes('candidatesToCsv(run.result.candidates'));
+}
 
 // ---------------------------------------------------------------- texts
 {
