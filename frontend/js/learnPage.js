@@ -47,16 +47,15 @@ function save() {
 function renderPath() {
   const list = $("#learning-path");
   const profile = activeProfile(state);
-  const maxUnlocked = unlockedLevel(profile);
+  const suggested = unlockedLevel(profile);           // every lesson is open: this is only the suggested next one
   list.replaceChildren(...LEVELS.map((level) => {
     const done = profile.completed.includes(level.id);
-    const unlocked = level.id <= maxUnlocked;
-    const button = el("button", { type: "button", disabled: !unlocked, dataset: { status: done ? "complete" : unlocked ? (level.id === currentLevelId ? "active" : "open") : "locked" } });
+    const button = el("button", { type: "button", dataset: { status: done ? "complete" : level.id === currentLevelId ? "active" : "open" } });
     if (level.id === currentLevelId) button.setAttribute("aria-current", "step");
     button.append(
       el("span", { className: "path-number", "aria-hidden": "true" }, done ? "✓" : String(level.id)),
       el("span", { className: "path-title" }, level.title),
-      el("span", { className: "path-state" }, done ? "Done" : unlocked ? "Open" : "Locked"),
+      el("span", { className: "path-state" }, done ? "Done" : level.id === suggested ? "Next" : "Open"),
     );
     button.addEventListener("click", () => { currentLevelId = level.id; latestQuizAnswer = null; selectedSortItem = null; placements = {}; render(); });
     return el("li", {}, null).appendChild(button).parentElement;
@@ -181,8 +180,6 @@ function renderSortQuiz(level, feedback) {
 function renderLesson() {
   const level = LEVELS.find((item) => item.id === currentLevelId) ?? LEVELS[0];
   const profile = activeProfile(state);
-  const unlocked = level.id <= unlockedLevel(profile);
-  if (!unlocked) { currentLevelId = unlockedLevel(profile); return renderLesson(); }
   const panel = $("#lesson-panel");
   const heading = el("div", { className: "lesson-heading" });
   heading.append(el("p", { className: "learn-kicker" }, `LEVEL ${String(level.id).padStart(2, "0")} · ${level.mission}`), el("h2", { id: "lesson-title", tabIndex: -1 }, level.title), el("p", { className: "lesson-story" }, `Mission briefing: ${level.story}`));
@@ -198,8 +195,11 @@ function renderLesson() {
     feedback.textContent = "You have completed this mission. You can revisit the lesson and practice again; XP is awarded once.";
   }
   panel.replaceChildren(heading, makeMissionArt(level), copy, el("p", { className: "lesson-term" }, `Astra's simple term: ${explanationFor(level.term).label}`), quizSection);
-  if (profile.completed.includes(level.id) && level.id < LEVELS.length) {
-    const next = el("button", { className: "learn-button learn-button-primary continue-button", type: "button" }, `Continue to Level ${level.id + 1} →`);
+  if (level.id < LEVELS.length) {
+    // Finished: continue. Not finished: the lesson is optional, skip it (no XP, it stays open to come back to).
+    const done = profile.completed.includes(level.id);
+    const next = el("button", { className: `learn-button ${done ? "learn-button-primary" : ""} continue-button`, type: "button" },
+      done ? `Continue to Level ${level.id + 1} →` : `Skip this lesson → Level ${level.id + 1}`);
     next.addEventListener("click", () => { currentLevelId = level.id + 1; latestQuizAnswer = null; placements = {}; render(); $("#lesson-title")?.focus?.(); });
     panel.append(next);
   }

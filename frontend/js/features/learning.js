@@ -36,9 +36,7 @@ const cleanProfile = (profile, index = 0) => ({
   name: typeof profile?.name === "string" ? profile.name.trim().slice(0, 40) || "Space Explorer" : "Space Explorer",
   completed: (() => {
     const ids = Array.isArray(profile?.completed) ? [...new Set(profile.completed.filter((id) => Number.isInteger(id) && VALID_LEVELS.has(id)))].sort((a, b) => a - b) : [];
-    const contiguous = [];
-    for (const id of ids) { if (id !== contiguous.length + 1) break; contiguous.push(id); }
-    return contiguous;
+    return ids;                                       // lessons can be done in any order and skipped (15 Nov 2026)
   })(),
   xp: Number.isFinite(profile?.xp) && profile.xp >= 0 ? Math.floor(profile.xp) : 0,
   timeSeconds: Number.isFinite(profile?.timeSeconds) && profile.timeSeconds >= 0 ? Math.floor(profile.timeSeconds) : 0,
@@ -81,9 +79,10 @@ export function activeProfile(state) {
   return safe.profiles.find((profile) => profile.id === safe.activeProfileId) ?? safe.profiles[0];
 }
 
+/** The suggested next lesson: the first one not yet completed. Every lesson is open; none has to be done first. */
 export function unlockedLevel(profile) {
   const safe = cleanProfile(profile);
-  return Math.min(LEVELS.length, safe.completed.length + 1);
+  return LEVELS.find((l) => !safe.completed.includes(l.id))?.id ?? LEVELS.length;
 }
 
 export function progressPercent(profile) {
@@ -124,7 +123,7 @@ export function completeLevel(state, levelId, date = new Date().toISOString().sl
   const next = readState(state);
   const profile = next.profiles.find((item) => item.id === next.activeProfileId) ?? next.profiles[0];
   const id = Number(levelId);
-  if (!VALID_LEVELS.has(id) || id > unlockedLevel(profile) || profile.completed.includes(id)) return next;
+  if (!VALID_LEVELS.has(id) || profile.completed.includes(id)) return next;
   profile.completed.push(id);
   profile.completed.sort((a, b) => a - b);
   profile.xp += 10;
