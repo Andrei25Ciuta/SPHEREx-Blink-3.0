@@ -583,7 +583,7 @@
 
       const orbitRadius = radius * 1.42;
       const orbitPoints = new THREE.EllipseCurve(0, 0, orbitRadius, orbitRadius, 0, Math.PI * 2).getPoints(160);
-      const orbitGeometry = new THREE.BufferGeometry().setFromPoints(orbitPoints.map(point => new THREE.Vector3(point.x, 0, point.y)));
+      const orbitGeometry = new THREE.BufferGeometry().setFromPoints(orbitPoints.map(point => new THREE.Vector3(point.x, point.y, 0)));
       const orbitMaterial = new THREE.LineDashedMaterial({ color: 0xefb24f, dashSize: 8, gapSize: 6, transparent: true, opacity: 0.46 });
       const orbit = new THREE.Line(orbitGeometry, orbitMaterial);
       orbit.computeLineDistances();
