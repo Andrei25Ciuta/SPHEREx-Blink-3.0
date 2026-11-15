@@ -581,14 +581,49 @@
         cloudCtx.fill();
       }
 
-      const orbitRadius = radius * 1.42;
-      const orbitPoints = new THREE.EllipseCurve(0, 0, orbitRadius, orbitRadius, 0, Math.PI * 2).getPoints(160);
-      const orbitGeometry = new THREE.BufferGeometry().setFromPoints(orbitPoints.map(point => new THREE.Vector3(point.x, point.y, 0)));
-      const orbitMaterial = new THREE.LineDashedMaterial({ color: 0xefb24f, dashSize: 8, gapSize: 6, transparent: true, opacity: 0.46 });
-      const orbit = new THREE.Line(orbitGeometry, orbitMaterial);
-      orbit.computeLineDistances();
-      orbit.rotation.x = 0; // Keep the dashed ring horizontal around the planet.
-      root.add(orbit);
+      // Saturn-inspired planetary rings: broad, layered annuli rather than a
+      // single dashed orbit line. The tilted group lets the near side pass in
+      // front of the planet while the far side naturally disappears behind it.
+      const rings = new THREE.Group();
+      rings.rotation.set(1.05, 0.08, -0.16);
+
+      const ringBands = [
+        { inner: 1.12, outer: 1.28, color: 0x9bb3c4, opacity: 0.28 },
+        { inner: 1.31, outer: 1.47, color: 0xd8c49a, opacity: 0.62 },
+        { inner: 1.50, outer: 1.66, color: 0x8299aa, opacity: 0.42 },
+        { inner: 1.69, outer: 1.88, color: 0xe0c99c, opacity: 0.34 }
+      ];
+
+      // A very subtle continuous outer haze softens the separated ring bands.
+      const haze = new THREE.Mesh(
+        new THREE.RingGeometry(radius * 1.08, radius * 1.92, 192),
+        new THREE.MeshBasicMaterial({
+          color: 0xa9bdc9,
+          transparent: true,
+          opacity: 0.09,
+          side: THREE.DoubleSide,
+          depthWrite: false
+        })
+      );
+      rings.add(haze);
+
+      ringBands.forEach(({ inner, outer, color, opacity }) => {
+        const band = new THREE.Mesh(
+          new THREE.RingGeometry(radius * inner, radius * outer, 192),
+          new THREE.MeshStandardMaterial({
+            color,
+            metalness: 0.18,
+            roughness: 0.82,
+            transparent: true,
+            opacity,
+            side: THREE.DoubleSide,
+            depthWrite: false
+          })
+        );
+        rings.add(band);
+      });
+
+      root.add(rings);
 
       const earth = new THREE.Mesh(
         new THREE.SphereGeometry(radius, 64, 48),
