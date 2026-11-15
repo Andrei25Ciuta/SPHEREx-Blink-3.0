@@ -95,10 +95,23 @@ input[type=range]::-webkit-slider-thumb { box-shadow: none; }
 
 /* One application masthead. The compact menu overlays the page in normal tab order. */
 .site-header {
-  position: relative; z-index: 6; min-height: 60px; display: flex;
+  position: sticky; top: 0; z-index: 1000; min-height: 60px; display: flex;
   align-items: center; gap: clamp(16px, 3vw, 48px);
   padding: 0 max(16px, calc((100% - 1440px) / 2 + 20px));
   background: var(--bg); border-bottom: 1px solid var(--border);
+  transition: transform .24s ease, background .3s ease;
+}
+.site-header.is-hidden {
+  transform: translate3d(0, calc(-100% - 2px), 0);
+  pointer-events: none;
+}
+/* Keyboard focus must never be trapped in the off-screen navigation. */
+.site-header.is-hidden:focus-within {
+  transform: translate3d(0, 0, 0);
+  pointer-events: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-header { transition: none; }
 }
 .site-brand { white-space: nowrap; color: var(--text); font: 700 1.3rem var(--font-head); letter-spacing: -.04em; text-decoration: none; }
 .project-menu { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: flex-start; gap: 14px; }
