@@ -341,7 +341,7 @@ output { font-weight: 600; color: var(--accent); }
 }
 #blink-canvas {
   width: 100%; height: 100%; display: block;
-  image-rendering: pixelated;           /* keep SPHEREx pixels sharp when scaled up */
+  image-rendering: auto;                /* drawn softly blended; the pixel values themselves are unchanged */
 }
 /* Small crosshair marks the requested RA/Dec (center of the cutout) */
 .crosshair {
