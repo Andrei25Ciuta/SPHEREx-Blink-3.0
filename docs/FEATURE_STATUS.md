@@ -2,7 +2,7 @@
 
 ## Cloud data service
 
-Science Mode can select the HTTPS SPHEREx DR1 service. The existing field form submits a durable request, displays server-reported progress over the image stage, and loads each ready detector as its frames are published. Prepared sequences and cutouts are available; real fields are limited to 1–10 arcmin while synthetic fields remain 1–30 arcmin. Firestore tracks request state and the manifest index; Google Cloud Storage keeps image products private behind the API. No credentials or image pixels are shipped in the frontend or Git. Current API contract and operational boundaries: [BACKEND_CONTRACT.md](BACKEND_CONTRACT.md) and [CLOUD_DEPLOYMENT.md](CLOUD_DEPLOYMENT.md).
+Science Mode can select the HTTPS SPHEREx DR1 service. The existing field form submits a durable request, displays server-reported progress over the image stage, and loads each ready detector as its frames are published. Prepared sequences and cutouts support real and synthetic fields up to 30 arcmin. Archive planning spreads up to 12 selected observations across available 30-day survey passes; Find movers and distant-body search still require at least three actual passes. Firestore tracks request state and the manifest index; Google Cloud Storage keeps image products private behind the API. No credentials or image pixels are shipped in the frontend or Git. Current API contract and operational boundaries: [BACKEND_CONTRACT.md](BACKEND_CONTRACT.md) and [CLOUD_DEPLOYMENT.md](CLOUD_DEPLOYMENT.md).
 
 The source configuration permits up to 20 concurrent detector preparation jobs for testing and presentation. The live Firestore policy and Cloud Run revision remain capped at three until separately migrated and deployed.
 

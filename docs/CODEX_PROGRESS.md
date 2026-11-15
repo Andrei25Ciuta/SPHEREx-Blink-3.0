@@ -546,3 +546,8 @@ Verification in the available connected-source environment: syntax parsing for u
 Connected each Science Mode “Explain Simply” control to Astra's existing on-device model path: the browser's built-in model is preferred, with WebLLM as the existing WebGPU fallback. The model initializes only after a panel is opened; AI answers are labelled as fallible, loading is announced in the answer area, and reviewed glossary text is used if no model can run or generation fails. Updated education and limitation notes. No analysis values or backend routes changed.
 
 Not run: automated tests or browser interaction checks.
+
+## 2026-11-15 – Real-data search coverage preparation
+Prepared source changes for real-data Find movers and distant-body search: the real-data FOV ceiling is now 30 arcmin across the frontend, local API, cloud cutout API and asynchronous request validator. Archive planning retains at most 12 images per detector and selects one latest observation from each available 30-day pass before filling remaining slots round-robin from those passes. Reported pass counts still come from the selected observation dates, so the existing three-pass science gate remains in force.
+
+The changed selection is versioned as `blink3-cloud-2`; the catalog filter and source owner policy point at that version, and the prepared policy revision is v3. This avoids reusing v1 processing products under the new selection identity. The live Firestore policy is untouched, so these changes are not available in production until code deployment and a separately approved policy migration. No FITS downloads, deployment or push were performed. Automated tests and live-browser checks were not run; existing assertions were updated to the new FOV contract.

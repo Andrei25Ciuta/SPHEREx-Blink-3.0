@@ -409,7 +409,7 @@ def create_app(
         request: Request,
         ra: float = Query(..., ge=0, lt=360),
         dec: float = Query(..., ge=-90, le=90),
-        fov: float = Query(5, ge=1, le=10),
+        fov: float = Query(5, ge=1, le=30),
         det: str = "all",
         request_id: str | None = Query(None, alias="request_id"),
     ):
