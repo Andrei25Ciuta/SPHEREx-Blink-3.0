@@ -9,7 +9,7 @@ Learn Mode is a beginner-facing experience alongside Science Mode. It uses the e
 - Each level has a short mission story, a plain-language lesson, an illustration or interactive visual, and a reusable quiz control. Quiz data includes multiple-choice, true/false, image-identification, and drag-and-drop classification; classification also has a click/keyboard alternative.
 - Correct answers unlock the next level and award XP once. Badges, rank, learning time, and a local-day streak are derived from the active learner's saved profile.
 - Learner profiles can be switched on one browser. The classroom view summarizes those local profiles and prints a worksheet with an answer key or a class summary.
-- Astra uses reviewed prepared explanations by default. When requested, its optional language model runs on-device; Science Mode's Explain Simply controls use the same built-in browser AI or the existing WebLLM option. Questions are not sent to an application server. AI answers may be wrong and are labelled, with reviewed notes as the fallback.
+- Astra uses reviewed prepared explanations by default. When requested, its optional language model runs on-device; questions are not sent to an application server. AI answers may be wrong and are labelled, with reviewed notes as the fallback. Science Mode does not add per-panel explanation controls.
 
 ## Data model and storage
 

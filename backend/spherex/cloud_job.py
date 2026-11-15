@@ -362,7 +362,11 @@ def main():
         if not request:
             raise ValueError("Field request no longer exists")
         policy = state.policy(require_enabled=False)
-        if policy.get("version") != request.get("policyVersion"):
+        request_policy_version = request.get("policyVersion")
+        compatible_versions = policy.get("compatiblePolicyVersions", [])
+        if (policy.get("version") != request_policy_version
+                and (not isinstance(compatible_versions, list)
+                     or request_policy_version not in compatible_versions)):
             raise ValueError("The acquisition policy changed during this request")
         expected_query = {**request["query"], "det": a.detector}
         if (plan.get("query") != expected_query or plan.get("fieldKey") != request.get("fieldKey")

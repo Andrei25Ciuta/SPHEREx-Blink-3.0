@@ -1,74 +1,60 @@
 // skyContext.js – Aladin Lite sky map: the same spot in other surveys + SIMBAD objects,
 // with the blink field drawn as a dashed square. Loaded from the CDN only on demand.
 //
-// Where the pictures come from (see SKY_TILES in config.js), first one that answers wins:
-//   1. ESA's public mirror of the CDS surveys (skies.esac.esa.int, CORS open, no setup);
-//   2. our backend, which relays IRSA's copies via /api/hips
-//      (IRSA sends no CORS headers, and WebGL needs them);
-//   3. the CDS originals (Strasbourg) directly - blocked on some networks,
-//      in which case the map stays grey while the catalogue objects still show.
+// Survey tiles can come directly from IRSA, ESA, the local relay or CDS.
 // Catalogue objects: SIMBAD via its Harvard mirror (TAP), which sends CORS headers.
 // Older surveys are also handy for movers: a fast star sits somewhere ELSE in 2MASS (1999)!
 
-import { SKY_TILES, API_BASE } from "../config.js?v=1";
+import { SKY_TILES, API_BASE, CAN_USE_LOCAL_BACKEND, IS_REMOTE_BACKEND } from "../config.js?v=1";
 import { WORLD_URL, decodeCountries, overheadAt } from "./skyGeo.js";
 import { fieldCorners } from "./explorerGeometry.js";
-import { aladinSkyAt, selectionText, copySkySelection } from "./skyContextClick.js";
+import { aladinSkyAt, selectionText } from "./skyContextClick.js";
 
-import { outsideWorkspaceField, skyMapGuide } from "./skyMapGuide.js";
+import { outsideWorkspaceField, skyMapScale } from "./skyMapGuide.js?v=3";
 
 const ALADIN_URL = "https://cdn.jsdelivr.net/npm/aladin-lite@3.6.5/dist/aladin.js";
 const SIMBAD_TAP = "https://simbad.harvard.edu/simbad/sim-tap/sync";
 
 const ESA_HIPS = "https://skies.esac.esa.int";   // same surveys as CDS (properties file says so)
+const IRSA_HIPS = "https://irsa.ipac.caltech.edu/data/hips";
 const SURVEYS = {
   "2mass":   { cds: "P/2MASS/color",   esa: "2MASSColor",   irsa: "CDS/2MASS/Color" },
   "allwise": { cds: "P/allWISE/color", esa: "AllWISEColor", irsa: "CDS/AllWISE/RGB-W4-W2-W1" },
   "dss2":    { cds: "P/DSS2/color",    esa: "DSSColor",     irsa: "CDS/DSS2/color" },
 };
-const SOURCES = ["esa", "backend", "cds"];
+const SOURCES = ["irsa", "esa", "backend", "cds"];
 const SOURCE_NOTE = {
+  irsa: "Sky images: IRSA’s public HiPS archive.",
   esa: "Sky images: ESA's mirror of the CDS surveys.",
   backend: "Sky images: IRSA (via our backend).",
   cds: "Sky images: CDS. If the map stays grey, your network may block CDS: start the backend (see the README), then press “Re-centre sky map”.",
 };
-// Where the pictures come from right now; decided again each time the map is opened.
-let source = SOURCES.includes(SKY_TILES) ? SKY_TILES : "cds";
-/** Survey key -> what Aladin should load (a CDS id or a full HiPS URL). */
-function surveyRef(key) {
+/** Survey key -> the CDS ID or full HiPS URL for the chosen source. */
+function surveyRef(key, source) {
   const s = SURVEYS[key] || SURVEYS["2mass"];
+  if (source === "irsa") return `${IRSA_HIPS}/${s.irsa}`;
   if (source === "esa") return `${ESA_HIPS}/${s.esa}`;
   if (source === "backend") return `${API_BASE}/api/hips/${s.irsa}`;
   return s.cds;
 }
 
-/** Does this URL answer quickly? (A blocked or slow host answers nothing.) */
-async function answers(url) {
-  try {
-    const r = await fetch(url, { signal: AbortSignal.timeout(2500) });
-    return r.ok;
-  } catch {
-    return false;
+/** Check the selected survey's metadata rather than an unrelated survey or a health endpoint. */
+export async function pickSkySource(key, {
+  preference = SKY_TILES, localRelay = CAN_USE_LOCAL_BACKEND && !IS_REMOTE_BACKEND, fetchImpl = fetch,
+} = {}) {
+  if (preference !== "auto") return SOURCES.includes(preference) ? preference : "cds";
+  const candidates = localRelay ? ["irsa", "esa", "backend"] : ["irsa", "esa"];
+  const available = candidates.map(async (source) => {
+    try {
+      const response = await fetchImpl(`${surveyRef(key, source)}/properties`, { signal: AbortSignal.timeout(3500) });
+      return response.ok && /^hips_tile_format\s*=/m.test(await response.text());
+    } catch {
+      return false;
+    }
+  });
+  for (const [index, source] of candidates.entries()) {
+    if (await available[index]) return source;
   }
-}
-
-const LOCAL_HOSTS = ["localhost", "127.0.0.1", "[::1]", ""];
-/**
- * A backend "on this machine" is only reachable from a page that is also on this machine.
- * On a public page (GitHub Pages) we must not poke at localhost: browsers may even ask the
- * visitor for permission to reach devices on their network.
- */
-function backendMayExist() {
-  let backendHost = location.hostname;                       // API_BASE = "" means the page's own server
-  try { if (API_BASE) backendHost = new URL(API_BASE).hostname; } catch { /* keep the page's host */ }
-  return !(LOCAL_HOSTS.includes(backendHost) && !LOCAL_HOSTS.includes(location.hostname));
-}
-
-/** First picture source that answers: ESA's mirror, then our backend (IRSA), then CDS. */
-async function pickSource() {
-  if (SKY_TILES !== "auto") return SOURCES.includes(SKY_TILES) ? SKY_TILES : "cds";
-  if (await answers(`${ESA_HIPS}/DSSColor/properties`)) return "esa";
-  if (backendMayExist() && await answers(`${API_BASE}/api/health`)) return "backend";
   return "cds";
 }
 
@@ -112,25 +98,32 @@ function loadWorld() {
 }
 
 export class SkyContext {
-  constructor(container, statusEl, noteEl = null, { matchField = false, onSelectPosition = null, selectionStatusEl = null, backToField = null } = {}) {
+  constructor(container, statusEl, noteEl = null, { matchField = false, backToField = null, surface = null, scale = null, resetLight = null, resetStatus = null } = {}) {
     this.container = container;
     this.statusEl = statusEl;
     this.matchField = matchField;
-    this.onSelectPosition = onSelectPosition;
-    this.selectionStatusEl = selectionStatusEl;
     this.backToField = backToField;
+    this.surface = surface;
+    this.scale = scale;
+    this.resetLight = resetLight;
+    this.initialDisplay = new WeakMap();
+    resetLight?.addEventListener("click", () => {
+      const layers = this.displayLayers().filter((layer) => this.initialDisplay.has(layer));
+      for (const layer of layers) layer.setOptions({ ...this.initialDisplay.get(layer) });
+      if (resetStatus) resetStatus.textContent = layers.length ? "Map display reset." : "Wait for the map image to load.";
+    });
     this.workspaceField = null;
     backToField?.addEventListener("click", () => {
       if (this.workspaceField) this.update(this.workspaceField);
     });
     this.coordinateHint = null;
-    this.clickedAladinObject = false;
     this.noteEl = noteEl;               // the paragraph that explains the country in brackets
     this.aladin = null;
     this.A = null;
     this.query = null;
     this.candidateTrack = [];
     this.survey = "2mass";
+    this.surveyRequest = 0;
     this.readout = null;                // the box in the corner: coordinates and, in brackets, the country overhead
     this.world = null;                  // countries (skyGeo.js), once loaded
     this.hovering = false;
@@ -140,40 +133,51 @@ export class SkyContext {
 
   setWorkspaceField(field) {
     this.workspaceField = field;
-    this.refreshMapGuide();
+    this.refreshMapControls();
   }
 
-  installMapGuide() {
-    if (!this.backToField) return;
-    const guide = document.createElement("div");
-    guide.className = "sky-map-guide";
-    guide.innerHTML = `<div class="sky-map-compass" aria-label="Orientation at map centre">
-      <span data-direction="north">N <b aria-hidden="true">→</b></span>
-      <span data-direction="east">E <b aria-hidden="true">→</b></span>
-    </div><div class="sky-map-scale" aria-label="Approximate angular scale"></div>`;
-    this.container.appendChild(guide);
-    this.guide = guide;
-    this.aladin.on("zoomChanged", () => this.refreshMapGuide());
-    this.aladin.on("cooFrameChanged", () => this.refreshMapGuide());
-    this.aladin.on("rotationChanged", () => this.refreshMapGuide());
-    new ResizeObserver(() => this.refreshMapGuide()).observe(this.container);
-  }
-
-  refreshMapGuide() {
-    if (!this.guide) return;
-    if (this.backToField) this.backToField.hidden = !outsideWorkspaceField(this.aladin, this.workspaceField);
-    const guide = skyMapGuide(this.aladin);
-    this.guide.hidden = !guide;
-    if (!guide) return;
-    for (const direction of ["north", "east"]) {
-      const label = this.guide.querySelector(`[data-direction="${direction}"]`);
-      label.hidden = guide[direction] === null;
-      label.querySelector("b").style.transform = `rotate(${guide[direction]}deg)`;
+  installScaleUpdates() {
+    if (!this.scale) return;
+    for (const event of ["zoomChanged", "cooFrameChanged", "resizeChanged", "projectionChanged"]) {
+      this.aladin.on(event, () => this.refreshMapControls());
     }
-    const scale = this.guide.querySelector(".sky-map-scale");
-    scale.style.setProperty("--scale-width", `${guide.width}px`);
-    scale.textContent = guide.label;
-    scale.setAttribute("aria-label", `Approximate angular scale ${guide.label}`);
+  }
+
+  displayLayers() {
+    if (!this.aladin) return [];
+    const ids = this.aladin.getStackLayers();
+    return ids.map((id) => this.aladin.getOverlayImageLayer(id)).filter(Boolean);
+  }
+
+  refreshLightControl() {
+    if (!this.resetLight) return;
+    const layers = this.displayLayers();
+    for (const layer of layers) {
+      if (this.initialDisplay.has(layer)) continue;
+      const { opacity, color } = layer.getColorCfg().get();
+      const fits = layer.imgFormat === "fits";
+      // The pinned Aladin version ignores undefined cutoff values on reset.
+      this.initialDisplay.set(layer, {
+        brightness: color.kBrightness, contrast: color.kContrast,
+        gamma: color.kGamma, saturation: color.kSaturation,
+        minCut: color.minCut ?? (fits ? layer.defaultFitsMinCut : undefined) ?? 0,
+        maxCut: color.maxCut ?? (fits ? layer.defaultFitsMaxCut : undefined) ?? 1,
+        stretch: color.stretch, colormap: color.cmapName, reversed: color.reversed, opacity,
+      });
+    }
+    this.resetLight.hidden = !layers.length;
+  }
+
+  refreshMapControls() {
+    if (!this.aladin) return;
+    if (this.backToField) this.backToField.hidden = !outsideWorkspaceField(this.aladin, this.workspaceField);
+    if (!this.scale) return;
+    const scale = skyMapScale(this.aladin);
+    this.scale.hidden = !scale;
+    if (!scale) return;
+    this.scale.style.setProperty("--scale-width", `${scale.width}px`);
+    this.scale.textContent = scale.label;
+    this.scale.setAttribute("aria-label", `Approximate angular scale ${scale.label}`);
   }
 
   /** Put coordinates (ICRS degrees) in the readout, with the country that sky point is straight above right now. */
@@ -194,7 +198,7 @@ export class SkyContext {
   showPointerCoordinates(sky, x, y) {
     if (!this.coordinateHint || !Number.isFinite(x) || !Number.isFinite(y)) return;
     const { raText, decText } = selectionText(sky);
-    this.coordinateHint.textContent = `RA ${raText}° · Dec ${decText}° · Click to open in Blink`;
+    this.coordinateHint.textContent = `RA ${raText}° · Dec ${decText}°`;
     this.coordinateHint.hidden = false;
     const width = this.container.clientWidth, height = this.container.clientHeight;
     const left = Math.max(8, Math.min(x + 14, width - this.coordinateHint.offsetWidth - 8));
@@ -215,24 +219,6 @@ export class SkyContext {
     this.setReadout(sky.ra, sky.dec, "Cursor");
     this.showPointerCoordinates(sky, e.x, e.y);
   }
-  onMapClick(e) {
-    // Aladin fires 'click' on mouse release, even after panning. Never load a new
-    // field when the user dragged the map or selected a catalogue source.
-    if (!this.onSelectPosition || e?.isDragging || e?.object ||
-        (e?.button !== undefined && e.button !== 0)) return;
-    const sky = aladinSkyAt(this.aladin, e);
-    if (!sky) return;
-    const fields = selectionText(sky);
-    // Clipboard access must begin during the click, before loading changes the view.
-    const copied = copySkySelection(fields.clipboardText);
-    this.onSelectPosition({ ...sky, ...fields });
-    this.hidePointerCoordinates();
-    copied.then((ok) => {
-      if (this.selectionStatusEl) this.selectionStatusEl.textContent = ok
-        ? "Sky position copied and loaded into Blink Workspace."
-        : "Sky position loaded into Blink Workspace. Clipboard permission was unavailable.";
-    });
-  }
   /** Load the country map once and redraw the readout with it. */
   async ensureWorld() {
     if (this.world) return;
@@ -244,22 +230,26 @@ export class SkyContext {
   get isOpen() { return !!this.aladin; }
 
   async open(query, survey) {
-    this.survey = survey || this.survey;
+    const key = survey || this.survey;
+    this.survey = key;
+    const request = ++this.surveyRequest;
     this.container.hidden = false;
+    if (this.surface) this.surface.hidden = false;
     this.statusEl.textContent = "Loading sky map…";
     let pictureSource;
     try {
-      [this.A, pictureSource] = await Promise.all([loadAladin(), pickSource()]);
+      [this.A, pictureSource] = await Promise.all([loadAladin(), pickSkySource(key)]);
     } catch (err) {
       this.statusEl.textContent = err.message;
       this.container.hidden = true;
+      if (this.surface) this.surface.hidden = true;
       return;
     }
-    const before = source;
-    source = pictureSource;
+    if (request !== this.surveyRequest) return;
+    const ref = surveyRef(key, pictureSource);
     if (!this.aladin) {
       this.aladin = this.A.aladin(this.container, {
-        survey: surveyRef(this.survey),
+        survey: ref,
         cooFrame: "ICRS",
         showReticle: true,
         showCooGridControl: true,
@@ -280,29 +270,23 @@ export class SkyContext {
       this.coordinateHint.hidden = true;
       this.container.appendChild(this.coordinateHint);
       this.aladin.on("mouseMove", (e) => this.onHover(e));
-      this.aladin.on("objectClicked", (object) => {
-        // A source click should keep Aladin's own SIMBAD popup, not navigate away.
-        this.clickedAladinObject = Boolean(object);
-      });
-      this.aladin.on("click", (e) => {
-        const clickedSource = this.clickedAladinObject;
-        this.clickedAladinObject = false;
-        if (!clickedSource) this.onMapClick(e);
-      });
-      this.installMapGuide();
+      this.installScaleUpdates();
+      if (this.resetLight) this.aladin.on("layerChanged", () => this.refreshLightControl());
       this.aladin.on("positionChanged", () => {
         if (!this.hovering) this.showCentre();
-        this.refreshMapGuide();
+        this.refreshMapControls();
       });
       this.container.addEventListener("pointerleave", () => { this.hidePointerCoordinates(); this.showCentre(); });
     }
-    // The source can change between two openings (e.g. the backend was started meanwhile).
-    else if (before !== source) this.setSurvey(this.survey);
-    this.statusEl.textContent = SOURCE_NOTE[source];
+    else if (this.surveyUrl !== ref) this.aladin.setBaseImageLayer(ref);
+    this.surveyUrl = ref;
+    this.refreshLightControl();
+    this.statusEl.textContent = SOURCE_NOTE[pictureSource];
     if (this.noteEl) { this.noteEl.hidden = false; this.noteEl.textContent = this.world ? GEO_NOTE : "Loading country names…"; }
     this.update(query);
     this.setCandidateTrack(this.candidateTrack);
     this.ensureWorld();                  // not awaited: the map works at once, the country appears when the borders have arrived
+    if (this.survey !== key) await this.setSurvey(this.survey);
   }
 
   /** Draw the selected candidate's supporting detections, in observation order. */
@@ -326,13 +310,17 @@ export class SkyContext {
     if (points.length) this.trackCatalog.addSources(points.map(({ ra, dec }, index) => A.source(ra, dec, { index })));
   }
 
-  setSurvey(key) {
+  async setSurvey(key) {
     this.survey = key;
     if (!this.aladin) return;
-    const ref = surveyRef(key);
-    // API name changed between 3.x releases – support both.
-    if (typeof this.aladin.setImageSurvey === "function") this.aladin.setImageSurvey(ref);
-    else this.aladin.setBaseImageLayer(ref);
+    const request = ++this.surveyRequest;
+    const source = await pickSkySource(key);
+    if (request !== this.surveyRequest) return;
+    const ref = surveyRef(key, source);
+    if (this.surveyUrl !== ref) this.aladin.setBaseImageLayer(ref);
+    this.surveyUrl = ref;
+    this.statusEl.textContent = SOURCE_NOTE[source];
+    this.refreshLightControl();
   }
 
   /** Re-centre on a new query and redraw the field square + SIMBAD objects. */
@@ -345,7 +333,7 @@ export class SkyContext {
     aladin.setFoV((this.matchField ? fov : Math.max(fov * 3, 6)) / 60);
     this.hovering = false;
     this.setReadout(ra, dec, "Centre");
-    this.refreshMapGuide();
+    this.refreshMapControls();
 
     if (this.overlay) this.overlay.removeAll();
     else {

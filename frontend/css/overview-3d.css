@@ -84,7 +84,7 @@
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border-bottom: 1px solid rgba(239, 178, 79, 0.15);
-      transition: background 0.3s;
+      transition: background 0.3s, transform 0.24s ease;
     }
     .site-brand-wrap {
       display: flex;

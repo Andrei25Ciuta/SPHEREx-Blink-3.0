@@ -30,15 +30,17 @@ import { setupPredict } from "./features/predictView.js";
 import { startMissionRunner } from "./features/missionRunner.js";
 import { runTask, isCancelled } from "./features/workerClient.js";
 import { estimateSearch, describeEstimate } from "./features/searchCost.js";
+import { mapConcurrent } from "./features/mapConcurrent.js";
 import { runSearchTask } from "./features/searchTasks.js";
 import { MARK_IDLE, markText } from "./features/workspace.js";
 import { detectorCoverage, coverageText } from "./features/spectral.js";
+import { fieldRequestCardRows } from "./features/fieldRequestCards.js";
 import { setupTooltips } from "./features/tooltip.js";
 import { applyIcons } from "./features/ui.js";
 import { openDialog, shortcutsHtml } from "./features/dialog.js";
 import { setupTimeline } from "./features/timelineView.js";
 import { FLAGGED_LIMIT } from "./features/timeline.js";
-import { SkyContext } from "./features/skyContext.js?v=5";
+import { SkyContext } from "./features/skyContext.js?v=13";
 import { setupFullscreen } from "./features/fullscreen.js";
 import { detectSources, describeMover, matchKnownObject, moverPositionAtMjd, passIndices, trackSupport, blendWarning, VERSION as MOVERS_VERSION, DEFAULTS as MOVER_DEFAULTS, ERROR_MODEL } from "./features/movers.js";
 import { blindCheckCandidate, VERSION as BLIND_CHECK_VERSION } from "./features/blindCheck.js";
@@ -236,6 +238,26 @@ function selectTarget(target) {
 const overlay = $("stage-overlay");
 const overlayProgress = $("overlay-progress");
 const retryBtn = $("retry-btn");
+const fieldRequestPanel = $("field-request-panel");
+const fieldRequestGrid = $("field-request-grid");
+const fieldRequestTitle = $("field-request-title");
+const fieldRequestSummary = $("field-request-summary");
+const fieldRequestOverall = $("field-request-overall");
+const fieldRequestLive = $("field-request-live");
+const fieldRequestRetry = $("field-request-retry");
+let fieldRequestPreviewId = "";
+let fieldRequestLiveKey = "";
+const fieldRequestPreviewCache = new Map();
+
+function hideFieldRequestPanel() {
+  fieldRequestPanel.hidden = true;
+  fieldRequestPanel.classList.remove("has-images", "has-failures");
+  fieldRequestRetry.hidden = true;
+  fieldRequestLive.textContent = "";
+  fieldRequestPreviewId = "";
+  fieldRequestLiveKey = "";
+  fieldRequestPreviewCache.clear();
+}
 
 /**
  * Show the overlay on top of the image.
@@ -243,6 +265,7 @@ const retryBtn = $("retry-btn");
  *  - progress: number 0..1 shows a progress bar; null hides it
  */
 function showOverlay(title, sub = "", { error = false, progress = null } = {}) {
+  if (title === "Loading images…") hideFieldRequestPanel();
   overlay.querySelector(".overlay-title").textContent = title;
   overlay.querySelector(".overlay-sub").textContent = sub;
   overlay.classList.toggle("error", error);
@@ -258,7 +281,7 @@ const hideOverlay = () => {
   // Invisible (opacity 0) is not enough: screen readers would still read the old text.
   overlay.setAttribute("aria-hidden", "true");
 };
-retryBtn.addEventListener("click", async () => {
+async function retryLastRequest() {
   if (!lastQuery) return;
   if (activeFieldRequestId && DATA_SOURCE === "api" && !LEGACY_API_READ_ONLY) {
     try {
@@ -270,7 +293,9 @@ retryBtn.addEventListener("click", async () => {
     return;
   }
   loadData(lastQuery);
-});
+}
+retryBtn.addEventListener("click", retryLastRequest);
+fieldRequestRetry.addEventListener("click", retryLastRequest);
 
 const setStatus = (text) => { $("status-msg").textContent = text || ""; };
 
@@ -733,7 +758,7 @@ async function renderOverview(frames, token) {
   }
 }
 function markOverview(detector) {
-  document.querySelectorAll(".overview-item").forEach((b) =>
+  document.querySelectorAll(".overview-item, .field-request-card").forEach((b) =>
     b.setAttribute("aria-pressed", String(b.dataset.det === detector)));
 }
 
@@ -793,27 +818,11 @@ function clearMarker() {
 // ---------------------------------------------------------------
 const sky = new SkyContext($("aladin-box"), $("aladin-status"), $("sky-geo-note"), {
   matchField: true,
-  selectionStatusEl: $("sky-selection-status"),
   backToField: $("sky-back-to-field"),
-  onSelectPosition: ({ raText, decText }) => {
-    // Same field form and loader used by the Pin Board; keep FOV and data source unchanged.
-    raInput.value = raText;
-    decInput.value = decText;
-    raInput.dispatchEvent(new Event("input", { bubbles: true }));
-    decInput.dispatchEvent(new Event("input", { bubbles: true }));
-    if ($("controls-body").hidden) $("panel-left-btn").click();
-    form.requestSubmit();
-    const scrollToBlink = () => $("workspace").scrollIntoView({
-      block: "start", behavior: prefersReducedMotion ? "auto" : "smooth"
-    });
-    // Fullscreen must close first, or the Workspace remains hidden behind the sky map.
-    const skyFrame = $("sky-frame");
-    const wasFullscreen = skyFrame.classList.contains("is-fullscreen");
-    const nativeFullscreen = document.fullscreenElement === skyFrame || document.webkitFullscreenElement === skyFrame;
-    if (nativeFullscreen) document.addEventListener("fullscreenchange", scrollToBlink, { once: true });
-    if (wasFullscreen) $("sky-full-btn").click();
-    if (!nativeFullscreen) scrollToBlink();
-  }
+  surface: $("sky-map-surface"),
+  scale: $("sky-map-scale"),
+  resetLight: $("sky-reset-light"),
+  resetStatus: $("sky-reset-status"),
 });
 setupFullscreen($("sky-frame"), $("sky-full-btn"));   // map + its controls fill the screen
 /** Open (or re-centre) the sky map on a position { ra, dec, fov }. */
@@ -1073,7 +1082,13 @@ function clearMovers() {
 /** Grey values (0..255) of one image from its PNG URL (for images the player does not hold), or null if the browser refuses. */
 async function greyOfImage(url, n) {
   try {
-    const img = await new Promise((resolve, reject) => { const im = new Image(); im.onload = () => resolve(im); im.onerror = reject; im.src = url; });
+    const img = await new Promise((resolve, reject) => {
+      const im = new Image();
+      im.crossOrigin = "anonymous";
+      im.onload = () => resolve(im);
+      im.onerror = reject;
+      im.src = url;
+    });
     const c = document.createElement("canvas");
     c.width = c.height = n;
     const ctx = c.getContext("2d", { willReadFrequently: true });
@@ -1090,36 +1105,38 @@ async function greyOfImage(url, n) {
  * Real data: the backend also serves every cutout as float32 (`dataUrl`), with no 8-bit clipping and finer positions.
  * Otherwise the 8-bit pictures: the player's own, and the other detectors' decoded from their image URLs.
  */
+const PIXEL_READ_CONCURRENCY = 4; // Stay below the Cloud API response guard (8) while Find movers reads all six detectors.
+
 async function detectionPixels(frames = player.frames) {
   const n = player.naturalSize;
   if (frames.length && frames.every((f) => f.dataUrl)) {
     try {
-      const arrays = await Promise.all(frames.map(async (f) => {
+      const arrays = await mapConcurrent(frames, PIXEL_READ_CONCURRENCY, async (f) => {
         const response = await fetch(f.dataUrl);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const values = new Float32Array(await response.arrayBuffer());
         if (values.length !== n * n) throw new Error("unexpected size");
         return values;
-      }));
+      });
       // Bad-pixel masks (a saturated star's flagged core): optional, a missing one just means the plain centroid is used.
-      const masks = await Promise.all(frames.map(async (f) => {
+      const masks = await mapConcurrent(frames, PIXEL_READ_CONCURRENCY, async (f) => {
         if (!f.maskUrl) return null;
         try {
           const response = await fetch(f.maskUrl);
           const bytes = response.ok ? new Uint8Array(await response.arrayBuffer()) : null;
           return bytes && bytes.length === n * n ? bytes : null;
         } catch { return null; }
-      }));
+      });
       return { arrays, masks, isFloat: true };
     } catch (err) {
       console.warn("Float pixels unavailable, using the 8-bit pictures:", err);
     }
   }
   const own = player.greyFrames();
-  const arrays = await Promise.all(frames.map(async (f) => {
+  const arrays = await mapConcurrent(frames, PIXEL_READ_CONCURRENCY, async (f) => {
     const i = player.frames.indexOf(f);
     return i >= 0 && own ? own[i] : greyOfImage(f.imageUrl, n);
-  }));
+  });
   return { arrays: arrays.every(Boolean) ? arrays : null, masks: null, isFloat: false };
 }
 
@@ -1172,7 +1189,7 @@ $("find-movers-btn").addEventListener("click", async () => {
   try {
     const { arrays, masks, isFloat } = await detectionPixels(frames);
     if (!arrays) {
-      status.textContent = "Cannot read the image pixels in this browser (images from another site), so the search cannot run.";
+      status.textContent = "Could not read the image pixels, so the search could not run. Check the browser's network or privacy filters and retry.";
       return;
     }
     if (token !== loadToken) return;
@@ -1211,7 +1228,9 @@ function recordRun(analysis, version, frames, settings, startedAt, isFloat) {
   const record = buildProvenance({
     analysis, algorithm: { version }, frames, settings, ranAt: new Date(), durationMs: performance.now() - startedAt,
     ctx: { ...exportContext(), detector: useAllDetectors() ? "all" : currentDetector },
-    pixels: isFloat ? "float32 pixels in the file's own unit (backend)" : "8-bit pictures (no float pixels: synthetic data)",
+    pixels: isFloat ? "float32 pixels in the file's own unit (backend)"
+      : DATA_SOURCE === "api" ? "8-bit real SPHEREx display images (float pixel endpoint unavailable; reduced precision)"
+        : "8-bit synthetic demo images",
   });
   $("movers-provenance-text").textContent = provenanceText(record);          // the same sentence as in the files, for the page
   $("movers-provenance").hidden = false;
@@ -1241,7 +1260,7 @@ $("find-distant-btn").addEventListener("click", async () => {
   try {
     const { arrays, masks, isFloat } = await detectionPixels(frames);
     if (!arrays) {
-      status.textContent = "Cannot read the image pixels in this browser (images from another site), so the search cannot run.";
+      status.textContent = "Could not read the image pixels, so the search could not run. Check the browser's network or privacy filters and retry.";
       return;
     }
     if (token !== loadToken) return;
@@ -1920,7 +1939,9 @@ async function continueFieldRequest(requestId, query, token, signal) {
     if (token === loadToken && activeFieldRequestId === requestId) finishFieldRequest(status);
   } catch (error) {
     if (error?.name !== "AbortError" && token === loadToken && activeFieldRequestId === requestId) {
-      setStatus(`Progress updates stopped: ${error.message || "retry the same field to reconnect."}`);
+      const message = `Progress updates stopped: ${error.message || "retry the same field to reconnect."}`;
+      if (!fieldRequestPanel.hidden) fieldRequestSummary.textContent = message;
+      else setStatus(message);
     }
   }
 }
@@ -1935,7 +1956,9 @@ async function updateFieldRequestView(status, query, token) {
     frames = await getCutouts({ ra: query.ra, dec: query.dec, fovArcmin: query.fov,
       detector: "all", requestId: status.requestId });
   } catch (error) {
-    setStatus(`Observations are ready, but their images could not be loaded: ${error.message}`);
+    const message = `Observations are ready, but their images could not be loaded: ${error.message}`;
+    if (!fieldRequestPanel.hidden) fieldRequestSummary.textContent = message;
+    else setStatus(message);
     return;
   }
   if (!frames.length || token !== loadToken || activeFieldRequestId !== status.requestId) return;
@@ -1962,32 +1985,181 @@ async function applyFrames(frames, query, token) {
   detSelect.value = detector;
   writeUrlState({ det: detector });
   currentDetector = detector;
-  renderOverview(frames, token);
+  if (activeFieldRequestId && DATA_SOURCE === "api" && !LEGACY_API_READ_ONLY) {
+    $("overview").hidden = true;
+  } else {
+    renderOverview(frames, token);
+  }
   await showDetector(detector);
   if (token === loadToken) sky.setWorkspaceField(query);
   console.log(`Loaded ${frames.length} frames`, listDetectors(frames));
 }
 
+function requestPhaseLabel(row) {
+  const labels = {
+    waiting: "Waiting for status", queued: row.hasPlan ? "Waiting for a job slot" : "Queued",
+    discovering: "Searching archive", planning: "Planning observations",
+    downloading: "Downloading", processing: "Processing images", publishing: "Publishing",
+    ready: row.canSelect ? "Ready" : "Ready · loading frames",
+    failed: "Failed", unavailable: "No matching observations",
+  };
+  return labels[row.status] || row.phase?.replaceAll("-", " ") || row.status;
+}
+
+function requestDetailText(row) {
+  if (row.status === "failed" && row.error) return row.error;
+  if (row.status === "unavailable") return "No matching archive observations";
+  if (row.status === "ready") {
+    const count = row.frames.length || row.frameCount;
+    if (count) {
+      const newest = [...row.frames].sort((a, b) => Number(b.mjd) - Number(a.mjd))[0];
+      return `${count} image${count === 1 ? "" : "s"}${newest?.dateISO ? ` · latest ${newest.dateISO.slice(0, 10)}` : ""}`;
+    }
+    return "Loading prepared image frames";
+  }
+  if (row.totalFiles !== null && row.totalFiles > 0) {
+    return `${row.completedFiles ?? 0} of ${row.totalFiles} files`;
+  }
+  if (row.totalWork !== null && row.totalWork > 0) {
+    return `${row.completedWork ?? 0} of ${row.totalWork} processing steps`;
+  }
+  if (row.hasPlan && row.status === "queued") return "Plan ready · waiting for an available slot";
+  return row.phase?.replaceAll("-", " ") || "Waiting for archive status";
+}
+
+function requestCardPreview(canvas, row, requestId) {
+  const frame = [...row.frames].sort((a, b) => Number(b.mjd) - Number(a.mjd))[0];
+  if (!frame?.imageUrl) return;
+  let promise = fieldRequestPreviewCache.get(frame.imageUrl);
+  if (!promise) {
+    promise = loadImage(frame.imageUrl, frame).catch(() => null);
+    fieldRequestPreviewCache.set(frame.imageUrl, promise);
+  }
+  promise.then((image) => {
+    if (!image || !canvas.isConnected || activeFieldRequestId !== requestId) return;
+    canvas.width = image.naturalWidth || image.width || 1;
+    canvas.height = image.naturalHeight || image.height || 1;
+    canvas.getContext("2d")?.drawImage(image, 0, 0, canvas.width, canvas.height);
+  });
+}
+
 function renderFieldRequestStatus(status) {
   const detectors = Object.entries(status.detectors ?? {});
-  const ready = Number(status.readyDetectors) || detectors.filter(([, item]) => item.status === "ready").length;
-  const percent = Math.round((Number(status.progress) || 0) * 100);
+  const rows = fieldRequestCardRows(status, allFrames);
+  const ready = rows.filter((row) => row.status === "ready").length;
+  const overall = Number(status.progress);
+  const hasOverall = status.progress !== null && status.progress !== undefined && Number.isFinite(overall);
+  const percent = hasOverall ? Math.round(Math.max(0, Math.min(1, overall)) * 100) : null;
   const phases = detectors.filter(([, item]) => !["ready", "failed", "unavailable"].includes(item.status))
     .map(([detector, item]) => `${detector}: ${item.phase || item.status}`).join(" · ");
   const failures = detectors.filter(([, item]) => item.status === "failed");
-  setStatus(`SPHEREx archive · ${ready}/6 detectors ready · ${percent}%${phases ? ` · ${phases}` : ""}`);
-  if (!allFrames.length) {
-    overlay.querySelector(".overlay-title").textContent = "Preparing SPHEREx observations…";
-    overlay.querySelector(".overlay-sub").textContent = phases || `${ready} of 6 detectors ready · ${percent}%`;
-    overlayProgress.hidden = false;
-    overlayProgress.value = Number(status.progress) || 0;
+  const requestId = status.requestId || activeFieldRequestId || "";
+
+  if (DATA_SOURCE === "api" && !LEGACY_API_READ_ONLY && requestId) {
+    if (requestId !== fieldRequestPreviewId) {
+      fieldRequestPreviewId = requestId;
+      fieldRequestPreviewCache.clear();
+      fieldRequestLiveKey = "";
+    }
+    fieldRequestPanel.hidden = false;
+    fieldRequestPanel.classList.toggle("has-images", allFrames.length > 0);
+    fieldRequestPanel.classList.toggle("has-failures", failures.length > 0);
+    $("overview").hidden = true;
+    fieldRequestTitle.textContent = "SPHEREx data request";
+    fieldRequestSummary.textContent = `${ready}/6 detectors ready${percent === null ? "" : ` · ${percent}% overall`}${status.pollError ? " · reconnecting" : ""}`;
+    if (hasOverall) fieldRequestOverall.value = Math.max(0, Math.min(1, overall));
+    else fieldRequestOverall.removeAttribute("value");
+
+    const liveKey = rows.map((row) => `${row.detector}:${row.status}:${row.phase || ""}`).join("|");
+    if (liveKey !== fieldRequestLiveKey) {
+      fieldRequestLiveKey = liveKey;
+      const active = rows.filter((row) => !["ready", "failed", "unavailable"].includes(row.status))
+        .map((row) => `${row.detector} ${requestPhaseLabel(row).toLowerCase()}`);
+      fieldRequestLive.textContent = `${ready} of 6 detectors ready${active.length ? `. ${active.join("; ")}.` : "."}`;
+    }
+
+    fieldRequestGrid.replaceChildren();
+    for (const row of rows) {
+      const card = document.createElement(row.canSelect ? "button" : "div");
+      card.className = "field-request-card";
+      card.dataset.det = row.detector;
+      card.dataset.status = row.status;
+      if (row.canSelect) {
+        card.type = "button";
+        card.setAttribute("aria-pressed", String(row.detector === currentDetector));
+        card.addEventListener("click", () => selectDetector(row.detector));
+      } else {
+        card.setAttribute("role", "group");
+      }
+      const phase = requestPhaseLabel(row);
+      const detail = requestDetailText(row);
+      const percentText = row.progress === null ? "" : `${Math.round(row.progress * 100)}%`;
+      card.setAttribute("aria-label", `${row.detector}: ${phase}. ${detail}${percentText ? `. ${percentText} complete` : ""}${row.canSelect ? ". Show this detector" : ""}`);
+      if (row.error) card.title = row.error;
+      const thumb = document.createElement("canvas");
+      thumb.className = "field-request-thumb";
+      thumb.width = 1; thumb.height = 1;
+      thumb.setAttribute("aria-hidden", "true");
+      const name = document.createElement("span");
+      name.className = "field-request-name"; name.textContent = row.detector;
+      const phaseNode = document.createElement("span");
+      phaseNode.className = "field-request-phase"; phaseNode.textContent = phase;
+      const detailNode = document.createElement("span");
+      detailNode.className = "field-request-detail"; detailNode.textContent = detail;
+      card.append(thumb, name, phaseNode, detailNode);
+      if (row.progress !== null) {
+        const progress = document.createElement("progress");
+        progress.max = 1; progress.value = row.progress;
+        progress.setAttribute("aria-label", `${row.detector} processing progress`);
+        const progressText = document.createElement("span");
+        progressText.className = "field-request-percent"; progressText.textContent = percentText;
+        card.append(progress, progressText);
+      }
+      fieldRequestGrid.appendChild(card);
+      if (row.canSelect) requestCardPreview(thumb, row, requestId);
+    }
+
+    if (!overlay.classList.contains("error")) {
+      overlay.classList.add("hidden");
+      overlay.setAttribute("aria-hidden", "true");
+      overlayProgress.hidden = true;
+    }
+    setStatus("");
+  } else {
+    setStatus(`SPHEREx archive · ${ready}/6 detectors ready · ${percent ?? "—"}%${phases ? ` · ${phases}` : ""}`);
+    if (!allFrames.length) {
+      overlay.querySelector(".overlay-title").textContent = "Preparing SPHEREx observations…";
+      overlay.querySelector(".overlay-sub").textContent = phases || `${ready} of 6 detectors ready · ${percent ?? "—"}%`;
+      overlayProgress.hidden = !hasOverall;
+      if (hasOverall) overlayProgress.value = Math.max(0, Math.min(1, overall));
+    }
   }
-  if (status.pollError) setStatus("Connection interrupted; retrying progress updates.");
+  if (status.pollError && (DATA_SOURCE !== "api" || LEGACY_API_READ_ONLY || fieldRequestPanel.hidden)) {
+    setStatus("Connection interrupted; retrying progress updates.");
+  }
   return failures;
 }
 
 function finishFieldRequest(status) {
   const failures = renderFieldRequestStatus(status);
+  if (activeFieldRequestId && DATA_SOURCE === "api" && !LEGACY_API_READ_ONLY && !fieldRequestPanel.hidden) {
+    const ready = Object.values(status.detectors ?? {}).filter((item) => item.status === "ready").length;
+    const details = failures.map(([detector, item]) => `${detector}: ${item.error || "failed"}`).join(" · ");
+    fieldRequestRetry.hidden = failures.length === 0;
+    if (failures.length) {
+      fieldRequestPanel.classList.add("has-failures");
+      fieldRequestTitle.textContent = allFrames.length ? "Partial SPHEREx results" : "Some detector data could not be prepared";
+      fieldRequestSummary.textContent = `${ready}/6 detectors ready · ${details}`;
+    } else if (!allFrames.length) {
+      fieldRequestTitle.textContent = "No SPHEREx images found here";
+      fieldRequestSummary.textContent = "No observations matched this position.";
+    } else {
+      fieldRequestTitle.textContent = "SPHEREx observations ready";
+      fieldRequestSummary.textContent = `${ready}/6 detectors ready · ${allFrames.length} frames loaded`;
+    }
+    setStatus("");
+    return;
+  }
   if (!allFrames.length) {
     const details = failures.map(([, item]) => item.error).filter(Boolean).join(" · ");
     const failed = failures.length > 0;

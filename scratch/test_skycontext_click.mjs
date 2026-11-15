@@ -1,7 +1,8 @@
-// Sky Context click-to-Workspace helpers. Run: node scratch/test_skycontext_click.mjs
+// Sky Context coordinates and reset control. Run: node scratch/test_skycontext_click.mjs
 import assert from "node:assert/strict";
+import { SkyContext, pickSkySource } from "../frontend/js/features/skyContext.js";
 import { readFileSync } from "node:fs";
-import { aladinSkyAt, selectionText, copySkySelection } from "../frontend/js/features/skyContextClick.js";
+import { aladinSkyAt, selectionText } from "../frontend/js/features/skyContextClick.js";
 
 const calls = [];
 const aladin = { pix2world(x, y, frame) {
@@ -20,35 +21,73 @@ assert.deepEqual(aladinSkyAt(aladin, {ra:12,dec:-20,frame:"icrs"}),{ra:12,dec:-2
 assert.equal(aladinSkyAt(aladin, {ra:12,dec:-20,frame:"galactic"}),null);
 assert.equal(aladinSkyAt(null, {ra:12,dec:0}),null);
 assert.deepEqual(selectionText({ra:359.999999,dec:-7.24511}),
-  {raText:"0.00000", decText:"-7.24511",clipboardText:"RA 0.00000°, Dec -7.24511°"});
-
-let clipboardText="";
-assert.equal(await copySkySelection("RA 96.00000°", {clipboard:{writeText(t){clipboardText=t;return Promise.resolve()}},document:null}),true);
-assert.equal(clipboardText,"RA 96.00000°");
-let copiedFallback="";
-const doc={
-  body:{appendChild(el){copiedFallback=el.value}},
-  createElement(name){assert.equal(name,"textarea");return {style:{},value:"",select(){},remove(){}}},
-  execCommand(name){return name==="copy"}
-};
-assert.equal(await copySkySelection("Coordinates", {clipboard:{writeText(){return Promise.reject(Error("denied"))}},document:doc}),true);
-assert.equal(copiedFallback,"Coordinates");
-assert.equal(await copySkySelection("Coordinates",{clipboard:null,document:null}),false);
-assert.equal(await copySkySelection("Coordinates",{clipboard:{writeText(){throw Error("denied")}},document:doc}),true);
+  {raText:"0.00000", decText:"-7.24511"});
 
 const html=readFileSync(new URL("../frontend/index.html",import.meta.url),"utf8");
 const main=readFileSync(new URL("../frontend/js/main.js",import.meta.url),"utf8");
 const skySrc=readFileSync(new URL("../frontend/js/features/skyContext.js",import.meta.url),"utf8");
-assert.ok(html.includes('id="sky-selection-status"'));
 assert.match(html, /src="js\/main\.js\?v=\d+"/);
-assert.ok(skySrc.includes('this.aladin.on("click", (e) => {'));
-assert.ok(skySrc.includes('this.aladin.on("objectClicked", (object) => {'));
-assert.ok(skySrc.includes('if (!clickedSource) this.onMapClick(e);'));
-assert.ok(skySrc.includes('e?.isDragging'));
-assert.ok(skySrc.includes('this.onSelectPosition({ ...sky, ...fields })'));
-assert.ok(main.includes('onSelectPosition: ({ raText, decText }) =>'));
-assert.ok(main.includes('form.requestSubmit();'));
-assert.ok(main.includes('selectionStatusEl: $("sky-selection-status")'));
-assert.ok(main.includes('const nativeFullscreen = document.fullscreenElement === skyFrame'));
-assert.ok(main.includes('if ($("controls-body").hidden) $("panel-left-btn").click();'));
-console.log("PASS Sky Context cursor coordinates, copy fallbacks and Blink handoff");
+assert.match(html, /id="sky-reset-light"[^>]*aria-label="Reset light settings"[^>]*><span aria-hidden="true">↺<\/span>/);
+assert.ok(!html.includes('id="sky-map-guide"'));
+assert.match(html, /id="sky-map-surface"[^>]*>\s*<div id="aladin-box"[^>]*><\/div>\s*<button[^>]*id="sky-reset-light"/);
+assert.ok(!skySrc.includes('this.aladin.on("click"'));
+assert.ok(!main.includes('onSelectPosition:'));
+
+let reset;
+const resetLight = { addEventListener: (event, listener) => { reset = listener; } };
+const resetStatus = { textContent: "" };
+const context = new SkyContext(null, null, null, { resetLight, resetStatus });
+const updates = [];
+const layers = new Map();
+context.aladin = { getStackLayers: () => [...layers.keys()], getOverlayImageLayer: (id) => layers.get(id) };
+context.refreshLightControl();
+assert.equal(resetLight.hidden, true);
+reset();
+assert.equal(updates.length, 0);
+
+const initial = { brightness: 0, contrast: 0, gamma: 1, saturation: 0,
+  minCut: 0, maxCut: 1, stretch: "linear", colormap: "native", reversed: false, opacity: 1 };
+function addLayer(id, light) {
+  layers.set(id, {
+    getColorCfg: () => ({ get: () => ({
+      opacity: light.opacity,
+      color: { kBrightness: light.brightness, kContrast: light.contrast, kGamma: light.gamma,
+        kSaturation: light.saturation, minCut: light.minCut, maxCut: light.maxCut,
+        stretch: light.stretch, cmapName: light.colormap, reversed: light.reversed },
+    }) }),
+    setOptions: (options) => { updates.push(id); Object.assign(light, options); },
+  });
+}
+const base = { ...initial, minCut: undefined, maxCut: undefined };
+const overlay = { ...initial, minCut: 0.1, maxCut: 0.9 };
+addLayer("base", base);
+addLayer("overlay", overlay);
+context.refreshLightControl();
+assert.equal(resetLight.hidden, false);
+Object.assign(base, { brightness: 0.75, contrast: -0.3, gamma: 2, saturation: 0.2,
+  minCut: 0.25, maxCut: 0.55, stretch: "asinh", colormap: "grayscale", reversed: true, opacity: 0.6 });
+overlay.brightness = -0.7;
+context.refreshLightControl();
+reset();
+assert.deepEqual(updates, ["base", "overlay"]);
+assert.deepEqual(base, initial);
+assert.deepEqual(overlay, { ...initial, minCut: 0.1, maxCut: 0.9 });
+assert.equal(resetStatus.textContent, "Map display reset.");
+
+const probes = [];
+const fetchSurvey = async (url) => {
+  probes.push(url);
+  return { ok: true, text: async () => url.includes("esa.int") ? "<html>Unavailable</html>" : "hips_tile_format = jpeg" };
+};
+assert.equal(await pickSkySource("allwise", { localRelay: false, fetchImpl: fetchSurvey }), "irsa");
+assert.ok(probes.every((url) => /AllWISE/.test(url)));
+assert.equal(await pickSkySource("dss2", {
+  localRelay: false,
+  fetchImpl: async (url) => ({ ok: url.includes("esa.int"), text: async () => "hips_tile_format = jpeg" }),
+}), "esa");
+assert.equal(await pickSkySource("2mass", {
+  localRelay: false,
+  fetchImpl: async () => ({ ok: true, text: async () => "<html>Unavailable</html>" }),
+}), "cds");
+
+console.log("PASS Sky Context cursor coordinates and light reset without map click navigation");

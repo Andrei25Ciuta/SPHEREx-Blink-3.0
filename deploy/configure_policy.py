@@ -12,6 +12,7 @@ ACKNOWLEDGEMENT = (
 )
 POLICY = {
     "version": "spherex-dr1-owner-v3",
+    "compatiblePolicyVersions": ["spherex-dr1-owner-v1", "spherex-dr1-owner-v2"],
     "enabled": False,
     "collection": "spherex_dr1",
     "allowedCollections": ["spherex_dr1"],

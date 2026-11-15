@@ -225,6 +225,19 @@ export const missionsDatabase = Object.freeze([
   M("pro-pin-distant", CATEGORIES.pro, 3, "Flag the Shadow", "Report the simulated distant body on the pin board.", at("#pin-board"),
     [PX, DISTANT, LIST, PICK, on("Press Pin & Report Object.", "#pin-report-btn")],
     "Pins made on demo data are marked synthetic. Honest labels make a shared board trustworthy."),
+
+  // ===================== Showcase: one guided tour of the main tools, for a 3–5 minute live demo
+  M("demo-showcase", CATEGORIES.pro, 3, "Grand Tour: From Blink to Planet X", "Ninety years ago Clyde Tombaugh found Pluto by flipping between two photographs. In a few minutes you will do the same job with modern tools: blink the sky, let the computer hunt for movers, measure a runaway star, read its colours, then hunt a simulated Planet X.", B,
+    [on("Choose the Blink view.", '#mode-switch input[value="blink"]'), PLAY,
+     on("Now choose the Difference view: the fixed stars cancel out.", '#mode-switch input[value="diff"]'),
+     FIND, LIST, PICK, SPEED,
+     on("Turn on the track layer to see its fitted path.", "#show-track"),
+     on("Press Follow it.", "#mover-follow-btn"),
+     on("Press Spectrum along its path.", "#mover-spectrum-btn"),
+     on("Press Find everything: a census of every source in the field.", "#discover-btn"),
+     PX, DISTANT,
+     on("Press Copy link: anyone can open exactly this view.", "#copy-link-btn")],
+    "You blinked the sky like Tombaugh, let the search find and rank movers, measured a star's proper motion, followed it, read its infrared spectrum, took a census of the field and hunted a simulated distant planet. On the demo field all of this ran on synthetic images, clearly labelled; with the backend the same steps run on real SPHEREx data. Every find is a candidate until others confirm it."),
 ]);
 
 /** "Why it matters": the real-astronomy reason behind each mission, shown in the briefing before the learner starts. */
@@ -280,6 +293,7 @@ export const MISSION_WHY = Object.freeze({
   "data-share": "A link that opens the exact same view is the quickest way to ask a colleague 'do you see this too?'.",
   "data-snapshot": "A labelled picture is evidence for your logbook or a report, and the label stops anyone mistaking a simulation for an observation.",
   "pro-pin": "Reporting is how science moves forward: you record who saw what, where and when, so others can confirm it, just like drivers reporting a hazard.",
+  "demo-showcase": "One mission that walks through the whole workflow: look (blink and difference), search (find movers), measure (speed, track, spectrum), survey (find everything), hunt (Planet X simulation) and share (a link that reproduces the view).",
   "pro-pin-distant": "Practising a report on simulated data teaches the workflow, and the synthetic label shows why honest labels matter on a shared board.",
 });
 
