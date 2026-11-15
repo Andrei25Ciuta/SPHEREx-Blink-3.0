@@ -20,6 +20,7 @@ export const CATEGORIES = Object.freeze({
   sky: "Sky maps & catalogues",
   data: "Data, tables & sharing",
   pro: "Pro lab: report what you find",
+  tour: "Grand Tour: the whole platform",
 });
 
 const on = (does, sel) => ({ does, check: { on: sel } });
@@ -227,7 +228,7 @@ export const missionsDatabase = Object.freeze([
     "Pins made on demo data are marked synthetic. Honest labels make a shared board trustworthy."),
 
   // ===================== Showcase: one guided tour of the main tools, for a 3–5 minute live demo
-  M("demo-showcase", CATEGORIES.pro, 3, "Grand Tour: From Blink to Planet X", "Ninety years ago Clyde Tombaugh found Pluto by flipping between two photographs. In a few minutes you will do the same job with modern tools: blink the sky, let the computer hunt for movers, measure a runaway star, read its colours, then hunt a simulated Planet X.", B,
+  M("demo-showcase", CATEGORIES.tour, 3, "Grand Tour: From Blink to Planet X", "Ninety years ago Clyde Tombaugh found Pluto by flipping between two photographs. In a few minutes you will do the same job with modern tools: blink the sky, let the computer hunt for movers, measure a runaway star, read its colours, then hunt a simulated Planet X.", B,
     [on("Choose the Blink view.", '#mode-switch input[value="blink"]'), PLAY,
      on("Now choose the Difference view: the fixed stars cancel out.", '#mode-switch input[value="diff"]'),
      FIND, LIST, PICK, SPEED,
@@ -384,6 +385,7 @@ export const CATEGORY_INFO = Object.freeze({
   [CATEGORIES.infrared]: { icon: "", intro: "Some astronomers think a big, cold planet may hide far beyond Neptune: a 'Planet X'. It would be faint and glow mostly in infrared light, which our eyes cannot see. These missions let you practise the search on a safe, simulated planet.", learn: ["Search for a slow, distant body", "Test what a search can and cannot find", "Work with infrared colours"] },
   [CATEGORIES.sky]: { icon: "", intro: "Other telescopes have photographed the whole sky before. Comparing with their pictures and lists of known stars is the fastest way to check a find. These missions show you those maps and catalogues.", learn: ["Open an all-sky atlas", "Show known stars on your picture", "Ask NASA's archive what exists"] },
   [CATEGORIES.data]: { icon: "", intro: "Science only counts when others can check it. These missions show you how to save your results as tables, share exactly what you see, and prove which data you used.", learn: ["Save results as a table", "Share a link to your view", "Make a proof file of your data"] },
+  [CATEGORIES.tour]: { icon: "", intro: "One guided run through everything this site does, in a few minutes: look at the sky over time, let the computer search, measure what it finds, read its colours, and hunt a simulated distant planet. Each step shows one tool and says why it matters.", learn: ["Blink and compare images", "Find and measure a moving star", "Hunt a simulated Planet X"] },
   [CATEGORIES.pro]: { icon: "", intro: "When you find something, you report it so others can confirm it, like reporting a hazard on a road map. These missions teach you to pin a find on the shared board with your name.", learn: ["Pin a find on the shared board", "Read a report's details", "Understand why honest labels matter"] },
 });
 

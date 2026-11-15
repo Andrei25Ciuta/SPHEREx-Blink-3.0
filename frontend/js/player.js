@@ -182,7 +182,8 @@ export class BlinkPlayer {
     const img = this.images[this.index];
     if (!img) return;
     const { ctx, canvas } = this;
-    ctx.imageSmoothingEnabled = false;            // keep SPHEREx pixels sharp
+    ctx.imageSmoothingEnabled = true;             // the picture is drawn softly blended (display only: measurements use the original pixel values)
+    ctx.imageSmoothingQuality = "high";
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (this.showsOriginal) {
