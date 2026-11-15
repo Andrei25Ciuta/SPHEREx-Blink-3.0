@@ -1,4 +1,5 @@
 import copy
+from datetime import datetime, timezone
 
 import pytest
 
@@ -56,4 +57,26 @@ def test_dynamic_manifest_requires_separate_approved_doi(dynamic_manifest):
     with pytest.raises(StoreError, match="owner acquisition policy"):
         validate_dynamic_manifest(
             wrong_doi, policy_version="spherex-dr1-owner-v1", acknowledgement=ACKNOWLEDGEMENT,
+        )
+
+
+def test_monthly_processing_manifest_requires_one_verified_image_per_ready_month(dynamic_manifest):
+    dynamic_manifest["processingVersion"] = "blink3-cloud-3"
+    month = datetime.fromtimestamp((61000.0 - 40587) * 86400, timezone.utc).strftime("%Y-%m")
+    dynamic_manifest["samplingMode"] = "monthly"
+    dynamic_manifest["monthlySelection"] = {
+        "mode": "one-per-utc-month", "requestedMonths": [month], "missingMonths": [],
+        "monthResults": [{"month": month, "status": "ready", "selectedObsId": "obs-d1",
+                          "attemptedObsIds": ["obs-d1"]}],
+    }
+    validated = validate_dynamic_manifest(
+        dynamic_manifest, policy_version="spherex-dr1-owner-v1", acknowledgement=ACKNOWLEDGEMENT,
+    )
+    assert validated["monthlySelection"]["requestedMonths"] == [month]
+
+    inconsistent = copy.deepcopy(dynamic_manifest)
+    inconsistent["monthlySelection"]["missingMonths"] = [month]
+    with pytest.raises(StoreError, match="owner acquisition policy"):
+        validate_dynamic_manifest(
+            inconsistent, policy_version="spherex-dr1-owner-v1", acknowledgement=ACKNOWLEDGEMENT,
         )

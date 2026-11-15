@@ -75,6 +75,9 @@ const form = $("search-form");
 const raInput = $("ra-input");
 const decInput = $("dec-input");
 const fovInput = $("fov-input");
+const archiveDateRange = $("archive-date-range");
+const dateFromInput = $("date-from-input");
+const dateToInput = $("date-to-input");
 const speedInput = $("speed-input");
 const detSelect = $("det-select");
 const canvas = $("blink-canvas");
@@ -86,6 +89,7 @@ $("data-source").querySelector('option[value="api"]').textContent = IS_REMOTE_BA
 $("data-source-help").textContent = CAN_USE_BACKEND
   ? "Real SPHEREx observations are loaded from the connected data service. Synthetic demo remains available."
   : "No real-data service is configured for this site. Synthetic demo remains available.";
+archiveDateRange.hidden = DATA_SOURCE !== "api" || LEGACY_API_READ_ONLY;
 $("data-source").addEventListener("change", event => {
   const url = new URL(location.href);
   url.searchParams.set("data", event.target.value);
@@ -1892,7 +1896,9 @@ async function loadData(query) {
 
   try {
     if (DATA_SOURCE === "api" && !LEGACY_API_READ_ONLY) {
-      const request = await requestFieldApi({ ra: query.ra, dec: query.dec, fov: query.fov });
+      const dateFrom = dateFromInput.value || null;
+      const dateTo = dateToInput.value || null;
+      const request = await requestFieldApi({ ra: query.ra, dec: query.dec, fov: query.fov, dateFrom, dateTo });
       if (token !== loadToken) return;
       if (request) {
         activeFieldRequestId = request.requestId;
@@ -1907,6 +1913,9 @@ async function loadData(query) {
           continueFieldRequest(request.requestId, query, token, requestPollController.signal);
         }
         return;
+      }
+      if (dateFrom || dateTo) {
+        throw new Error("This data service cannot request an archive date range. Connect to the current SPHEREx acquisition API to retrieve older observations.");
       }
     }
     const frames = await getCutouts({ ra: query.ra, dec: query.dec, fovArcmin: query.fov, detector: "all" });
@@ -1999,7 +2008,11 @@ function requestPhaseLabel(row) {
     ready: row.canSelect ? "Ready" : "Ready · loading frames",
     failed: "Failed", unavailable: "No matching observations",
   };
-  return labels[row.status] || row.phase?.replaceAll("-", " ") || row.status;
+  const phase = labels[row.status] || row.phase?.replaceAll("-", " ") || row.status;
+  const months = row.totalMonths ? ` · ${row.completedMonths || 0}/${row.totalMonths} months prepared` : "";
+  const currentMonth = row.currentMonth && row.status !== "ready" ? ` · ${row.currentMonth}` : "";
+  const missing = row.missingMonths.length ? ` · unavailable: ${row.missingMonths.join(", ")}` : "";
+  return `${phase}${months}${currentMonth}${missing}`;
 }
 
 function renderFieldRequestStatus(status) {
@@ -2122,7 +2135,8 @@ form.addEventListener("submit", (event) => {
 
   // Save the VALID query in the URL. We always store degrees (5 decimals ≈ 0.04″),
   // even if the user typed sexagesimal – one canonical format is easier to share/parse.
-  writeUrlState({ ra: query.ra.toFixed(5), dec: query.dec.toFixed(5), fov: query.fov });
+  writeUrlState({ ra: query.ra.toFixed(5), dec: query.dec.toFixed(5), fov: query.fov,
+    dateFrom: dateFromInput.value || null, dateTo: dateToInput.value || null });
 
   loadData(query);
 });
@@ -2141,6 +2155,9 @@ function applyUrlState() {
       $("fov-value").textContent = fovInput.value;
     }
   }
+
+  if (state.dateFrom !== undefined) dateFromInput.value = state.dateFrom;
+  if (state.dateTo !== undefined) dateToInput.value = state.dateTo;
 
   if (state.det) requestedDetector = state.det;
   if (state.mode && MODES.includes(state.mode)) {

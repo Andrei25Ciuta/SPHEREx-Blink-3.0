@@ -11,12 +11,12 @@ ACKNOWLEDGEMENT = (
     "of Technology, and is funded by the National Aeronautics and Space Administration."
 )
 POLICY = {
-    "version": "spherex-dr1-owner-v3",
-    "compatiblePolicyVersions": ["spherex-dr1-owner-v1", "spherex-dr1-owner-v2"],
+    "version": "spherex-dr1-owner-v4",
+    "compatiblePolicyVersions": ["spherex-dr1-owner-v1", "spherex-dr1-owner-v2", "spherex-dr1-owner-v3"],
     "enabled": False,
     "collection": "spherex_dr1",
     "allowedCollections": ["spherex_dr1"],
-    "processingVersion": "blink3-cloud-2",
+    "processingVersion": "blink3-cloud-3",
     "termsChecked": True,
     "acknowledgement": ACKNOWLEDGEMENT,
     "dataDoi": "10.26131/IRSA678",

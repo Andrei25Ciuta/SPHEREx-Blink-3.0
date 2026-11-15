@@ -9,6 +9,35 @@ from spherex.cloud_workflow import (CloudRunJobLauncher, CloudTasksQueue, CloudW
 from spherex.field_requests import DETECTORS, normalize_request
 
 
+def test_monthly_cache_requires_the_same_month_set_and_selected_archive_candidates():
+    plan = {
+        "requestedMonths": ["2025-01", "2025-02", "2025-03"],
+        "monthGroups": [
+            {"month": "2025-01", "obsIds": ["jan-a", "jan-b"]},
+            {"month": "2025-02", "obsIds": ["feb-a"]},
+        ],
+    }
+    manifest = {
+        "originals": [{"obsId": "jan-b"}, {"obsId": "feb-a"}],
+        "monthlySelection": {
+            "mode": "one-per-utc-month", "requestedMonths": plan["requestedMonths"],
+            "missingMonths": ["2025-03"],
+            "monthResults": [
+                {"month": "2025-01", "status": "ready", "selectedObsId": "jan-b"},
+                {"month": "2025-02", "status": "ready", "selectedObsId": "feb-a"},
+                {"month": "2025-03", "status": "unavailable", "selectedObsId": None},
+            ],
+        },
+    }
+    expected = {"2025-01": {"jan-a", "jan-b"}, "2025-02": {"feb-a"}}
+    assert CloudWorkflow._monthly_cache_matches(manifest, expected, plan)
+
+    older_window = {**plan, "requestedMonths": ["2024-12", "2025-01", "2025-02"]}
+    assert not CloudWorkflow._monthly_cache_matches(manifest, expected, older_window)
+    unavailable_candidate = {"2025-01": {"jan-a"}, "2025-02": {"feb-a"}}
+    assert not CloudWorkflow._monthly_cache_matches(manifest, unavailable_candidate, plan)
+
+
 def test_cloud_task_archive_fetch_uses_one_attempt_and_leaves_backoff_to_queue(monkeypatch):
     seen = {}
     def fake_metadata(url, **kwargs):
@@ -165,7 +194,8 @@ def test_detector_plan_is_written_once_and_dispatches_only_the_missing_detector(
     request = {
         "requestId": normalized["requestId"], "fieldKey": normalized["fieldKey"],
         "query": normalized["query"], "collection": normalized["collection"],
-        "processingVersion": normalized["processingVersion"], "policyVersion": "policy-v1",
+        "processingVersion": normalized["processingVersion"], "samplingMode": normalized["samplingMode"],
+        "policyVersion": "policy-v1",
         "selection": "latest", "metadataKey": "requests/test/archive-metadata.json",
         "detectors": detectors,
     }
@@ -187,7 +217,13 @@ def test_detector_plan_is_written_once_and_dispatches_only_the_missing_detector(
     assert workflow.plan_detector(request["requestId"], "D1", request["metadataKey"], "duplicate") == "already-planned"
     assert request["detectors"]["D1"]["status"] == "queued"
     assert request["detectors"]["D1"]["totalFiles"] == 1
+    assert request["detectors"]["D1"]["samplingMode"] == "monthly"
+    assert request["detectors"]["D1"]["requestedMonths"]
     assert request["detectors"]["D1"]["planKey"] == f"plans/{request['requestId']}/d1.json"
+    stored_plan = store.json(request["detectors"]["D1"]["planKey"])
+    assert stored_plan["samplingMode"] == "monthly"
+    assert len(stored_plan["requestedMonths"]) == 1
+    assert stored_plan["monthGroups"][0]["obsIds"] == ["obs-d1"]
     assert len(tasks.enqueued) == 1
     assert tasks.enqueued[0][0] == "/internal/tasks/detector"
     assert tasks.enqueued[0][1] == {"requestId": request["requestId"], "detector": "D1"}
@@ -254,6 +290,7 @@ def test_discovery_generates_one_idempotent_plan_task_for_each_detector(tmp_path
     request = {
         "requestId": normalized["requestId"], "fieldKey": normalized["fieldKey"],
         "query": normalized["query"], "collection": normalized["collection"],
+        "processingVersion": normalized["processingVersion"], "samplingMode": normalized["samplingMode"],
         "policyVersion": "policy-v1", "status": "queued",
         "detectors": {det: {"status": "queued", "attempt": 0} for det in DETECTORS},
     }

@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="css/styles.css?v=20261115-2">
   <link rel="stylesheet" href="css/instrument.css?v=20261115">
   <link rel="stylesheet" href="css/lab-track.css">
-  <link rel="stylesheet" href="css/contact-sheet.css?v=20261115">
+  <link rel="stylesheet" href="css/contact-sheet.css?v=20261115-2">
 </head>
 <body>
   <a class="skip-link" href="#workspace">Skip to the workspace</a>
@@ -70,6 +70,19 @@
             <input id="fov-input" name="fov" type="range" min="1" max="30" step="1" value="5">
             <div class="range-scale" aria-hidden="true"><span>1′</span><span>30′</span></div>
           </div>
+
+          <fieldset class="archive-date-range" id="archive-date-range" hidden>
+            <legend>Archive date range (optional)</legend>
+            <p>Leave blank for the newest available months. Set a range to request older observations; up to 12 months are prepared per detector.</p>
+            <div class="archive-date-inputs">
+              <label for="date-from-input">From date
+                <input id="date-from-input" name="dateFrom" type="date">
+              </label>
+              <label for="date-to-input">To date
+                <input id="date-to-input" name="dateTo" type="date">
+              </label>
+            </div>
+          </fieldset>
 
           <div class="field">
             <label for="det-select">Detector</label>
@@ -728,7 +741,7 @@
     <div class="dlg-head"><h2 id="simulation-note-title">About the simulation</h2><form method="dialog"><button class="btn btn-small">Close</button></form></div>
     <p class="dlg-body">The Planet X preset uses a simulated body 600 AU away. Its position is invented for testing the distant-body search.</p>
   </dialog>
-  <script type="module" src="js/main.js?v=27"></script>
+  <script type="module" src="js/main.js?v=28"></script>
   <script type="module" src="js/scienceExplain.js"></script>
   <script type="module" src="js/features/highContrast.js"></script>
 </body>

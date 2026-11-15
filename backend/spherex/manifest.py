@@ -1,6 +1,7 @@
 """Validation shared by the API catalog and the preparation publisher."""
 import math
 import re
+from datetime import datetime, timezone
 
 from .archive_plan import safe_url
 from .storage import StoreError
@@ -80,6 +81,54 @@ def validate_dynamic_manifest(doc, *, policy_version, acknowledgement, data_doi=
             raise ValueError()
         for frame in doc["frames"]:
             if min(abs(frame["mjd"] - time) for time in times) > 0.01:
+                raise ValueError()
+        if doc.get("processingVersion") == "blink3-cloud-3":
+            selection = doc.get("monthlySelection") or {}
+            months = selection.get("requestedMonths")
+            results = selection.get("monthResults")
+            missing = selection.get("missingMonths")
+            if (doc.get("samplingMode") != "monthly"
+                    or selection.get("mode") != "one-per-utc-month"
+                    or not isinstance(months, list) or not 1 <= len(months) <= max_observations
+                    or months != sorted(set(months))
+                    or not isinstance(results, list) or not isinstance(missing, list)):
+                raise ValueError()
+            if any(not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", month) for month in months):
+                raise ValueError()
+            result_by_month = {item.get("month"): item for item in results}
+            if len(result_by_month) != len(results) or set(result_by_month) != set(months):
+                raise ValueError()
+            if set(missing) != {month for month, item in result_by_month.items()
+                                if item.get("status") == "unavailable"}:
+                raise ValueError()
+            original_by_id = {item["obsId"]: item for item in originals}
+            ready_months = set()
+            for month, item in result_by_month.items():
+                if item.get("status") == "unavailable":
+                    if item.get("selectedObsId") is not None:
+                        raise ValueError()
+                    continue
+                if item.get("status") != "ready":
+                    raise ValueError()
+                obs_id = item.get("selectedObsId")
+                attempts = item.get("attemptedObsIds")
+                if (not isinstance(attempts, list) or not attempts
+                        or len(attempts) != len(set(attempts)) or obs_id not in attempts):
+                    raise ValueError()
+                original = original_by_id.get(obs_id)
+                if original is None:
+                    raise ValueError()
+                actual_month = datetime.fromtimestamp(
+                    (original["mjd"] - 40587) * 86400, timezone.utc).strftime("%Y-%m")
+                if actual_month != month:
+                    raise ValueError()
+                ready_months.add(month)
+            frame_months = [datetime.fromtimestamp(
+                (frame["mjd"] - 40587) * 86400, timezone.utc).strftime("%Y-%m")
+                for frame in doc["frames"]]
+            if (len(frame_months) != len(set(frame_months))
+                    or set(frame_months) != ready_months
+                    or len(originals) != len(ready_months)):
                 raise ValueError()
     except (KeyError, TypeError, ValueError, AttributeError) as exc:
         raise StoreError("New sequence does not satisfy the owner acquisition policy") from exc
