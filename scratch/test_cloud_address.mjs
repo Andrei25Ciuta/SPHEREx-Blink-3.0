@@ -6,6 +6,7 @@ assert.deepEqual(backendAddress('', 'mateibut.github.io'), {
 assert.deepEqual(backendAddress('', 'iooonut.github.io'), {
   base: 'https://blink3-api-w3bm7ii4fq-ew.a.run.app', allowed: true, remote: true, error: null
 });
+assert.deepEqual(backendAddress('', 'andrei25ciuta.github.io'), backendAddress('', 'mateibut.github.io'));
 assert.equal(backendAddress('', 'example.com').allowed, false);
 assert.equal(backendAddress('http://localhost:8001', 'mateibut.github.io').allowed, false);
 assert.equal(backendAddress('https://127.0.0.1', 'mateibut.github.io').allowed, false);
