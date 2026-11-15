@@ -24,7 +24,7 @@ from .query import read_frame_file
 from .storage import from_env, digest_file
 
 ID = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
-CODE_VERSION = "blink3-cloud-1"
+CODE_VERSION = "blink3-cloud-2"
 
 
 def validate_plan(p):

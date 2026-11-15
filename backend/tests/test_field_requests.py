@@ -33,9 +33,9 @@ def test_date_range_changes_request_id_and_checks_calendar_dates():
             raise AssertionError("invalid date range accepted")
 
 
-def test_real_data_fov_is_limited_to_ten_arcmin():
-    assert normalize_request({"ra": 10, "dec": -10, "fov": 10})["query"]["fov"] == 10
-    for fov in (10.1, 20, 30):
+def test_real_data_fov_is_limited_to_thirty_arcmin():
+    assert normalize_request({"ra": 10, "dec": -10, "fov": 30})["query"]["fov"] == 30
+    for fov in (0.9, 30.1):
         try:
             normalize_request({"ra": 10, "dec": -10, "fov": fov})
         except RequestValidationError:

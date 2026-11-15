@@ -131,6 +131,19 @@ export function setupMissions() {
  * The pin board. getCandidate() returns the selected candidate ({ra, dec, label, ...}) or null; getContext() → { realData, field }.
  * Returns { refresh } so the page can enable the pin buttons when the selection changes.
  */
+// Each pin gets a random colour for this visit (the card's circle and its pin on the map match); colours repeat only when the palette runs out.
+const PIN_COLOURS = ["#E8B04B", "#5B9BF0", "#5FC79A", "#E5767A", "#B48CF2", "#4FC3D9", "#F2955B", "#D77BC8", "#9BC95A", "#7F8CF0"];
+const pinColour = (() => {
+  const given = new Map(); let bag = [];
+  return (id) => {
+    if (!given.has(id)) {
+      if (!bag.length) bag = [...PIN_COLOURS].sort(() => Math.random() - .5);
+      given.set(id, bag.pop());
+    }
+    return given.get(id);
+  };
+})();
+
 export function setupPinBoard({ getCandidate, getContext }) {
   if (!$("pin-board")) return null;
   const SVG = "http://www.w3.org/2000/svg";
@@ -230,7 +243,7 @@ export function setupPinBoard({ getCandidate, getContext }) {
       const g = el("g", { class: "pin-marker" + (p.dataKind === "synthetic" ? " is-synthetic" : "") + (p.id === openId ? " is-open" : ""), transform: `translate(${q.x.toFixed(1)} ${q.y.toFixed(1)}) scale(${(1 / zoom).toFixed(3)})`, tabindex: 0, role: "button", "data-id": p.id, "aria-label": `${pinTag(p)}, RA ${formatRA(p.ra)}, Dec ${formatDec(p.dec)}` });
       el("circle", { r: 16, fill: "url(#pb-glow)", class: "pb-halo" }, g);
       el("circle", { r: 7, class: "pb-pulse" }, g);
-      el("path", { d: "M0 0 C-3 -6 -9 -9 -9 -15 A9 9 0 1 1 9 -15 C9 -9 3 -6 0 0Z", class: "pb-drop" }, g);
+      el("path", { d: "M0 0 C-3 -6 -9 -9 -9 -15 A9 9 0 1 1 9 -15 C9 -9 3 -6 0 0Z", class: "pb-drop", ...(p.dataKind === "synthetic" ? {} : { style: `fill:${pinColour(p.id)}` }) }, g);
       const t = el("text", { x: 0, y: -12.5, class: "pb-initials", "text-anchor": "middle" }, g); t.textContent = initials(p.observer);
     }
     if (view === "field" && outside) text(W - 10, H - 10, `${outside} pin${outside > 1 ? "s" : ""} outside this field`, "pb-label", "end");
@@ -251,7 +264,7 @@ export function setupPinBoard({ getCandidate, getContext }) {
     return `index.html?${q}`;
   }
   function cardHtml(p) {
-    return `<div class="pb-card-head"><span class="pb-avatar" aria-hidden="true">${esc(initials(p.observer))}</span>
+    return `<div class="pb-card-head"><span class="pb-avatar" aria-hidden="true" style="background:${pinColour(p.id)};color:#10131A">${esc(initials(p.observer))}</span>
       <div><strong>${esc(pinTag(p))}</strong><span class="pb-when">${esc(p.label ?? "candidate")} · ${esc(timeAgo(p.foundAt))} · ${esc(new Date(p.foundAt).toLocaleString())}</span></div></div>
       <p class="pb-coords"><span>RA <b>${esc(formatRA(p.ra))}</b></span><span>Dec <b>${esc(formatDec(p.dec))}</b></span><span class="muted">(${fmt(p.ra, 5)}°, ${fmt(p.dec, 5)}°)</span></p>
       <p class="pb-chips">${chips(p)}</p>

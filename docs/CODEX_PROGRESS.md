@@ -556,6 +556,16 @@ The existing Aladin Lite Sky Context map now shows a small RA/Dec label beside t
 
 Verification in the available connected-source environment: syntax parsing for updated JS modules and 16 executable pure-helper/mocked-event checks (ICRS coordinate conversion, RA wrap, invalid declination, copy fallbacks, hover, drag/right-click/objects ignored, left-click selection). `scratch/test_skycontext_click.mjs` added with independent Node assertions and static wiring checks, but standalone Node, complete Node suite, backend pytest, browser visual/layout/navigation regression and screen-reader audit remain **not run** (no runnable checkout in this environment).
 
+## 2026-11-15 – On-device AI for Science Mode explanations
+Connected each Science Mode “Explain Simply” control to Astra's existing on-device model path: the browser's built-in model is preferred, with WebLLM as the existing WebGPU fallback. The model initializes only after a panel is opened; AI answers are labelled as fallible, loading is announced in the answer area, and reviewed glossary text is used if no model can run or generation fails. Updated education and limitation notes. No analysis values or backend routes changed.
+
+This panel-level UI was subsequently removed on request in the updated main branch; `scienceExplain.js` now only adds the intro More/Less controls. The on-device AI remains available through Astra in Learn Mode.
+
+## 2026-11-15 – Real-data search coverage preparation
+Prepared source changes for real-data Find movers and distant-body search: the real-data FOV ceiling is now 30 arcmin across the frontend, local API, cloud cutout API and asynchronous request validator. Archive planning retains at most 12 images per detector and selects one latest observation from each available 30-day pass before filling remaining slots round-robin from those passes. Reported pass counts still come from the selected observation dates, so the existing three-pass science gate remains in force.
+
+The changed selection is versioned as `blink3-cloud-2`; the catalog filter and source owner policy point at that version, and the prepared policy revision is v3. This avoids reusing old processing products under the new selection identity. Live Firestore remains on policy v2, so the source changes are not available in production until code deployment and a separately approved policy migration. No FITS downloads or deployment were performed. Automated tests and live-browser checks were not run; existing assertions were updated to the new FOV contract. The source commit was pushed to `codex/blink4-education` before this merge.
+
 ## 2026-11-15 – Scroll-direction-aware shared site navigation (branch `codex/auto-hide-header-scroll-direction`)
 The same navigation header on Workspace, Overview, Sky Explorer, Simulator, Learn, Results and About now stays available as a sticky/fixed masthead, slides out after sustained scrolling down, and slides back in after about 18 px of upward scrolling anywhere on the page. A small downward/upward threshold avoids jitter; returning near the top shows it, and arriving via a deep link leaves it visible. Focus inside the header and an opened mobile menu keep it visible for keyboard and touch users. Reduced-motion clients do not animate the transition. The existing Overview fixed header and embedded Workspace behavior remain intact.
 

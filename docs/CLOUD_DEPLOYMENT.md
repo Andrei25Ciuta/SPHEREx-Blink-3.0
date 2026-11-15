@@ -10,6 +10,8 @@ Canonical public service URL: `https://blink3-api-w3bm7ii4fq-ew.a.run.app`. The 
 
 Firestore database `blink3-policy` now has enabled policy `spherex-dr1-owner-v2`, with `maxConcurrentDownloads=20` and `compatiblePolicyVersions=["spherex-dr1-owner-v1"]`. This compatibility entry lets requests created before migration finish with the policy version and provenance they recorded. The existing `blink3-prepare` job and private bucket are retained; the source release did not replace or delete any stored sequence objects.
 
+The deployed API enforces a 1–10 arcmin real-data FOV bound. This source branch raises the limit to 30 arcmin across the frontend, request validator and local/cloud cutout routes. Wide fields remain bounded by the existing 1024-pixel processing grid and byte caps. The 30 arcmin source change has not been deployed; production remains on its current API revision and v2 policy.
+
 The currently deployed image still returns HTTP 501 for `/api/catalogue`. The source now adds the same bounded `/api/catalogue` route as local mode, backed by the fixed 2MASS, AllWISE, and Gaia DR3 TAP services. This additive source change is not live until a separately approved Cloud Run release; do not tell users the published site has catalog-query support before that deployment is verified.
 
 The original Barnard's Star request `fr-9fe8d9f503e9ccca9f2964e5a9bba0ad` remains complete: 70 usable frames across six dynamic sequences, with no API rebuild. At the latest live status check, the durable global counter showed 11 of 20 detector-job slots active. Request `fr-037f143a2bc1dae77b60c2007d7e8905` (RA 269.44627, Dec 4.7682, FOV 6) is ready on all six detectors. Request `fr-911e7d9b64036cac0edb4fffb712dc01` (RA 133.75976, Dec -7.24219, FOV 10) is ready on all six detectors. Request `fr-dcb1a9266fcb9255fff34168065966b8` (same coordinates, FOV 5) has five detectors ready and D5 failed after repeated attempts. IRSA returned HTTP 422 during recovery; no further retry was started after the last check. This remaining detector failure is still being investigated and does not indicate a rollback of the concurrency setting. New products remain in private GCS with only registered display/data/mask assets exposed by the API.
@@ -21,7 +23,7 @@ Slow synchronous IRSA and Google token-validation calls were running directly in
 
 ## Architecture
 
-- **GitHub Pages frontend:** submits coordinates, FOV (1–10 arcmin for real data), optional UTC date bounds and the fixed D1–D6 detector set. Blank dates select the 12 newest observations per detector. It polls real Firestore progress every few seconds and loads detector frames as soon as each is ready. No GCP credentials are present in the browser. Synthetic mode remains available up to 30 arcmin.
+- **GitHub Pages frontend:** submits coordinates, FOV (1–30 arcmin for real data), optional UTC date bounds and the fixed D1–D6 detector set. Planning selects up to 12 observations across available survey passes, then fills remaining slots with additional observations. It polls real Firestore progress every few seconds and loads detector frames as soon as each is ready. No GCP credentials are present in the browser. Synthetic mode remains available up to 30 arcmin.
 - **Public Cloud Run `blink3-api`:** serves existing static and Firestore-registered immutable image products, creates/reuses request documents, enqueues Cloud Tasks and reports request status. It has no permission to execute Cloud Run Jobs.
 - **Private Cloud Run `blink3-orchestrator`:** accepts only OIDC-authenticated Cloud Tasks/Cloud Scheduler calls. It queries IRSA metadata, writes private detector plans, enforces a transactional global semaphore capped at 20 detector jobs, launches the existing `blink3-prepare` job, and reconciles stalled executions. Cloud Tasks dispatch concurrency is a separate setting.
 - **Cloud Run Job `blink3-prepare`:** runs the existing FITS validation and scientific processing unchanged. It retries transient archive failures up to eight attempts, resumes verified private staging files, writes a versioned manifest last, validates it against the current owner policy, then registers it in Firestore.
@@ -31,7 +33,7 @@ There is no sign-in, per-user quota, daily/monthly limit or CAPTCHA. The live so
 
 ## Owner policy and data selection
 
-`config/acquisition-policy` is versioned and written by `deploy/configure_policy.py`. It starts disabled. Source policy v2 permits D1–D6, the approved official SPHEREx DR1 acknowledgement/DOI, 12 newest observations per detector by default, optional date bounds for historic observations, 32 MiB per FITS file, 128 MiB per detector and at most 20 concurrent detector jobs. The website cannot set policy or approval fields. Other collections are rejected. The live v2 policy permits 20 jobs and explicitly accepts in-flight requests created under v1.
+`config/acquisition-policy` is versioned and written by `deploy/configure_policy.py`. It starts disabled. Source policy v3 targets processing version `blink3-cloud-2`, preserves D1–D6 and the official SPHEREx DR1 acknowledgement/DOI, selects up to 12 observations across available passes, and retains optional date bounds, 32 MiB per FITS file, 128 MiB per detector and at most 20 concurrent detector jobs. The website cannot set policy or approval fields. Other collections are rejected. Live policy v2 remains enabled for 20 jobs and accepts in-flight requests created under v1. Applying the source v3 policy requires a separately approved migration; this merge does not apply it.
 
 The emergency stop is `enabled=false` on the Firestore policy. It prevents new requests; previously completed exact requests and existing serving remain available. The application exposes no policy-mutation endpoint, and browser input cannot set approval fields. The separate `blink3-policy` database and database-scoped read-only runtime grants prevent those services from changing the owner policy. Configure access through the documented policy script using an administrator identity. Manifests record the policy version and acknowledgement that authorized them.
 
@@ -50,7 +52,7 @@ The script enables Firestore, Cloud Tasks and Cloud Scheduler APIs; creates sepa
 Deploy without resetting the current `BLINK_SERVE_PIXELS` value:
 
 ```bash
-bash deploy/release.sh --apply cloud-v2
+bash deploy/release.sh --apply cloud-v3
 ```
 
 This builds the API and job images, deploys the private orchestrator and public API, binds the task identity as orchestrator invoker, and installs a two-minute reconciliation schedule. It does not execute `blink3-prepare`. The release script uses `--update-env-vars` for the existing API to retain its serving gate. Verify the deployed service URL, image digest, active revisions, D1–D6 static sequence responses, and current serving state before changing the policy.
@@ -67,19 +69,19 @@ Once deployment, IAM, index readiness, static-data serving and no-download smoke
 python3 deploy/configure_policy.py --project spherex-blink --apply --enable
 ```
 
-The v1-to-v2 migration was applied on 15 Nov after the compatible Cloud Run image was deployed. For a future policy-version change, review the policy and use `--migrate-policy-version` explicitly:
+The v1-to-v2 migration was applied on 15 Nov after the compatible Cloud Run image was deployed. A future migration to source policy v3 must be reviewed after deployment, including its processing-version change, pass-spread selection behavior, and v1/v2 compatibility. Then use `--migrate-policy-version` explicitly:
 
 ```bash
 python3 deploy/configure_policy.py --project spherex-blink --apply --enable --migrate-policy-version
 ```
 
-This command changes Firestore policy only; it does not deploy Cloud Run. The current live policy is v2 and allows v1 requests already in progress. The release script sets `BLINK_MAX_ACTIVE_DOWNLOAD_JOBS=20`; the effective global limit is the lower of this value and Firestore's `maxConcurrentDownloads`. Any future policy migration still needs owner review.
+This command changes Firestore policy only; it does not deploy Cloud Run. Do not run it until matching code is deployed and the owner separately approves the policy migration. The current live policy is v2 and already allows v1 requests in progress. The release script sets `BLINK_MAX_ACTIVE_DOWNLOAD_JOBS=20`; the effective global limit is the lower of this value and Firestore's `maxConcurrentDownloads`.
 
 Production deployment, IAM setup, policy activation, Cloud Run job executions and new FITS downloads were performed with the owner's explicit approval on 15 Nov 2026. The complete first-request result and tests are in the latest `docs/CODEX_PROGRESS.md` entry.
 
 ## API contract
 
-- `POST /api/field-requests` validates and normalizes RA/Dec/FOV (1–10 arcmin), dates, D1–D6, and DR1; creates or reuses a stable Firestore request; returns `requestId`, `status`, `cached`, `statusUrl`, and available detector states. Requests above 10 arcmin receive HTTP 422. This is the explicit acquisition trigger.
+- `POST /api/field-requests` validates and normalizes RA/Dec/FOV (1–30 arcmin), dates, D1–D6, and DR1; creates or reuses a stable Firestore request; returns `requestId`, `status`, `cached`, `statusUrl`, and available detector states. Requests above 30 arcmin receive HTTP 422. This is the explicit acquisition trigger.
 - `GET /api/field-requests/{requestId}` returns durable overall and per-detector progress, file counts, bytes, frame counts, errors, and serving readiness. It never initiates work.
 - `POST /api/field-requests/{requestId}/retry` retries only failed detectors; it reuses their server-generated plans when possible.
 - `GET /api/catalogue?cat=&ra=&dec=&radius=&minpm=` is in source for bounded 2MASS, AllWISE, and Gaia DR3 cone searches, matching the local backend's response. The current production revision still returns 501 until an approved release deploys this route.

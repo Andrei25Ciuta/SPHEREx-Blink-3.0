@@ -103,6 +103,37 @@ def resolve_product(row, fetch=metadata):
     return url, int(size) if size else None
 
 
+def _select_pass_spread(rows, count):
+    """Choose frames across 30-day survey passes before adding within-pass coverage."""
+    passes = []
+    for row in rows:
+        if not passes or float(row['t_min']) - float(passes[-1][-1]['t_min']) >= 30:
+            passes.append([row])
+        else:
+            passes[-1].append(row)
+
+    if len(passes) > count:
+        indices = [round(i * (len(passes) - 1) / (count - 1)) for i in range(count)] if count > 1 else [len(passes) - 1]
+        selected = [passes[index][-1] for index in dict.fromkeys(indices)]
+    else:
+        selected = [group[-1] for group in passes]
+        # Add earlier frames from each pass in a balanced round-robin, preserving
+        # the maximum number of survey epochs before deepening any single pass.
+        offset = 2
+        while len(selected) < count:
+            added = False
+            for group in passes:
+                if len(group) >= offset:
+                    selected.append(group[-offset])
+                    added = True
+                    if len(selected) == count:
+                        break
+            if not added:
+                break
+            offset += 1
+    return sorted(selected, key=lambda row: float(row['t_min']))
+
+
 def make_plan(rows, *, ra, dec, fov, detector='D2', collection='spherex_dr1', count=12,
               fetch=metadata, cutouts=False, newest=False, mjd_start=None, mjd_end=None):
     if collection not in COLLECTIONS or not (1 <= count <= 24):
@@ -124,10 +155,7 @@ def make_plan(rows, *, ra, dec, fov, detector='D2', collection='spherex_dr1', co
     if not rows:
         raise ValueError('No matching observations')
     if len(rows) > count:
-        if newest:
-            rows = rows[-count:]
-        else:
-            rows = [rows[round(i * (len(rows)-1)/(count-1))] for i in range(count)] if count > 1 else rows[:1]
+        rows = _select_pass_spread(rows, count)
     files = []
     for i, row in enumerate(rows):
         url, size = resolve_product(row, fetch)

@@ -122,7 +122,7 @@ html[data-theme=midnight] .synthetic-notice{background:var(--learn-midnight-noti
 .astra-answer:empty{display:none}.astra-source:empty{display:none}
 .astra-section .astra-card{grid-column:1/-1;max-width:56rem}
 /* Astra in calm space blue instead of the theme accent */
-#astra { --astra-blue: #2F6BD8; --astra-blue-hi: #2459BC; }
+#astra, .cm-tour-note { --astra-blue: #2F6BD8; --astra-blue-hi: #2459BC; }
 #astra .learn-button-primary { background: var(--astra-blue); border-color: var(--astra-blue); color: #fff; }
 #astra .learn-button-primary:hover { background: var(--astra-blue-hi); }
 #astra .astra-q { background: var(--astra-blue); color: #fff; }

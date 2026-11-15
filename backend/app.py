@@ -35,7 +35,7 @@ from spherex.observations import observations
 from spherex.stretch import STRETCH_VERSION, flags_to_png, shared_stretch, to_png
 
 FRONTEND_DIR = Path(__file__).resolve().parents[1] / "frontend"
-FOV_MIN, FOV_MAX = 1.0, 10.0
+FOV_MIN, FOV_MAX = 1.0, 30.0
 MIN_VALID_FRACTION = 0.5     # skip frames where less than half the cutout has data (edge hits)
 
 app = FastAPI(title="SPHEREx Blink API", version="0.7")
@@ -58,7 +58,7 @@ def health():
 
 @app.get("/api/observations")
 def observation_search(ra: float = Query(..., ge=0, lt=360), dec: float = Query(..., ge=-90, le=90),
-                       fov: float = Query(5, ge=1, le=10), collection: str = "spherex_qr2"):
+                       fov: float = Query(5, ge=1, le=30), collection: str = "spherex_qr2"):
     """IRSA SIA2 product metadata and ICRS footprint vertices, without downloading FITS."""
     try:
         return observations(ra, dec, fov, collection)
@@ -77,7 +77,7 @@ def cutouts(
     request: Request,
     ra: float = Query(..., ge=0, lt=360, description="degrees, ICRS"),
     dec: float = Query(..., ge=-90, le=90, description="degrees, ICRS"),
-    fov: float = Query(5, ge=FOV_MIN, le=FOV_MAX, description="arcmin; real-data limit 10"),
+    fov: float = Query(5, ge=FOV_MIN, le=FOV_MAX, description="arcmin; real-data limit 30"),
     det: str = Query("all", description='"all" or a detector name like "D3"'),
 ):
     frames = archive.find(ra, dec, det)

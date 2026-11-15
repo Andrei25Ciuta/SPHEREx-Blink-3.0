@@ -341,7 +341,7 @@ output { font-weight: 600; color: var(--accent); }
 }
 #blink-canvas {
   width: 100%; height: 100%; display: block;
-  image-rendering: pixelated;           /* keep SPHEREx pixels sharp when scaled up */
+  image-rendering: auto;                /* drawn softly blended; the pixel values themselves are unchanged */
 }
 /* Small crosshair marks the requested RA/Dec (center of the cutout) */
 .crosshair {
@@ -1762,4 +1762,3 @@ main .panel > h2, main .panel .panel-head, main .pin-board .pb-head { padding-ri
 #inspector :where(h3) { margin-top: 20px; margin-bottom: 8px; }
 #inspector :where(h3:first-child) { margin-top: 0; }
 #inspector :where(p, dl, ul) { line-height: 1.6; }
-

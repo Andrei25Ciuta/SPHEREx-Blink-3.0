@@ -22,6 +22,37 @@ export function startMissionRunner({ getCandidate = () => null, getCount = () =>
   box.setAttribute("aria-label", "Mission console");
   document.body.appendChild(box);
 
+  // Drag the top-left corner to make the console smaller or larger (it is pinned to the bottom-right corner). The size is kept in this browser only.
+  const SIZE_KEY = "spherex-blink-mission-size";
+  const grip = document.createElement("button");
+  grip.type = "button";
+  grip.className = "mr-grip";
+  grip.setAttribute("aria-label", "Resize the mission console: drag, or use the arrow keys");
+  grip.title = "Drag to resize";
+  const clampSize = (w, h) => [Math.max(Math.min(260, innerWidth - 32), Math.min(w, innerWidth - 32)), Math.max(140, Math.min(h, innerHeight - 32))];
+  function applySize(w, h, save) {
+    [w, h] = clampSize(w, h);
+    box.style.width = `${w}px`; box.style.height = `${h}px`; box.style.maxHeight = "none";
+    if (save) try { localStorage.setItem(SIZE_KEY, JSON.stringify([w, h])); } catch {}
+  }
+  try { const saved = JSON.parse(localStorage.getItem(SIZE_KEY) ?? "null"); if (Array.isArray(saved)) applySize(saved[0], saved[1], false); } catch {}
+  grip.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    grip.setPointerCapture(e.pointerId);
+    const r = box.getBoundingClientRect(), x0 = e.clientX, y0 = e.clientY;
+    const move = (ev) => applySize(r.width - (ev.clientX - x0), r.height - (ev.clientY - y0), false);
+    const up = (ev) => { grip.removeEventListener("pointermove", move); grip.removeEventListener("pointerup", up); const b2 = box.getBoundingClientRect(); applySize(b2.width, b2.height, true); };
+    grip.addEventListener("pointermove", move);
+    grip.addEventListener("pointerup", up);
+  });
+  grip.addEventListener("keydown", (e) => {
+    const d = { ArrowLeft: [20, 0], ArrowRight: [-20, 0], ArrowUp: [0, 20], ArrowDown: [0, -20] }[e.key];
+    if (!d) return;
+    e.preventDefault();
+    const r = box.getBoundingClientRect();
+    applySize(r.width + d[0], r.height + d[1], true);
+  });
+
   const current = () => mission.steps[step];
   function highlight() {
     marked?.classList.remove("mission-target");
@@ -75,6 +106,7 @@ export function startMissionRunner({ getCandidate = () => null, getCount = () =>
       : `<p class="mr-actions">${s?.check.on ? `<button type="button" class="btn btn-small" data-act="show">Show me where</button>` : ""}
           <button type="button" class="btn btn-small" data-act="quit">Quit</button></p>`}
       </div>`}`;
+    box.append(grip);
     highlight();
   }
 

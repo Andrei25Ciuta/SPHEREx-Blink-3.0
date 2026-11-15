@@ -193,3 +193,7 @@
   margin: 0;
 }
 .expanded-image-info .tl-field { height: clamp(8rem, 22vh, 13rem); }
+
+/* No black band around the picture: the image sits on the panel itself, with rounded corners and soft depth */
+html[data-theme]:root .image-well { background: transparent; border-block: 0; padding-block: 8px; }
+html[data-theme]:root #workspace .image-well .stage { border-radius: 14px; box-shadow: 0 0 0 1px rgb(255 255 255 / .08), 0 18px 40px -22px rgb(0 0 0 / .8); }
