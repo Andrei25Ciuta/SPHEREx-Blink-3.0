@@ -581,15 +581,15 @@
         cloudCtx.fill();
       }
 
-      // Keep the original gold dashed equator horizontal in the front view.
+      // Keep the original gold dashed equator, with a vertical projected ellipse in the front view.
       const orbitRadius = radius * 1.42;
       const orbitPoints = new THREE.EllipseCurve(0, 0, orbitRadius, orbitRadius, 0, Math.PI * 2).getPoints(160);
       const orbitGeometry = new THREE.BufferGeometry().setFromPoints(orbitPoints.map(point => new THREE.Vector3(point.x, point.y, 0)));
       const orbitMaterial = new THREE.LineDashedMaterial({ color: 0xefb24f, dashSize: 8, gapSize: 6, transparent: true, opacity: 0.46 });
       const orbit = new THREE.Line(orbitGeometry, orbitMaterial);
       orbit.computeLineDistances();
-      // Counter the Earth's base X tilt so the equator reads horizontally on screen.
-      orbit.rotation.set(-0.35, 0, 0);
+      // Counter the Earth's base X tilt and tilt around Y to make the ellipse vertical on screen.
+      orbit.rotation.set(-0.35, 1.05, 0);
       root.add(orbit);
 
       const earth = new THREE.Mesh(
