@@ -28,7 +28,7 @@ async function check() {
     await page.locator("#quick-pick-list button").first().waitFor();
     assert.equal(await page.locator('#data-source option[value="api"]').evaluate(option => option.disabled), true,
       "public static site cannot offer the local FITS backend as an actionable option");
-    assert.match(await page.locator("#data-source-help").textContent(), /No real-data service is configured for this site/i);
+    assert.match(await page.locator("#data-source-help").textContent(), /no real-data service is configured.*synthetic demo remains available/i);
     assert.match(await page.locator("#data-source-badge").textContent(), /Synthetic demo/);
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
       "public backend guidance fits a phone viewport");

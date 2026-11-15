@@ -37,6 +37,9 @@
   --learn-notice-surface: #FFF2E9; --learn-notice-text: #49291D;
   --learn-teal: #29AAB5; --learn-check: #70D8A2; --learn-check-line: #D9D1ED;
   --learn-spectrum-violet: #6753BE; --learn-spectrum-blue: #4D9DE2;
+  /* the mission guide box: a deep-blue island in every theme */
+  --mission-bg: #121A26; --mission-raised: #1A2433; --mission-border: #2E3D52; --mission-blue: #6F93BF; --mission-blue-rgb: 111 147 191;
+  --mission-blue-text: #9DB5D3; --mission-text: #E6EBF2; --mission-muted: #B0BBCA; --mission-faint: #8E9AAB;
   --learn-spectrum-green: #39AD78; --learn-spectrum-yellow: #E0C33E;
   --learn-spectrum-orange: #EE8333; --learn-spectrum-red: #D95148;
   --learn-spectrum-deep-violet: #74297E; --learn-spectrum-indigo: #2D316D;
@@ -1448,6 +1451,9 @@ html[data-theme] .site-footer { border-top: 1px solid var(--border); background:
 .mission-catalogue details { border-top: 1px solid var(--border); padding: 6px 0; }
 .mission-catalogue summary { cursor: pointer; font-weight: 600; }
 .mission-catalogue ul { margin: 6px 0; padding-left: 1.2em; }
+.mission-runner { --accent: var(--mission-blue); --accent-hi: var(--mission-blue-text); --accent-text: var(--mission-blue-text); --accent-rgb: var(--mission-blue-rgb); --on-accent: #06142A;
+  --surface: var(--mission-bg); --raised: var(--mission-raised); --border: var(--mission-border); --field: #081428; --control-border: var(--mission-border);
+  --text: var(--mission-text); --text-muted: var(--mission-muted); --text-faint: var(--mission-faint); color-scheme: dark; }
 .mission-runner { position: fixed; right: 16px; bottom: 16px; z-index: 1000; width: min(380px, calc(100vw - 32px)); max-height: 72vh; overflow: auto;
   background: linear-gradient(160deg, rgb(var(--accent-rgb) / .14), transparent 45%), var(--surface); color: var(--text);
   border: 1px solid rgb(var(--accent-rgb) / .6); border-radius: var(--radius); box-shadow: var(--shadow), 0 0 0 4px rgb(var(--accent-rgb) / .08); }
@@ -1665,3 +1671,21 @@ main .panel > h2, main .panel .panel-head, main .pin-board .pb-head { padding-ri
   font-size: 1.35rem;
   line-height: 1;
 }
+
+/* ---------- Airier workspace: more room around and between the dense parts; nothing hidden or removed ---------- */
+#workspace .panel { padding: 6px 20px 18px; }
+#workspace .panel-body > :where(* + *) { margin-top: 12px; }
+#workspace :where(.small, .muted.small, .mode-help, .tl-note, .tl-summary, .readout-idle, .shortcuts, .panel-intro) { font-size: .875rem; line-height: 1.65; }
+#workspace :where(p.small, .muted.small) { margin-bottom: 14px; }
+#workspace :where(.tools, .stage-tools, .viewer-tools, .observing-row, .measure-tools, .desk-command-row, .pb-map-tools, .pair-grid) { gap: 12px 14px; }
+#workspace :where(.overview-grid, .pb-grid) { gap: 16px; }
+#workspace :where(h2, h3) { margin-top: 18px; margin-bottom: 10px; }
+#workspace .panel-head :where(h2, h3) { margin-top: 0; }
+#workspace .ov-sub { line-height: 1.5; }
+#workspace .pb-readout { font-size: .8rem; line-height: 1.5; }
+#workspace .pr-legend { line-height: 1.7; }
+#inspector { padding: 20px 22px; }
+#inspector :where(h3) { margin-top: 20px; margin-bottom: 8px; }
+#inspector :where(h3:first-child) { margin-top: 0; }
+#inspector :where(p, dl, ul) { line-height: 1.6; }
+

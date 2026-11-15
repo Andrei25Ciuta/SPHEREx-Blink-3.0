@@ -2,7 +2,6 @@
 -r requirements.txt
 pytest>=8
 httpx==0.28.1
-# Cloud orchestration tests import these even with injected fake clients/sessions.
-# Production installs the full Google Cloud SDK set via requirements-cloud.txt.
-google-api-core>=2.20,<3
-google-auth>=2.30,<3
+
+# Cloud workflow tests import exception and auth types even with fake clients.
+google-api-core>=2,<3
