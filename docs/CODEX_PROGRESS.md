@@ -1,5 +1,9 @@
 # Development progress
 
+## 2026-11-15 — Explain why Find movers starts disabled
+
+Clarified the initial empty-state message under Find movers: load a test target or enter coordinates and load images first; the search unlocks when the field has at least three survey passes. The search and its scientific threshold are unchanged. Added a UI regression check. `node scratch/test_ui.mjs` and `git diff --check` passed. The full Node suite had one unrelated existing failure in `test_theme.mjs` (it expects the old Midnight default while this Blink 4.0 checkout sets Light); the browser smoke could not start Chrome (exit code 4294930433), and backend pytest could not start because the WindowsApps Python launcher is unavailable.
+
 ## 2026-11-14 — SPHEREx Blink 4.0 dual-mode foundation
 
 Created a separate `codex/blink4-education` worktree from 3.0 commit `831a9cd`; no 4.0 directory existed, so this new checkout is the 4.0 destination and the 3.0 worktree remains unchanged. Recast Overview as the Science/Learn chooser, preserved the science workspace and query URLs, and added the first full Learn Mode foundation: an eight-level sequential path, local profiles/progress/XP/badges/streak/time, four quiz types, per-level quiz scores, Astra's reviewed offline glossary, simple explanations beside Science panels, interactive spectrum/planet/galaxy cards, classroom progress summaries, and printable worksheets with keys. Added a shared saved high-contrast setting. All Learn visuals are labelled schematic/synthetic. NASA educational sources are linked in the course and in CREDITS.md.
