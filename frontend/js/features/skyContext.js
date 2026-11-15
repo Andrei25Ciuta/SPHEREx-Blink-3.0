@@ -112,7 +112,7 @@ function loadWorld() {
 }
 
 export class SkyContext {
-  constructor(container, statusEl, noteEl = null, { matchField = false, backToField = null, surface = null, scale = null, resetLight = null } = {}) {
+  constructor(container, statusEl, noteEl = null, { matchField = false, backToField = null, surface = null, scale = null, resetLight = null, resetStatus = null } = {}) {
     this.container = container;
     this.statusEl = statusEl;
     this.matchField = matchField;
@@ -122,9 +122,9 @@ export class SkyContext {
     this.resetLight = resetLight;
     this.initialDisplay = new WeakMap();
     resetLight?.addEventListener("click", () => {
-      const layer = this.aladin?.getBaseImageLayer();
-      const defaults = layer && this.initialDisplay.get(layer);
-      if (defaults) layer.setOptions({ ...defaults });
+      const layers = this.displayLayers().filter((layer) => this.initialDisplay.has(layer));
+      for (const layer of layers) layer.setOptions({ ...this.initialDisplay.get(layer) });
+      if (resetStatus) resetStatus.textContent = layers.length ? "Map display reset." : "Wait for the map image to load.";
     });
     this.workspaceField = null;
     backToField?.addEventListener("click", () => {
@@ -156,20 +156,29 @@ export class SkyContext {
     }
   }
 
+  displayLayers() {
+    if (!this.aladin) return [];
+    const ids = this.aladin.getStackLayers();
+    return ids.map((id) => this.aladin.getOverlayImageLayer(id)).filter(Boolean);
+  }
+
   refreshLightControl() {
     if (!this.resetLight) return;
-    const layer = this.aladin.getBaseImageLayer();
-    if (layer && !this.initialDisplay.has(layer)) {
-      // Read the ready layer before the visitor adjusts it. Cutoffs depend on the survey.
+    const layers = this.displayLayers();
+    for (const layer of layers) {
+      if (this.initialDisplay.has(layer)) continue;
       const { opacity, color } = layer.getColorCfg().get();
+      const fits = layer.imgFormat === "fits";
+      // The pinned Aladin version ignores undefined cutoff values on reset.
       this.initialDisplay.set(layer, {
         brightness: color.kBrightness, contrast: color.kContrast,
         gamma: color.kGamma, saturation: color.kSaturation,
-        minCut: color.minCut, maxCut: color.maxCut, stretch: color.stretch,
-        colormap: color.cmapName, reversed: color.reversed, opacity,
+        minCut: color.minCut ?? (fits ? layer.defaultFitsMinCut : undefined) ?? 0,
+        maxCut: color.maxCut ?? (fits ? layer.defaultFitsMaxCut : undefined) ?? 1,
+        stretch: color.stretch, colormap: color.cmapName, reversed: color.reversed, opacity,
       });
     }
-    this.resetLight.hidden = !layer;
+    this.resetLight.hidden = !layers.length;
   }
 
   refreshMapControls() {

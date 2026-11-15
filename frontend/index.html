@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Oswald:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 
   <script>if (/[?&]embed=1(&|$)/.test(location.search)) document.documentElement.classList.add("embed");</script>   <!-- ?embed=1: workspace only, for an <iframe> -->
-  <link rel="stylesheet" href="css/styles.css?v=34">
+  <link rel="stylesheet" href="css/styles.css?v=35">
   <link rel="stylesheet" href="css/instrument.css?v=3">
   <link rel="stylesheet" href="css/lab-track.css">
   <link rel="stylesheet" href="css/contact-sheet.css?v=27">
@@ -472,6 +472,7 @@
           <button type="button" class="btn btn-small" id="sky-reset-light" aria-controls="aladin-box" aria-label="Reset light settings" title="Reset light settings" hidden><span aria-hidden="true">↺</span></button>
           <span class="sky-map-scale" id="sky-map-scale" aria-label="Approximate angular scale" hidden></span>
         </div>
+        <p class="muted small" id="sky-reset-status" role="status"></p>
         <p class="muted small" id="aladin-status" aria-live="polite"></p>
         <p class="muted small" id="sky-geo-note" hidden></p>
         <p class="muted small" id="sky-candidate-status" role="status" hidden></p>
@@ -706,7 +707,7 @@
     <div class="dlg-head"><h2 id="simulation-note-title">About the simulation</h2><form method="dialog"><button class="btn btn-small">Close</button></form></div>
     <p class="dlg-body">The Planet X preset uses a simulated body 600 AU away. Its position is invented for testing the distant-body search.</p>
   </dialog>
-  <script type="module" src="js/main.js?v=23"></script>
+  <script type="module" src="js/main.js?v=24"></script>
   <script type="module" src="js/scienceExplain.js"></script>
   <script type="module" src="js/features/highContrast.js"></script>
 </body>

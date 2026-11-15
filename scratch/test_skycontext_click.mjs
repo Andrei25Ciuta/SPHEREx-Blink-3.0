@@ -35,33 +35,43 @@ assert.ok(!main.includes('onSelectPosition:'));
 
 let reset;
 const resetLight = { addEventListener: (event, listener) => { reset = listener; } };
-const context = new SkyContext(null, null, null, { resetLight });
+const resetStatus = { textContent: "" };
+const context = new SkyContext(null, null, null, { resetLight, resetStatus });
 const updates = [];
-let layer;
-context.aladin = { getBaseImageLayer: () => layer };
+const layers = new Map();
+context.aladin = { getStackLayers: () => [...layers.keys()], getOverlayImageLayer: (id) => layers.get(id) };
 context.refreshLightControl();
 assert.equal(resetLight.hidden, true);
 reset();
 assert.equal(updates.length, 0);
+
 const initial = { brightness: 0, contrast: 0, gamma: 1, saturation: 0,
-  minCut: 0.1, maxCut: 0.9, stretch: "linear", colormap: "native", reversed: false, opacity: 1 };
-const light = { ...initial };
-layer = {
-  getColorCfg: () => ({ get: () => ({
-    opacity: light.opacity,
-    color: { kBrightness: light.brightness, kContrast: light.contrast, kGamma: light.gamma,
-      kSaturation: light.saturation, minCut: light.minCut, maxCut: light.maxCut,
-      stretch: light.stretch, cmapName: light.colormap, reversed: light.reversed },
-  }) }),
-  setOptions: (options) => { updates.push(options); Object.assign(light, options); },
-};
+  minCut: 0, maxCut: 1, stretch: "linear", colormap: "native", reversed: false, opacity: 1 };
+function addLayer(id, light) {
+  layers.set(id, {
+    getColorCfg: () => ({ get: () => ({
+      opacity: light.opacity,
+      color: { kBrightness: light.brightness, kContrast: light.contrast, kGamma: light.gamma,
+        kSaturation: light.saturation, minCut: light.minCut, maxCut: light.maxCut,
+        stretch: light.stretch, cmapName: light.colormap, reversed: light.reversed },
+    }) }),
+    setOptions: (options) => { updates.push(id); Object.assign(light, options); },
+  });
+}
+const base = { ...initial, minCut: undefined, maxCut: undefined };
+const overlay = { ...initial, minCut: 0.1, maxCut: 0.9 };
+addLayer("base", base);
+addLayer("overlay", overlay);
 context.refreshLightControl();
 assert.equal(resetLight.hidden, false);
-Object.assign(light, { brightness: 0.75, contrast: -0.3, gamma: 2, saturation: 0.2,
+Object.assign(base, { brightness: 0.75, contrast: -0.3, gamma: 2, saturation: 0.2,
   minCut: 0.25, maxCut: 0.55, stretch: "asinh", colormap: "grayscale", reversed: true, opacity: 0.6 });
+overlay.brightness = -0.7;
 context.refreshLightControl();
 reset();
-assert.equal(updates.length, 1);
-assert.deepEqual(light, initial);
+assert.deepEqual(updates, ["base", "overlay"]);
+assert.deepEqual(base, initial);
+assert.deepEqual(overlay, { ...initial, minCut: 0.1, maxCut: 0.9 });
+assert.equal(resetStatus.textContent, "Map display reset.");
 
 console.log("PASS Sky Context cursor coordinates and light reset without map click navigation");
