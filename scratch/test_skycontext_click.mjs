@@ -43,12 +43,25 @@ context.refreshLightControl();
 assert.equal(resetLight.hidden, true);
 reset();
 assert.equal(updates.length, 0);
-const light = { brightness: 0.75, contrast: -0.3, gamma: 2, saturation: 0.2 };
-layer = { setOptions: (options) => { updates.push(options); Object.assign(light, options); } };
+const initial = { brightness: 0, contrast: 0, gamma: 1, saturation: 0,
+  minCut: 0.1, maxCut: 0.9, stretch: "linear", colormap: "native", reversed: false, opacity: 1 };
+const light = { ...initial };
+layer = {
+  getColorCfg: () => ({ get: () => ({
+    opacity: light.opacity,
+    color: { kBrightness: light.brightness, kContrast: light.contrast, kGamma: light.gamma,
+      kSaturation: light.saturation, minCut: light.minCut, maxCut: light.maxCut,
+      stretch: light.stretch, cmapName: light.colormap, reversed: light.reversed },
+  }) }),
+  setOptions: (options) => { updates.push(options); Object.assign(light, options); },
+};
 context.refreshLightControl();
 assert.equal(resetLight.hidden, false);
+Object.assign(light, { brightness: 0.75, contrast: -0.3, gamma: 2, saturation: 0.2,
+  minCut: 0.25, maxCut: 0.55, stretch: "asinh", colormap: "grayscale", reversed: true, opacity: 0.6 });
+context.refreshLightControl();
 reset();
 assert.equal(updates.length, 1);
-assert.deepEqual(light, { brightness: 0, contrast: 0, gamma: 1, saturation: 0 });
+assert.deepEqual(light, initial);
 
 console.log("PASS Sky Context cursor coordinates and light reset without map click navigation");

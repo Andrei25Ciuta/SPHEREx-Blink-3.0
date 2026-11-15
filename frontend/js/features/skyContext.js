@@ -120,11 +120,11 @@ export class SkyContext {
     this.surface = surface;
     this.scale = scale;
     this.resetLight = resetLight;
+    this.initialDisplay = new WeakMap();
     resetLight?.addEventListener("click", () => {
       const layer = this.aladin?.getBaseImageLayer();
-      if (!layer) return;
-      // Aladin's initial light values for a newly created colour configuration.
-      layer.setOptions({ brightness: 0, contrast: 0, gamma: 1, saturation: 0 });
+      const defaults = layer && this.initialDisplay.get(layer);
+      if (defaults) layer.setOptions({ ...defaults });
     });
     this.workspaceField = null;
     backToField?.addEventListener("click", () => {
@@ -157,7 +157,19 @@ export class SkyContext {
   }
 
   refreshLightControl() {
-    if (this.resetLight) this.resetLight.hidden = !this.aladin.getBaseImageLayer();
+    if (!this.resetLight) return;
+    const layer = this.aladin.getBaseImageLayer();
+    if (layer && !this.initialDisplay.has(layer)) {
+      // Read the ready layer before the visitor adjusts it. Cutoffs depend on the survey.
+      const { opacity, color } = layer.getColorCfg().get();
+      this.initialDisplay.set(layer, {
+        brightness: color.kBrightness, contrast: color.kContrast,
+        gamma: color.kGamma, saturation: color.kSaturation,
+        minCut: color.minCut, maxCut: color.maxCut, stretch: color.stretch,
+        colormap: color.cmapName, reversed: color.reversed, opacity,
+      });
+    }
+    this.resetLight.hidden = !layer;
   }
 
   refreshMapControls() {
