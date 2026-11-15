@@ -400,6 +400,7 @@ class CloudWorkflow:
                 count=int(policy.get("maxObservationsPerDetector", 12)),
                 cutouts=True, newest=request.get("selection") == "latest",
                 mjd_start=request.get("mjdStart"), mjd_end=request.get("mjdEnd"),
+                monthly=request.get("samplingMode") == "monthly",
             )
         except ValueError as exc:
             unavailable = "No matching observations" in str(exc)
@@ -422,10 +423,17 @@ class CloudWorkflow:
             self.state.release_work_lock(lock_id, owner)
             raise
         if cached:
+            cached_monthly = cached.get("monthlySelection") or {}
+            cached_months = cached_monthly.get("requestedMonths", [])
             self.state.update_detector(request_id, detector, {
                 "status": "ready", "phase": "cached", "progress": 1.0,
                 "sequenceId": cached["sequenceId"], "revision": cached["revision"],
                 "frameCount": len(cached["frames"]), "cached": True,
+                "samplingMode": cached.get("samplingMode", "pass-spread"),
+                "requestedMonths": cached_months, "totalMonths": len(cached_months),
+                "completedMonths": sum(item.get("status") == "ready" for item in
+                                        cached_monthly.get("monthResults", [])),
+                "missingMonths": cached_monthly.get("missingMonths", []),
                 "sourcePolicyVersion": cached.get("policyVersion"), "error": None,
             })
             self.state.release_work_lock(lock_id, owner)
@@ -435,6 +443,8 @@ class CloudWorkflow:
         plan.update({
             "sequenceId": sid, "requestId": request_id,
             "fieldKey": request["fieldKey"], "policyVersion": request["policyVersion"],
+            "processingVersion": request["processingVersion"],
+            "samplingMode": request.get("samplingMode", "pass-spread"),
             "selection": request["selection"], "dateFrom": request.get("dateFrom"),
             "dateTo": request.get("dateTo"),
             "maxFileBytes": int(policy.get("maxFileBytes", 32 * 1024**2)),
@@ -452,6 +462,8 @@ class CloudWorkflow:
         self.state.update_detector(request_id, detector, {
             "status": "queued", "phase": "queued", "progress": 0.08,
             "totalFiles": len(plan["files"]), "completedFiles": 0,
+            "samplingMode": "monthly", "requestedMonths": plan["requestedMonths"],
+            "totalMonths": len(plan["requestedMonths"]), "completedMonths": 0,
             "estimatedPasses": plan["passCount"], "planKey": plan_key,
         })
         self.state.release_work_lock(lock_id, owner)
@@ -471,7 +483,9 @@ class CloudWorkflow:
         for entry in self.approved_sequences:
             if entry.get("termsChecked") is True:
                 candidates.append((entry.get("manifest"), entry.get("sequenceId")))
-        expected = [item["obsId"] for item in plan["files"]]
+        monthly = plan.get("samplingMode") == "monthly"
+        expected = ([item["obsId"] for item in plan["files"]] if not monthly else None)
+        expected_months = {group["month"]: set(group["obsIds"]) for group in plan.get("monthGroups", [])}
         for key, expected_sequence in candidates:
             if not key:
                 continue
@@ -486,12 +500,15 @@ class CloudWorkflow:
                     or manifest.get("processingVersion") != request["processingVersion"]
                     or manifest.get("termsChecked") is not True
                     or manifest.get("acknowledgement") != policy.get("acknowledgement")
+                    or manifest.get("dateFrom") != request.get("dateFrom")
+                    or manifest.get("dateTo") != request.get("dateTo")
                     or q.get("det") != detector
                     or abs(float(q.get("ra", -999)) - request["query"]["ra"]) >= 1e-7
                     or abs(float(q.get("dec", -999)) - request["query"]["dec"]) >= 1e-7
                     or abs(float(q.get("fov", -999)) - request["query"]["fov"]) >= 1e-7
-                    or [item.get("obsId") for item in originals] != expected
-                    or len(originals) != len(expected)
+                    or (not monthly and [item.get("obsId") for item in originals] != expected)
+                    or (monthly and not self._monthly_cache_matches(manifest, expected_months, plan))
+                    or (not monthly and len(originals) != len(expected))
                     or any(int(item.get("sizeBytes", 0)) > int(policy.get("maxFileBytes", 32 * 1024**2)) for item in originals)
                     or sum(int(item.get("sizeBytes", 0)) for item in originals) > int(policy.get("maxTotalBytesPerDetector", 128 * 1024**2))):
                 continue
@@ -499,6 +516,27 @@ class CloudWorkflow:
                 continue
             return manifest
         return None
+
+    @staticmethod
+    def _monthly_cache_matches(manifest, expected_months, plan):
+        selection = manifest.get("monthlySelection") or {}
+        if (selection.get("mode") != "one-per-utc-month"
+                or selection.get("requestedMonths") != plan.get("requestedMonths")):
+            return False
+        originals = {item.get("obsId"): item for item in manifest.get("originals", [])}
+        results = selection.get("monthResults", [])
+        selected_months = set()
+        for result in results:
+            if result.get("status") != "ready":
+                continue
+            month, obs_id = result.get("month"), result.get("selectedObsId")
+            if month not in expected_months or obs_id not in expected_months[month] or obs_id not in originals:
+                return False
+            selected_months.add(month)
+        missing = set(selection.get("missingMonths", []))
+        return (selected_months.isdisjoint(missing)
+                and missing <= set(plan.get("requestedMonths", []))
+                and selected_months | missing == set(plan.get("requestedMonths", [])))
 
     def dispatch_detector(self, request_id, detector):
         request = self.state.get_request(request_id)
@@ -651,6 +689,8 @@ class PublicFieldRequests:
         if request is None:
             if policy.get("enabled") is not True:
                 raise WorkflowError("New SPHEREx data requests are temporarily disabled.", 503)
+            if policy.get("processingVersion") != PROCESSING_VERSION:
+                raise WorkflowError("The SPHEREx acquisition policy must be updated for this processing version.", 503)
             request, created = self.state.create_request(normalized, policy)
         if request.get("status") in ("failed", "unavailable"):
             if policy.get("enabled") is True:
@@ -681,6 +721,7 @@ class PublicFieldRequests:
         return {"requestId": request_id, "status": request.get("status", "queued"),
                 "progress": request.get("progress", 0.0), "query": request.get("query"),
                 "selection": request.get("selection", "latest"),
+                "samplingMode": request.get("samplingMode", "pass-spread"),
                 "policyVersion": request.get("policyVersion"), "readyDetectors": ready,
                 "metadataAttemptCount": int(request.get("metadataAttemptCount", 0)),
                 "metadataRetrying": request.get("metadataRetrying", False) is True,

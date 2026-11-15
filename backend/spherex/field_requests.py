@@ -9,7 +9,7 @@ import re
 
 DETECTORS = tuple(f"D{i}" for i in range(1, 7))
 COLLECTION = "spherex_dr1"
-PROCESSING_VERSION = "blink3-cloud-2"
+PROCESSING_VERSION = "blink3-cloud-3"
 TERMINAL = {"ready", "failed", "unavailable"}
 PHASE_WEIGHT = {
     "queued": 0.0,
@@ -83,6 +83,7 @@ def normalize_request(payload, *, allowed_collections=(COLLECTION,), processing_
         "fov": round(fov, 4),
         "collection": collection,
         "processingVersion": processing_version,
+        "samplingMode": "monthly" if processing_version == PROCESSING_VERSION else "pass-spread",
         "detectors": detectors,
         "dateFrom": date_from or None,
         "dateTo": date_to or None,

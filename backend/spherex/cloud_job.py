@@ -18,13 +18,15 @@ from urllib.error import HTTPError, URLError
 
 import numpy as np
 
-from .archive_plan import open_archive, safe_url
-from .products import build
+from .archive_plan import MAX_PLAN_CANDIDATES, open_archive, safe_url
+from .products import build, MIN_VALID_FRACTION
+from .cutout import cutout, target_wcs
 from .query import read_frame_file
 from .storage import from_env, digest_file
 
 ID = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
-CODE_VERSION = "blink3-cloud-2"
+MONTH = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
+CODE_VERSION = "blink3-cloud-3"
 
 
 def validate_plan(p):
@@ -49,10 +51,40 @@ def validate_plan(p):
             raise ValueError("Invalid filename")
         if not math.isfinite(f["mjd"]):
             raise ValueError("Invalid time")
-    if (
-        not 0 < p["maxFileBytes"] <= 128 * 1024**2
-        or not 0 < p["maxTotalBytes"] <= 512 * 1024**2
-    ):
+    if p.get("samplingMode") == "monthly":
+        groups = p.get("monthGroups")
+        months = p.get("requestedMonths")
+        if (len(files) > MAX_PLAN_CANDIDATES
+                or not isinstance(groups, list) or not isinstance(months, list) or not months
+                or len(months) > 12 or len(set(months)) != len(months)
+                or months != sorted(months) or any(not MONTH.fullmatch(month) for month in months)):
+            raise ValueError("Invalid monthly observation groups")
+        records = {item["obsId"]: item for item in files}
+        grouped_ids = []
+        grouped_months = []
+        for group in groups:
+            month, obs_ids = group.get("month"), group.get("obsIds")
+            if month not in months or not isinstance(obs_ids, list) or not obs_ids:
+                raise ValueError("Invalid monthly candidate group")
+            if month in grouped_months:
+                raise ValueError("Duplicate monthly candidate group")
+            grouped_months.append(month)
+            if len(set(obs_ids)) != len(obs_ids) or any(obs_id not in records for obs_id in obs_ids):
+                raise ValueError("Monthly candidate group references an unknown observation")
+            for obs_id in obs_ids:
+                if records[obs_id].get("month") != month:
+                    raise ValueError("Monthly candidate has the wrong UTC month")
+                actual_month = datetime.fromtimestamp(
+                    (records[obs_id]["mjd"] - 40587) * 86400, timezone.utc).strftime("%Y-%m")
+                if actual_month != month:
+                    raise ValueError("Monthly candidate time falls in the wrong UTC month")
+                grouped_ids.append(obs_id)
+        if len(grouped_ids) != len(files) or set(grouped_ids) != set(records):
+            raise ValueError("Monthly candidate groups do not cover the plan")
+    elif p.get("samplingMode") not in (None, "pass-spread"):
+        raise ValueError("Unsupported sampling mode")
+    max_total = 128 * 1024**2 if p.get("samplingMode") == "monthly" else 512 * 1024**2
+    if not 0 < p["maxFileBytes"] <= 128 * 1024**2 or not 0 < p["maxTotalBytes"] <= max_total:
         raise ValueError("Download caps exceed the job limits")
     return p
 
@@ -159,7 +191,7 @@ def prepare(plan, paths, store, *, fixture=False, progress=None):
             "frames": frames,
             "assets": assets,
             "originals": originals,
-            "processingVersion": CODE_VERSION,
+            "processingVersion": plan.get("processingVersion", CODE_VERSION),
             "processedAt": datetime.now(timezone.utc).isoformat(),
             "termsChecked": plan.get("termsChecked") is True,
             "acknowledgement": plan.get("acknowledgement", ""),
@@ -169,6 +201,8 @@ def prepare(plan, paths, store, *, fixture=False, progress=None):
             "selection": plan.get("selection"),
             "dateFrom": plan.get("dateFrom"),
             "dateTo": plan.get("dateTo"),
+            "samplingMode": plan.get("samplingMode"),
+            "monthlySelection": plan.get("monthlySelection"),
         }
         key = f"{prefix}/manifest.json"
         store.put_json(
@@ -219,7 +253,8 @@ def open_input(url, opener=open_archive, sleep=time.sleep, *, max_attempts=8):
 
 
 def _download_file(url, path, *, max_file_bytes, already_downloaded, max_total_bytes,
-                   opener, sleep, progress=None, file_index=1, file_count=1):
+                   opener, sleep, progress=None, file_index=1, file_count=1,
+                   transfer_usage=None):
     """Restart interrupted bodies from byte zero and discard each incomplete attempt."""
     path = Path(path)
     partial = Path(str(path) + ".part")
@@ -228,18 +263,37 @@ def _download_file(url, path, *, max_file_bytes, already_downloaded, max_total_b
         try:
             with open_input(url, opener, sleep, max_attempts=1) as response, partial.open("wb") as out:
                 length = response.headers.get("Content-Length")
-                if length and int(length) > max_file_bytes:
+                length = int(length) if length else None
+                if length and length > max_file_bytes:
                     raise ValueError("Archive file exceeds approved limit")
-                while block := response.read(1024 * 1024):
+                if (length is not None
+                        and already_downloaded + int((transfer_usage or {}).get("bytes", 0)) + length > max_total_bytes):
+                    raise ValueError("Download exceeds approved limit")
+                while True:
+                    used = int(transfer_usage["bytes"]) if transfer_usage is not None else received
+                    remaining = max_total_bytes - already_downloaded - used
+                    if remaining <= 0:
+                        # For unknown-length responses, allow an EOF probe at the
+                        # exact cap. Any extra byte proves the source exceeded it.
+                        if length is not None and received >= length:
+                            break
+                        if length is None and not response.read(1):
+                            break
+                        raise ValueError("Download exceeds approved limit")
+                    block = response.read(min(1024 * 1024, remaining))
+                    if not block:
+                        break
                     received += len(block)
-                    if received > max_file_bytes or already_downloaded + received > max_total_bytes:
+                    if transfer_usage is not None:
+                        transfer_usage["bytes"] = used + len(block)
+                    if received > max_file_bytes:
                         raise ValueError("Download exceeds approved limit")
                     out.write(block)
                     if progress:
                         fraction = ((file_index - 1) + min(0.99, received / max_file_bytes)) / file_count
                         progress({"status": "downloading", "phase": "download",
                                   "completedFiles": file_index - 1, "totalFiles": file_count,
-                                  "downloadedBytes": already_downloaded + received,
+                                  "downloadedBytes": already_downloaded + (transfer_usage["bytes"] if transfer_usage is not None else received),
                                   "currentFileBytes": received, "attempt": attempt,
                                   "progress": 0.08 + 0.70 * fraction})
             partial.replace(path)
@@ -268,11 +322,28 @@ def _verify_download(path, plan, record):
     return digest_file(path)
 
 
+def _monthly_candidate_is_usable(path, plan, record):
+    """Require a verified FITS file that yields a real cutout for this request."""
+    frame = read_frame_file(path)
+    actual_month = datetime.fromtimestamp((frame.mjd - 40587) * 86400, timezone.utc).strftime("%Y-%m")
+    if actual_month != record.get("month"):
+        raise ValueError("The FITS observation time falls in a different UTC month")
+    scale = float(frame.pixel_scale_arcsec)
+    if not math.isfinite(scale) or scale <= 0:
+        raise ValueError("The FITS file has no usable pixel scale")
+    target, npix = target_wcs(plan["query"]["ra"], plan["query"]["dec"], plan["query"]["fov"], scale)
+    image, _flags = cutout(frame, target, npix)
+    return bool(np.isfinite(image).mean() >= MIN_VALID_FRACTION)
+
+
 def execute(plan, store, *, opener=open_archive, sleep=time.sleep, progress=None,
             staging_prefix=None):
     validate_plan(plan)
     if plan.get("downloadApproved") is not True:
         raise ValueError("The download plan is not approved")
+    if plan.get("samplingMode") == "monthly":
+        return _execute_monthly(plan, store, opener=opener, sleep=sleep,
+                                progress=progress, staging_prefix=staging_prefix)
     total, paths = 0, []
     with tempfile.TemporaryDirectory(prefix="blink-inputs-") as tmp:
         for index, f in enumerate(plan["files"], 1):
@@ -323,6 +394,123 @@ def execute(plan, store, *, opener=open_archive, sleep=time.sleep, progress=None
         return prepare(plan, paths, store, progress=progress)
 
 
+def _execute_monthly(plan, store, *, opener, sleep, progress, staging_prefix):
+    """Try archive-ordered candidates until one usable image is secured per month."""
+    records = {item["obsId"]: item for item in plan["files"]}
+    candidate_count = len(records)
+    completed_candidates = 0
+    total_bytes = 0
+    accounted_bytes = 0
+    selected_files, selected_paths, month_results = [], [], []
+
+    with tempfile.TemporaryDirectory(prefix="blink-monthly-inputs-") as tmp:
+        for group in plan["monthGroups"]:
+            month = group["month"]
+            attempted = []
+            selected = None
+            for obs_id in group["obsIds"]:
+                record = records[obs_id]
+                attempted.append(obs_id)
+                path = Path(tmp) / record["name"]
+                staged_key = metadata_key = None
+                if staging_prefix:
+                    obs_hash = hashlib.sha256(obs_id.encode()).hexdigest()
+                    staged_key = f"{staging_prefix}/{obs_hash}.fits"
+                    metadata_key = f"{staged_key}.json"
+                staged = False
+                transfer_usage = {"bytes": 0}
+                transfer_accounted = False
+                try:
+                    if staged_key and store.exists(staged_key) and store.exists(metadata_key):
+                        metadata = store.json(metadata_key)
+                        size = int(metadata.get("sizeBytes", 0))
+                        if (metadata.get("obsId") == obs_id and 0 < size <= plan["maxFileBytes"]
+                                and accounted_bytes + size <= plan["maxTotalBytes"]):
+                            path.write_bytes(store.read(staged_key, limit=plan["maxFileBytes"]))
+                            staged = (path.stat().st_size == size
+                                      and digest_file(path) == metadata.get("sha256"))
+                            if staged:
+                                _verify_download(path, plan, record)
+                                accounted_bytes += size
+                                transfer_accounted = True
+                    if not staged:
+                        path.unlink(missing_ok=True)
+                        size = _download_file(
+                            record["url"], path, max_file_bytes=plan["maxFileBytes"],
+                            already_downloaded=accounted_bytes, max_total_bytes=plan["maxTotalBytes"],
+                            opener=opener, sleep=sleep, progress=progress,
+                            file_index=completed_candidates + 1, file_count=candidate_count,
+                            transfer_usage=transfer_usage,
+                        )
+                        accounted_bytes += transfer_usage["bytes"]
+                        transfer_accounted = True
+                        if record.get("sha256") and digest_file(path) != record["sha256"]:
+                            raise ValueError("Archive checksum mismatch")
+                        _verify_download(path, plan, record)
+                    if not _monthly_candidate_is_usable(path, plan, record):
+                        raise ValueError("The FITS file does not cover enough of the requested field")
+                    if staged and not (0 < path.stat().st_size <= plan["maxFileBytes"]):
+                        raise ValueError("The staged FITS file exceeds the approved limit")
+                    if staged_key and not staged:
+                        store.put_file(staged_key, path)
+                        store.put_json(metadata_key, {"obsId": obs_id, "sizeBytes": path.stat().st_size,
+                                                      "sha256": digest_file(path)})
+                    selected = record
+                    selected_files.append(record)
+                    selected_paths.append(path)
+                    total_bytes += path.stat().st_size
+                    print(json.dumps({"event": "monthly_observation_selected", "month": month,
+                                      "obsId": obs_id, "reusedStagedFile": staged}), flush=True)
+                    break
+                except (HTTPError, URLError, TimeoutError, ConnectionError,
+                        http.client.HTTPException, ValueError, OSError) as exc:
+                    if not transfer_accounted:
+                        accounted_bytes += transfer_usage["bytes"]
+                    path.unlink(missing_ok=True)
+                    print(json.dumps({"event": "monthly_candidate_skipped", "month": month,
+                                      "obsId": obs_id, "error": type(exc).__name__}), flush=True)
+                finally:
+                    completed_candidates += 1
+                    if progress:
+                        progress({"status": "downloading", "phase": "download",
+                                  "completedFiles": completed_candidates, "totalFiles": candidate_count,
+                                  "completedMonths": len(selected_files), "totalMonths": len(plan["requestedMonths"]),
+                                  "currentMonth": month,
+                                  "downloadedBytes": accounted_bytes,
+                                  "attempt": int(plan.get("attempt", 1)),
+                                  "progress": 0.08 + 0.70 * completed_candidates / candidate_count})
+            month_results.append({
+                "month": month,
+                "status": "ready" if selected else "unavailable",
+                "selectedObsId": selected["obsId"] if selected else None,
+                "attemptedObsIds": attempted,
+            })
+
+        resolved_months = {item["month"] for item in month_results}
+        # Metadata can contain a month whose product URL could not be resolved;
+        # retain it in the coverage report instead of silently dropping it.
+        for month in plan["requestedMonths"]:
+            if month not in resolved_months:
+                month_results.append({"month": month, "status": "unavailable",
+                                      "selectedObsId": None, "attemptedObsIds": []})
+        month_results.sort(key=lambda item: item["month"])
+        if not selected_files:
+            raise ValueError("No monthly SPHEREx observation could be downloaded and processed")
+        prepared_plan = {
+            **plan,
+            "files": selected_files,
+            "monthGroups": [{"month": item["month"], "obsIds": [item["selectedObsId"]]}
+                            for item in month_results if item["selectedObsId"]],
+            "monthlySelection": {
+                "mode": "one-per-utc-month",
+                "requestedMonths": list(plan["requestedMonths"]),
+                "missingMonths": [item["month"] for item in month_results if item["status"] != "ready"],
+                "monthResults": month_results,
+            },
+        }
+        return prepare(prepared_plan, selected_paths, store, progress=progress)
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument(
@@ -361,6 +549,8 @@ def main():
         request = state.get_request(a.request_id)
         if not request:
             raise ValueError("Field request no longer exists")
+        plan.setdefault("processingVersion", request.get("processingVersion", CODE_VERSION))
+        plan.setdefault("samplingMode", request.get("samplingMode", "pass-spread"))
         policy = state.policy(require_enabled=False)
         request_policy_version = request.get("policyVersion")
         compatible_versions = policy.get("compatiblePolicyVersions", [])
@@ -370,9 +560,11 @@ def main():
             raise ValueError("The acquisition policy changed during this request")
         expected_query = {**request["query"], "det": a.detector}
         if (plan.get("query") != expected_query or plan.get("fieldKey") != request.get("fieldKey")
+                or plan.get("processingVersion") != request.get("processingVersion")
                 or plan.get("collection") != request.get("collection")
                 or plan.get("policyVersion") != request.get("policyVersion")
                 or plan.get("sequenceId") != f"{a.request_id}-{a.detector.lower()}"
+                or plan.get("samplingMode", "pass-spread") != request.get("samplingMode", "pass-spread")
                 or plan.get("downloadApproved") is not True
                 or plan.get("termsChecked") is not True
                 or plan.get("acknowledgement") != policy.get("acknowledgement")

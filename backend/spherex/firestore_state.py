@@ -75,6 +75,7 @@ class FirestoreState:
                 "query": normalized["query"],
                 "collection": normalized["collection"],
                 "processingVersion": normalized["processingVersion"],
+                "samplingMode": normalized.get("samplingMode", "pass-spread"),
                 "detectors": detectors,
                 "selection": normalized["selection"],
                 "dateFrom": normalized["dateFrom"], "dateTo": normalized["dateTo"],
@@ -291,6 +292,12 @@ class FirestoreState:
             "status": "ready", "phase": "ready", "progress": 1.0,
             "sequenceId": sequence_id, "manifest": manifest_key,
             "revision": manifest["revision"], "frameCount": len(manifest["frames"]),
+            "samplingMode": manifest.get("samplingMode", "pass-spread"),
+            "requestedMonths": (manifest.get("monthlySelection") or {}).get("requestedMonths", []),
+            "totalMonths": len((manifest.get("monthlySelection") or {}).get("requestedMonths", [])),
+            "completedMonths": sum(item.get("status") == "ready" for item in
+                                    (manifest.get("monthlySelection") or {}).get("monthResults", [])),
+            "missingMonths": (manifest.get("monthlySelection") or {}).get("missingMonths", []),
             "error": None,
         })
         return doc
@@ -308,7 +315,8 @@ class FirestoreState:
                     for pointer in self.catalog_for_field(ra, dec, fov, item, limit=1)]
         query = self.db.collection("fieldCatalog").where("raKey", "==", f"{ra:.8f}")
         query = query.where("decKey", "==", f"{dec:.8f}").where("fovKey", "==", f"{fov:.4f}")
-        query = query.where("collection", "==", "spherex_dr1").where("processingVersion", "==", "blink3-cloud-2")
+        query = query.where("collection", "==", "spherex_dr1").where(
+            "processingVersion", "in", ["blink3-cloud-3", "blink3-cloud-2", "blink3-cloud-1"])
         if detector != "all":
             query = query.where("detector", "==", detector)
         query = query.order_by("latestMjd", direction=self._firestore.Query.DESCENDING)

@@ -8,6 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from spherex import cache
+import spherex.cloud_job as cloud_job_module
 from spherex.storage import LocalStore, GcsStore, StoreError, digest_file
 from spherex.cloud_job import prepare, execute, validate_plan
 from spherex.archive_plan import make_plan, votable, safe_url
@@ -43,6 +44,96 @@ def test_archive_retry_is_bounded_and_respects_delay():
     with open_input('https://irsa.ipac.caltech.edu/test', succeeds_after_long_retry, long_waits.append) as response:
         assert response.read() == b'ok'
     assert len(long_waits) == 1 and long_waits[0] >= 120
+
+
+def test_monthly_execute_falls_back_until_a_verified_usable_image_is_found(tmp_path, monkeypatch):
+    from urllib.error import HTTPError
+
+    class Response(BytesIO):
+        def __init__(self, content):
+            super().__init__(content)
+            self.headers = {}
+
+    files = [
+        {"obsId": "jan-404", "mjd": 61000.1, "month": "2025-01", "url": "https://irsa.ipac.caltech.edu/404.fits", "name": "input-000.fits"},
+        {"obsId": "jan-no-coverage", "mjd": 61000.2, "month": "2025-01", "url": "https://irsa.ipac.caltech.edu/no-coverage.fits", "name": "input-001.fits"},
+        {"obsId": "jan-good", "mjd": 61000.3, "month": "2025-01", "url": "https://irsa.ipac.caltech.edu/good.fits", "name": "input-002.fits"},
+        {"obsId": "feb-good", "mjd": 61031.3, "month": "2025-02", "url": "https://irsa.ipac.caltech.edu/feb.fits", "name": "input-003.fits"},
+    ]
+    plan = {"version": 1, "sequenceId": "test-monthly-d1", "collection": "spherex_dr1",
+            "query": {"ra": 10, "dec": -10, "fov": 5, "det": "D1"},
+            "maxFileBytes": 1024, "maxTotalBytes": 4096, "downloadApproved": True,
+            "samplingMode": "monthly", "requestedMonths": ["2025-01", "2025-02"],
+            "monthGroups": [{"month": "2025-01", "obsIds": ["jan-404", "jan-no-coverage", "jan-good"]},
+                            {"month": "2025-02", "obsIds": ["feb-good"]}],
+            "files": files}
+    calls = []
+
+    def opener(url):
+        calls.append(url)
+        if url.endswith("404.fits"):
+            raise HTTPError(url, 404, "Missing", {}, BytesIO())
+        return Response(url.encode())
+
+    def fake_prepare(prepared_plan, paths, _store, progress=None):
+        assert [item["obsId"] for item in prepared_plan["files"]] == ["jan-good", "feb-good"]
+        assert prepared_plan["monthlySelection"]["missingMonths"] == []
+        assert [item["selectedObsId"] for item in prepared_plan["monthlySelection"]["monthResults"]] == ["jan-good", "feb-good"]
+        assert [path.read_bytes() for path in paths] == [
+            b"https://irsa.ipac.caltech.edu/good.fits", b"https://irsa.ipac.caltech.edu/feb.fits",
+        ]
+        return "manifest-key", {"frames": [1, 2], "monthlySelection": prepared_plan["monthlySelection"]}
+
+    monkeypatch.setattr(cloud_job_module, "_verify_download", lambda *_args: "a" * 64)
+    monkeypatch.setattr(cloud_job_module, "_monthly_candidate_is_usable",
+                        lambda _path, _plan, record: record["obsId"] != "jan-no-coverage")
+    monkeypatch.setattr(cloud_job_module, "prepare", fake_prepare)
+    progress = []
+
+    result = execute(plan, LocalStore(tmp_path / "monthly-store"), opener=opener,
+                     sleep=lambda _seconds: None, progress=progress.append)
+
+    assert result[0] == "manifest-key"
+    assert calls == [file["url"] for file in files]
+    assert [item["progress"] for item in progress] == sorted(item["progress"] for item in progress)
+
+
+def test_monthly_fallback_bytes_stay_within_the_detector_cap(tmp_path, monkeypatch):
+    class Response(BytesIO):
+        def __init__(self, content):
+            super().__init__(content)
+            self.headers = {"Content-Length": str(len(content))}
+
+    payload = b"verified-fit"
+    files = [
+        {"obsId": "jan-unusable", "mjd": 61000.1, "month": "2026-01",
+         "url": "https://irsa.ipac.caltech.edu/unusable.fits", "name": "input-000.fits"},
+        {"obsId": "jan-fallback", "mjd": 61000.2, "month": "2026-01",
+         "url": "https://irsa.ipac.caltech.edu/fallback.fits", "name": "input-001.fits"},
+    ]
+    plan = {"version": 1, "sequenceId": "test-monthly-cap-d1", "collection": "spherex_dr1",
+            "query": {"ra": 10, "dec": -10, "fov": 5, "det": "D1"},
+            "maxFileBytes": 1024, "maxTotalBytes": len(payload), "downloadApproved": True,
+            "samplingMode": "monthly", "requestedMonths": ["2026-01"],
+            "monthGroups": [{"month": "2026-01", "obsIds": ["jan-unusable", "jan-fallback"]}],
+            "files": files}
+    opened = []
+
+    def opener(url):
+        opened.append(url)
+        return Response(payload)
+
+    monkeypatch.setattr(cloud_job_module, "_verify_download", lambda *_args: "a" * 64)
+    monkeypatch.setattr(cloud_job_module, "_monthly_candidate_is_usable",
+                        lambda _path, _plan, record: record["obsId"] == "jan-fallback")
+    monkeypatch.setattr(cloud_job_module, "prepare",
+                        lambda *_args, **_kwargs: pytest.fail("no image should fit the byte cap"))
+
+    with pytest.raises(ValueError, match="No monthly SPHEREx observation"):
+        execute(plan, LocalStore(tmp_path / "monthly-cap-store"), opener=opener,
+                sleep=lambda _seconds: None)
+
+    assert opened == [item["url"] for item in files]
 
 
 @pytest.fixture
