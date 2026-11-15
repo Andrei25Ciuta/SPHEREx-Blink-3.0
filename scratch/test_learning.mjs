@@ -18,9 +18,9 @@ const empty = createLearningState();
 check("new local profile has no progress", activeProfile(empty).completed.length === 0 && progressPercent(activeProfile(empty)) === 0);
 const restored = readState(JSON.stringify({ profiles: [{ id: "x", name: "Ada", completed: [1, 1, 99, "2"], xp: 20 }], activeProfileId: "x" }));
 check("saved profile progress is filtered and deduplicated", activeProfile(restored).completed.join(",") === "1");
-check("out-of-order imported level completions cannot skip locked lessons", activeProfile(readState({ profiles: [{ id: "x", completed: [1, 3, 5] }] })).completed.join(",") === "1");
+check("lessons can be done out of order: saved completions 1, 3, 5 are kept (skipping allowed since 15 Nov 2026)", activeProfile(readState({ profiles: [{ id: "x", completed: [1, 3, 5] }] })).completed.join(",") === "1,3,5");
 check("malformed saved state safely returns a fresh profile", activeProfile(readState("{")).completed.length === 0);
-check("level two is locked until level one is completed", unlockedLevel(activeProfile(empty)) === 1 && unlockedLevel(activeProfile(completeLevel(empty, 2))) === 1);
+check("any lesson can be completed first; the suggested next one is the first not yet done", unlockedLevel(activeProfile(empty)) === 1 && activeProfile(completeLevel(empty, 2)).completed.join(",") === "2" && unlockedLevel(activeProfile(completeLevel(empty, 2))) === 1);
 const levelOne = completeLevel(empty, 1, "2026-11-14");
 check("correct completion awards XP and unlocks only the next level", activeProfile(levelOne).xp === 10 && unlockedLevel(activeProfile(levelOne)) === 2 && progressPercent(activeProfile(levelOne)) === Math.round(100 / LEVELS.length));   // 1 of 16 lessons since 14 Nov 2026 (was 1 of 8 = 13 %)
 check("a completed level cannot award XP twice", activeProfile(completeLevel(levelOne, 1, "2026-11-14")).xp === 10);

@@ -150,3 +150,6 @@ html[data-theme=midnight] .synthetic-notice{background:var(--learn-midnight-noti
 /* Keep the Learn Mode wordmark clean: hide the two animated gold blink dots. */
 .learn-header .brand-logo::before,
 .learn-header .brand-logo::after { display: none; }
+/* "Take the Grand Tour": the same blue as Ask Astra */
+#missions .cm-tour-note .learn-button.learn-button-primary{background:var(--astra-blue);border-color:var(--astra-blue);color:#fff}
+#missions .cm-tour-note .learn-button.learn-button-primary:hover{background:var(--astra-blue-hi);border-color:var(--astra-blue-hi)}

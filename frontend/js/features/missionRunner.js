@@ -2,7 +2,7 @@
 // highlights the control to use, ticks each step when the learner really does it, explains what just happened, asks for measurements
 // read off the page, and awards XP. DOM only; the missions and the checks are pure, in missions.js.
 
-import { findMission, stepMatches, checkMeasurement, STEP_NOTES, missionWhy, stepWhy, termsFor, categoryInfo, xpFor, totalXp, rankFor,
+import { findMission, stepMatches, STEP_NOTES, missionWhy, stepWhy, termsFor, categoryInfo, xpFor, totalXp, rankFor,
   loadProgress, saveProgress, markComplete, pickRandomMission, missionHref } from "./missions.js?v=2";
 
 const store = (() => { try { return window.localStorage; } catch { return null; } })();
@@ -15,6 +15,7 @@ export function startMissionRunner({ getCandidate = () => null, getCount = () =>
   const mission = id && findMission(id);
   if (!mission) return null;
 
+  const skipped = new Set();                         // steps passed over with Skip: shown as skipped, not as done
   let step = 0, marked = null, note = "", wrong = "", collapsed = false, started = false, hint = "";
   const REAL = new URLSearchParams(location.search).get("data") === "api";
   const box = document.createElement("aside");
@@ -64,10 +65,19 @@ export function startMissionRunner({ getCandidate = () => null, getCount = () =>
     if (target) { target.classList.add("mission-target"); marked = target; }
   }
 
+  /** The value a "read it" step points at, as the page reports it, or null when nothing is selected yet. */
+  function readValue(m) {
+    if (m.field === "count") { const n = getCount(); return n ? String(n) : null; }
+    const c = getCandidate();
+    const v = c?.[m.field];
+    if (v === undefined || v === null) return null;
+    return typeof v === "number" ? `${Number.isInteger(v) ? v : v.toFixed(m.field === "positionAngleDeg" ? 0 : 1)}${m.unit}` : String(v);
+  }
+
   function render() {
     const n = mission.steps.length, done = step >= n;
     const items = mission.steps.map((s, i) =>
-      `<li class="${i < step ? "is-done" : i === step ? "is-current" : ""}"><span class="mr-dot" aria-hidden="true">${i < step ? "✓" : i + 1}</span><span>${esc(s.does)}</span></li>`).join("");
+      `<li class="${i < step ? (skipped.has(i) ? "is-done is-skipped" : "is-done") : i === step ? "is-current" : ""}"><span class="mr-dot" aria-hidden="true">${i < step ? (skipped.has(i) ? "↷" : "✓") : i + 1}</span><span>${esc(s.does)}${skipped.has(i) ? " <em>(skipped)</em>" : ""}</span></li>`).join("");
     const s = current();
     const m = s?.check.measure;
     const progress = loadProgress(store);
@@ -95,18 +105,22 @@ export function startMissionRunner({ getCandidate = () => null, getCount = () =>
       <ol class="mr-steps">${items}</ol>
       ${hint && !done ? `<p class="mr-hint" role="status">${esc(hint)}</p>` : ""}
       ${!done && stepWhy(s) ? `<p class="mr-why"><strong>Why this step?</strong> ${esc(stepWhy(s))}</p>` : ""}
-      ${m ? `<form class="mr-measure" data-act="measure"><label for="mr-input">${esc(s.does)}</label>
-          <div class="mr-measure-row"><input id="mr-input" autocomplete="off" inputmode="${m.field === "compass" ? "text" : "decimal"}" placeholder="${m.unit ? "value in " + esc(m.unit) : "your answer"}">
-          <button type="submit" class="btn btn-small btn-primary">Check</button></div>
-          ${wrong ? `<p class="mr-wrong" role="alert">${esc(wrong)}</p>` : ""}</form>` : ""}
+      ${m ? (() => {                                     // no typing: the guide shows the value the page measured and where to read it
+          const v = readValue(m);
+          return `<div class="mr-measure"><p class="mr-measure-q">${esc(s.does)}</p>
+          ${v === null ? `<p class="mr-measure-a">Select a candidate in the list first; its value then appears here.</p>`
+            : `<p class="mr-measure-a">The page says: <strong>${esc(v)}</strong></p><p class="mr-measure-where">${esc(m.hint)}</p>`}
+          <button type="button" class="btn btn-small btn-primary" data-act="read"${v === null ? " disabled" : ""}>Got it, next →</button></div>`;
+        })() : ""}
       ${done ? `<div class="mr-win" role="status"><p class="mr-trophy" aria-hidden="true"></p><p><strong>Mission complete! +${xpFor(mission)} XP</strong> · ${xp} XP · rank: ${esc(rankFor(xp))}</p>
           <p>${esc(mission.successFeedback)}</p></div>
         <p class="mr-actions"><a class="btn btn-small btn-primary" href="${esc(missionHref(next, location.search))}">Next mission: ${esc(next.title)} →</a>
         <a class="btn btn-small" href="learn.html#missions">Back to Learn Mode</a></p>`
       : `<p class="mr-actions">${s?.check.on ? `<button type="button" class="btn btn-small" data-act="show">Show me where</button>` : ""}
+          <button type="button" class="btn btn-small" data-act="skip" title="Go to the next step without doing this one">Skip this step</button>
           <button type="button" class="btn btn-small" data-act="quit">Quit</button></p>`}
       </div>`}`;
-    box.append(grip);
+    box.prepend(grip);                                // first child, so it can stick to the top corner while the box scrolls
     highlight();
   }
 
@@ -122,7 +136,6 @@ export function startMissionRunner({ getCandidate = () => null, getCount = () =>
     }
     collapsed = false;
     render();
-    if (current()?.check.measure) box.querySelector("#mr-input")?.focus({ preventScroll: true });
   }
 
   function noteFor(s) { return s.learn ?? STEP_NOTES[s.check.on] ?? ""; }
@@ -141,18 +154,6 @@ export function startMissionRunner({ getCandidate = () => null, getCount = () =>
   for (const t of ["click", "change", "input"]) document.addEventListener(t, onEvent, true);
   const timer = setInterval(poll, 600);
 
-  box.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const m = current()?.check.measure;
-    if (!m) return;
-    const truth = m.field === "count" ? { count: getCount() } : getCandidate();
-    if (!truth || (m.field !== "count" && !getCandidate())) { wrong = "First select a candidate in the list."; render(); return; }
-    const { ok, expected } = checkMeasurement(m, box.querySelector("#mr-input").value, truth);
-    if (ok) {
-      const shown = typeof expected === "number" ? (Number.isInteger(expected) ? expected : expected.toFixed(m.field === "positionAngleDeg" ? 0 : 1)) : expected;
-      advance(`Correct: the page measured ${shown}${m.unit}. ${m.field === "speedArcsecPerYear" ? "At that rate it would cross the full Moon (about 1800″) in " + Math.round(1800 / expected) + " years." : ""}`);
-    } else { wrong = `Not quite. ${m.hint}`; render(); box.querySelector("#mr-input")?.focus(); }
-  });
   /** Scroll to the control of the step; if it is hidden or greyed out, go to where it will appear and say why. */
   function showWhere() {
     highlight();
@@ -179,6 +180,8 @@ export function startMissionRunner({ getCandidate = () => null, getCount = () =>
       clearInterval(timer); marked?.classList.remove("mission-target"); box.remove();
       const u = new URL(location.href); u.searchParams.delete("mission"); history.replaceState(null, "", u);
     } else if (act === "show") showWhere();
+    else if (act === "skip") { skipped.add(step); advance("Skipped. Every step is optional; you can come back to it any time."); }
+    else if (act === "read") { const m = current()?.check.measure; const v = m && readValue(m); if (v !== null && v !== undefined) advance(`The page measured ${v}. Reading the numbers yourself is how you learn where the evidence is.`); }
     else if (act === "start") { started = true; render(); marked?.scrollIntoView({ behavior: "smooth", block: "center" }); }
     else if (act === "collapse") { collapsed = !collapsed; render(); }
   });
