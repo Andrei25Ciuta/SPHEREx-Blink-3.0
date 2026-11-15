@@ -9,7 +9,7 @@ Learn Mode is a beginner-facing experience alongside Science Mode. It uses the e
 - Each level has a short mission story, a plain-language lesson, an illustration or interactive visual, and a reusable quiz control. Quiz data includes multiple-choice, true/false, image-identification, and drag-and-drop classification; classification also has a click/keyboard alternative.
 - Correct answers unlock the next level and award XP once. Badges, rank, learning time, and a local-day streak are derived from the active learner's saved profile.
 - Learner profiles can be switched on one browser. The classroom view summarizes those local profiles and prints a worksheet with an answer key or a class summary.
-- Astra is an offline guide over reviewed, prepared explanations. It does not call a language model, send questions off-device, or invent answers to unsupported questions. Science Mode panels expose the same simple glossary.
+- Astra uses reviewed prepared explanations by default. When requested, its optional language model runs on-device; questions are not sent to an application server. AI answers may be wrong and are labelled, with reviewed notes as the fallback. Science Mode does not add per-panel explanation controls.
 
 ## Data model and storage
 
@@ -33,7 +33,7 @@ Native headings, forms, buttons, links, progress elements, tables, visible focus
 
 ## Not in this implementation
 
-- Astra does not understand unrestricted natural-language questions and is not a connected AI model.
+- On-device AI availability depends on browser support and, for WebLLM, WebGPU and a one-time model download. Without a usable model, Astra and Science Mode show prepared explanations.
 - Teacher summaries cover profiles saved in the current browser only; they do not represent a distributed class roster.
 - XP, badges, age-based personalization, parental controls, and streaks are motivational UI conventions, not measures of learning ability or mastery.
 - The eight quizzes are short progress checks, not a validated assessment of astronomy knowledge.

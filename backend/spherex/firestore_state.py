@@ -308,7 +308,7 @@ class FirestoreState:
                     for pointer in self.catalog_for_field(ra, dec, fov, item, limit=1)]
         query = self.db.collection("fieldCatalog").where("raKey", "==", f"{ra:.8f}")
         query = query.where("decKey", "==", f"{dec:.8f}").where("fovKey", "==", f"{fov:.4f}")
-        query = query.where("collection", "==", "spherex_dr1").where("processingVersion", "==", "blink3-cloud-1")
+        query = query.where("collection", "==", "spherex_dr1").where("processingVersion", "==", "blink3-cloud-2")
         if detector != "all":
             query = query.where("detector", "==", detector)
         query = query.order_by("latestMjd", direction=self._firestore.Query.DESCENDING)

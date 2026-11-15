@@ -9,7 +9,7 @@ import re
 
 DETECTORS = tuple(f"D{i}" for i in range(1, 7))
 COLLECTION = "spherex_dr1"
-PROCESSING_VERSION = "blink3-cloud-1"
+PROCESSING_VERSION = "blink3-cloud-2"
 TERMINAL = {"ready", "failed", "unavailable"}
 PHASE_WEIGHT = {
     "queued": 0.0,
@@ -60,7 +60,7 @@ def normalize_request(payload, *, allowed_collections=(COLLECTION,), processing_
         raise RequestValidationError("A JSON object is required.")
     ra = _number(payload.get("ra"), "RA", 0, 360)
     dec = _number(payload.get("dec"), "Dec", -90, 90, high_inclusive=True)
-    fov = _number(payload.get("fov"), "FOV", 1, 10, high_inclusive=True)
+    fov = _number(payload.get("fov"), "FOV", 1, 30, high_inclusive=True)
     collection = payload.get("collection", COLLECTION)
     if collection not in allowed_collections:
         raise RequestValidationError("That SPHEREx collection is not enabled by the acquisition policy.")
