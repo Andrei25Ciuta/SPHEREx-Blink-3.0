@@ -178,7 +178,11 @@ if (params.get("embed") !== "1") {
     backToTop.hidden = window.scrollY < 400;
   };
   backToTop.addEventListener("click", () => {
-    brand?.focus({ preventScroll: true });
+    const content = document.querySelector("main");
+    if (content) {
+      if (!content.hasAttribute("tabindex")) content.tabIndex = -1;
+      content.focus({ preventScroll: true });
+    }
     window.scrollTo({ top: 0, behavior: "auto" });
   });
   window.addEventListener("scroll", updateVisibility, { passive: true });
