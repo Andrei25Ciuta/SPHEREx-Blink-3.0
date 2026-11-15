@@ -550,7 +550,6 @@ The existing Aladin Lite Sky Context map now shows a small RA/Dec label beside t
 
 Verification in the available connected-source environment: syntax parsing for updated JS modules and 16 executable pure-helper/mocked-event checks (ICRS coordinate conversion, RA wrap, invalid declination, copy fallbacks, hover, drag/right-click/objects ignored, left-click selection). `scratch/test_skycontext_click.mjs` added with independent Node assertions and static wiring checks, but standalone Node, complete Node suite, backend pytest, browser visual/layout/navigation regression and screen-reader audit remain **not run** (no runnable checkout in this environment).
 
-
 ## 2026-11-15 – Scroll-direction-aware shared site navigation (branch `codex/auto-hide-header-scroll-direction`)
 The same navigation header on Workspace, Overview, Sky Explorer, Simulator, Learn, Results and About now stays available as a sticky/fixed masthead, slides out after sustained scrolling down, and slides back in after about 18 px of upward scrolling anywhere on the page. A small downward/upward threshold avoids jitter; returning near the top shows it, and arriving via a deep link leaves it visible. Focus inside the header and an opened mobile menu keep it visible for keyboard and touch users. Reduced-motion clients do not animate the transition. The existing Overview fixed header and embedded Workspace behavior remain intact.
 
