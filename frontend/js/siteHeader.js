@@ -5,7 +5,6 @@ import { createHeaderScrollController } from "./features/scrollHeader.js";
 const header = document.querySelector(".site-header");
 const current = header.dataset.page;
 const brand = header.querySelector(".site-brand");
-if (brand?.textContent.trim() === "SPHEREx Blink") brand.textContent = "SPHEREx Blink 4.0";
 // Two modes: the visitor chooses one on the home page and the menu then shows only that mode's pages, with a switch to the other.
 const MODE_KEY = "spherex-blink-mode";
 const readMode = () => { try { return localStorage.getItem(MODE_KEY); } catch { return null; } };
@@ -37,13 +36,11 @@ const MODES = {
 };
 // On the home page no mode is active: the menu shows only Home and the page's two mode cards choose one.
 const showMode = mode && current !== "overview";
+// The home page menu offers only the two modes; each mode's own menu lists its pages.
 const overviewPages = [
   ["overview", "Overview", "overview.html"],
-  ["index", "Workspace", "index.html#workspace"],
-  ["sky", "Sky Explorer", "sky.html"],
-  ["simulator", "Simulator", "simulator.html"],
-  ["results", "Results", "results.html"],
-  ["about", "About", "about.html"],
+  ["learn", "Learn Mode", MODES.learn.home],
+  ["index", "Science Mode", MODES.science.home],
 ];
 const pages = current === "overview"
   ? overviewPages
@@ -64,6 +61,7 @@ for (const [id, label, url] of pages) {
   const samePage = (current === "index" && url.startsWith("index.html#")) || (current === "learn" && url.startsWith("learn.html#"));
   link.href = samePage ? url.slice(url.indexOf("#")) : url;
   link.dataset.page = id;
+  if (current === "overview" && (id === "learn" || id === "index")) link.addEventListener("click", () => saveMode(id === "learn" ? "learn" : "science"));
   nav.append(link);
 }
 if (showMode) {
