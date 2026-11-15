@@ -13,7 +13,15 @@ import { fetchSkybotForFrames } from "./skybot.js";
 import { candidateDossier, dossierMarkdown, candidatesToCsv, candidatesToJson, trackletCsv, dossierFileName, listFileName, degToHms, degToDms } from "./dossier.js";
 
 const MAX_LISTED = 300;
+export const DISCOVER_PAGE_SIZE = 10;
 const STAMP_COUNT = 8;
+
+/** Show 10 sources by default, add 10 at a time, and keep the existing 300-card performance cap. */
+export function visibleSourceCount(total, requested = DISCOVER_PAGE_SIZE) {
+  const available = Math.min(MAX_LISTED, Math.max(0, Math.floor(Number(total) || 0)));
+  const limit = Number.isFinite(requested) ? Math.max(DISCOVER_PAGE_SIZE, Math.floor(requested)) : DISCOVER_PAGE_SIZE;
+  return Math.min(available, limit);
+}
 
 const median = (v) => { const s = v.filter(Number.isFinite).sort((a, b) => a - b); const m = Math.floor(s.length / 2); return s.length ? (s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2) : NaN; };
 export const medianFlux = (c) => median(c.photometry.filter((p) => c.frames.includes(p.frame) && !p.flagged).map((p) => p.fluxMilliJy));
@@ -139,6 +147,8 @@ export function setupDiscoverPanel(deps) {
     filter: $("discover-filter"), sort: $("discover-sort"), list: $("discover-list"), exports: $("discover-export"), detail: $("discover-detail"),
     provenance: $("discover-provenance"), provenanceText: $("discover-provenance-text"),
     views: $("discover-views"), viewCards: $("discover-view-cards"), viewTable: $("discover-view-table"), explorer: $("discover-explorer"),
+    pager: $("discover-list-pager"), pageCount: $("discover-list-count"), pageMore: $("discover-list-more"), pageLess: $("discover-list-less"),
+    sectionToggle: $("search-results-toggle"), sectionContent: $("search-results-content"),
   };
   let view = "cards";                                          // "cards": the list with the dossier inside the open item; "table": the explorer (table + plot)
   const explorer = createExplorer({
@@ -151,13 +161,23 @@ export function setupDiscoverPanel(deps) {
   let run = null;               // { result, frames, n, field, ctx }
   let selected = null;          // the candidate whose dossier is open
   let highlighted = false;
+  let listLimit = DISCOVER_PAGE_SIZE;
+
+  // Collapse only the results body; keep the heading and toggle visible at any scroll position.
+  els.sectionToggle.addEventListener("click", () => {
+    const open = els.sectionToggle.getAttribute("aria-expanded") !== "true";
+    els.sectionContent.hidden = !open;
+    els.sectionToggle.setAttribute("aria-expanded", String(open));
+    els.sectionToggle.textContent = open ? "Hide results" : "Show results";
+  });
 
   const setStatus = (t) => { els.status.textContent = t; };
 
   function clear() {
     if (highlighted) { player.setCandidates([]); highlighted = false; }
     run = null; selected = null;
-    for (const k of ["notes", "chips", "controls", "list", "exports", "detail", "provenance", "views", "explorer"]) { els[k].hidden = true; }
+    listLimit = DISCOVER_PAGE_SIZE;
+    for (const k of ["notes", "chips", "controls", "list", "exports", "detail", "provenance", "views", "explorer", "pager"]) { els[k].hidden = true; }
     explorer.setRows([]);
     setView("cards");
     els.list.replaceChildren(); els.chips.replaceChildren(); els.notes.replaceChildren(); els.detail.replaceChildren();
@@ -267,7 +287,7 @@ export function setupDiscoverPanel(deps) {
   function renderList() {
     if (!run) return;
     const all = visible();
-    const shown = all.slice(0, MAX_LISTED);
+    const shown = all.slice(0, visibleSourceCount(all.length, listLimit));
     els.list.replaceChildren(...shown.map((c) => {
       const li = el("li", { className: `discover-li cls-${c.class}` });
       const open = c === selected;
@@ -281,13 +301,35 @@ export function setupDiscoverPanel(deps) {
       if (open && view === "cards") li.append(els.detail);
       return li;
     }));
-    if (all.length > MAX_LISTED) els.list.append(el("li", { className: "discover-more", textContent: `${all.length - MAX_LISTED} more are not listed here: use the filter, or save the table.` }));
+    if (shown.length >= MAX_LISTED && all.length > MAX_LISTED) {
+      els.list.append(el("li", { className: "discover-more", textContent: `${all.length - MAX_LISTED} more are not listed here: use the filter, or save the table.` }));
+    }
     if (!all.length) els.list.append(el("li", { className: "discover-more", textContent: "Nothing matches this filter." }));
     els.list.hidden = view !== "cards";
+    els.pager.hidden = view !== "cards" || all.length <= DISCOVER_PAGE_SIZE;
+    els.pageCount.textContent = `Showing ${shown.length} of ${all.length} sources`;
+    els.pageMore.hidden = shown.length >= Math.min(all.length, MAX_LISTED);
+    els.pageLess.hidden = shown.length <= DISCOVER_PAGE_SIZE;
     if (view === "cards" && selected && !shown.includes(selected)) select(null);
   }
-  els.filter.addEventListener("change", renderList);
-  els.sort.addEventListener("change", renderList);
+  function resetListPage() { listLimit = DISCOVER_PAGE_SIZE; renderList(); }
+  els.filter.addEventListener("change", resetListPage);
+  els.sort.addEventListener("change", resetListPage);
+  els.pageMore.addEventListener("click", () => {
+    const previous = visibleSourceCount(visible().length, listLimit);
+    listLimit += DISCOVER_PAGE_SIZE;
+    renderList();
+    // The controls are below the list: bring the first newly revealed card into view.
+    const next = els.list.children[previous]?.querySelector("button");
+    if (next) {
+      next.focus({ preventScroll: true });
+      next.scrollIntoView({ block: "start", behavior: deps.prefersReducedMotion ? "auto" : "smooth" });
+    }
+  });
+  els.pageLess.addEventListener("click", () => {
+    resetListPage();
+    if (!els.pageMore.hidden) els.pageMore.focus();
+  });
 
   // ------------------------------------------------------------ cards or table
   /** "cards" = the list, one card per source, the dossier opens inside the card; "table" = the explorer, the dossier opens under the table. */

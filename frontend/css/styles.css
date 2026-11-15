@@ -892,6 +892,30 @@ summary { padding-block: .4rem; cursor: pointer; }          /* a 21 px tall summ
 .discover-controls { display: flex; flex-wrap: wrap; gap: .5rem 1rem; margin-top: .7rem; font-size: .85rem; }
 .discover-controls label { flex: 1 1 13rem; min-width: 0; display: flex; align-items: center; gap: .45rem; color: var(--text-muted); }
 .discover-controls select { flex: 1 1 auto; width: 100%; min-width: 0; padding-block: .3rem; text-overflow: ellipsis; }
+.search-results-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .65rem;
+  margin-bottom: 1rem;
+}
+.search-results-heading h2 { margin: 0; padding-right: 0; }
+.search-results-heading .btn { flex-shrink: 0; }
+.discover-list-pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin: .7rem 0;
+}
+.discover-list-count {
+  flex: 1 1 10rem;
+  font-size: .82rem;
+  color: var(--text-muted);
+}
+.discover-list .discover-item { scroll-margin-top: 5rem; }
 .discover-list { list-style: none; margin: .7rem 0 0; padding: 0; display: grid; gap: .4rem; }
 .discover-li { border-left: 3px solid var(--text-muted); border-radius: var(--radius-sm); background: var(--raised); }
 .discover-li.cls-unknown { border-left-color: var(--accent); }

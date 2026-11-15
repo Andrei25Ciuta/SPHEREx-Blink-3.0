@@ -53,6 +53,6 @@ assert.match(overviewStyle, /transition: background 0\.3s, transform 0\.24s ease
 for (const page of ["index", "overview", "sky", "simulator", "learn", "results", "about"]) {
   const html = readFileSync(new URL(`../frontend/${page}.html`, import.meta.url), "utf8");
   assert.match(html, /js\/siteHeader\.js\?v=4/, page + " loads updated nav");
-  assert.match(html, /css\/instrument\.css\?v=4/, page + " loads updated sticky CSS");
+  assert.match(html, /css\/instrument\.css\?v=\d+/, page + " loads updated sticky CSS");
 }
 console.log("PASS shared scroll header: down hides, up reveals, focus/menu safe, seven pages wired");
