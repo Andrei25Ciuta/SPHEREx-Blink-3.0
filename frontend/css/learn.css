@@ -147,11 +147,6 @@ html[data-theme=midnight] .synthetic-notice{background:var(--learn-midnight-noti
 /* breathing room between the missions list and the theory lessons */
 #missions.cm{padding-bottom:clamp(2rem,4vw,3.5rem);margin-bottom:clamp(1.5rem,3vw,2.5rem)}
 .lesson-art-svg{display:block;width:100%;height:auto;border-radius:.9rem}
-
-/* Mission card side: soft white instead of the gold wash */
-.cm-card-side{background:linear-gradient(160deg,rgb(var(--text-rgb)/.13),rgb(var(--text-rgb)/.03))}
-.cm-card-side .cm-category{color:#FFFFFF}
-.cm-card-side .cm-meta span:first-child{color:#FFFFFF}
-.continue-button{margin-top:1.1rem}
-.cm-tour-note .learn-button-primary{background:var(--astra-blue);border-color:var(--astra-blue);color:#fff}
-.cm-tour-note .learn-button-primary:hover{background:var(--astra-blue-hi)}
+/* Keep the Learn Mode wordmark clean: hide the two animated gold blink dots. */
+.learn-header .brand-logo::before,
+.learn-header .brand-logo::after { display: none; }
