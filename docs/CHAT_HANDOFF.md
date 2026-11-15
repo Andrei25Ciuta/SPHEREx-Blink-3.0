@@ -5,8 +5,8 @@ Continue in the repository whose `origin` is `https://github.com/mateibut/SPHERE
 ## Current production state
 
 - Project `spherex-blink`, region `europe-west1`; public Cloud Run API: `https://blink3-api-w3bm7ii4fq-ew.a.run.app`.
-- API revision `blink3-api-00019-dw9`, private orchestrator revision `blink3-orchestrator-00015-8vt`, preparation job `blink3-prepare`, image tag `dr1-auto-20261115e`.
-- Firestore database `blink3-policy` still has enabled policy `spherex-dr1-owner-v1`: SPHEREx DR1 only; D1–D6; 12 newest observations by default; optional date bounds; 32 MiB/file; 128 MiB/detector; three global detector jobs. Source now supports policy v2 with a 20-job ceiling, but requires a Cloud Run release and explicit owner-policy migration before that limit is live. No login or per-user quotas. The private GCS bucket remains private.
+- API revision `blink3-api-00023-zpm`, private orchestrator revision `blink3-orchestrator-00024-s5j`, preparation job `blink3-prepare`, image tag `dr1-concurrency20-v1compat-20261115`.
+- Firestore database `blink3-policy` has enabled policy `spherex-dr1-owner-v2`: SPHEREx DR1 only; D1–D6; 12 newest observations by default; optional date bounds; 32 MiB/file; 128 MiB/detector; 20 global detector jobs. It explicitly allows already-created v1 requests to finish with their original provenance. No login or per-user quotas. The private GCS bucket remains private.
 - The first live on-demand request `fr-9fe8d9f503e9ccca9f2964e5a9bba0ad` completed for Barnard's Star (RA 269.4462, Dec 4.769, FOV 5). Each detector completed 12 planned files. The validated dynamic registry serves 70 usable frames across all six detectors; `GET /api/sequences` lists 12 sequences (six existing static plus six dynamic) without an API rebuild.
 - GitHub Pages Workspace URL, tested with this backend:
 
