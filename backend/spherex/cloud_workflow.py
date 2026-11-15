@@ -102,6 +102,21 @@ class CloudTasksQueue:
             logging.exception("Cloud Tasks enqueue failed for %s", path)
             raise WorkflowError("The data request could not be queued. Retrying is safe.", 503) from exc
 
+    def task_exists(self, name):
+        """Conservatively report whether a named task is still pending/retrying."""
+        from google.api_core.exceptions import NotFound
+        parent = self.client.queue_path(self.project, self.region, self.queue)
+        task_name = re.sub(r"[^A-Za-z0-9_-]", "-", name)[:450]
+        try:
+            self.client.get_task(request={"name": f"{parent}/tasks/{task_name}"})
+            return True
+        except NotFound:
+            return False
+        except Exception:
+            # If task state cannot be checked, avoid starting duplicate work.
+            logging.exception("Could not check Cloud Task existence for %s", task_name)
+            return True
+
 
 class CloudRunJobLauncher:
     """Launch the existing Cloud Run Job with per-execution plan/context overrides."""
@@ -216,13 +231,16 @@ class CloudWorkflow:
     def __init__(self, state=None, tasks=None, launcher=None, store=None,
                  *, max_active_jobs=MAX_ACTIVE_DOWNLOAD_JOBS,
                  task_identity_verifier=verify_task_identity,
-                 archive_fetch=task_archive_fetch):
+                 archive_fetch=task_archive_fetch, tap_archive_fetch=None):
         self.state = state or FirestoreState()
         self.tasks = tasks or CloudTasksQueue()
         self.launcher = launcher or CloudRunJobLauncher()
         self.store = store or from_env()
         self.max_active_jobs = max(1, min(MAX_ACTIVE_DOWNLOAD_JOBS, int(max_active_jobs)))
         self.archive_fetch = archive_fetch
+        # Lazy-imported when first needed so the SIA-only path stays usable in
+        # deployments that have not yet rolled out the TAP adapter.
+        self.tap_archive_fetch = tap_archive_fetch
         self.verify_identity = task_identity_verifier
         self.metadata_max_attempts = max(1, min(
             DEFAULT_METADATA_MAX_ATTEMPTS, int(os.getenv("BLINK_METADATA_MAX_ATTEMPTS", DEFAULT_METADATA_MAX_ATTEMPTS))))
@@ -279,6 +297,19 @@ class CloudWorkflow:
                                       http_status=http_status, retrying=False)
         return "failed"
 
+    @staticmethod
+    def _metadata_error_text(provider, exc):
+        if isinstance(exc, HTTPError):
+            return f"{provider}: HTTP {exc.code} {exc.reason}"[:240]
+        return f"{provider}: {type(exc).__name__}: {str(exc) or 'request failed'}"[:240]
+
+    def _tap_discover(self, request):
+        fetch = self.tap_archive_fetch
+        if fetch is None:
+            from .tap_archive import observations
+            fetch = observations
+        return fetch(request)
+
     def discover(self, request_id, lease_id=None):
         request = self.state.get_request(request_id)
         if request is None:
@@ -316,38 +347,91 @@ class CloudWorkflow:
                                     "POS": f"circle {query['ra']} {query['dec']} {query['fov'] / 120}",
                                     "MAXREC": 4096, "RESPONSEFORMAT": "votable"})
                 archive_url = "https://irsa.ipac.caltech.edu/SIA?" + params
+                provider = "sia"
+                fallback_errors = {}
+                tap_empty_result_count = int(request.get("tapEmptyResultCount", 0))
+                sia_exception = None
                 try:
                     response = self.archive_fetch(archive_url)
                 except HTTPError as exc:
-                    if exc.code in RETRYABLE_METADATA_HTTP:
-                        return self._retry_metadata(
+                    if exc.code not in RETRYABLE_METADATA_HTTP:
+                        return self._fail_metadata(
                             request_id, attempt,
-                            f"IRSA archive search is temporarily unavailable (HTTP {exc.code}); Cloud Tasks will retry.",
-                            exc=exc,
+                            f"IRSA SIA rejected the metadata search (HTTP {exc.code}); no detector plans were created.",
+                            http_status=exc.code,
                         )
-                    return self._fail_metadata(
-                        request_id, attempt,
-                        f"IRSA rejected the metadata search (HTTP {exc.code}); no detector plans were created.",
-                        http_status=exc.code,
-                    )
+                    sia_exception = exc
+                    fallback_errors["sia"] = self._metadata_error_text("SIA", exc)
                 except (URLError, TimeoutError, ConnectionError) as exc:
-                    return self._retry_metadata(
-                        request_id, attempt,
-                        "IRSA archive search timed out or could not connect; Cloud Tasks will retry.", exc=exc,
-                    )
+                    sia_exception = exc
+                    fallback_errors["sia"] = self._metadata_error_text("SIA", exc)
                 except Exception as exc:
-                    logging.exception("Unexpected IRSA metadata request failure for %s", request_id)
-                    return self._retry_metadata(
-                        request_id, attempt,
-                        "IRSA archive search failed temporarily; Cloud Tasks will retry.", exc=exc,
-                    )
-                try:
-                    rows = votable(response)
-                except (ValueError, ET.ParseError) as exc:
-                    return self._fail_metadata(
-                        request_id, attempt,
-                        f"IRSA returned an unusable metadata response: {str(exc)[:160]}",
-                    )
+                    logging.exception("Unexpected IRSA SIA metadata request failure for %s", request_id)
+                    sia_exception = exc
+                    fallback_errors["sia"] = self._metadata_error_text("SIA", exc)
+                else:
+                    try:
+                        rows = votable(response)
+                    except (ValueError, ET.ParseError) as exc:
+                        # A malformed successful SIA response is a query/data
+                        # error, not a transient outage; do not silently switch
+                        # providers and mask it.
+                        return self._fail_metadata(
+                            request_id, attempt,
+                            f"IRSA SIA returned an unusable metadata response: {str(exc)[:160]}",
+                        )
+                    logging.info("SPHEREx metadata discovery provider=sia request=%s rows=%s",
+                                 request_id, len(rows))
+
+                if fallback_errors:
+                    try:
+                        rows = self._tap_discover(request)
+                        if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+                            raise ValueError("TAP adapter returned an invalid observation list")
+                        required = {"obs_collection", "energy_bandpassname", "t_min", "obs_id", "access_url"}
+                        if any(not required.issubset(row) for row in rows):
+                            raise ValueError("TAP adapter returned an observation missing required archive metadata")
+                    except Exception as exc:
+                        fallback_errors["tap"] = self._metadata_error_text("TAP", exc)
+                        combined = ("SPHEREx metadata search is unavailable. "
+                                    + "; ".join(fallback_errors[key] for key in ("sia", "tap") if key in fallback_errors)
+                                    + ". Cloud Tasks will retry.")
+                        logging.warning("SPHEREx metadata discovery failed request=%s errors=%s",
+                                        request_id, fallback_errors)
+                        self.state.update_request(request_id, {
+                            "metadataProvider": None, "metadataErrors": fallback_errors,
+                            "metadataFallbackError": fallback_errors.get("sia"),
+                        })
+                        return self._retry_metadata(request_id, attempt, combined,
+                                                    exc=sia_exception if isinstance(sia_exception, HTTPError) else None)
+                    provider = "tap"
+                    logging.info("SPHEREx metadata discovery provider=tap request=%s rows=%s sia_error=%s",
+                                 request_id, len(rows), fallback_errors["sia"])
+                    if not rows:
+                        tap_empty_result_count += 1
+                        self.state.update_request(request_id, {"tapEmptyResultCount": tap_empty_result_count})
+                        if tap_empty_result_count == 1:
+                            message = ("SPHEREx metadata search is unavailable: "
+                                       f"{fallback_errors['sia']}; TAP returned no matching observations. "
+                                       "Cloud Tasks will retry discovery once.")
+                            self.state.update_request(request_id, {
+                                "metadataProvider": "tap", "metadataErrors": {
+                                    **fallback_errors, "tap": "TAP: successful query returned no matching observations"
+                                },
+                            })
+                            return self._retry_metadata(request_id, attempt, message)
+                        # A second successful empty TAP response is genuine
+                        # missing coverage. Continue to planning with an empty
+                        # catalogue so each detector becomes unavailable.
+                        fallback_errors["tap"] = "TAP: successful query returned no matching observations"
+                if provider == "sia" or rows:
+                    tap_empty_result_count = 0
+                    self.state.update_request(request_id, {
+                        "metadataProvider": provider,
+                        "metadataErrors": fallback_errors,
+                        "metadataFallbackError": fallback_errors.get("sia"),
+                        "tapEmptyResultCount": tap_empty_result_count,
+                    })
                 metadata_key = f"requests/{request_id}/archive-metadata.json"
                 try:
                     self.store.put_json(metadata_key, rows)
@@ -361,7 +445,11 @@ class CloudWorkflow:
                 self.state.update_request(request_id, {"metadataKey": metadata_key,
                                                         "status": "planning", "phase": "planning",
                                                         "metadataRetrying": False, "metadataError": None,
-                                                        "metadataHttpStatus": None})
+                                                        "metadataHttpStatus": None,
+                                                        "metadataProvider": provider,
+                                                        "metadataErrors": fallback_errors,
+                                                        "metadataFallbackError": fallback_errors.get("sia"),
+                                                        "tapEmptyResultCount": tap_empty_result_count})
             finally:
                 self.state.release_work_lock(lock_id, owner)
         for detector in request["detectors"]:
@@ -629,11 +717,18 @@ class CloudWorkflow:
             age = ((datetime.now(timezone.utc) - updated.replace(tzinfo=timezone.utc)).total_seconds()
                    if updated else 0)
             stale = age > 600
-            if acquisitions_enabled and undiscovered and stale and not self.state.work_lock_active(f"discover-{request_id}"):
+            discovery_task = request.get("discoveryTaskName") or (
+                f"discover-{request_id}-a{int(request.get('discoveryAttempt', 0))}")
+            task_exists = getattr(self.tasks, "task_exists", lambda _name: False)
+            discovery_task_active = task_exists(discovery_task)
+            if (acquisitions_enabled and undiscovered and stale
+                    and not self.state.work_lock_active(f"discover-{request_id}")
+                    and not discovery_task_active):
                 epoch = int(datetime.now(timezone.utc).timestamp() // 300)
                 task_name = f"discover-{request_id}-reconcile-{epoch}"
                 self.tasks.enqueue("/internal/tasks/discover",
                                    {"requestId": request_id, "leaseId": task_name}, task_name)
+                self.state.update_request(request_id, {"discoveryTaskName": task_name})
             for detector, item in request.get("detectors", {}).items():
                 if (acquisitions_enabled and item.get("status") in ("queued", "planning")
                         and not item.get("planKey") and request.get("metadataKey") and stale
@@ -705,6 +800,7 @@ class PublicFieldRequests:
             task_name = f"discover-{normalized['requestId']}-a{attempt}"
             self.tasks.enqueue("/internal/tasks/discover",
                                {"requestId": normalized["requestId"], "leaseId": task_name}, task_name)
+            self.state.update_request(normalized["requestId"], {"discoveryTaskName": task_name})
         return {
             "requestId": normalized["requestId"], "status": request.get("status", "queued"),
             "cached": request.get("status") == "ready",
@@ -727,6 +823,10 @@ class PublicFieldRequests:
                 "metadataRetrying": request.get("metadataRetrying", False) is True,
                 "metadataError": request.get("metadataError"),
                 "metadataHttpStatus": request.get("metadataHttpStatus"),
+                "metadataProvider": request.get("metadataProvider"),
+                "metadataErrors": request.get("metadataErrors", {}),
+                "metadataFallbackError": request.get("metadataFallbackError"),
+                "tapEmptyResultCount": int(request.get("tapEmptyResultCount", 0)),
                 "acknowledgement": request.get("acknowledgement"),
                 "dataDoi": request.get("dataDoi"),
                 "detectors": detectors, "readyForServing": ready > 0,
@@ -758,10 +858,13 @@ class PublicFieldRequests:
         values = {"status": "queued", "progress": 0.0, "discoveryAttempt": discovery_attempt}
         if needs_discovery and not request.get("metadataKey"):
             values.update({"metadataAttemptCount": 0, "metadataRetrying": False,
-                           "metadataError": None, "metadataHttpStatus": None})
+                           "metadataError": None, "metadataHttpStatus": None,
+                           "metadataProvider": None, "metadataErrors": {},
+                           "metadataFallbackError": None, "tapEmptyResultCount": 0})
         self.state.update_request(request_id, values)
         if needs_discovery:
             task_name = f"discover-{request_id}-a{discovery_attempt}"
             self.tasks.enqueue("/internal/tasks/discover",
                                {"requestId": request_id, "leaseId": task_name}, task_name)
+            self.state.update_request(request_id, {"discoveryTaskName": task_name})
         return self.state.get_request(request_id)

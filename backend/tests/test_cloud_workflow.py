@@ -1,5 +1,6 @@
 import json
 from io import BytesIO
+from datetime import datetime, timedelta, timezone
 from urllib.error import HTTPError
 
 import pytest
@@ -93,10 +94,15 @@ class FakeState:
 class FakeTasks:
     def __init__(self):
         self.enqueued = []
+        self.active = set()
 
     def enqueue(self, path, payload, name):
         self.enqueued.append((path, payload, name))
+        self.active.add(name)
         return name
+
+    def task_exists(self, name):
+        return name in self.active
 
 
 class FakeStore:
@@ -166,6 +172,35 @@ def test_cloud_tasks_request_uses_task_level_dispatch_deadline():
     assert task_name.endswith("/tasks/discover-test")
     assert task["dispatch_deadline"] == {"seconds": 1800}
     assert "dispatch_deadline" not in task["http_request"]
+
+
+def test_cloud_tasks_queue_checks_pending_task_by_stable_name():
+    from google.api_core.exceptions import NotFound, PermissionDenied
+
+    class Client:
+        pending = True
+        denied = False
+
+        def queue_path(self, project, region, queue):
+            return f"projects/{project}/locations/{region}/queues/{queue}"
+
+        def get_task(self, *, request):
+            if self.denied:
+                raise PermissionDenied("get_task is not allowed")
+            if not self.pending:
+                raise NotFound("task expired")
+            return {"name": request["name"]}
+
+    client = Client()
+    queue = CloudTasksQueue(
+        client=client, project="p", region="europe-west1", queue="q",
+        service_url="https://orchestrator.example", service_account="tasks@example.iam.gserviceaccount.com",
+    )
+    assert queue.task_exists("discover-fr-test-a0") is True
+    client.pending = False
+    assert queue.task_exists("discover-fr-test-a0") is False
+    client.denied = True
+    assert queue.task_exists("discover-fr-test-a0") is True
 
 
 def _votable_all_detectors():
@@ -331,9 +366,10 @@ def test_transient_metadata_http_errors_are_persisted_and_retried(http_status):
     error = HTTPError("https://irsa.ipac.caltech.edu/SIA", http_status, "Temporary archive error",
                       {"Retry-After": "17"}, BytesIO())
     workflow = CloudWorkflow(state=state, tasks=tasks, launcher=object(), store=FakeStore([]),
-                             archive_fetch=lambda _url: (_ for _ in ()).throw(error))
+                             archive_fetch=lambda _url: (_ for _ in ()).throw(error),
+                             tap_archive_fetch=lambda _request: (_ for _ in ()).throw(TimeoutError("TAP unavailable")))
 
-    with pytest.raises(WorkflowError, match="temporarily unavailable") as raised:
+    with pytest.raises(WorkflowError, match="metadata search is unavailable.*SIA: HTTP") as raised:
         workflow.discover(request["requestId"], "discover-test")
 
     assert raised.value.status_code == 503
@@ -342,6 +378,8 @@ def test_transient_metadata_http_errors_are_persisted_and_retried(http_status):
     assert request["metadataRetrying"] is True
     assert request["metadataHttpStatus"] == http_status
     assert "Cloud Tasks will retry" in request["metadataError"]
+    assert request["metadataErrors"]["sia"].startswith(f"SIA: HTTP {http_status}")
+    assert request["metadataErrors"]["tap"].startswith("TAP: TimeoutError")
     assert all(item["phase"] == "metadata-retrying" for item in request["detectors"].values())
     assert not state.locks
     assert tasks.enqueued == []
@@ -366,7 +404,8 @@ def test_metadata_retry_success_clears_error_and_continues_planning():
             raise error
         return _votable_all_detectors()
 
-    workflow = CloudWorkflow(state=state, tasks=tasks, launcher=object(), store=FakeStore([]), archive_fetch=fetch)
+    workflow = CloudWorkflow(state=state, tasks=tasks, launcher=object(), store=FakeStore([]), archive_fetch=fetch,
+                             tap_archive_fetch=lambda _request: (_ for _ in ()).throw(TimeoutError("TAP unavailable")))
     with pytest.raises(WorkflowError):
         workflow.discover(request["requestId"], "discover-first")
 
@@ -380,12 +419,145 @@ def test_metadata_retry_success_clears_error_and_continues_planning():
     assert len([item for item in tasks.enqueued if item[0] == "/internal/tasks/plan"]) == 6
 
 
+def test_transient_sia_failure_uses_tap_rows_and_exposes_provider_provenance():
+    request, policy = _metadata_request_fixture()
+    state, tasks = FakeState(request, policy), FakeTasks()
+    sia_error = HTTPError("https://irsa.ipac.caltech.edu/SIA", 503, "Unavailable", {}, BytesIO())
+    tap_rows = [{
+        "obs_collection": "spherex_dr1", "energy_bandpassname": "SPHEREx-D2",
+        "t_min": "61000", "obs_id": "tap-d2", "access_url": "https://irsa.ipac.caltech.edu/ibe/data/spherex/tap-d2.fits",
+        "access_format": "application/fits", "access_estsize": "10",
+    }]
+    tap_calls = []
+    store = FakeStore([])
+    workflow = CloudWorkflow(state=state, tasks=tasks, launcher=object(), store=store,
+                             archive_fetch=lambda _url: (_ for _ in ()).throw(sia_error),
+                             tap_archive_fetch=lambda value: (tap_calls.append(value) or tap_rows))
+
+    workflow.discover(request["requestId"], "discover-tap")
+
+    assert len(tap_calls) == 1
+    assert tap_calls[0]["query"] == request["query"]
+    assert request["metadataProvider"] == "tap"
+    assert request["metadataFallbackError"].startswith("SIA: HTTP 503")
+    assert request["metadataErrors"]["sia"].startswith("SIA: HTTP 503")
+    key = f"requests/{request['requestId']}/archive-metadata.json"
+    assert request["metadataKey"] == key
+    assert store.json(key) == tap_rows
+
+
+def test_sia_empty_result_does_not_call_tap_fallback():
+    request, policy = _metadata_request_fixture()
+    state, tasks = FakeState(request, policy), FakeTasks()
+    tap_calls = []
+    workflow = CloudWorkflow(state=state, tasks=tasks, launcher=object(), store=FakeStore([]),
+                             archive_fetch=lambda _url: b"<VOTABLE><RESOURCE><TABLE></TABLE></RESOURCE></VOTABLE>",
+                             tap_archive_fetch=lambda _request: tap_calls.append(True) or [])
+
+    workflow.discover(request["requestId"], "discover-empty-sia")
+
+    assert tap_calls == []
+    assert request["metadataProvider"] == "sia"
+    assert request["metadataKey"] == f"requests/{request['requestId']}/archive-metadata.json"
+
+
+def test_transient_sia_and_tap_failure_persist_both_errors_and_retry():
+    request, policy = _metadata_request_fixture()
+    state, tasks = FakeState(request, policy), FakeTasks()
+    sia_error = HTTPError("https://irsa.ipac.caltech.edu/SIA", 503, "SIA unavailable", {}, BytesIO())
+    tap_error = HTTPError("https://irsa.ipac.caltech.edu/TAP/sync", 504, "TAP timeout", {}, BytesIO())
+    workflow = CloudWorkflow(state=state, tasks=tasks, launcher=object(), store=FakeStore([]),
+                             archive_fetch=lambda _url: (_ for _ in ()).throw(sia_error),
+                             tap_archive_fetch=lambda _request: (_ for _ in ()).throw(tap_error))
+
+    with pytest.raises(WorkflowError, match="metadata search is unavailable.*SIA: HTTP 503.*TAP: HTTP 504"):
+        workflow.discover(request["requestId"], "discover-both-fail")
+
+    assert request["metadataRetrying"] is True
+    assert request["metadataProvider"] is None
+    assert request["metadataErrors"]["sia"].startswith("SIA: HTTP 503")
+    assert request["metadataErrors"]["tap"].startswith("TAP: HTTP 504")
+    assert request.get("tapEmptyResultCount", 0) == 0
+    status = PublicFieldRequests(state=state, tasks=tasks).status(request["requestId"])
+    assert status["metadataErrors"] == request["metadataErrors"]
+    assert status["metadataRetrying"] is True
+    assert not state.locks
+
+
+def test_empty_tap_gets_one_additional_full_delivery_then_plans_empty_catalogue():
+    request, policy = _metadata_request_fixture()
+    state, tasks = FakeState(request, policy), FakeTasks()
+    sia_error = HTTPError("https://irsa.ipac.caltech.edu/SIA", 503, "Unavailable", {}, BytesIO())
+    sia_calls, tap_calls = [], []
+    workflow = CloudWorkflow(state=state, tasks=tasks, launcher=object(), store=FakeStore([]),
+                             archive_fetch=lambda _url: (sia_calls.append(True) or (_ for _ in ()).throw(sia_error)),
+                             tap_archive_fetch=lambda _request: (tap_calls.append(True) or []))
+
+    with pytest.raises(WorkflowError, match="TAP returned no matching observations"):
+        workflow.discover(request["requestId"], "discover-empty-1")
+    assert request["tapEmptyResultCount"] == 1
+    assert request["metadataRetrying"] is True
+
+    workflow.discover(request["requestId"], "discover-empty-2")
+
+    assert len(sia_calls) == len(tap_calls) == 2
+    assert request["tapEmptyResultCount"] == 2
+    assert request["metadataProvider"] == "tap"
+    assert request["metadataKey"] == f"requests/{request['requestId']}/archive-metadata.json"
+    assert len([task for task in tasks.enqueued if task[0] == "/internal/tasks/plan"]) == 6
+
+
+class ReconcileState(FakeState):
+    def queued_requests(self, limit=100):
+        return [self.request][:limit]
+
+    def active_slots(self, limit=100):
+        return []
+
+    def work_lock_active(self, lock_id):
+        return False
+
+
+def _stale_undiscovered_request():
+    request, policy = _metadata_request_fixture()
+    request.update({"status": "discovering", "updatedAt": datetime.now(timezone.utc) - timedelta(minutes=20),
+                    "discoveryAttempt": 0, "discoveryTaskName": f"discover-{request['requestId']}-a0"})
+    policy["enabled"] = True
+    return request, policy
+
+
+def test_reconcile_does_not_duplicate_pending_cloud_task_when_discovery_lock_is_gone():
+    request, policy = _stale_undiscovered_request()
+    state, tasks = ReconcileState(request, policy), FakeTasks()
+    tasks.active.add(request["discoveryTaskName"])
+    workflow = CloudWorkflow(state=state, tasks=tasks, launcher=object(), store=FakeStore([]))
+
+    workflow.reconcile()
+
+    assert not [task for task in tasks.enqueued if task[0] == "/internal/tasks/discover"]
+
+
+def test_reconcile_reenqueues_missing_cloud_task_once_when_no_lock_exists():
+    request, policy = _stale_undiscovered_request()
+    state, tasks = ReconcileState(request, policy), FakeTasks()
+    workflow = CloudWorkflow(state=state, tasks=tasks, launcher=object(), store=FakeStore([]))
+
+    workflow.reconcile()
+    workflow.reconcile()
+
+    discover_tasks = [task for task in tasks.enqueued if task[0] == "/internal/tasks/discover"]
+    assert len(discover_tasks) == 1
+    assert request["discoveryTaskName"] == discover_tasks[0][2]
+
+
 def test_permanent_metadata_http_error_fails_request_without_retrying():
     request, policy = _metadata_request_fixture()
     state, tasks = FakeState(request, policy), FakeTasks()
     error = HTTPError("https://irsa.ipac.caltech.edu/SIA", 404, "Not Found", {}, BytesIO())
+    tap_calls = []
     workflow = CloudWorkflow(state=state, tasks=tasks, launcher=object(), store=FakeStore([]),
-                             archive_fetch=lambda _url: (_ for _ in ()).throw(error))
+                             archive_fetch=lambda _url: (_ for _ in ()).throw(error),
+                             tap_archive_fetch=lambda _request: tap_calls.append(True) or [])
 
     assert workflow.discover(request["requestId"], "discover-test") == "failed"
 
@@ -394,6 +566,7 @@ def test_permanent_metadata_http_error_fails_request_without_retrying():
     assert request["metadataHttpStatus"] == 404
     assert all(item["status"] == "failed" for item in request["detectors"].values())
     assert tasks.enqueued == []
+    assert tap_calls == []
 
 
 def test_metadata_retry_limit_fails_terminally_and_explicit_retry_starts_a_fresh_attempt():
