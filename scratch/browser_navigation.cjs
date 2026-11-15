@@ -61,7 +61,7 @@ async function checkNavigation() {
       }
       await page.goto(new URL("overview.html", base).href);
       await openNavigation();
-      assert.deepEqual(await nav.getByRole("link").allTextContents(), ["Overview", "Workspace", "Sky Explorer", "Simulator", "Results", "About"], "Overview keeps its classic project menu");
+      assert.deepEqual(await nav.getByRole("link").allTextContents(), ["Overview", "Learn Mode", "Science Mode"], "Overview menu offers only the two modes (changed on request, 2026-11-15)");
       // Field coordinates belong to the Workspace; site navigation should not leak them into About or other pages.
       await page.goto(new URL("index.html?ra=133.8189&dec=-7.247&fov=5&det=D2#workspace", base).href);
       await page.waitForFunction(() => !document.querySelector("#play-btn").disabled);
