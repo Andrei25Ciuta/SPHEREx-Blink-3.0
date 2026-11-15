@@ -1,3 +1,9 @@
+## 2026-11-15 — Raise the acquisition job ceiling for testing
+
+Based on Matei's current `main` at `029d4e7`, raised the code and release configuration ceiling from three to 20 concurrent detector preparation jobs. The effective limit remains the lower of `BLINK_MAX_ACTIVE_DOWNLOAD_JOBS` and the central Firestore `maxConcurrentDownloads` value. The owner policy template is now v2 with 20 slots; the configuration tool requires `--migrate-policy-version` before replacing the existing v1 policy. Updated the backend contract, deployment instructions, feature status and handoff.
+
+This is source-only. No Cloud Run release, Firestore policy migration, or downloads were run, so production remains capped at three under the existing v1 policy. Twenty 2-vCPU/4-GiB preparations can request 40 vCPU and 80 GiB concurrently; Cloud Run regional quota may limit actual launches. No test suite was run in this change.
+
 ## 2026-11-14 — Give About its own page
 
 Moved the project and SPHEREx telescope information out of the Workspace into `frontend/about.html`, updated the shared navigation, and made the Workspace analysis group start collapsed. Existing analysis actions can still open it when needed. `git diff --check` passed; tests and browser review were not run. This change is local and unpushed.

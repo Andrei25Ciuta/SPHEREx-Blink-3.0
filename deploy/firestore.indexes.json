@@ -1,0 +1,18 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "fieldCatalog",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "raKey", "order": "ASCENDING"},
+        {"fieldPath": "decKey", "order": "ASCENDING"},
+        {"fieldPath": "fovKey", "order": "ASCENDING"},
+        {"fieldPath": "collection", "order": "ASCENDING"},
+        {"fieldPath": "processingVersion", "order": "ASCENDING"},
+        {"fieldPath": "detector", "order": "ASCENDING"},
+        {"fieldPath": "latestMjd", "order": "DESCENDING"}
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

@@ -1,5 +1,5 @@
 import { parseRA, parseDec } from "./coords.js";
-import { API_BASE, CAN_USE_LOCAL_BACKEND } from "./config.js";
+import { API_BASE, CAN_USE_LOCAL_BACKEND } from "./config.js?v=1";
 import { tangentPoint } from "./features/explorerGeometry.js";
 import { SkyContext } from "./features/skyContext.js";
 import { TARGETS, positionAtEpoch } from "./targets.js";

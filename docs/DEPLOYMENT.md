@@ -1,3 +1,11 @@
+> **Current deployment — 14 Nov 2026:** The europe-west1 Cloud Run API serves the single approved Barnard D2 DR1 sequence (ten usable frames). See [CLOUD_DEPLOYMENT.md](CLOUD_DEPLOYMENT.md) for the live service, corrected Workspace link, earlier smoke-test evidence and current shell DNS limitation. The notes below are historical and describe the pre-deployment state.
+
+# Current 3.0 cloud deployment path — 14 Nov 2026
+
+Follow **[CLOUD_DEPLOYMENT.md](CLOUD_DEPLOYMENT.md)** for the prepared-data API and operator job. GitHub Pages remains the static frontend. `backend/app.py` remains local-only; `backend/cloud_app.py` is the separate restricted cloud entrypoint. One immutable Barnard D2 sequence is approved for pixel serving; other sequences are not thereby approved.
+
+The notes below are historical. Their statements that cloud work has not started and that no HTTPS backend can be selected are superseded by the cloud guide. Their caution against publishing the unrestricted local backend still applies.
+
 # Deployment notes
 
 How the pieces are run and published today, and what has **not** been done. Nothing here was deployed by the code or by an agent: publishing is the

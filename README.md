@@ -88,16 +88,15 @@ ES modules don't load from `file://`, so always serve over http.
 The mock invents a star field per position with one moving source and one variable star
 (see `frontend/js/data/mockSource.js`). At a random position the mover is exaggerated
 (12 px/yr) so the effect is obvious; at a **test object** the mover *is* that object and
-moves with its **real** catalogue speed (WISE 0855: 1.3 px/yr). The header badge says **Synthetic demo data**.
+moves with its **real** catalogue speed (WISE 0855: 1.3 px/yr). Synthetic demo data is the default.
 
 ### Public demo (GitHub Pages)
 
-The frontend alone is a static site, so it can be published as a demo that runs on the synthetic data (no backend, no data files).
+The frontend alone is a static site, so it can be published with synthetic data as the default (no backend or image files are hosted on GitHub Pages).
 `.github/workflows/pages.yml` publishes only the `frontend/` folder. One-time setup after you push the repository to GitHub:
 **Settings → Pages → Build and deployment → Source: GitHub Actions**; the next push to `main` deploys it.
-The page labels itself "Synthetic demo data"; keep it that way until real SPHEREx data is wired in.
-The local FITS option is disabled on the public site. Serve the frontend on your own machine with the Python backend to use local FITS files.
-**Public demo (synthetic data):** https://mateibut.github.io/SPHEREx-Blink-3.0/ (the Pages deployment workflow succeeded; check it from a private window and on a phone before relying on it). Results on real data, numbers only: `results.html` on the same site.
+On the configured GitHub Pages hosts, Science Mode can select the connected SPHEREx data service; the synthetic demo remains available. The cloud service prepares and serves approved SPHEREx DR1 products. The frontend still contains no GCP credentials or observed image pixels. A local FITS backend remains available for development. See [docs/CLOUD_DEPLOYMENT.md](docs/CLOUD_DEPLOYMENT.md) and [docs/BACKEND_CONTRACT.md](docs/BACKEND_CONTRACT.md).
+**Public site:** https://mateibut.github.io/SPHEREx-Blink-3.0/ (the demo defaults to synthetic data). Results on real data, numbers only: `results.html` on the same site.
 
 **Sky map (section 4 of the page):** its survey pictures (2MASS, AllWISE, DSS2) come from the first of these that answers: ESA's public mirror of the CDS surveys (`skies.esac.esa.int`, no setup), our backend's relay of IRSA's copies (when the backend runs), CDS (Strasbourg) directly. Some networks block CDS; then only the first two give a picture (the catalogue circles show either way). The text under the map says which source is in use; "Re-centre sky map" checks again. Set `SKY_TILES` in `frontend/js/config.js` to force one source.
 
@@ -155,13 +154,13 @@ stretch/cutout code without bumping `STRETCH_VERSION`.
 
 ## Limitations
 
-- The public demo runs on **synthetic** data; real SPHEREx images are used only on the author's machine (with the Python backend) and are not published. The page [`frontend/results.html`](frontend/results.html) shows what came out, as numbers only.
+- The public demo defaults to **synthetic** data. Science Mode can request real SPHEREx DR1 data through the connected Cloud Run API; images are served by that API and are not stored on GitHub Pages. The page [`frontend/results.html`](frontend/results.html) shows results as numbers only.
 - **Find movers** needs images from at least 3 survey passes about 6 months apart, finds nothing that moves less than about 0.8 pixel over the whole period, uses positions only, and in a field with a saturated star it loses a factor of about 30 in sensitivity ([docs/VALIDATION.md](docs/VALIDATION.md) §10).
 - **Planet X mode** works on bodies that single images can show (to roughly V 17, i.e. a 2-4 Earth-radius planet out to 150-270 AU); on real data the blind search found Makemake once, with loosened options, among about 33 chance candidates per field (§12), and a Planet-Nine-like body at 300-800 AU is 3-5 magnitudes too faint for it (§11).
 - Fluxes are quick aperture sums (2-10 % below catalogue magnitudes), not SPHEREx's calibrated photometry. The displayed S/N is nominal: resampling correlates pixels, and the error estimate omits covariance, source noise and calibration terms ([docs/VALIDATION.md](docs/VALIDATION.md) §3). WISE 0855 is a suggestive stack, not a detection.
 - **Find everything** needs 3 individual detections of a fixed source: about 1.5 times shallower than one image (0.7-1.5 mJy in a clean field; a brown dwarf like WISE 0855 is below it), movers need about 50 times the noise, and the "needs checking" threshold lets through about 1 false lead per 21 empty fields on average (0.005-0.16 depending on the field). Nothing new was found by it; see [docs/VALIDATION.md](docs/VALIDATION.md) §14.
 - Fluxes are quick aperture sums (2-10 % below catalogue magnitudes), not SPHEREx's calibrated photometry; WISE 0855 is a suggestive stack, not a detection.
-- Candidates are leads, never discoveries. The licence and terms of use of the real data have not been reviewed (see [CREDITS.md](CREDITS.md)). Everything is listed in [docs/VALIDATION.md](docs/VALIDATION.md) §8.
+- Candidates are leads, never discoveries. Cloud-served DR1 products carry the approved IRSA acknowledgement and DOI recorded in [docs/CLOUD_DEPLOYMENT.md](docs/CLOUD_DEPLOYMENT.md); the exact release provenance of older validation cutouts is listed in [CREDITS.md](CREDITS.md). Everything is listed in [docs/VALIDATION.md](docs/VALIDATION.md) §8.
 
 ## Tests
 

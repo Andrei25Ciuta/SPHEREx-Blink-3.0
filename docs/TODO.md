@@ -48,7 +48,7 @@ de start [parțial confirmat: nu am găsit textul exact, nu știu cum se aplică
 ## 2. Cod – funcționalitate
 
 ### 2.1 Stare curentă
-- [ ] **P1** Commit pentru poziția prezisă + documentație (modificările de după `23079db`). Include `docs/TODO.md`, `docs/PROMPT_HANDOFF.md`.
+- [ ] **P1** Commit pentru poziția prezisă + documentație (modificările de după `23079db`). Include `docs/TODO.md`.
 - [ ] **P1** Rulează toate testele (`node scratch/test_*.mjs`) înainte de fiecare commit.
 
 ### 2.2 Date reale (ultimul pas, dar cel mai important pentru „Validity”)
@@ -174,8 +174,6 @@ de start [parțial confirmat: nu am găsit textul exact, nu știu cum se aplică
 ## 7. Pregătire permisă acum (nu dezvoltă soluția)
 
 Verifică cu organizatorii dacă și aceasta e în regulă; pare în spiritul „poți pregăti și învăța înainte”.
-- [ ] Parcurge [LESSON_SPHEREX.md](LESSON_SPHEREX.md) și rezolvă testul de la final (tema proiectului, lungimi de undă, date).
-- [ ] Citește [FRONTEND_PLAN.md](FRONTEND_PLAN.md) și răspunde la întrebările din secțiunea 9; citește [BACKEND_INTEGRATION.md](BACKEND_INTEGRATION.md) și [PROMPT_GUIDE.md](PROMPT_GUIDE.md).
 - [ ] Citește pagina provocării și documentația SPHEREx / IRSA; notează întrebări pentru forum.
 - [ ] Creează / verifică conturile: Space Apps (înregistrare), GitHub, YouTube, Space Apps Connect.
 - [ ] Pregătește unelte: program de înregistrat ecranul, editor video pentru subtitrări, spațiu pentru fișiere.

@@ -4,7 +4,7 @@ import { missionWhy, termsFor, categoryInfo, stepWhy, xpFor, missionsDatabase, p
 import { makePin, pinTag, loadPins, savePins, addPin, removePin, skyToMap, mapToSky, verifyPin, eclipticPoints, galacticToEquatorial, fieldOffsetArcmin, initials, timeAgo, decorativeStars, canPin } from "./pinBoard.js?v=2";
 import { formatRA, formatDec } from "../coords.js";
 import { sharedConfig, fetchSharedPins, pushSharedPin, mergePins } from "./pinSync.js";
-import { PIN_BOARD_URL, PIN_BOARD_KEY } from "../config.js";
+import { PIN_BOARD_URL, PIN_BOARD_KEY } from "../config.js?v=1";
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 const $ = (id) => document.getElementById(id);

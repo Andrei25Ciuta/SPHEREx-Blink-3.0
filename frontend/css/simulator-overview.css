@@ -10,10 +10,10 @@ html[data-theme] body.simulator-body {
   color-scheme: dark;
 }
 html[data-theme]:not([data-contrast="high"]):has(body.simulator-body) body.simulator-body {
-  background-image: var(--static-space-stars);
-  background-size: 360px 360px, 440px 440px, 520px 520px, cover, cover;
-  background-position: 0 0, 90px 70px, 220px 40px, center, center;
-  background-repeat: repeat, repeat, repeat, no-repeat, no-repeat;
+  background-image: var(--static-space-background);
+  background-size: 360px 360px, 440px 440px, 520px 520px, cover, cover, clamp(250px, 52vw, 720px) auto;
+  background-position: 0 0, 90px 70px, 220px 40px, center, center, right -5vw bottom 8vh;
+  background-repeat: repeat, repeat, repeat, no-repeat, no-repeat, no-repeat;
   background-attachment: fixed;
 }
 .simulator-body .site-header {
