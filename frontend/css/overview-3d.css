@@ -649,6 +649,22 @@
       border-radius: 12px;
       padding: 2rem;
       position: relative;
+      transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+      transform-origin: center;
+    }
+    .step-card:hover {
+      transform: scale(1.03);
+      z-index: 1;
+      border-color: rgba(239, 178, 79, 0.4);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
+    }
+    .step-card:active {
+      transform: scale(1.01);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .step-card {
+        transition: none;
+      }
     }
     .step-number {
       font-family: 'Space Grotesk', sans-serif;
