@@ -20,7 +20,7 @@ def request(**overrides):
     return value
 
 
-def tap_row(*, obs_id="p1", band="SPHEREx-D2", mjd="61050.5", uri="ibe/data/spherex/qr3/level2/p1.fits"):
+def tap_row(*, obs_id="p1", band="SPHEREx-D2", mjd="61050.5", uri="ibe/data/spherex/dr1/level2/p1.fits"):
     return {"obs_id": obs_id, "energy_bandpassname": band, "t_min": mjd, "access_url": uri}
 
 
@@ -29,6 +29,7 @@ def test_build_query_filters_circle_detectors_and_normalized_date_bounds():
     assert "FROM spherex.artifact a JOIN spherex.plane p ON a.planeid = p.planeid" in adql
     assert "INTERSECTS(p.poly, CIRCLE('ICRS', 269.44620000, 4.76900000, 0.04166667))" in adql
     assert "p.energy_bandpassname IN ('SPHEREx-D2', 'SPHEREx-D6')" in adql
+    assert "a.uri LIKE '%/dr1/%'" in adql
     assert "p.time_bounds_lower >= 61000.00000000" in adql
     assert "p.time_bounds_lower < 61100.00000000" in adql
     assert "TOP 4096" in adql and "ORDER BY p.time_bounds_lower" in adql
@@ -39,6 +40,7 @@ def test_build_query_filters_circle_detectors_and_normalized_date_bounds():
     {"query": {"ra": 1, "dec": -91, "fov": 5}},
     {"query": {"ra": 1, "dec": 0, "fov": 11}},
     {"collection": "spherex_dr1' OR 1=1 --"},
+    {"collection": "spherex_qr2"},
     {"detectors": ["D2' OR 1=1 --"]},
     {"mjdStart": float("nan")},
 ])
@@ -56,18 +58,20 @@ def test_normalize_rows_maps_only_valid_detector_dates_and_ibe_fits_urls():
         tap_row(obs_id="too-early", mjd="60999.999"),
         tap_row(obs_id="at-end", mjd="61100"),
         tap_row(obs_id="wrong-det", band="SPHEREx-D7"),
-        tap_row(obs_id="wrong-host", uri="https://evil.example/ibe/data/spherex/a.fits"),
+        tap_row(obs_id="wrong-host", uri="https://evil.example/ibe/data/spherex/dr1/a.fits"),
         tap_row(obs_id="wrong-path", uri="https://irsa.ipac.caltech.edu/SIA?evil.fits"),
-        tap_row(obs_id="duplicate", uri="https://irsa.ipac.caltech.edu/ibe/data/spherex/a.fits?x=1"),
-        tap_row(obs_id="duplicate", uri="https://irsa.ipac.caltech.edu/ibe/data/spherex/b.fits"),
+        tap_row(obs_id="wrong-release-qr2", uri="ibe/data/spherex/qr2/level2/old.fits"),
+        tap_row(obs_id="wrong-release-qr3", uri="ibe/data/spherex/qr3/level2/other.fits"),
+        tap_row(obs_id="duplicate", uri="https://irsa.ipac.caltech.edu/ibe/data/spherex/dr1/a.fits?x=1"),
+        tap_row(obs_id="duplicate", uri="https://irsa.ipac.caltech.edu/ibe/data/spherex/dr1/b.fits"),
     ]
-    rows[-1]["access_url"] = "https://irsa.ipac.caltech.edu/ibe/data/spherex/duplicate.fits"
+    rows[-1]["access_url"] = "https://irsa.ipac.caltech.edu/ibe/data/spherex/dr1/duplicate.fits"
     out = tap_archive.normalize_rows(rows, request())
     assert [item["obs_id"] for item in out] == ["earlier", "duplicate", "later"]
     assert out[0] == {
         "obs_collection": "spherex_dr1", "energy_bandpassname": "SPHEREx-D2",
         "t_min": 61020.0, "obs_id": "earlier",
-        "access_url": "https://irsa.ipac.caltech.edu/ibe/data/spherex/qr3/level2/p1.fits",
+        "access_url": "https://irsa.ipac.caltech.edu/ibe/data/spherex/dr1/level2/p1.fits",
         "access_format": "image/fits", "access_estsize": None,
     }
 
@@ -107,7 +111,7 @@ def test_query_csv_posts_adql_and_parses_csv():
     seen = []
     def opener(req, timeout=None):
         seen.append((req, timeout))
-        return FakeResponse(b"obs_id,energy_bandpassname,t_min,access_url\np1,SPHEREx-D2,61050,ibe/data/spherex/a.fits\n")
+        return FakeResponse(b"obs_id,energy_bandpassname,t_min,access_url\np1,SPHEREx-D2,61050,ibe/data/spherex/dr1/a.fits\n")
 
     rows = tap_archive._query_csv("SELECT 1", opener=opener)
     req, timeout = seen[0]

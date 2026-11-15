@@ -15,14 +15,13 @@ import urllib.request
 import xml.etree.ElementTree as ET
 
 from .archive_plan import safe_url
-from .observations import COLLECTIONS
-
 TAP_ENDPOINT = "https://irsa.ipac.caltech.edu/TAP/sync"
 USER_AGENT = "SPHEREx-Blink/3.0"
 MAX_ROWS = 4096
 MAX_RESPONSE_BYTES = 16 * 1024 * 1024
 TIMEOUT_SECONDS = 120
 DETECTORS = tuple(f"D{i}" for i in range(1, 7))
+SUPPORTED_COLLECTION = "spherex_dr1"
 REQUIRED_COLUMNS = {"obs_id", "energy_bandpassname", "t_min", "access_url"}
 
 
@@ -54,8 +53,8 @@ def build_query(request: dict) -> str:
         raise ValueError("Invalid SPHEREx TAP field bounds")
 
     collection = request.get("collection")
-    if collection not in COLLECTIONS:
-        raise ValueError("Unsupported SPHEREx TAP collection")
+    if collection != SUPPORTED_COLLECTION:
+        raise ValueError("IRSA TAP fallback currently supports only spherex_dr1")
     detectors = request.get("detectors")
     if not isinstance(detectors, (list, tuple)) or not detectors or any(d not in DETECTORS for d in detectors):
         raise ValueError("Invalid SPHEREx TAP detector selection")
@@ -66,6 +65,7 @@ def build_query(request: dict) -> str:
     where = [
         f"1=INTERSECTS(p.poly, CIRCLE('ICRS', {ra:.8f}, {dec:.8f}, {radius_deg:.8f}))",
         f"p.energy_bandpassname IN ({bands})",
+        "a.uri LIKE '%/dr1/%'",
     ]
     mjd_start = request.get("mjdStart")
     mjd_end = request.get("mjdEnd")
@@ -136,7 +136,11 @@ def _product_url(value):
     except ValueError:
         return None
     parts = urllib.parse.urlsplit(checked)
-    if not parts.path.startswith("/ibe/data/spherex/") or not parts.path.lower().endswith(".fits"):
+    # TAP covers multiple archive releases; only DR1 is authorized by the
+    # current acquisition policy. Never relabel QR2/QR3 products as DR1.
+    if (not parts.path.startswith("/ibe/data/spherex/")
+            or "/dr1/" not in parts.path.lower()
+            or not parts.path.lower().endswith(".fits")):
         return None
     return checked
 
@@ -144,8 +148,8 @@ def _product_url(value):
 def normalize_rows(rows: list[dict], request: dict) -> list[dict]:
     """Convert TAP results into the SIA metadata shape used by the sampler."""
     collection = request.get("collection")
-    if collection not in COLLECTIONS:
-        raise ValueError("Unsupported SPHEREx TAP collection")
+    if collection != SUPPORTED_COLLECTION:
+        raise ValueError("IRSA TAP fallback currently supports only spherex_dr1")
     detectors = set(request.get("detectors") or ())
     mjd_start = request.get("mjdStart")
     mjd_end = request.get("mjdEnd")
