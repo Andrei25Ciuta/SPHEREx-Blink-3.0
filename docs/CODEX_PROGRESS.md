@@ -10,6 +10,14 @@ Moved the project and SPHEREx telescope information out of the Workspace into `f
 
 # Development progress
 
+## 2026-11-15 — Sync the education branch with main and resolve PR conflicts
+
+Merged current `blink3/main` at `885e59c` into `codex/blink4-education`. Kept main's newer cloud pipeline, Science Mode workspace, 16-lesson Learn curriculum, globe and overview, and its removal of the separate Planet X page. Retained the Find movers empty-state guidance from this branch. The merge also exposed a Results page default theme that disagreed with the shared Midnight default; aligned its initial theme and browser-bar colour. All `scratch/test_*.mjs` scripts passed after that alignment; `git diff --check` passed. Browser smoke could not start Chrome (exit code 4294930433), and backend pytest could not start because this checkout's venv has no pytest installed.
+
+## 2026-11-15 — Explain why Find movers starts disabled
+
+Clarified the initial empty-state message under Find movers: load a test target or enter coordinates and load images first; the search unlocks when the field has at least three survey passes. The search and its scientific threshold are unchanged. Added a UI regression check.
+
 ## 2026-11-14 — Unify page background colours across Science and Learn
 
 Set all six pages and both modes to the same Midnight / dark default. The body, Simulator and Overview root now use the shared `--bg` token instead of page-specific overrides; saved themes and `?theme=` still apply consistently. Updated the existing theme checks to describe the new default. `git diff --check` passed; tests and browser review were not run. This change is local and unpushed.
