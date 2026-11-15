@@ -97,7 +97,8 @@ export function startMissionRunner({ getCandidate = () => null, getCount = () =>
   function onEvent(e) {
     if (!started || box.contains(e.target)) return;
     const s = current();
-    if (s && stepMatches(s.check, e.target)) setTimeout(() => advance(noteFor(s)), 0);   // let the page react first
+    // let the page react first; one action can fire click AND change (a radio button): tick the step once, not twice
+    if (s && stepMatches(s.check, e.target)) { const at = step; setTimeout(() => { if (step === at) advance(noteFor(s)); }, 0); }
   }
   function poll() {
     if (!started) return;
