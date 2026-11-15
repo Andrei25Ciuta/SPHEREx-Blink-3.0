@@ -1,16 +1,11 @@
 // skyContext.js – Aladin Lite sky map: the same spot in other surveys + SIMBAD objects,
 // with the blink field drawn as a dashed square. Loaded from the CDN only on demand.
 //
-// Where the pictures come from (see SKY_TILES in config.js), first one that answers wins:
-//   1. ESA's public mirror of the CDS surveys (skies.esac.esa.int, CORS open, no setup);
-//   2. our backend, which relays IRSA's copies via /api/hips
-//      (IRSA sends no CORS headers, and WebGL needs them);
-//   3. the CDS originals (Strasbourg) directly - blocked on some networks,
-//      in which case the map stays grey while the catalogue objects still show.
+// Survey tiles can come directly from IRSA, ESA, the local relay or CDS.
 // Catalogue objects: SIMBAD via its Harvard mirror (TAP), which sends CORS headers.
 // Older surveys are also handy for movers: a fast star sits somewhere ELSE in 2MASS (1999)!
 
-import { SKY_TILES, API_BASE } from "../config.js?v=1";
+import { SKY_TILES, API_BASE, CAN_USE_LOCAL_BACKEND, IS_REMOTE_BACKEND } from "../config.js?v=1";
 import { WORLD_URL, decodeCountries, overheadAt } from "./skyGeo.js";
 import { fieldCorners } from "./explorerGeometry.js";
 import { aladinSkyAt, selectionText } from "./skyContextClick.js";
@@ -21,54 +16,45 @@ const ALADIN_URL = "https://cdn.jsdelivr.net/npm/aladin-lite@3.6.5/dist/aladin.j
 const SIMBAD_TAP = "https://simbad.harvard.edu/simbad/sim-tap/sync";
 
 const ESA_HIPS = "https://skies.esac.esa.int";   // same surveys as CDS (properties file says so)
+const IRSA_HIPS = "https://irsa.ipac.caltech.edu/data/hips";
 const SURVEYS = {
   "2mass":   { cds: "P/2MASS/color",   esa: "2MASSColor",   irsa: "CDS/2MASS/Color" },
   "allwise": { cds: "P/allWISE/color", esa: "AllWISEColor", irsa: "CDS/AllWISE/RGB-W4-W2-W1" },
   "dss2":    { cds: "P/DSS2/color",    esa: "DSSColor",     irsa: "CDS/DSS2/color" },
 };
-const SOURCES = ["esa", "backend", "cds"];
+const SOURCES = ["irsa", "esa", "backend", "cds"];
 const SOURCE_NOTE = {
+  irsa: "Sky images: IRSA’s public HiPS archive.",
   esa: "Sky images: ESA's mirror of the CDS surveys.",
   backend: "Sky images: IRSA (via our backend).",
   cds: "Sky images: CDS. If the map stays grey, your network may block CDS: start the backend (see the README), then press “Re-centre sky map”.",
 };
-// Where the pictures come from right now; decided again each time the map is opened.
-let source = SOURCES.includes(SKY_TILES) ? SKY_TILES : "cds";
-/** Survey key -> what Aladin should load (a CDS id or a full HiPS URL). */
-function surveyRef(key) {
+/** Survey key -> the CDS ID or full HiPS URL for the chosen source. */
+function surveyRef(key, source) {
   const s = SURVEYS[key] || SURVEYS["2mass"];
+  if (source === "irsa") return `${IRSA_HIPS}/${s.irsa}`;
   if (source === "esa") return `${ESA_HIPS}/${s.esa}`;
   if (source === "backend") return `${API_BASE}/api/hips/${s.irsa}`;
   return s.cds;
 }
 
-/** Does this URL answer quickly? (A blocked or slow host answers nothing.) */
-async function answers(url) {
-  try {
-    const r = await fetch(url, { signal: AbortSignal.timeout(2500) });
-    return r.ok;
-  } catch {
-    return false;
+/** Check the selected survey's metadata rather than an unrelated survey or a health endpoint. */
+export async function pickSkySource(key, {
+  preference = SKY_TILES, localRelay = CAN_USE_LOCAL_BACKEND && !IS_REMOTE_BACKEND, fetchImpl = fetch,
+} = {}) {
+  if (preference !== "auto") return SOURCES.includes(preference) ? preference : "cds";
+  const candidates = localRelay ? ["irsa", "esa", "backend"] : ["irsa", "esa"];
+  const available = candidates.map(async (source) => {
+    try {
+      const response = await fetchImpl(`${surveyRef(key, source)}/properties`, { signal: AbortSignal.timeout(3500) });
+      return response.ok && /^hips_tile_format\s*=/m.test(await response.text());
+    } catch {
+      return false;
+    }
+  });
+  for (const [index, source] of candidates.entries()) {
+    if (await available[index]) return source;
   }
-}
-
-const LOCAL_HOSTS = ["localhost", "127.0.0.1", "[::1]", ""];
-/**
- * A backend "on this machine" is only reachable from a page that is also on this machine.
- * On a public page (GitHub Pages) we must not poke at localhost: browsers may even ask the
- * visitor for permission to reach devices on their network.
- */
-function backendMayExist() {
-  let backendHost = location.hostname;                       // API_BASE = "" means the page's own server
-  try { if (API_BASE) backendHost = new URL(API_BASE).hostname; } catch { /* keep the page's host */ }
-  return !(LOCAL_HOSTS.includes(backendHost) && !LOCAL_HOSTS.includes(location.hostname));
-}
-
-/** First picture source that answers: ESA's mirror, then our backend (IRSA), then CDS. */
-async function pickSource() {
-  if (SKY_TILES !== "auto") return SOURCES.includes(SKY_TILES) ? SKY_TILES : "cds";
-  if (await answers(`${ESA_HIPS}/DSSColor/properties`)) return "esa";
-  if (backendMayExist() && await answers(`${API_BASE}/api/health`)) return "backend";
   return "cds";
 }
 
@@ -137,6 +123,7 @@ export class SkyContext {
     this.query = null;
     this.candidateTrack = [];
     this.survey = "2mass";
+    this.surveyRequest = 0;
     this.readout = null;                // the box in the corner: coordinates and, in brackets, the country overhead
     this.world = null;                  // countries (skyGeo.js), once loaded
     this.hovering = false;
@@ -243,24 +230,26 @@ export class SkyContext {
   get isOpen() { return !!this.aladin; }
 
   async open(query, survey) {
-    this.survey = survey || this.survey;
+    const key = survey || this.survey;
+    this.survey = key;
+    const request = ++this.surveyRequest;
     this.container.hidden = false;
     if (this.surface) this.surface.hidden = false;
     this.statusEl.textContent = "Loading sky map…";
     let pictureSource;
     try {
-      [this.A, pictureSource] = await Promise.all([loadAladin(), pickSource()]);
+      [this.A, pictureSource] = await Promise.all([loadAladin(), pickSkySource(key)]);
     } catch (err) {
       this.statusEl.textContent = err.message;
       this.container.hidden = true;
       if (this.surface) this.surface.hidden = true;
       return;
     }
-    const before = source;
-    source = pictureSource;
+    if (request !== this.surveyRequest) return;
+    const ref = surveyRef(key, pictureSource);
     if (!this.aladin) {
       this.aladin = this.A.aladin(this.container, {
-        survey: surveyRef(this.survey),
+        survey: ref,
         cooFrame: "ICRS",
         showReticle: true,
         showCooGridControl: true,
@@ -289,14 +278,15 @@ export class SkyContext {
       });
       this.container.addEventListener("pointerleave", () => { this.hidePointerCoordinates(); this.showCentre(); });
     }
-    // The source can change between two openings (e.g. the backend was started meanwhile).
-    else if (before !== source) this.setSurvey(this.survey);
+    else if (this.surveyUrl !== ref) this.aladin.setBaseImageLayer(ref);
+    this.surveyUrl = ref;
     this.refreshLightControl();
-    this.statusEl.textContent = SOURCE_NOTE[source];
+    this.statusEl.textContent = SOURCE_NOTE[pictureSource];
     if (this.noteEl) { this.noteEl.hidden = false; this.noteEl.textContent = this.world ? GEO_NOTE : "Loading country names…"; }
     this.update(query);
     this.setCandidateTrack(this.candidateTrack);
     this.ensureWorld();                  // not awaited: the map works at once, the country appears when the borders have arrived
+    if (this.survey !== key) await this.setSurvey(this.survey);
   }
 
   /** Draw the selected candidate's supporting detections, in observation order. */
@@ -320,13 +310,16 @@ export class SkyContext {
     if (points.length) this.trackCatalog.addSources(points.map(({ ra, dec }, index) => A.source(ra, dec, { index })));
   }
 
-  setSurvey(key) {
+  async setSurvey(key) {
     this.survey = key;
     if (!this.aladin) return;
-    const ref = surveyRef(key);
-    // API name changed between 3.x releases – support both.
-    if (typeof this.aladin.setImageSurvey === "function") this.aladin.setImageSurvey(ref);
-    else this.aladin.setBaseImageLayer(ref);
+    const request = ++this.surveyRequest;
+    const source = await pickSkySource(key);
+    if (request !== this.surveyRequest) return;
+    const ref = surveyRef(key, source);
+    if (this.surveyUrl !== ref) this.aladin.setBaseImageLayer(ref);
+    this.surveyUrl = ref;
+    this.statusEl.textContent = SOURCE_NOTE[source];
     this.refreshLightControl();
   }
 
