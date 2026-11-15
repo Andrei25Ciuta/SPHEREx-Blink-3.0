@@ -1,0 +1,8 @@
+**
+!backend/
+!backend/requirements-cloud.txt
+!backend/cloud_app.py
+!backend/orchestration_app.py
+!backend/approved_sequences.json
+!backend/spherex/
+!backend/spherex/*.py

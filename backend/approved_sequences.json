@@ -1,0 +1,34 @@
+{
+  "approved": [
+    {
+      "sequenceId": "barnard-d2",
+      "manifest": "sequences/barnard-d2/a75a1f6eaba54cba997233319b47bd3e/manifest.json",
+      "termsChecked": true
+    },
+    {
+      "sequenceId": "barnard-d5",
+      "manifest": "sequences/barnard-d5/b01dac22fc31409bb0e728bd2abf865f/manifest.json",
+      "termsChecked": true
+    },
+    {
+      "sequenceId": "barnard-d1",
+      "manifest": "sequences/barnard-d1/162670d16e8842c99a8cd5903cf4801c/manifest.json",
+      "termsChecked": true
+    },
+    {
+      "sequenceId": "barnard-d3",
+      "manifest": "sequences/barnard-d3/0d0892ce4f8549fdab74ba2a4fd0611f/manifest.json",
+      "termsChecked": true
+    },
+    {
+      "sequenceId": "barnard-d4",
+      "manifest": "sequences/barnard-d4/c6a1afe1ff5b4fcca070ea09143fbb1b/manifest.json",
+      "termsChecked": true
+    },
+    {
+      "sequenceId": "barnard-d6",
+      "manifest": "sequences/barnard-d6/d2ff6e5071284d95a2982f368ba951bb/manifest.json",
+      "termsChecked": true
+    }
+  ]
+}

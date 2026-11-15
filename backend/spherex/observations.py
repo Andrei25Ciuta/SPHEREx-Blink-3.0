@@ -9,7 +9,7 @@ from urllib.parse import urlencode, urlsplit
 from urllib.request import Request, urlopen
 
 ENDPOINT = "https://irsa.ipac.caltech.edu/SIA"
-COLLECTIONS = ("spherex_qr2", "spherex_qr2_deep", "spherex_qr3", "spherex_qr3_deep")
+COLLECTIONS = ("spherex_qr2", "spherex_qr2_deep", "spherex_qr3", "spherex_qr3_deep", "spherex_dr1", "spherex_dr1_deep")
 LIMIT = 100
 REQUIRED = {"obs_id", "energy_bandpassname", "t_min", "s_region", "access_url", "obs_collection"}
 

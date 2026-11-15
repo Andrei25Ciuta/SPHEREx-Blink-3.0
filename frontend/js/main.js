@@ -9,9 +9,11 @@
 import { parseRA, parseDec, formatRA, formatDec } from "./coords.js";
 import { TARGETS, positionAtEpoch, SPHEREX_REF_EPOCH, targetsInField, totalProperMotion } from "./targets.js";
 import { skyToCanvas, tanCanvasToSky, mjdToYear } from "./geometry.js";
-import { readUrlState, writeUrlState } from "./urlState.js";
-import { getCutouts, listDetectors } from "./data/getCutouts.js";
-import { DATA_SOURCE, API_BASE, CAN_USE_LOCAL_BACKEND } from "./config.js";
+import { readUrlState, writeUrlState } from "./urlState.js?v=1";
+import { getCutouts, listDetectors } from "./data/getCutouts.js?v=1";
+import { requestFieldApi, getFieldRequestApi, retryFieldRequestApi } from "./data/apiSource.js?v=1";
+import { followFieldRequest, fieldRequestComplete } from "./data/fieldRequests.js";
+import { DATA_SOURCE, API_BASE, CAN_USE_BACKEND, IS_REMOTE_BACKEND, LEGACY_API_READ_ONLY } from "./config.js?v=1";
 import { BlinkPlayer, MODES, loadImage, meanImageData } from "./player.js?v=8";
 import { canvasToSky, measureAndPlot, clearMeasurement, setSpectrumStyle, APERTURE_RADIUS_PX } from "./features/measure.js";
 import { setupViewer } from "./features/viewerControls.js";
@@ -53,6 +55,7 @@ import { fetchSkybotForFrames, asteroidPoints, matchAsteroids } from "./features
 import { setComparisonFrames } from "./features/detectorPair.js";
 import { savePng, recordBlink, canRecord, copyLink } from "./features/exporters.js?v=2";
 import { setupDiscoverPanel } from "./features/discoverPanel.js";
+import { clampFov, maxFovForDataSource, REAL_DATA_MAX_FOV_ARCMIN } from "./features/fieldLimits.js";
 
 // Small helper: document.getElementById is long, so we alias it.
 const $ = (id) => document.getElementById(id);
@@ -75,8 +78,12 @@ const detSelect = $("det-select");
 const canvas = $("blink-canvas");
 const observations = $("observation-select");        // a plain list of the images, beside the timeline (from the other Blink 2.0 line)
 $("data-source").value = DATA_SOURCE;
-$("data-source").querySelector('option[value="api"]').disabled = !CAN_USE_LOCAL_BACKEND;
-$("data-source-help").hidden = CAN_USE_LOCAL_BACKEND;
+$("data-source").querySelector('option[value="api"]').disabled = !CAN_USE_BACKEND;
+$("data-source-help").hidden = CAN_USE_BACKEND;
+$("data-source").querySelector('option[value="api"]').textContent = IS_REMOTE_BACKEND ? "SPHEREx data service" : "FITS backend";
+$("data-source-help").textContent = CAN_USE_BACKEND
+  ? "Real SPHEREx observations are loaded from the connected data service. Synthetic demo remains available."
+  : "No real-data service is configured for this site. Synthetic demo remains available.";
 $("data-source").addEventListener("change", event => {
   const url = new URL(location.href);
   url.searchParams.set("data", event.target.value);
@@ -87,8 +94,10 @@ $("data-source").addEventListener("change", event => {
 // so we remember the wish here and apply it then.
 let requestedDetector = null;
 
-// FOV limits – must match min/max of the slider in index.html.
-const FOV_MIN = 1, FOV_MAX = 30;
+// Keep the existing field-size control within the supported limit for the selected source.
+const FOV_MIN = 1, FOV_MAX = maxFovForDataSource(DATA_SOURCE);
+fovInput.max = String(FOV_MAX);
+document.querySelector(".range-scale span:last-child").textContent = `${FOV_MAX}′`;
 // "Skip flagged frames" threshold.
 const MAX_FLAGGED_FRACTION = FLAGGED_LIMIT;       // "Skip frames with > 1 % flagged pixels": the same limit marks a diamond on the timeline
 
@@ -100,6 +109,9 @@ let currentFrames = [];   // frames of the selected detector only (time-ordered)
 let currentDetector = null;
 let currentQuery = null;  // { ra, dec, fov } of the loaded data
 let loadToken = 0;        // increases on every load; protects against out-of-order responses
+let requestPollController = null;
+let activeFieldRequestId = null;
+let lastReadySignature = "";
 let lastQuery = null;     // remembered so "Try again" can repeat the failed request
 let discoverPanel = null; // the "Find everything" panel (set up further down)
 
@@ -116,7 +128,7 @@ speedInput.addEventListener("input", () => {
 // so we don't rewrite the URL dozens of times per second.
 fovInput.addEventListener("change", () => {
   writeUrlState({ fov: fovInput.value });
-  if (allFrames.length) form.requestSubmit();          // reload with the new FOV
+  if (allFrames.length || DATA_SOURCE === "api") form.requestSubmit(); // load cloud data when the field size changes
 });
 detSelect.addEventListener("change", () => selectDetector(detSelect.value));
 
@@ -246,7 +258,19 @@ const hideOverlay = () => {
   // Invisible (opacity 0) is not enough: screen readers would still read the old text.
   overlay.setAttribute("aria-hidden", "true");
 };
-retryBtn.addEventListener("click", () => { if (lastQuery) loadData(lastQuery); });
+retryBtn.addEventListener("click", async () => {
+  if (!lastQuery) return;
+  if (activeFieldRequestId && DATA_SOURCE === "api" && !LEGACY_API_READ_ONLY) {
+    try {
+      await retryFieldRequestApi(activeFieldRequestId);
+      loadData(lastQuery);
+    } catch (error) {
+      showOverlay("Could not retry data request", error.message || "Unknown error.", { error: true });
+    }
+    return;
+  }
+  loadData(lastQuery);
+});
 
 const setStatus = (text) => { $("status-msg").textContent = text || ""; };
 
@@ -1362,7 +1386,7 @@ function dataProvenance() {
 
 function updateSourceLabels() {
   const source = dataProvenance();
-  const label = source === false ? "Synthetic demo data" : source === "synthetic"
+  const label = DATA_SOURCE === "api" && !allFrames.length ? "Real data service selected · no field loaded" : source === false ? "Synthetic demo data" : source === "synthetic"
     ? "Synthetic FITS test data" : source === "spherex_header"
       ? "SPHEREx-format FITS" : "FITS provenance unverified";
   badge.textContent = label;
@@ -1821,6 +1845,10 @@ assistant = setupAssistant({
 /** Fetch frames for a query and show them. */
 async function loadData(query) {
   const token = ++loadToken;
+  requestPollController?.abort();
+  requestPollController = null;
+  activeFieldRequestId = null;
+  lastReadySignature = "";
   setComparisonFrames([]);
   allFrames = [];
   updateSourceLabels();
@@ -1845,37 +1873,131 @@ async function loadData(query) {
   showOverlay("Loading images…", `RA ${formatRA(query.ra)}  Dec ${formatDec(query.dec)}  ·  ${query.fov}′ field`);
 
   try {
+    if (DATA_SOURCE === "api" && !LEGACY_API_READ_ONLY) {
+      const request = await requestFieldApi({ ra: query.ra, dec: query.dec, fov: query.fov });
+      if (token !== loadToken) return;
+      if (request) {
+        activeFieldRequestId = request.requestId;
+        requestPollController = new AbortController();
+        const status = await getFieldRequestApi(request.requestId, { signal: requestPollController.signal });
+        if (token !== loadToken) return;
+        renderFieldRequestStatus(status);
+        await updateFieldRequestView(status, query, token);
+        if (fieldRequestComplete(status)) {
+          finishFieldRequest(status);
+        } else {
+          continueFieldRequest(request.requestId, query, token, requestPollController.signal);
+        }
+        return;
+      }
+    }
     const frames = await getCutouts({ ra: query.ra, dec: query.dec, fovArcmin: query.fov, detector: "all" });
     if (token !== loadToken) return;                   // a newer request started meanwhile – ignore this one
-
-    allFrames = frames;
-    updateSourceLabels();
-    setComparisonFrames(frames);
-    currentQuery = query;
-    pinBoard?.refresh();
-    if (frames.length === 0) {
-      detSelect.innerHTML = '<option value="">No data</option>';
-      detSelect.disabled = true;
-      showOverlay("No SPHEREx images found here", "Try another position or a test object.");
-      return;
-    }
-    const det = populateDetectors(frames);
-    detSelect.value = det;
-    writeUrlState({ det });
-    currentDetector = det;
-    renderOverview(frames, token);                     // runs in the background
-    await showDetector(det);
-    if (token === loadToken) sky.setWorkspaceField(query);
-    console.log(`Loaded ${frames.length} frames`, listDetectors(frames));
+    await applyFrames(frames, query, token);
   } catch (err) {
-    if (token !== loadToken) return;
+    if (token !== loadToken || err?.name === "AbortError") return;
     console.error(err);
     allFrames = [];
     detSelect.innerHTML = '<option value="">No data</option>';
     detSelect.disabled = true;
+    if (DATA_SOURCE === "api") setStatus(err.message || "The data request failed.");
     showOverlay("Could not load images", err.message || "Unknown error.", { error: true });
   } finally {
     if (token === loadToken) setLoading(false);
+  }
+}
+
+async function continueFieldRequest(requestId, query, token, signal) {
+  try {
+    const status = await followFieldRequest({
+      requestId, getStatus: getFieldRequestApi, signal,
+      onStatus: async (next) => {
+        if (token !== loadToken || activeFieldRequestId !== requestId) return;
+        renderFieldRequestStatus(next);
+        await updateFieldRequestView(next, query, token);
+      },
+    });
+    if (token === loadToken && activeFieldRequestId === requestId) finishFieldRequest(status);
+  } catch (error) {
+    if (error?.name !== "AbortError" && token === loadToken && activeFieldRequestId === requestId) {
+      setStatus(`Progress updates stopped: ${error.message || "retry the same field to reconnect."}`);
+    }
+  }
+}
+
+async function updateFieldRequestView(status, query, token) {
+  if (token !== loadToken || status?.requestId !== activeFieldRequestId) return;
+  const signature = Object.entries(status.detectors ?? [])
+    .filter(([, item]) => item.status === "ready").map(([detector]) => detector).sort().join(",");
+  if (!signature || signature === lastReadySignature) return;
+  let frames;
+  try {
+    frames = await getCutouts({ ra: query.ra, dec: query.dec, fovArcmin: query.fov,
+      detector: "all", requestId: status.requestId });
+  } catch (error) {
+    setStatus(`Observations are ready, but their images could not be loaded: ${error.message}`);
+    return;
+  }
+  if (!frames.length || token !== loadToken || activeFieldRequestId !== status.requestId) return;
+  lastReadySignature = signature;
+  await applyFrames(frames, query, token);
+  renderFieldRequestStatus(status);
+}
+
+async function applyFrames(frames, query, token) {
+  if (token !== loadToken) return;
+  allFrames = frames;
+  updateSourceLabels();
+  setComparisonFrames(frames);
+  currentQuery = query;
+  pinBoard?.refresh();
+  if (sky.isOpen) sky.update(query);
+  if (!frames.length) {
+    detSelect.innerHTML = '<option value="">No data</option>';
+    detSelect.disabled = true;
+    showOverlay("No SPHEREx images found here", "Try another position or a test object.");
+    return;
+  }
+  const detector = populateDetectors(frames);
+  detSelect.value = detector;
+  writeUrlState({ det: detector });
+  currentDetector = detector;
+  renderOverview(frames, token);
+  await showDetector(detector);
+  if (token === loadToken) sky.setWorkspaceField(query);
+  console.log(`Loaded ${frames.length} frames`, listDetectors(frames));
+}
+
+function renderFieldRequestStatus(status) {
+  const detectors = Object.entries(status.detectors ?? {});
+  const ready = Number(status.readyDetectors) || detectors.filter(([, item]) => item.status === "ready").length;
+  const percent = Math.round((Number(status.progress) || 0) * 100);
+  const phases = detectors.filter(([, item]) => !["ready", "failed", "unavailable"].includes(item.status))
+    .map(([detector, item]) => `${detector}: ${item.phase || item.status}`).join(" · ");
+  const failures = detectors.filter(([, item]) => item.status === "failed");
+  setStatus(`SPHEREx archive · ${ready}/6 detectors ready · ${percent}%${phases ? ` · ${phases}` : ""}`);
+  if (!allFrames.length) {
+    overlay.querySelector(".overlay-title").textContent = "Preparing SPHEREx observations…";
+    overlay.querySelector(".overlay-sub").textContent = phases || `${ready} of 6 detectors ready · ${percent}%`;
+    overlayProgress.hidden = false;
+    overlayProgress.value = Number(status.progress) || 0;
+  }
+  if (status.pollError) setStatus("Connection interrupted; retrying progress updates.");
+  return failures;
+}
+
+function finishFieldRequest(status) {
+  const failures = renderFieldRequestStatus(status);
+  if (!allFrames.length) {
+    const details = failures.map(([, item]) => item.error).filter(Boolean).join(" · ");
+    const failed = failures.length > 0;
+    showOverlay(failed ? "Some SPHEREx observations could not be prepared" : "No SPHEREx images found here",
+      details || "No observations matched this position.", { error: failed });
+  } else if (!failures.length) {
+    setStatus(`${allFrames.length} SPHEREx images loaded.`);
+  } else {
+    const summary = failures.map(([detector, item]) => `${detector}: ${item.error || "failed"}`).join(" · ");
+    showOverlay("Some SPHEREx observations could not be prepared", summary, { error: true });
   }
 }
 

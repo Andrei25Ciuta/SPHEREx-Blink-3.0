@@ -1,0 +1,9 @@
+# Versions exercised in the isolated Linux environment. Existing local requirements stay unchanged.
+fastapi==0.162.5
+uvicorn==0.54.0
+astropy==8.0.2
+numpy==2.5.4
+pillow==13.0.0
+google-cloud-storage==3.17.1
+google-cloud-firestore==2.34.1
+google-cloud-tasks==2.26.0

@@ -10,7 +10,7 @@
 // Catalogue objects: SIMBAD via its Harvard mirror (TAP), which sends CORS headers.
 // Older surveys are also handy for movers: a fast star sits somewhere ELSE in 2MASS (1999)!
 
-import { SKY_TILES, API_BASE } from "../config.js";
+import { SKY_TILES, API_BASE } from "../config.js?v=1";
 import { WORLD_URL, decodeCountries, overheadAt } from "./skyGeo.js";
 import { fieldCorners } from "./explorerGeometry.js";
 import { aladinSkyAt, selectionText, copySkySelection } from "./skyContextClick.js";

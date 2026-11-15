@@ -1,5 +1,11 @@
 # SPHEREx Blink 4.0 · feature inventory
 
+## Cloud data service
+
+Science Mode can select the HTTPS SPHEREx DR1 service. The existing field form submits a durable request, displays server-reported progress over the image stage, and loads each ready detector as its frames are published. Prepared sequences and cutouts are available; real fields are limited to 1–10 arcmin while synthetic fields remain 1–30 arcmin. Firestore tracks request state and the manifest index; Google Cloud Storage keeps image products private behind the API. No credentials or image pixels are shipped in the frontend or Git. Current API contract and operational boundaries: [BACKEND_CONTRACT.md](BACKEND_CONTRACT.md) and [CLOUD_DEPLOYMENT.md](CLOUD_DEPLOYMENT.md).
+
+The deployed service currently returns HTTP 501 for its local-only `/api/survey`, `/api/catalogue`, `/api/footprints` and `/api/hips/*` routes. The Workspace survey search therefore cannot use those routes in cloud mode. The cloud `/api/photometry` endpoint returned HTTP 503 in a read-only check on 15 Nov 2026; recheck it before relying on image-click measurements with cloud data. Local backend mode continues to expose those local research endpoints.
+
 ## New in 4.0: Research + Education
 
 | Feature | Implementation | Status / limits |
