@@ -4,6 +4,21 @@ import { MIN_FOV_ARCMIN, REAL_DATA_MAX_FOV_ARCMIN } from "./fieldLimits.js";
 
 const FOV_ERROR = `Field of view must be between ${MIN_FOV_ARCMIN} and ${REAL_DATA_MAX_FOV_ARCMIN} arcmin.`;
 const rounded = (value, digits) => Number(value.toFixed(digits)) || 0;
+const COLON_NUMBER = /^(?:\d+(?:[.,]\d*)?|[.,]\d+)(?:e[+−-]?\d+)?$/i;
+
+function parseZoneCoordinate(input, parse) {
+  // The shared parser discards empty components and accepts signed numbers
+  // after stripping the first sign. Refuse these ambiguities before acquisition.
+  const magnitude = String(input).trim().replace(/^[+−-]\s*/, "");
+  const withoutExponentSigns = magnitude.replace(/([\d.,]e)[+−-](?=\d)/gi, "$1");
+  if (/[+−-]/.test(withoutExponentSigns)) {
+    return { ok: false, error: "Use at most one sign, at the start of the coordinate." };
+  }
+  if (magnitude.includes(":") && magnitude.split(":").some(part => !COLON_NUMBER.test(part.trim()))) {
+    return { ok: false, error: "Enter a number in every colon-separated component." };
+  }
+  return parse(input);
+}
 
 // Match the acquisition API's precision. Rounding a valid RA just below 360°
 // must produce 0°, not an out-of-range 360° in the request or the URL.
@@ -15,7 +30,7 @@ export function normalizeZoneCentre(ra, dec) {
 }
 
 export function parseSkyZone({ ra, dec, fov }) {
-  const r = parseRA(ra), d = parseDec(dec);
+  const r = parseZoneCoordinate(ra, parseRA), d = parseZoneCoordinate(dec, parseDec);
   const width = Number(fov);
   const errors = {
     ra: r.ok ? "" : `RA: ${r.error}`,

@@ -11,18 +11,27 @@ const { requestFieldApi } = await import("../frontend/js/data/apiSource.js");
 const { SkyContext } = await import("../frontend/js/features/skyContext.js");
 
 const draft = (ra, dec, fov = "5") => parseSkyZone({ ra, dec, fov });
+const malformedCoordinates = {
+  ra: ["08:", ":08", "08::00", "08 :  : 00", "08: h :00", "+ \t+08", "++08", "08:+15:00"],
+  dec: ["-07:", ":-07", "-07::15", "-07: \t :15", "--7.25", "−−7.25", "− \t-7.25", "+ −7.25", "-  -7.25"],
+};
 assert.deepEqual(draft("08:00:00", "−07°15′", "7.25").query, { ra: 120, dec: -7.25, fov: 7.25 });
+assert.deepEqual(draft("  +08 : 00 ", "−00:30").query, { ra: 120, dec: -0.5, fov: 5 });
+assert.deepEqual(draft("08h00m00s", "-07d15m00s").query, { ra: 120, dec: -7.25, fov: 5 });
+assert.deepEqual(draft("08 00 00", "−00 30").query, { ra: 120, dec: -0.5, fov: 5 });
+assert.deepEqual(draft("+120,5", "−7.25").query, { ra: 120.5, dec: -7.25, fov: 5 });
+assert.deepEqual(draft("1e-8", "-1e-8").query, { ra: 1e-8, dec: -1e-8, fov: 5 });
 assert.deepEqual(draft("359.999999999", "+90", "1").query, { ra: 0, dec: 90, fov: 1 });
 assert.deepEqual(draft("23h59m59.999999s", "-90", "10").query, { ra: 0, dec: -90, fov: 10 });
 assert.deepEqual(draft("359.99999998", "-0.000000001", "6.123451").query, { ra: 359.99999998, dec: 0, fov: 6.1235 });
 for (const [field, values] of Object.entries({
-  ra: ["", "-", "360", "-1", "24:00:00", "11:60:00", "nonsense"],
-  dec: ["", "-", "-90:00:01", "+90:00:01", "Infinity"],
+  ra: ["", "-", "360", "-1", "24:00:00", "11:60:00", "nonsense", ...malformedCoordinates.ra],
+  dec: ["", "-", "-90:00:01", "+90:00:01", "Infinity", ...malformedCoordinates.dec],
   fov: ["", " ", "0", "0.99999", "10.00001", "11", "NaN", "Infinity"],
 })) {
   for (const value of values) {
     const result = parseSkyZone({ ra: "1", dec: "2", fov: "5", [field]: value });
-    assert.equal(result.query, null, `${field}=${value} must not submit`);
+    assert.equal(result.query, null, `${field}=${JSON.stringify(value)} must not submit`);
     assert.ok(result.errors[field]);
   }
 }
@@ -125,6 +134,24 @@ assert.equal(legacy.els.root.hidden, false);
 assert.equal(legacy.els.button.disabled, true);
 emit(legacy.els.button, "click");
 assertNoEffects();
+
+const malformed = await setup();
+for (const [field, values] of Object.entries(malformedCoordinates)) {
+  const el = malformed.els[field];
+  const valid = el.value;
+  for (const value of values) {
+    input(el, value);
+    finish(el);
+    emit(malformed.els.button, "click", { detail: 1 });
+    await settle();
+    assert.equal(el.attributes.get("aria-invalid"), "true", `${field}=${JSON.stringify(value)}`);
+    assert.deepEqual(malformed.centre, [269.4462, 4.769], "malformed input does not move the reticle");
+    assert.equal(window.location.href, initialUrl.href, "invalid explicit click leaves shared URL intact");
+    assertNoEffects();
+  }
+  input(el, valid);
+  finish(el);
+}
 
 const view = await setup();
 const { map, els, outlines } = view;
@@ -230,4 +257,4 @@ assert.deepEqual(reloaded.centre, [269.4462, 4.769], "P2 reload still uses the w
 assert.equal(requests.length, count);
 assert.equal(writes.length, count);
 assert.equal(seen.length, count, "no unexpected HTTP methods or reads");
-console.log("PASS sky zone: bounds and RA wrap, edit races, true footprint, explicit DR1 submission, feedback and repeat guard");
+console.log("PASS sky zone: malformed coordinates blocked before URL/POST, valid formats and bounds, edit races, footprint, submission and repeat guard");
