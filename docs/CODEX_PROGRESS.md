@@ -1,3 +1,9 @@
+## 2026-11-19 — Field of the Day result card
+
+The right-hand result panel uses the Pin Board card styles. It shows the score, simulated motion, streak, and replay and sharing actions. A successful round also shows the source crop and both positions in image pixels.
+
+Validation: all `scratch/test_*.mjs` scripts and `git diff --check` passed. The daily test uses a fixed UTC seed with mocked canvas and browser storage. A rendered check was blocked when Chromium could not open a socket in the sandbox. Backend pytest was unavailable because pytest is not installed.
+
 ## 2026-11-19 — Field of the Day
 
 The overview links to a daily two-frame blink challenge generated from the existing synthetic renderer. The puzzle changes at midnight UTC. Results and streaks use browser storage.

@@ -87,29 +87,42 @@ function draw() {
   $("daily-submit").disabled = !markers.every(Boolean) || done();
 }
 
-function describeMotion([start, end]) {
+function measureMotion([start, end]) {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
   const speed = Math.hypot(dx, dy);
-  if (speed < 0.05) return "0.0 px/year · no measurable direction";
   const angle = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
   const direction = ["right", "down-right", "down", "down-left", "left", "up-left", "up", "up-right"][Math.round(angle / 45) % 8];
-  return `${speed.toFixed(1)} px/year · ${direction}`;
+  return {
+    speed: `${speed.toFixed(1)} px/year`,
+    direction: speed < 0.05 ? "no measurable direction" : direction,
+  };
 }
+
+const solution = measureMotion(targets);
+const formatPosition = ({ x, y }) => `X ${x.toFixed(1)} · Y ${y.toFixed(1)} px`;
 
 function updateResult() {
   const remaining = limit - attempts.length;
   const result = latest();
-  $("daily-status").textContent = result?.hit
+  const hit = Boolean(result?.hit);
+  const finished = done();
+  $("daily-results").classList.toggle("is-open", hit);
+  $("daily-results-icon").textContent = hit ? "✓" : "✦";
+  $("daily-results-title").textContent = hit ? "Object found" : finished ? "Round complete" : "Results";
+  $("daily-status").textContent = hit
     ? `Found in ${attempts.length}/${limit} · ${result.score}/100 points.`
     : remaining ? `${remaining} attempt${remaining === 1 ? "" : "s"} left.` : "Out of attempts · 0/100 points.";
   $("daily-measurement").textContent = result
-    ? `Your estimate: ${result.motion}` : "";
-  $("daily-solution").hidden = !done();
-  $("daily-solution").textContent = done() ? `Simulated motion: ${describeMotion(targets)}` : "";
-  $("daily-found").hidden = !result?.hit;
-  $("daily-share").hidden = !done();
-  $("daily-replay").hidden = !done();
+    ? `Your estimate: ${result.motion.speed} · ${result.motion.direction}` : "";
+  $("daily-speed").hidden = !finished;
+  $("daily-direction").hidden = !finished;
+  $("daily-speed").textContent = finished ? solution.speed : "";
+  $("daily-direction").textContent = finished ? `Toward ${solution.direction}` : "";
+  $("daily-found").hidden = !hit;
+  $("daily-position-a").textContent = hit ? formatPosition(targets[0]) : "";
+  $("daily-position-b").textContent = hit ? formatPosition(targets[1]) : "";
+  $("daily-result-actions").hidden = !finished;
   const lastDay = saved.lastPlayed ?? saved.lastSolved;
   const gap = day - lastDay;
   const streak = gap <= 1 || (gap === 2 && !saved.freezeUsed) ? saved.streak ?? 0 : 0;
@@ -154,7 +167,7 @@ $("daily-submit").addEventListener("click", () => {
   const hit = error <= tolerance;
   const accuracy = Math.max(0, 1 - error / tolerance);
   const score = hit ? Math.round(50 + 30 * accuracy + 10 * (limit - 1 - attempts.length)) : 0;
-  attempts.push({ hit, score, motion: describeMotion(markers) });
+  attempts.push({ hit, score, motion: measureMotion(markers) });
   if (done()) recordPlay();
   markers.fill(null);
   updateResult();

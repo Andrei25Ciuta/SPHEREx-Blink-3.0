@@ -6,7 +6,7 @@
   <title>Field of the Day · SPHEREx Blink</title>
   <link rel="stylesheet" href="css/styles.css?v=20261115">
   <link rel="stylesheet" href="css/instrument.css?v=20261115">
-  <link rel="stylesheet" href="css/daily.css?v=stars">
+  <link rel="stylesheet" href="css/daily.css?v=result-card">
 </head>
 <body class="daily-page">
   <canvas id="daily-background" aria-hidden="true"></canvas>
@@ -31,30 +31,49 @@
         </div>
         <div class="daily-controls">
           <button type="button" class="btn" id="daily-submit" disabled>Submit guess</button>
-          <button type="button" class="btn" id="daily-replay" hidden>Play again</button>
-          <button type="button" class="btn" id="daily-share" hidden>Copy result</button>
+        </div>
+      </div>
+      <aside id="daily-results" class="pin-item daily-results" aria-labelledby="daily-results-title">
+        <div class="pb-card-head">
+          <span id="daily-results-icon" class="pb-avatar" aria-hidden="true">✦</span>
+          <div>
+            <h2 id="daily-results-title">Results</h2>
+            <p id="daily-status" class="pb-when" role="status">3 attempts left.</p>
+          </div>
+        </div>
+        <div class="pb-chips" role="group" aria-label="Simulated motion">
+          <span class="pb-chip">Synthetic demo</span>
+          <span id="daily-speed" class="pb-chip" hidden></span>
+          <span id="daily-direction" class="pb-chip" hidden></span>
+        </div>
+        <section id="daily-found" aria-labelledby="daily-found-title" hidden>
+          <h3 id="daily-found-title">Source positions</h3>
+          <div class="daily-source">
+            <figure>
+              <canvas id="daily-preview" width="120" height="120" role="img" aria-label="Zoomed view of the recovered synthetic source"></canvas>
+              <figcaption id="daily-preview-caption"></figcaption>
+            </figure>
+            <dl class="daily-positions">
+              <dt>Frame A</dt>
+              <dd id="daily-position-a"></dd>
+              <dt>Frame B</dt>
+              <dd id="daily-position-b"></dd>
+            </dl>
+          </div>
+        </section>
+        <p id="daily-measurement" aria-live="polite"></p>
+        <p id="daily-streak"></p>
+        <div id="daily-result-actions" class="pb-popup-actions" hidden>
+          <button type="button" class="btn btn-small" id="daily-replay">Play again</button>
+          <button type="button" class="btn btn-small" id="daily-share">Copy result</button>
         </div>
         <p id="daily-copy-status" role="status"></p>
         <textarea id="daily-share-text" aria-label="Shareable result" readonly hidden></textarea>
-      </div>
-      <aside class="daily-results" aria-labelledby="daily-results-title">
-        <h2 id="daily-results-title">Results</h2>
-        <div id="daily-found" hidden>
-          <h2 id="daily-found-title">Object found</h2>
-          <figure>
-            <canvas id="daily-preview" width="120" height="120" role="img" aria-label="Zoomed view of the recovered synthetic source"></canvas>
-            <figcaption id="daily-preview-caption"></figcaption>
-          </figure>
-        </div>
-        <p id="daily-status" role="status">3 attempts left.</p>
-        <p id="daily-measurement" aria-live="polite"></p>
-        <p id="daily-solution" hidden></p>
-        <p id="daily-streak"></p>
       </aside>
     </div>
   </main>
   <div id="daily-celebration" aria-hidden="true"></div>
   <script type="module" src="js/dailyBackground.js"></script>
-  <script type="module" src="js/daily.js?v=results"></script>
+  <script type="module" src="js/daily.js?v=result-card"></script>
 </body>
 </html>

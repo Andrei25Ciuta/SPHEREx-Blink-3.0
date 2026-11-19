@@ -25,32 +25,60 @@
 }
 #daily-share-text { width: 100%; }
 
-
 .daily-layout {
   display: grid;
-  grid-template-columns: minmax(0, 29rem) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
   gap: 1.5rem;
   align-items: start;
 }
 
 .daily-results {
   margin-top: .75rem;
-  padding: 1rem;
-  border: 1px solid var(--accent);
-  border-radius: var(--radius-sm);
+  padding: clamp(.8rem, 2vw, 1.2rem);
 }
 
-.daily-results h2 { margin: 0 0 .75rem; font-size: 1rem; }
+.daily-results h2 { margin: 0; font-size: 1.15rem; }
+.daily-results .pb-chips { margin-top: .85rem; }
+.daily-results.is-open .pb-avatar {
+  background: var(--success);
+  color: var(--surface);
+}
+
+#daily-found {
+  margin-top: .85rem;
+  padding: .75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--field);
+}
+
+#daily-found h3 { margin: 0 0 .65rem; font-size: .9rem; }
+.daily-source {
+  display: grid;
+  grid-template-columns: minmax(0, 5rem) minmax(0, 1fr);
+  gap: .75rem;
+  align-items: start;
+}
+
 #daily-found figure { margin: 0; }
-#daily-found figcaption { margin-top: .5rem; font-size: .85rem; }
+#daily-found figcaption { margin-top: .3rem; }
+.daily-positions { margin: 0; }
+.daily-positions dt, #daily-found figcaption { font-size: .78rem; color: var(--text-muted); }
+.daily-positions dd { margin: 0 0 .35rem; font: 600 .85rem/1.4 var(--font-mono); }
 
 #daily-preview {
   display: block;
   width: 100%;
-  max-width: 9rem;
   height: auto;
   image-rendering: pixelated;
+  border-radius: var(--radius-sm);
 }
+
+#daily-status { margin: .15rem 0 0; }
+#daily-measurement, #daily-streak { margin: .65rem 0 0; }
+#daily-streak { color: var(--text-muted); font-size: .83rem; }
+#daily-copy-status { margin: .45rem 0 0; }
+#daily-copy-status:empty, #daily-measurement:empty { margin: 0; }
 
 .daily-image-stage {
   position: relative;
@@ -109,17 +137,6 @@
   #daily-celebration { display: none; }
 }
 
-#daily-found-title {
-  display: inline-block;
-  padding: .3rem .65rem;
-  border: 1px solid var(--accent);
-  border-radius: 2rem;
-  color: var(--accent-text);
-}
-
-.daily-results p { margin: .7rem 0 0; overflow-wrap: anywhere; }
-#daily-solution { font-weight: 700; }
-
 .daily-page {
   isolation: isolate;
 }
@@ -139,8 +156,4 @@ html[data-theme]:not([data-contrast="high"]) body.daily-page.has-animated-stars 
 
 html[data-contrast="high"] #daily-background {
   visibility: hidden;
-}
-
-.daily-results {
-  background: var(--bg);
 }

@@ -4,6 +4,8 @@ import { mulberry32 } from "../frontend/js/data/mockSource.js";
 
 const overview = await readFile(new URL("../frontend/overview.html", import.meta.url), "utf8");
 assert.match(overview, /href="daily\.html"[^>]*><span>Play today’s field/);
+const daily = await readFile(new URL("../frontend/daily.html", import.meta.url), "utf8");
+assert.match(daily, /<aside id="daily-results"[\s\S]*id="daily-share"[\s\S]*<\/aside>/);
 let day = 20776;
 Date.now = () => day * 86400000;
 const nodes = new Map();
@@ -19,6 +21,14 @@ globalThis.document = {
     if (!nodes.has(id)) nodes.set(id, {
       addEventListener(type, callback) { this[type] = callback; },
       setAttribute() {},
+      classList: {
+        items: new Set(),
+        has(token) { return this.items.has(token); },
+        toggle(token, enabled) {
+          if (enabled) this.items.add(token);
+          else this.items.delete(token);
+        },
+      },
       focus() {},
       replaceChildren(...children) { this.children = children; },
       width: 256,
@@ -60,23 +70,29 @@ submit.click();
 assert.equal(nodes.get("daily-status").textContent, "Found in 2/3 · 90/100 points.");
 assert.match(nodes.get("daily-measurement").textContent, /Your estimate: .*px\/year/);
 assert.equal(nodes.get("daily-found").hidden, false);
-assert.equal(nodes.get("daily-solution").hidden, false);
-assert.match(nodes.get("daily-solution").textContent, /Simulated motion: .*px\/year/);
+assert.equal(nodes.get("daily-results-title").textContent, "Object found");
+assert.equal(nodes.get("daily-results").classList.has("is-open"), true);
+assert.equal(nodes.get("daily-speed").hidden, false);
+assert.equal(nodes.get("daily-speed").textContent, `${Math.hypot(vx, vy).toFixed(1)} px/year`);
+assert.match(nodes.get("daily-direction").textContent, /^Toward /);
+assert.equal(nodes.get("daily-position-a").textContent, `X ${x.toFixed(1)} · Y ${y.toFixed(1)} px`);
+assert.equal(nodes.get("daily-position-b").textContent, `X ${targetX.toFixed(1)} · Y ${targetY.toFixed(1)} px`);
 assert.match(nodes.get("daily-preview-caption").textContent, /Frame B/);
 assert.equal(nodes.get("daily-celebration").children.length, 12);
 nodes.get("frame-a").click();
 assert.match(nodes.get("daily-preview-caption").textContent, /Frame A/);
-assert.equal(nodes.get("daily-share").hidden, false);
+assert.equal(nodes.get("daily-result-actions").hidden, false);
 assert.equal(nodes.get("daily-streak").textContent, "Streak: 1 day · 1 freeze available");
-assert.equal(nodes.get("daily-replay").hidden, false);
 nodes.get("daily-replay").click();
 assert.equal(nodes.get("daily-found").hidden, true);
-assert.equal(nodes.get("daily-solution").hidden, true);
+assert.equal(nodes.get("daily-results").classList.has("is-open"), false);
+assert.equal(nodes.get("daily-speed").hidden, true);
+assert.equal(nodes.get("daily-direction").hidden, true);
 assert.equal(nodes.get("daily-celebration").children.length, 0);
 reducedMotion = true;
 assert.equal(nodes.get("daily-status").textContent, "3 attempts left.");
 assert.equal(submit.disabled, true);
-assert.equal(nodes.get("daily-share").hidden, true);
+assert.equal(nodes.get("daily-result-actions").hidden, true);
 nodes.get("frame-b").click();
 nodes.get("frame-a").click();
 guess(x, y);
@@ -100,6 +116,10 @@ function loseRound() {
     submit.click();
   }
   assert.equal(nodes.get("daily-status").textContent, "Out of attempts · 0/100 points.");
+  assert.equal(nodes.get("daily-results-title").textContent, "Round complete");
+  assert.equal(nodes.get("daily-found").hidden, true);
+  assert.equal(nodes.get("daily-speed").hidden, false);
+  assert.equal(nodes.get("daily-result-actions").hidden, false);
 }
 
 day += 2;
