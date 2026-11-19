@@ -927,8 +927,7 @@ html.sky-browse.sky-request-active .observation-select,
 html.sky-browse.sky-request-active .speed,
 html.sky-browse.sky-request-active #stage-tools,
 html.sky-browse.sky-request-active #retry-btn,
-html.sky-browse.sky-request-active .workspace-jumps,
-html.sky-browse.sky-request-active .sky-zone-controls { display: none !important; }
+html.sky-browse.sky-request-active .workspace-jumps { display: none !important; }
 html.sky-browse.sky-request-active .playback-strip {
   justify-content: flex-start;
   margin: 0 0 .75rem;
