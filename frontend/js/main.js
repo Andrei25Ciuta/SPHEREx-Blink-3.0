@@ -40,8 +40,9 @@ import { applyIcons } from "./features/ui.js";
 import { openDialog, shortcutsHtml } from "./features/dialog.js";
 import { setupTimeline } from "./features/timelineView.js";
 import { FLAGGED_LIMIT } from "./features/timeline.js";
-import { SkyContext } from "./features/skyContext.js?v=14";
+import { SkyContext } from "./features/skyContext.js?v=15";
 import { BROWSE_SURVEYS } from "./features/skyBrowse.js";
+import { setupSkyZone } from "./features/skyZone.js";
 import { setupFullscreen } from "./features/fullscreen.js";
 import { detectSources, describeMover, matchKnownObject, moverPositionAtMjd, passIndices, trackSupport, blendWarning, VERSION as MOVERS_VERSION, DEFAULTS as MOVER_DEFAULTS, ERROR_MODEL } from "./features/movers.js";
 import { blindCheckCandidate, VERSION as BLIND_CHECK_VERSION } from "./features/blindCheck.js";
@@ -834,6 +835,17 @@ const sky = new SkyContext($("aladin-box"), $("aladin-status"), $("sky-geo-note"
   resetLight: $("sky-reset-light"),
   resetStatus: $("sky-reset-status"),
 });
+const skyZone = SKY_BROWSE ? setupSkyZone({
+  els: {
+    root: $("sky-zone-controls"), ra: $("sky-zone-ra"), dec: $("sky-zone-dec"),
+    fov: $("sky-zone-fov"), button: $("sky-zone-request"), error: $("sky-zone-error"), status: $("sky-zone-status"),
+  },
+  map: sky,
+  requestField: requestFieldApi,
+  writeUrl: writeUrlState,
+  unavailable: LEGACY_API_READ_ONLY ? "This data-service link is read-only. Zone requests are unavailable."
+    : !CAN_USE_BACKEND ? "No SPHEREx data service is configured. Zone requests are unavailable." : "",
+}) : null;
 setupFullscreen($("sky-frame"), $("sky-full-btn"));   // map + its controls fill the screen
 /** Open (or re-centre) the sky map on a position { ra, dec, fov }. */
 async function openSkyMap(q) {
@@ -860,9 +872,12 @@ async function openSkyBrowse() {
   select.disabled = true;
   select.selectedIndex = -1;
   try {
-    const survey = await sky.openBrowse();
+    const survey = await sky.openBrowse({ onCentre: skyZone?.syncCentre });
     if (survey === "dr1") select.add(new Option(BROWSE_SURVEYS.dr1.name, survey));
-    if (survey) select.value = survey;
+    if (survey) {
+      select.value = survey;
+      skyZone?.open();
+    }
   } finally {
     button.disabled = false;
     button.textContent = sky.browseSurvey ? "Re-centre sky map" : "Retry sky map";
@@ -1900,7 +1915,7 @@ assistant = setupAssistant({
 // ---------------------------------------------------------------
 /** Fetch frames for a query and show them. */
 async function loadData(query) {
-  if (SKY_BROWSE) return; // Browse gestures and legacy controls must never start acquisition or read its state.
+  if (SKY_BROWSE) return; // The pilot submits only from its zone button, never via the legacy loader.
   const token = ++loadToken;
   requestPollController?.abort();
   requestPollController = null;

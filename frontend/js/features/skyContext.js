@@ -270,8 +270,22 @@ export class SkyContext {
     this.aladin.on("positionChanged", () => {
       if (!this.hovering) this.showCentre();
       this.refreshMapControls();
+      this.onBrowseCentre?.(this.getBrowseCentre());
     });
     this.container.addEventListener("pointerleave", () => { this.hidePointerCoordinates(); this.showCentre(); });
+  }
+
+  getBrowseCentre() {
+    // Read the current ICRS centre rather than a potentially delayed event's coordinates.
+    const coordinates = this.aladin?.getRaDec();
+    return coordinates ? { ra: coordinates[0], dec: coordinates[1] } : null;
+  }
+
+  /** Move only the reticle centre, leaving the user's map zoom unchanged. */
+  centreBrowseAt({ ra, dec }) {
+    this.aladin.gotoRaDec(ra, dec);
+    this.showCentre();
+    this.refreshMapControls();
   }
 
   centreBrowse() {
@@ -280,10 +294,34 @@ export class SkyContext {
     this.aladin.setFoV(fovDeg);
     this.showCentre();
     this.refreshMapControls();
+    this.onBrowseCentre?.(this.getBrowseCentre());
   }
 
-  /** Browse mode has no field square, catalogue queries or connection to the cutout form. */
-  async openBrowse({ loadViewer = loadAladin, probe = probeBrowseSurvey } = {}) {
+  addFieldOutline(name) {
+    const overlay = this.A.graphicOverlay({ color: "#22d3ee", lineWidth: 2, lineDash: [6, 4], name });
+    this.aladin.addOverlay(overlay);
+    return overlay;
+  }
+
+  /** Draw the editable zone without changing the view or the ordinary workspace field. */
+  setBrowseZone(zone) {
+    if (!this.aladin) return;
+    const previous = this.browseZone;
+    if (previous?.ra === zone?.ra && previous?.dec === zone?.dec && previous?.fov === zone?.fov) return;
+    this.browseZone = zone;
+    if (!zone) {
+      this.browseOutline?.hide();
+      return;
+    }
+    this.browseOutline ??= this.addFieldOutline("Draft zone");
+    this.browseOutline.removeAll();
+    this.browseOutline.add(this.A.polygon(fieldCorners(zone.ra, zone.dec, zone.fov)));
+    this.browseOutline.show();
+  }
+
+  /** Browse mode has no catalogue queries or connection to the cutout form. */
+  async openBrowse({ loadViewer = loadAladin, probe = probeBrowseSurvey, onCentre = null } = {}) {
+    this.onBrowseCentre = onCentre;
     this.container.hidden = false;
     if (this.surface) this.surface.hidden = false;
     this.statusEl.textContent = "Loading sky map…";
@@ -400,11 +438,8 @@ export class SkyContext {
     this.setReadout(ra, dec, "Centre");
     this.refreshMapControls();
 
-    if (this.overlay) this.overlay.removeAll();
-    else {
-      this.overlay = A.graphicOverlay({ color: "#22d3ee", lineWidth: 2, lineDash: [6, 4], name: "Blink field" });
-      aladin.addOverlay(this.overlay);
-    }
+    this.overlay ??= this.addFieldOutline("Blink field");
+    this.overlay.removeAll();
     this.overlay.add(A.polygon(fieldCorners(ra, dec, fov)));
 
     // SIMBAD objects: drop the previous catalogue, load the new circle.
