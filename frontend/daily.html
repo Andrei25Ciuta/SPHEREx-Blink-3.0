@@ -141,6 +141,21 @@
             </div>
             <div class="pb-chips"><span class="pb-chip">Real SPHEREx · D2</span></div>
             <p id="daily-real-motion" role="status"></p>
+            <p id="daily-real-rating" class="pb-chip" hidden></p>
+            <details id="daily-real-details" hidden>
+              <summary>More info</summary>
+              <dl class="daily-positions">
+                <dt>Observation span</dt>
+                <dd id="daily-real-span"></dd>
+                <dt>Displacement between first and last marks</dt>
+                <dd id="daily-real-displacement"></dd>
+                <dt>First and last image positions (X, Y)</dt>
+                <dd id="daily-real-positions"></dd>
+                <dt>Motion consistency</dt>
+                <dd id="daily-real-fit"></dd>
+              </dl>
+              <p class="pb-when">The score describes how closely the marks follow straight-line motion at a constant speed. It cannot verify the source’s identity.</p>
+            </details>
             <ul id="daily-real-results-frames" aria-label="Marked observations" hidden></ul>
           </aside>
         </div>
@@ -152,7 +167,7 @@
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script defer src="js/overviewStarfield.js"></script>
   <script defer src="js/dailyBackground.js?v=overview"></script>
-  <script type="module" src="js/dailyReal.js?v=selected-frames"></script>
-  <script type="module" src="js/daily.js?v=game-progress"></script>
+  <script type="module" src="js/dailyReal.js?v=motion-info"></script>
+  <script type="module" src="js/daily.js?v=shared-celebration"></script>
 </body>
 </html>

@@ -17,6 +17,7 @@ function node(id) {
 let nextElement = 0;
 globalThis.document = { getElementById: node, createElement: () => node(`element-${nextElement++}`) };
 globalThis.Option = class {};
+globalThis.window = { matchMedia: () => ({ matches: true }) };
 let calls = 0;
 globalThis.fetch = async (url) => {
   assert.match(url, /\/api\/cutouts\?/);
@@ -50,6 +51,8 @@ node("daily-real-epoch").change();
 assert.equal(node("daily-real-submit").disabled, false);
 node("daily-real-submit").click();
 assert.match(node("daily-real-motion").textContent, /60.0 arcsec\/year · right/);
+assert.equal(node("daily-real-details").hidden, false);
+assert.match(node("daily-real-rating").textContent, /needs 3/);
 const thumbnails = node("daily-real-results-frames");
 assert.equal(thumbnails.hidden, false);
 assert.deepEqual(thumbnails.children.map((item) => item.children[0].children[0].children[0].src),
@@ -63,6 +66,8 @@ image.click({ clientX: 70, clientY: 50 });
 assert.equal(thumbnails.children.length, 3);
 node("daily-real-submit").click();
 assert.equal(thumbnails.children.length, 3);
+assert.equal(node("daily-real-rating").textContent, "★☆☆☆☆ · 29/100 consistency");
+assert.match(node("daily-real-fit").textContent, /2.50 px/);
 node("daily-synthetic-mode").click();
 assert.equal(node("daily-synthetic").hidden, false);
 node("daily-real-mode").click();

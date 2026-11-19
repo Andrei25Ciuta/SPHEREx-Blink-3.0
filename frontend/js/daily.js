@@ -1,3 +1,4 @@
+import { showShootingStars } from "./dailyCelebration.js";
 import { mulberry32, renderPixels, stretchAsinh } from "./data/mockSource.js";
 
 const $ = (id) => document.getElementById(id);
@@ -83,17 +84,7 @@ function celebrate(streak) {
   clearToast();
   $("daily-toast").textContent = `Well done! Object found. ${streak}-day streak.`;
   toastTimer = setTimeout(clearToast, 5500);
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  const overlay = $("daily-celebration");
-  const meteors = Array.from({ length: 12 }, (_, index) => {
-    const star = document.createElement("span");
-    star.style.setProperty("--start", `${-9 + (index * 43) % 101}%`);
-    star.style.setProperty("--height", `${-15 + (index * 23) % 96}%`);
-    star.style.setProperty("--delay", `${index * 105}ms`);
-    star.addEventListener("animationend", () => star.remove(), { once: true });
-    return star;
-  });
-  overlay.replaceChildren(...meteors);
+  showShootingStars();
 }
 
 function draw() {

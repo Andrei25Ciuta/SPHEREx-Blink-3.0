@@ -1,3 +1,4 @@
+import { showShootingStars } from "./dailyCelebration.js";
 import { getCutoutsApi } from "./data/apiSource.js?v=1";
 import { IS_REMOTE_BACKEND } from "./config.js?v=1";
 
@@ -45,6 +46,8 @@ function updateMarks() {
   const span = points.length < 2 ? 0 : frames[points.at(-1)[0]].mjd - frames[points[0][0]].mjd;
   $("real-submit").disabled = !(span > 0);
   $("real-motion").textContent = "";
+  $("real-details").hidden = !submitted;
+  $("real-rating").hidden = !submitted;
   if (!submitted || !(span > 0)) return;
   const [, a] = points[0];
   const [, b] = points.at(-1);
@@ -57,6 +60,31 @@ function updateMarks() {
   const direction = ["right", "down-right", "down", "down-left", "left", "up-left", "up", "up-right"][Math.round(angle / 45) % 8];
   const rate = scale > 0 ? `${(speed * scale).toFixed(1)} arcsec/year` : `${speed.toFixed(1)} px/year`;
   $("real-motion").textContent = `Apparent motion between first and last marks: ${rate}${speed > 0 ? ` · ${direction}` : ""}.`;
+  const firstFrame = frames[points[0][0]];
+  const lastFrame = frames[points.at(-1)[0]];
+  $("real-span").textContent = `${firstFrame.dateISO.slice(0, 10)} → ${lastFrame.dateISO.slice(0, 10)} · ${span.toFixed(1)} days`;
+  $("real-displacement").textContent = `${Math.hypot(dx, dy).toFixed(1)} px`;
+  const coords = ({ x, y, width, height }) => `(${(x * width).toFixed(1)}, ${(y * height).toFixed(1)})`;
+  $("real-positions").textContent = `${coords(a)} → ${coords(b)} px`;
+  const intermediate = points.slice(1, -1).filter(([i]) =>
+    frames[i].mjd > firstFrame.mjd && frames[i].mjd < lastFrame.mjd);
+  if (!intermediate.length) {
+    $("real-rating").textContent = "Consistency score needs 3 distinct observation times.";
+    $("real-fit").textContent = "Mark an intermediate observation to check the estimated motion.";
+    return;
+  }
+
+  const squaredError = intermediate.reduce((sum, [i, mark]) => {
+    const fraction = (frames[i].mjd - firstFrame.mjd) / span;
+    const errorX = (mark.x - a.x) * a.width - dx * fraction;
+    const errorY = (mark.y - a.y) * a.height - dy * fraction;
+    return sum + errorX ** 2 + errorY ** 2;
+  }, 0);
+  const rms = Math.sqrt(squaredError / intermediate.length);
+  const score = Math.round(100 / (1 + rms));
+  const stars = Math.round(score / 20);
+  $("real-rating").textContent = `${"★".repeat(stars)}${"☆".repeat(5 - stars)} · ${score}/100 consistency`;
+  $("real-fit").textContent = `${rms.toFixed(2)} px RMS deviation across ${intermediate.length} intermediate mark(s). Score = 100 ÷ (1 + deviation in px).`;
 }
 
 function updateResultFrames() {
@@ -138,6 +166,7 @@ $("real-submit").addEventListener("click", () => {
   stop();
   submitted = true;
   updateMarks();
+  showShootingStars();
 });
 $("real-clear").addEventListener("click", () => {
   marks.clear();
