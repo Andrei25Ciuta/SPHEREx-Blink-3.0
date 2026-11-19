@@ -922,7 +922,7 @@ html.workspace-synthetic-zone #workspace-sky-api-fov { display: none; }
 #workspace-sky-synthetic-fov:not([hidden]) {
   display: block;
   min-width: 0;
-  grid-column: span 2;
+  grid-column: 3;
 }
 #workspace-sky-synthetic-fov > .field {
   min-width: 0;
@@ -933,13 +933,19 @@ html.workspace-synthetic-zone #workspace-sky-api-fov { display: none; }
   background: rgb(var(--bg-rgb) / .35);
 }
 #workspace-sky-synthetic-fov .field label {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: .25rem;
   color: var(--text);
   font-size: .84rem;
   font-weight: 650;
 }
 #workspace-sky-synthetic-fov input[type="range"] {
+  display: block;
+  width: 100%;
   min-width: 0;
-  margin: .2rem 0;
+  margin: .35rem 0 .15rem;
 }
 #workspace-sky-synthetic-fov .range-scale {
   padding-bottom: .25rem;
@@ -964,12 +970,12 @@ html.workspace-synthetic-zone #workspace-sky-api-fov { display: none; }
 .sky-zone-heading p { max-width: 70ch; margin: .25rem 0 0; color: var(--text-muted); font-size: .84rem; line-height: 1.5; }
 .sky-zone-fields {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(8rem, .7fr) auto;
+  grid-template-columns: minmax(10rem, 1fr) minmax(10rem, 1fr) minmax(12rem, 1.2fr) auto;
   align-items: end;
   gap: .65rem;
 }
 .sky-zone-fields label { display: grid; gap: .35rem; color: var(--text-muted); font-size: .82rem; font-weight: 600; }
-.sky-zone-fields input {
+.sky-zone-fields input:not([type="range"]) {
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
@@ -1149,13 +1155,19 @@ html.fs-locked { overflow: hidden; }
   html.sky-browse #aladin-btn { flex: 1 1 100%; min-height: 48px; }
   html.sky-browse #sky-full-btn { min-height: 44px; }
   html.sky-browse .skymap { height: 66svh; min-height: 440px; max-height: 760px; }
-  .sky-zone-fields { grid-template-columns: 1fr 1fr; }
+  .sky-zone-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   #workspace-sky-synthetic-fov:not([hidden]) { grid-column: 1 / -1; }
   .sky-zone-fields button { grid-column: 1 / -1; width: 100%; min-height: 48px; }
   html.sky-browse.sky-request-active .observing-row > .player { padding: .75rem; }
   html.sky-browse.sky-request-active .overview { padding: .55rem; }
   html.sky-browse.sky-request-active .field-request-head { gap: .5rem; }
   html.sky-browse.sky-request-active .field-request-summary { text-align: left; }
+}
+
+@media (min-width: 601px) and (max-width: 860px) {
+  .sky-zone-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #workspace-sky-synthetic-fov:not([hidden]) { grid-column: 1 / -1; }
+  .sky-zone-fields button { grid-column: 1 / -1; min-height: 48px; }
 }
 
 /* Predicted-track info line (green = same colour as the overlay ticks) */
