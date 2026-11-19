@@ -6,9 +6,10 @@
   <title>Field of the Day · SPHEREx Blink</title>
   <link rel="stylesheet" href="css/styles.css?v=20261115">
   <link rel="stylesheet" href="css/instrument.css?v=20261115">
-  <link rel="stylesheet" href="css/daily.css?v=results">
+  <link rel="stylesheet" href="css/daily.css?v=stars">
 </head>
-<body>
+<body class="daily-page">
+  <canvas id="daily-background" aria-hidden="true"></canvas>
   <a class="skip-link" href="#daily">Skip to the challenge</a>
   <header class="site-header" data-page="daily">
     <a class="site-brand" href="overview.html">SPHEREx Blink</a>
@@ -53,6 +54,7 @@
     </div>
   </main>
   <div id="daily-celebration" aria-hidden="true"></div>
+  <script type="module" src="js/dailyBackground.js"></script>
   <script type="module" src="js/daily.js?v=results"></script>
 </body>
 </html>

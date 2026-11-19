@@ -119,3 +119,28 @@
 
 .daily-results p { margin: .7rem 0 0; overflow-wrap: anywhere; }
 #daily-solution { font-weight: 700; }
+
+.daily-page {
+  isolation: isolate;
+}
+
+#daily-background {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: -1;
+}
+
+html[data-theme]:not([data-contrast="high"]) body.daily-page.has-animated-stars {
+  background-image: none;
+}
+
+html[data-contrast="high"] #daily-background {
+  visibility: hidden;
+}
+
+.daily-results {
+  background: var(--bg);
+}
