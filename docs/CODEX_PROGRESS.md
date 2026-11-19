@@ -1,3 +1,9 @@
+## 2026-11-19 — Field of the Day guess progress
+
+The result panel tracks each frame mark and remaining attempts, and hosts the Submit guess action. The source comparison uses a direction arrow based on the simulated image displacement. The streak badge glows when its count increases, subject to reduced-motion preferences.
+
+Validation: all `scratch/test_*.mjs` scripts and `git diff --check` passed. The daily test uses a fixed synthetic seed and mocked canvas, timing, and storage. The rendered appearance was not verified in a browser. Backend pytest was unavailable because pytest is not installed.
+
 ## 2026-11-19 — Field of the Day blink playback and comparison
 
 The viewer can alternate the two frames, and marking a position pauses playback. After a correct guess, the result card shows side-by-side crops of the same image region with the source position highlighted in each frame. The score is prominent and the exact positions are available under Position details.

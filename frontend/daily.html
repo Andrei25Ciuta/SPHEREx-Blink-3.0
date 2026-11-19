@@ -6,7 +6,7 @@
   <title>Field of the Day · SPHEREx Blink</title>
   <link rel="stylesheet" href="css/styles.css?v=20261115">
   <link rel="stylesheet" href="css/instrument.css?v=20261115">
-  <link rel="stylesheet" href="css/daily.css?v=blink-pair">
+  <link rel="stylesheet" href="css/daily.css?v=game-progress">
 </head>
 <body class="daily-page">
   <canvas id="daily-background" aria-hidden="true"></canvas>
@@ -23,7 +23,7 @@
         <p id="daily-date">Synthetic challenge</p>
       </div>
       <div class="daily-streak">
-        <span class="daily-streak-bubble">
+        <span id="daily-streak-bubble" class="daily-streak-bubble">
           <span aria-hidden="true">⭐</span>
           <strong id="daily-streak-count">0</strong>
         </span>
@@ -33,7 +33,7 @@
         </div>
       </div>
     </div>
-    <p id="daily-instructions">Use Blink to spot the moving object. Pause and mark it in both frames, then submit your guess. The frames are one simulated year apart. You have three attempts. With the image focused, use the arrow keys to move the marker.</p>
+    <p id="daily-instructions">Use Blink to spot the moving object, then mark it in both frames.</p>
     <div class="daily-layout">
       <div class="daily-game">
         <div class="daily-viewer">
@@ -42,11 +42,9 @@
             <button type="button" class="btn" id="frame-b" aria-pressed="false">Frame B · Year 1</button>
             <button type="button" class="btn" id="daily-blink" aria-pressed="false">Blink</button>
           </div>
-          <canvas id="daily-image" width="256" height="256" tabindex="0" aria-label="Synthetic star field" aria-describedby="daily-instructions"></canvas>
+          <canvas id="daily-image" width="256" height="256" tabindex="0" aria-label="Synthetic star field" aria-describedby="daily-instructions daily-keyboard"></canvas>
         </div>
-        <div class="daily-controls">
-          <button type="button" class="btn" id="daily-submit" disabled>Submit guess</button>
-        </div>
+        <p id="daily-keyboard" class="daily-keyboard">Use the arrow keys when the image is focused.</p>
       </div>
       <aside id="daily-results" class="pin-item daily-results" aria-labelledby="daily-results-title">
         <div class="pb-card-head">
@@ -56,6 +54,14 @@
             <p id="daily-status" class="pb-when" role="status">3 attempts left.</p>
           </div>
           <strong id="daily-score" hidden></strong>
+        </div>
+        <div id="daily-progress">
+          <div id="daily-attempt-stars" aria-hidden="true">★★★</div>
+          <ul class="daily-checklist" aria-label="Guess progress" aria-live="polite">
+            <li id="daily-mark-a"><span id="daily-check-a" aria-hidden="true">○</span> <span id="daily-step-a">Mark in A</span></li>
+            <li id="daily-mark-b"><span id="daily-check-b" aria-hidden="true">○</span> <span id="daily-step-b">Mark in B</span></li>
+          </ul>
+          <button type="button" class="btn btn-primary" id="daily-submit" disabled>Submit guess</button>
         </div>
         <div class="pb-chips" role="group" aria-label="Simulated motion">
           <span class="pb-chip">Synthetic demo</span>
@@ -69,7 +75,7 @@
               <canvas id="daily-preview-a" width="26" height="26" role="img" aria-label="Source position in Frame A"></canvas>
               <figcaption>Frame A · Year 0</figcaption>
             </figure>
-            <span class="daily-source-arrow" aria-hidden="true">→</span>
+            <span id="daily-source-arrow" class="daily-source-arrow" aria-hidden="true">→</span>
             <figure>
               <canvas id="daily-preview-b" width="26" height="26" role="img" aria-label="Source position in Frame B"></canvas>
               <figcaption>Frame B · Year 1</figcaption>
@@ -98,6 +104,6 @@
   <div id="daily-celebration" aria-hidden="true"></div>
   <p id="daily-toast" role="status"></p>
   <script type="module" src="js/dailyBackground.js"></script>
-  <script type="module" src="js/daily.js?v=blink-pair"></script>
+  <script type="module" src="js/daily.js?v=game-progress"></script>
 </body>
 </html>

@@ -21,11 +21,14 @@ globalThis.document = {
   getElementById(id) {
     if (!nodes.has(id)) nodes.set(id, {
       addEventListener(type, callback) { this[type] = callback; },
+      style: {},
       attributes: new Map(),
       setAttribute(name, value) { this.attributes.set(name, value); },
       classList: {
         items: new Set(),
         has(token) { return this.items.has(token); },
+        add(token) { this.items.add(token); },
+        remove(token) { this.items.delete(token); },
         toggle(token, enabled) {
           if (enabled) this.items.add(token);
           else this.items.delete(token);
@@ -85,9 +88,17 @@ assert.equal(tick, undefined);
 globalThis.setInterval = realSetInterval;
 globalThis.clearInterval = realClearInterval;
 assert.equal(submit.disabled, true);
+assert.equal(nodes.get("daily-step-a").textContent, "Marked in A");
+assert.equal(nodes.get("daily-check-a").textContent, "✓");
+assert.equal(nodes.get("daily-step-b").textContent, "Mark in B");
 nodes.get("frame-b").click();
 guess(0, 0);
+assert.equal(submit.disabled, false);
+assert.equal(nodes.get("daily-check-b").textContent, "✓");
 submit.click();
+assert.equal(nodes.get("daily-attempt-stars").textContent, "★★☆");
+assert.equal(nodes.get("daily-step-a").textContent, "Mark in A");
+assert.equal(nodes.get("daily-step-b").textContent, "Mark in B");
 assert.equal(nodes.get("daily-status").textContent, "2 attempts left.");
 const rng = mulberry32(day);
 const x = 14 + rng() * 36;
@@ -112,6 +123,14 @@ assert.match(nodes.get("daily-direction").textContent, /^Toward /);
 assert.equal(nodes.get("daily-position-a").textContent, `X ${x.toFixed(1)} · Y ${y.toFixed(1)} px`);
 assert.equal(nodes.get("daily-position-b").textContent, `X ${targetX.toFixed(1)} · Y ${targetY.toFixed(1)} px`);
 assert.equal(nodes.get("daily-score").textContent, "90 / 100");
+assert.equal(nodes.get("daily-progress").hidden, true);
+const expectedAngle = (Math.atan2(targetY - y, targetX - x) * 180 / Math.PI + 360) % 360;
+assert.match(nodes.get("daily-source-arrow").style.transform, /^rotate\(.+deg\)$/);
+assert.ok(Math.abs(Number.parseFloat(nodes.get("daily-source-arrow").style.transform.slice(7)) - expectedAngle) < 1e-9);
+const streakBadge = nodes.get("daily-streak-bubble");
+assert.equal(streakBadge.classList.has("is-glowing"), true);
+streakBadge.animationend();
+assert.equal(streakBadge.classList.has("is-glowing"), false);
 const previewA = nodes.get("daily-preview-a").context;
 const previewB = nodes.get("daily-preview-b").context;
 assert.equal(previewA.image.data.length, 26 * 26 * 4);
@@ -133,6 +152,8 @@ assert.equal(nodes.get("daily-celebration").children.length, 0);
 assert.equal(nodes.get("daily-toast").textContent, "");
 reducedMotion = true;
 assert.equal(nodes.get("daily-status").textContent, "3 attempts left.");
+assert.equal(nodes.get("daily-progress").hidden, false);
+assert.equal(nodes.get("daily-attempt-stars").textContent, "★★★");
 assert.equal(submit.disabled, true);
 assert.equal(nodes.get("daily-result-actions").hidden, true);
 nodes.get("frame-b").click();
@@ -144,6 +165,7 @@ submit.click();
 assertStreak(1);
 assert.equal(nodes.get("daily-found").hidden, false);
 assert.equal(nodes.get("daily-celebration").children.length, 0);
+assert.equal(streakBadge.classList.has("is-glowing"), false);
 assert.equal(nodes.get("daily-toast").textContent, "Well done! Object found. 1-day streak.");
 nodes.get("daily-replay").click();
 await import("../frontend/js/daily.js?reload");
@@ -182,4 +204,4 @@ Object.defineProperty(globalThis, "navigator", { configurable: true, value: {
 await nodes.get("daily-share").click();
 assert.match(shared, /\n🟥🟥🟥 · 0\/100\nhttps:/);
 assert.doesNotMatch(shared, /px\/year|Simulated motion/);
-console.log("PASS daily scoring, motion, sharing, replay, streak freeze, source preview, celebration and streak notification");
+console.log("PASS daily scoring, motion, sharing, replay, streak freeze, source preview, celebration, streak notification and guess progress");

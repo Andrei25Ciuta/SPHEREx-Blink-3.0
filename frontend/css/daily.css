@@ -93,7 +93,8 @@
 #daily-found h3 { margin: 0 0 .65rem; font-size: .9rem; }
 .daily-source {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 9rem) auto minmax(0, 9rem);
+  justify-content: center;
   gap: .75rem;
   align-items: center;
 }
@@ -228,4 +229,46 @@ html[data-theme]:not([data-contrast="high"]) body.daily-page.has-animated-stars 
 
 html[data-contrast="high"] #daily-background {
   visibility: hidden;
+}
+
+#daily-progress {
+  margin: .85rem 0;
+  padding: .75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--field);
+}
+
+#daily-attempt-stars {
+  color: var(--accent-text);
+  font-size: 1.2rem;
+  letter-spacing: .25em;
+}
+
+.daily-checklist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .65rem 1.1rem;
+  margin: .45rem 0 .75rem;
+  padding: 0;
+  list-style: none;
+}
+
+.daily-checklist li { color: var(--text-muted); }
+.daily-checklist li.is-marked { color: var(--success); font-weight: 600; }
+.daily-keyboard { margin: .4rem 0 0; color: var(--text-muted); font-size: .8rem; }
+
+.daily-streak-bubble.is-glowing {
+  animation: streak-glow 850ms ease-out;
+}
+
+@keyframes streak-glow {
+  35% {
+    background: rgb(var(--accent-rgb) / .35);
+    box-shadow: 0 0 1.15rem rgb(var(--accent-rgb) / .65);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .daily-streak-bubble.is-glowing { animation: none; }
 }

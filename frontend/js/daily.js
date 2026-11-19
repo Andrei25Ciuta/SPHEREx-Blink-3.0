@@ -109,6 +109,15 @@ function draw() {
   $("frame-a").setAttribute("aria-pressed", String(frame === 0));
   $("frame-b").setAttribute("aria-pressed", String(frame === 1));
   $("daily-submit").disabled = !markers.every(Boolean) || done();
+  for (const [index, letter] of ["a", "b"].entries()) {
+    const marked = Boolean(markers[index]);
+    const step = $(`daily-step-${letter}`);
+    const label = `${marked ? "Marked" : "Mark"} in ${letter.toUpperCase()}`;
+    if (step.textContent === label) continue;
+    step.textContent = label;
+    $(`daily-mark-${letter}`).classList.toggle("is-marked", marked);
+    $(`daily-check-${letter}`).textContent = marked ? "✓" : "○";
+  }
 }
 
 function measureMotion([start, end]) {
@@ -119,11 +128,13 @@ function measureMotion([start, end]) {
   const direction = ["right", "down-right", "down", "down-left", "left", "up-left", "up", "up-right"][Math.round(angle / 45) % 8];
   return {
     speed: `${speed.toFixed(1)} px/year`,
+    angle,
     direction: speed < 0.05 ? "no measurable direction" : direction,
   };
 }
 
 const solution = measureMotion(targets);
+$("daily-source-arrow").style.transform = `rotate(${solution.angle}deg)`;
 const formatPosition = ({ x, y }) => `X ${x.toFixed(1)} · Y ${y.toFixed(1)} px`;
 
 function updateResult() {
@@ -137,6 +148,8 @@ function updateResult() {
   $("daily-status").textContent = hit
     ? `Found in ${attempts.length} of ${limit} attempts.`
     : remaining ? `${remaining} attempt${remaining === 1 ? "" : "s"} left.` : "Out of attempts.";
+  $("daily-progress").hidden = finished;
+  $("daily-attempt-stars").textContent = "★".repeat(remaining) + "☆".repeat(attempts.length);
   $("daily-score").hidden = !finished;
   $("daily-score").textContent = finished ? `${result.score} / 100` : "";
   $("daily-measurement").textContent = result
@@ -151,11 +164,18 @@ function updateResult() {
   $("daily-result-actions").hidden = !finished;
 }
 
-function updateStreak() {
+const streakBubble = $("daily-streak-bubble");
+streakBubble.addEventListener("animationend", () => streakBubble.classList.remove("is-glowing"));
+
+function updateStreak(highlight = false) {
   const lastDay = saved.lastPlayed ?? saved.lastSolved;
   const gap = day - lastDay;
   const streak = gap <= 1 || (gap === 2 && !saved.freezeUsed) ? saved.streak ?? 0 : 0;
-  $("daily-streak-count").textContent = String(streak);
+  const count = $("daily-streak-count");
+  if (highlight && streak > Number(count.textContent) && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    streakBubble.classList.add("is-glowing");
+  }
+  count.textContent = String(streak);
   $("daily-streak-freeze").textContent = streak && (saved.freezeUsed || gap === 2)
     ? "Freeze used" : "1 freeze available";
   return streak;
@@ -234,7 +254,7 @@ $("daily-submit").addEventListener("click", () => {
   updateResult();
   draw();
   if (done()) {
-    const streak = updateStreak();
+    const streak = updateStreak(true);
     if (hit) {
       drawPreviews();
       celebrate(streak);
