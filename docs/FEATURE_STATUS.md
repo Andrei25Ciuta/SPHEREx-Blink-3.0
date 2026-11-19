@@ -2,7 +2,7 @@
 
 ## Field of the Day
 
-The overview links to a daily synthetic blink challenge. Players compare two frames, mark the moved source and get up to three guesses. The field changes at midnight UTC. The browser stores the current result and streak locally, and players can copy a spoiler-free score.
+The overview links to a daily synthetic blink challenge. Players compare two frames, mark the moved source and get up to three guesses. The field changes at midnight UTC. Players can replay the field and copy a spoiler-free score after each round. The browser stores the streak locally and starts fresh on reload.
 
 ## Cloud data service
 

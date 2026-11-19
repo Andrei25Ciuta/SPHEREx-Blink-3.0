@@ -16,6 +16,7 @@ globalThis.document = {
     if (!nodes.has(id)) nodes.set(id, {
       addEventListener(type, callback) { this[type] = callback; },
       setAttribute() {},
+      focus() {},
       width: 256,
       height: 256,
       getContext: () => context,
@@ -45,12 +46,24 @@ const x = 14 + rng() * 36;
 const y = 14 + rng() * 36;
 const vx = 5 + rng() * 5;
 const vy = 3 + rng() * 5;
-guess(x + vx * (rng() < .5 ? -1 : 1), y + vy * (rng() < .5 ? -1 : 1));
+const targetX = x + vx * (rng() < .5 ? -1 : 1);
+const targetY = y + vy * (rng() < .5 ? -1 : 1);
+guess(targetX, targetY);
 submit.click();
 assert.equal(nodes.get("daily-status").textContent, "Found in 2/3 attempts.");
 assert.equal(nodes.get("daily-share").hidden, false);
 assert.equal(nodes.get("daily-streak").textContent, "Streak: 1 day");
-await import("../frontend/js/daily.js?reload");
-assert.equal(nodes.get("daily-status").textContent, "Found in 2/3 attempts.");
+assert.equal(nodes.get("daily-replay").hidden, false);
+nodes.get("daily-replay").click();
+assert.equal(nodes.get("daily-status").textContent, "3 attempts left.");
 assert.equal(submit.disabled, true);
-console.log("PASS daily link, guesses, streak and reload");
+assert.equal(nodes.get("daily-share").hidden, true);
+nodes.get("frame-b").click();
+guess(targetX, targetY);
+submit.click();
+assert.equal(nodes.get("daily-streak").textContent, "Streak: 1 day");
+await import("../frontend/js/daily.js?reload");
+assert.equal(nodes.get("daily-status").textContent, "3 attempts left.");
+assert.equal(submit.disabled, true);
+assert.equal(nodes.get("daily-streak").textContent, "Streak: 1 day");
+console.log("PASS daily link, guesses, replay, streak and reload");

@@ -21,7 +21,7 @@ const storageKey = "spherex-daily-v1";
 let saved = {};
 try { saved = JSON.parse(localStorage.getItem(storageKey)) ?? {}; } catch { /* play without storage */ }
 if (!saved || typeof saved !== "object" || Array.isArray(saved)) saved = {};
-const round = saved.round?.day === day ? saved.round : { day, attempts: 0, won: false };
+const round = { attempts: 0, won: false };
 const canvas = $("daily-image");
 const context = canvas.getContext("2d");
 const scale = canvas.width / size;
@@ -64,6 +64,7 @@ function updateResult() {
     ? `Found in ${round.attempts}/${limit} attempts.`
     : remaining ? `${remaining} attempt${remaining === 1 ? "" : "s"} left.` : "Out of attempts. Frame B shows the solution.";
   $("daily-share").hidden = !done();
+  $("daily-replay").hidden = !done();
   const streak = saved.lastSolved >= day - 1 ? saved.streak ?? 0 : 0;
   $("daily-streak").textContent = `Streak: ${streak} day${streak === 1 ? "" : "s"}`;
 }
@@ -89,12 +90,11 @@ $("daily-submit").addEventListener("click", () => {
   if (frame !== 1 || !marker || done()) return;
   round.attempts++;
   round.won = Math.hypot(marker.x - target.x, marker.y - target.y) <= 3;
-  if (round.won) {
+  if (round.won && saved.lastSolved !== day) {
     saved.streak = saved.lastSolved === day - 1 ? (saved.streak ?? 0) + 1 : 1;
     saved.lastSolved = day;
+    try { localStorage.setItem(storageKey, JSON.stringify({ lastSolved: day, streak: saved.streak })); } catch { /* keep streak in memory */ }
   }
-  saved.round = round;
-  try { localStorage.setItem(storageKey, JSON.stringify(saved)); } catch { /* keep this round in memory */ }
   marker = null;
   updateResult();
   draw();
@@ -113,6 +113,16 @@ $("daily-share").addEventListener("click", async () => {
     fallback.select();
   }
 });
-if (done()) frame = 1;
+$("daily-replay").addEventListener("click", () => {
+  round.attempts = 0;
+  round.won = false;
+  frame = 0;
+  marker = null;
+  $("daily-copy-status").textContent = "";
+  $("daily-share-text").hidden = true;
+  updateResult();
+  draw();
+  $("frame-a").focus();
+});
 updateResult();
 draw();
