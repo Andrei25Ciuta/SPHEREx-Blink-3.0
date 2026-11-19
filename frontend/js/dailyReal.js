@@ -1,3 +1,5 @@
+import { modelComparison, observationsOf } from "./features/planetLab.js";
+import { renderComparison } from "./features/planetLabView.js";
 import { showShootingStars } from "./dailyCelebration.js";
 import { getCutoutsApi } from "./data/apiSource.js?v=1";
 import { IS_REMOTE_BACKEND } from "./config.js?v=1";
@@ -60,6 +62,14 @@ function updateMarks() {
   const direction = ["right", "down-right", "down", "down-left", "left", "up-left", "up", "up-right"][Math.round(angle / 45) % 8];
   const rate = scale > 0 ? `${(speed * scale).toFixed(1)} arcsec/year` : `${speed.toFixed(1)} px/year`;
   $("real-motion").textContent = `Apparent motion between first and last marks: ${rate}${speed > 0 ? ` · ${direction}` : ""}.`;
+  const bearing = (Math.atan2(-dx, -dy) * 180 / Math.PI + 360) % 360;
+  const compass = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round(bearing / 45) % 8];
+  $("real-sky-motion").textContent = speed > 0 && scale > 0
+    ? `${rate} toward ${compass}`
+    : speed === 0 ? "No displacement between endpoint marks." : "Image scale unavailable.";
+  $("real-coverage").textContent = `Marked observations: ${points.length}/${frames.length}`;
+  $("real-coverage-bar").max = frames.length;
+  $("real-coverage-bar").value = points.length;
   const firstFrame = frames[points[0][0]];
   const lastFrame = frames[points.at(-1)[0]];
   $("real-span").textContent = `${firstFrame.dateISO.slice(0, 10)} → ${lastFrame.dateISO.slice(0, 10)} · ${span.toFixed(1)} days`;
@@ -168,8 +178,33 @@ $("real-submit").addEventListener("click", () => {
   updateMarks();
   showShootingStars();
 });
+$("real-compare").addEventListener("click", () => {
+  const out = $("real-models");
+  out.replaceChildren();
+  if (!submitted) return;
+  const byTime = new Map();
+  for (const [index, mark] of marks) {
+    if (!byTime.has(frames[index].mjd)) byTime.set(frames[index].mjd, { index, ...mark });
+  }
+  const distinct = [...byTime.values()];
+  const scale = frames[distinct[0]?.index]?.pixelScaleArcsec;
+  if (distinct.length < 3 || !(scale > 0)) {
+    out.textContent = distinct.length < 3
+      ? "Mark at least three distinct observation times to compare motion models."
+      : "The image scale is needed to compare motion models.";
+    return;
+  }
+  const sigmaPx = 1;
+  const mjds = frames.map(({ mjd }) => mjd);
+  const points = distinct.map(({ index, x, y, width, height }) =>
+    ({ frame: index, x: (x - .5) * width, y: (y - .5) * height }));
+  const comparison = modelComparison(observationsOf(points, mjds, scale, { sigmaPx }), field);
+  renderComparison(out, comparison, { sigmaPx, manualMarks: true });
+});
+
 $("real-clear").addEventListener("click", () => {
   marks.clear();
+  $("real-models").replaceChildren();
   submitted = false;
   updateMarks();
   updateResultFrames();
@@ -207,6 +242,7 @@ image.addEventListener("keydown", (event) => {
 
 function saveMark(x, y) {
   const clamp = (value) => Math.max(0, Math.min(1, value));
+  if (submitted) $("real-models").replaceChildren();
   submitted = false;
   marks.set(index, { x: clamp(x), y: clamp(y), width: image.naturalWidth, height: image.naturalHeight });
   updateMarks();

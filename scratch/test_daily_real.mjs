@@ -53,6 +53,10 @@ node("daily-real-submit").click();
 assert.match(node("daily-real-motion").textContent, /60.0 arcsec\/year · right/);
 assert.equal(node("daily-real-details").hidden, false);
 assert.match(node("daily-real-rating").textContent, /needs 3/);
+assert.equal(node("daily-real-coverage").textContent, "Marked observations: 2/3");
+assert.equal(node("daily-real-sky-motion").textContent, "60.0 arcsec/year toward W");
+node("daily-real-compare").click();
+assert.match(node("daily-real-models").textContent, /at least three/);
 const thumbnails = node("daily-real-results-frames");
 assert.equal(thumbnails.hidden, false);
 assert.deepEqual(thumbnails.children.map((item) => item.children[0].children[0].children[0].src),
@@ -67,6 +71,12 @@ assert.equal(thumbnails.children.length, 3);
 node("daily-real-submit").click();
 assert.equal(thumbnails.children.length, 3);
 assert.equal(node("daily-real-rating").textContent, "★☆☆☆☆ · 29/100 consistency");
+node("daily-real-compare").click();
+const modelOutput = node("daily-real-models");
+const rows = modelOutput.children[0].children[0].children[2].children;
+assert.deepEqual(rows.map((row) => row.children[0].textContent.replace(" ✓", "")),
+  ["Stationary", "Straight line", "Straight drift + Earth parallax"]);
+assert.match(modelOutput.children.at(-1).textContent, /assumed 1 px/);
 assert.match(node("daily-real-fit").textContent, /2.50 px/);
 node("daily-synthetic-mode").click();
 assert.equal(node("daily-synthetic").hidden, false);

@@ -144,7 +144,11 @@
             <p id="daily-real-rating" class="pb-chip" hidden></p>
             <details id="daily-real-details" hidden>
               <summary>More info</summary>
+              <p id="daily-real-coverage"></p>
+              <progress id="daily-real-coverage-bar" aria-label="Marked observations"></progress>
               <dl class="daily-positions">
+                <dt>Apparent motion on the sky</dt>
+                <dd id="daily-real-sky-motion"></dd>
                 <dt>Observation span</dt>
                 <dd id="daily-real-span"></dd>
                 <dt>Displacement between first and last marks</dt>
@@ -155,6 +159,9 @@
                 <dd id="daily-real-fit"></dd>
               </dl>
               <p class="pb-when">The score describes how closely the marks follow straight-line motion at a constant speed. It cannot verify the source’s identity.</p>
+              <h3>Which motion fits?</h3>
+              <button type="button" class="btn" id="daily-real-compare">Compare motion models</button>
+              <div id="daily-real-models" aria-live="polite"></div>
             </details>
             <ul id="daily-real-results-frames" aria-label="Marked observations" hidden></ul>
           </aside>
@@ -167,7 +174,7 @@
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script defer src="js/overviewStarfield.js"></script>
   <script defer src="js/dailyBackground.js?v=overview"></script>
-  <script type="module" src="js/dailyReal.js?v=motion-info"></script>
+  <script type="module" src="js/dailyReal.js?v=motion-models"></script>
   <script type="module" src="js/daily.js?v=shared-celebration"></script>
 </body>
 </html>

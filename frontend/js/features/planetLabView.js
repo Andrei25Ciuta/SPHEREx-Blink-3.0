@@ -24,7 +24,7 @@ const pct = (v) => `${Math.round(v * 100)} %`;
 const fmt = (v, d = 1) => (Number.isFinite(v) ? v.toFixed(d) : "–");
 
 /** The table and the sentences of one model comparison. */
-export function renderComparison(out, result, { sigmaPx }) {
+export function renderComparison(out, result, { sigmaPx, manualMarks = false }) {
   out.textContent = "";
   if (!result.usable) { out.append(el("p", { className: "muted", textContent: `Cannot compare the motions: ${result.reason}.` })); return; }
   const rows = result.models.map((m) => el("tr", { className: m.id === result.preferred ? "is-best" : "" },
@@ -37,9 +37,9 @@ export function renderComparison(out, result, { sigmaPx }) {
   const best = result.models.find((m) => m.id === result.preferred);
   out.append(el("div", { className: "table-scroll" }, table),
     el("p", { textContent: `Preferred: ${best.label} (${result.strength}).`, className: "lab-verdict" }),
-    el("p", { className: `lab-distance lab-${result.distance.status}`, textContent: result.distance.text }),
+    ...(manualMarks ? [] : [el("p", { className: `lab-distance lab-${result.distance.status}`, textContent: result.distance.text })]),
     ...result.notes.map((t) => el("p", { className: "muted small", textContent: t })),
-    el("p", { className: "muted small", textContent: `${result.N} numbers (2 per position). Each position is given an error of ${sigmaPx} px per axis (the floor the parallax search uses, not calibrated: VALIDATION 15.6). ΔBIC above 10 is “very strong” (Kass & Raftery, from memory); the distance is only quoted when the swing beats a straight line by that much and its 95 % range is closed.` }));
+    el("p", { className: "muted small", textContent: manualMarks ? `Exploratory fit using manual marks and an assumed ${sigmaPx} px error per axis. The comparison ranks these models for the marked positions.` : `${result.N} numbers (2 per position). Each position is given an error of ${sigmaPx} px per axis (the floor the parallax search uses, not calibrated: VALIDATION 15.6). ΔBIC above 10 is “very strong” (Kass & Raftery, from memory); the distance is only quoted when the swing beats a straight line by that much and its 95 % range is closed.` }));
 }
 
 export function setupPlanetLab({ els, getContext, getSelection, download, canRun = () => true, makeWorker = () => new Worker(new URL("../planetLabWorker.js", import.meta.url), { type: "module" }) }) {
