@@ -163,8 +163,8 @@ try {
 
 const main = readFileSync(new URL("../frontend/js/main.js", import.meta.url), "utf8");
 assert.match(main, /if \(SKY_BROWSE\) document\.documentElement\.classList\.add\("sky-browse"\)/);
-assert.match(main, /async function loadData\(query\) \{\s*if \(SKY_BROWSE\) return;/);
-assert.match(main, /async function retryLastRequest\(\) \{\s*if \(SKY_BROWSE\) return;/);
+assert.match(main, /async function loadData\([^\n]+\) \{\s*if \(SKY_BROWSE\) return;/);
+assert.match(main, /function retryLastRequest\(\) \{\s*if \(SKY_BROWSE\) return;/);
 assert.match(main, /form\.addEventListener\("submit", \(event\) => \{\s*event\.preventDefault\(\);[^\n]*\n\s*if \(SKY_BROWSE\) return;/);
 assert.match(main, /if \(SKY_BROWSE\) \{\s*applyUrlState\(\);[^\n]*\n\s*void openSkyBrowse\(\);\s*\} else \{\s*renderQuickPicks\(\);\s*applyUrlState\(\);/);
 

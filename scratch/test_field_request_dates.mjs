@@ -18,7 +18,8 @@ const main = await readFile(new URL("../frontend/js/main.js", import.meta.url), 
 assert.match(html, /id="date-from-input" name="dateFrom" type="date"/);
 assert.match(html, /id="date-to-input" name="dateTo" type="date"/);
 assert.match(main, /archiveDateRange\.hidden = DATA_SOURCE !== "api" \|\| LEGACY_API_READ_ONLY/);
-assert.match(main, /requestFieldApi\(\{ ra: query\.ra, dec: query\.dec, fov: query\.fov, dateFrom, dateTo \}\)/);
+assert.match(main, /requestField: requestFieldApi/);
+assert.match(main, /skyZoneRequests\.submit\(query, \{ origin: "legacy", \.\.\.readArchiveDates\(\) \}\)/);
 
 let submitted = null;
 globalThis.fetch = async (_url, options) => {

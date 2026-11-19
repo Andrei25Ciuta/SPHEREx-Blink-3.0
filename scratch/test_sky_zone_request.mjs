@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { createSkyZoneRequestFlow } from "../frontend/js/data/skyZoneRequest.js";
 import { loadFieldRequestCutouts } from "../frontend/js/data/fieldRequests.js";
-import { readSkyZoneRequest, writeUrlState } from "../frontend/js/urlState.js";
+import { readSkyZoneRequest, readWorkspaceStartup, writeUrlState } from "../frontend/js/urlState.js";
 
 const base = "http://127.0.0.1:8765";
 const idA = `fr-${"a".repeat(32)}`;
@@ -13,6 +13,13 @@ const qb = { ra: 1e-8, dec: 90, fov: 10 };
 const pilotUrl = (query, id) => new URL(`/index.html?${new URLSearchParams({
   data: "api", sky_browse: 1, api: base, ...query, request_id: id, mode: "diff", embed: 1,
 })}#workspace`, base);
+const workspaceUrl = (query, id, embedded = false) => {
+  const url = pilotUrl(query, id);
+  url.searchParams.delete("sky_browse");
+  if (!embedded) url.searchParams.delete("embed");
+  if (id === undefined) url.searchParams.delete("request_id");
+  return url;
+};
 globalThis.location = pilotUrl(qa, idA);
 const { getCutouts } = await import("../frontend/js/data/getCutouts.js");
 const { requestFieldApi, getFieldRequestApi, retryFieldRequestApi } = await import("../frontend/js/data/apiSource.js");
@@ -22,7 +29,7 @@ assert.deepEqual(fromUrl(pilotUrl(qa, idA)), { query: qa, requestId: idA });
 assert.deepEqual(fromUrl(pilotUrl(qb, idB)), { query: qb, requestId: idB });
 for (const change of [
   (p) => p.delete("request_id"), (p) => p.append("request_id", idA), (p) => p.set("request_id", `${idA}\n`),
-  (p) => p.set("request_id", idA.toUpperCase()), (p) => p.set("request_id", "fixture-id"), (p) => p.delete("sky_browse"),
+  (p) => p.set("request_id", idA.toUpperCase()), (p) => p.set("request_id", "fixture-id"),
   (p) => p.set("data", "mock"), (p) => p.delete("ra"), (p) => p.delete("dec"), (p) => p.delete("fov"),
   (p) => p.append("ra", qa.ra), (p) => p.set("fov", ""), (p) => p.set("fov", " 7.25"),
   (p) => p.set("ra", "08:00:00"), (p) => p.set("ra", "360"), (p) => p.set("ra", "120.123456781"),
@@ -99,7 +106,9 @@ function harness({ url = pilotUrl(qa, idA), render = async () => {} } = {}) {
       if (result) events.push([result.stage ?? "frames", result.frames?.map(item => item.detector)]);
     },
     complete: ({ requestId, status: state }) => events.push(["terminal", requestId, state]),
-    failed: (message) => events.push(["failed", message]),
+    failed: (message, { origin }) => events.push(["failed", message, origin]),
+    accepted: ({ requestId }) => events.push(["accepted", requestId]),
+    unsupported: (query, dates, origin) => events.push(["unsupported", query, dates, origin]),
     retryStarted: () => events.push(["retrying"]),
     retryFailed: (message) => events.push(["retry failed", message]),
     retrySettled: () => events.push(["retry settled"]),
@@ -116,11 +125,11 @@ function harness({ url = pilotUrl(qa, idA), render = async () => {} } = {}) {
   };
 }
 
-// Ordinary Workspace state cannot acquire the pilot ID; invalid links make no requests.
+// An incomplete ordinary link cannot restore even a syntactically valid ID.
 {
   const h = harness({ url: new URL(`${base}/index.html?data=api&embed=1&mode=diff#workspace`) });
   writeUrlState({ request_id: idA, det: "D2" });
-  assert.equal(window.location.searchParams.get("request_id"), null);
+  assert.equal(window.location.searchParams.get("request_id"), idA);
   assert.equal(window.location.searchParams.get("det"), "D2");
   await h.restoreLink();
   assert.deepEqual(h.events, []);
@@ -151,7 +160,7 @@ for (const [reply, message] of [
   await h.restoreLink();
   assert.deepEqual(h.events.map(([event]) => event), ["reset", "checking", "failed"]);
   assert.match(h.events.at(-1)[1], message);
-  assert.match(h.events.at(-1)[1], /Request this zone/);
+  assert.equal(h.events.at(-1)[2], "restore");
   assert.equal(window.location.searchParams.get("request_id"), idA, "failed restore does not rewrite the link");
   h.finish();
 }
@@ -183,6 +192,7 @@ for (const [reply, message] of [
     "a transient status outage retains the verified status");
   assert.deepEqual(h.events.at(-1), ["terminal", idA, "partial"]);
   assert.ok(h.calls.every(c => c.method === "GET"));
+  assert.ok(!h.events.some(([event]) => event === "accepted"), "restoration does not notify acceptance");
   const reply = deferred();
   h.route("POST", retryRoute(idA), () => reply.promise);
   h.route("GET", statusRoute(idA), json(readyA));
@@ -192,6 +202,7 @@ for (const [reply, message] of [
   reply.resolve(Response.json({ status: "queued", requestId: idB, query: qb }));
   await retrying;
   assert.equal(h.calls.filter(c => c.method === "POST").length, 1);
+  assert.ok(!h.events.some(([event]) => event === "accepted"), "retry of a restored request does not notify acceptance");
   assert.deepEqual(h.calls.slice(-3).map(c => [c.method, c.request.pathname]),
     [["POST", retryRoute(idA)], ["GET", statusRoute(idA)], ["GET", readRoute]]);
   assert.equal(window.location.searchParams.get("request_id"), idA);
@@ -210,6 +221,99 @@ for (const [reply, message] of [
   assert.deepEqual(h.calls.map(c => c.method), ["GET", "POST"], "a failed retry never falls back to submission");
   assert.match(h.events.find(e => e[0] === "retry failed")[1], /Fixture unavailable/);
   assert.deepEqual(h.events.at(-1), ["retry settled"], "the previous status remains attached for another explicit action");
+  h.finish();
+}
+
+// Normal and embedded request URLs fail closed, including a malformed or empty ID.
+for (const embedded of [false, true]) {
+  for (const [id, statusBody, calls] of [
+    [idA, readyA, ["GET", "GET"]], [idA, { ...readyA, query: qb }, ["GET"]],
+    [idA, null, ["GET"]], ["", null, []], ["invalid", null, []],
+  ]) {
+    const url = workspaceUrl(qa, id, embedded);
+    const route = readWorkspaceStartup(url.searchParams);
+    assert.equal(route.kind, "request", "no unscoped path from any request-ID URL");
+    const h = harness({ url });
+    if (calls.length) h.route("GET", statusRoute(idA), () =>
+      statusBody ? Response.json(statusBody) : Response.json({}, { status: 404 }));
+    if (calls.length === 2) h.route("GET", readRoute, (request) => {
+      assert.equal(request.searchParams.get("request_id"), idA);
+      return frames("D1");
+    });
+    await h.restore(route.target);
+    assert.deepEqual(h.calls.map(call => call.method), calls);
+    assert.ok(!h.events.some(([event]) => event === "accepted"), "ordinary restore must not jump to viewer");
+    h.finish();
+  }
+  const link = workspaceUrl(qa, undefined, embedded);
+  assert.deepEqual(readWorkspaceStartup(link.searchParams), { kind: "legacy" }, "no-ID legacy links stay on the prepared loader");
+  link.searchParams.set("legacy_api", "1");
+  assert.deepEqual(readWorkspaceStartup(link.searchParams), { kind: "legacy" });
+  link.searchParams.set("data", "mock");
+  assert.deepEqual(readWorkspaceStartup(link.searchParams), { kind: "legacy" }, "synthetic deep link keeps its own loader");
+  link.searchParams.set("request_id", idA);
+  assert.deepEqual(readWorkspaceStartup(link.searchParams), { kind: "request", target: null }, "synthetic cannot restore a real request");
+}
+
+// Acceptance is a one-shot after verifying the explicit zone acknowledgement,
+// not on click, on acknowledging POST, during polling, or from retry.
+for (const [firstStatus, accepts] of [[pendingA, true], [failedA, false], [{ ...readyA, query: qb }, false]]) {
+  const h = harness({ url: workspaceUrl(qa) });
+  const post = deferred(), first = deferred();
+  h.route("POST", submitRoute, () => post.promise);
+  h.route("GET", statusRoute(idA), () => first.promise);
+  if (firstStatus === pendingA) {
+    h.route("GET", readRoute, () => frames("D1"));
+    h.route("GET", statusRoute(idA), json(partialA));
+    h.route("GET", readRoute, () => frames("D1"));
+  }
+  const submitting = h.submit(qa);
+  await h.submit(qa);
+  assert.equal(h.calls.length, 1, "an ACK in flight suppresses duplicate submissions");
+  post.resolve(Response.json({ requestId: idA }));
+  await submitting;
+  assert.equal(window.location.searchParams.get("request_id"), idA);
+  assert.equal(h.events.some(([event]) => event === "accepted"), false, "POST acknowledgement is not verification");
+  first.resolve(Response.json(firstStatus));
+  await settle();
+  if (firstStatus === pendingA || firstStatus === failedA) {
+    h.route("POST", retryRoute(idA), json({ requestId: idA }));
+    h.route("GET", statusRoute(idA), json(readyA));
+    h.route("GET", readRoute, () => frames("D1"));
+    await h.retry();
+  }
+  assert.deepEqual(h.events.filter(([event]) => event === "accepted"), accepts ? [["accepted", idA]] : []);
+  h.finish();
+}
+
+{
+  const h = harness({ url: workspaceUrl(qa) });
+  const dates = { dateFrom: "2025-01-01", dateTo: "2025-06-30" };
+  h.route("POST", submitRoute, (_request, options) => {
+    assert.deepEqual(Object.fromEntries(Object.keys(dates).map(key => [key, JSON.parse(options.body)[key]])), dates);
+    return Response.json({ requestId: idA });
+  });
+  h.route("GET", statusRoute(idA), json(failedA));
+  await h.submit(qa, { origin: "legacy", ...dates });
+  await settle();
+  assert.deepEqual(readSkyZoneRequest(), { query: qa, requestId: idA });
+  assert.ok(!h.events.some(([event]) => event === "accepted"), "legacy Load images never jumps to viewer");
+  for (const [key, value] of Object.entries(dates)) assert.equal(window.location.searchParams.get(key), value);
+  h.finish();
+}
+
+{
+  const h = harness({ url: workspaceUrl(qa) });
+  const statusReply = deferred();
+  h.route("POST", submitRoute, json({ requestId: idA }));
+  h.route("GET", statusRoute(idA), () => statusReply.promise);
+  await h.submit(qa);
+  const signal = h.calls.at(-1).options.signal;
+  h.cancel(); // switching to the legacy prepared viewer
+  statusReply.resolve(Response.json(readyA));
+  await settle();
+  assert.ok(signal.aborted);
+  assert.ok(!h.events.some(([event]) => event === "attached" || event === "accepted"));
   h.finish();
 }
 

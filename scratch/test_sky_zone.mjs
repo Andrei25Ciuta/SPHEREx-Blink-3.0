@@ -57,7 +57,9 @@ globalThis.fetch = async (url, options) => {
   });
 };
 function emit(el, name, properties = {}) {
-  return !el.dispatchEvent(Object.assign(new Event(name, { cancelable: true }), properties));
+  const event = new Event(name, { cancelable: true });
+  Object.defineProperty(event, "isTrusted", { value: true });
+  return !el.dispatchEvent(Object.assign(event, properties));
 }
 class Control extends EventTarget {
   attributes = new Map();
@@ -229,6 +231,8 @@ assertNoEffects();
 
 let respond;
 reply = () => new Promise(resolve => { respond = resolve; });
+button.dispatchEvent(new Event("click"));
+assertNoEffects(); // Scripted clicks have no authorization to submit.
 emit(button, "click", { detail: 0 }); // native keyboard activation is a click with detail=0
 assert.equal(button.disabled, true);
 assert.match(status.textContent, /sending/i);

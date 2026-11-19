@@ -1,4 +1,4 @@
-// Draft controls for the opt-in sky pilot. The map and inputs never submit a request.
+// Draft controls for the sky map. The map and inputs never submit a request.
 import { parseRA, parseDec } from "../coords.js";
 import { MIN_FOV_ARCMIN, REAL_DATA_MAX_FOV_ARCMIN } from "./fieldLimits.js";
 import { BROWSE_START } from "./skyBrowse.js";
@@ -56,6 +56,7 @@ export function setupSkyZone({ els, map, submit, unavailable = "" }) {
   let active = false;
   let pending = false;
   status.textContent = unavailable;
+  button.disabled = true;
 
   const readDraft = () => parseSkyZone({ ra: ra.value, dec: dec.value, fov: fov.value });
   function showErrors(updates) {
@@ -126,11 +127,11 @@ export function setupSkyZone({ els, map, submit, unavailable = "" }) {
     if (event.repeat && (event.key === "Enter" || event.key === " ")) event.preventDefault();
   });
   button.addEventListener("click", async event => {
-    if (!active || unavailable || pending || event.detail > 1) return;
+    if (!active || unavailable || pending || !event.isTrusted || event.detail > 1) return;
     const { query, errors: invalid } = readDraft();
     showErrors(invalid);
     if (!query) {
-      inputs[fields.find(key => invalid[key])]?.focus();
+      inputs[fields.find(key => invalid[key])]?.focus({ preventScroll: true });
       return;
     }
 
@@ -142,7 +143,7 @@ export function setupSkyZone({ els, map, submit, unavailable = "" }) {
       await submit(query);
     } finally {
       pending = false;
-      button.disabled = false;
+      button.disabled = Boolean(unavailable);
     }
   });
 
@@ -161,6 +162,11 @@ export function setupSkyZone({ els, map, submit, unavailable = "" }) {
       syncCentre(map.getBrowseCentre());
     },
     setStatus(message) { status.textContent = message; },
+    setUnavailable(message) {
+      unavailable = message;
+      button.disabled = !active || pending || Boolean(message);
+      status.textContent = message;
+    },
     syncCentre,
   };
 }

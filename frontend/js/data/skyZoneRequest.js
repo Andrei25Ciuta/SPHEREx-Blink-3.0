@@ -1,6 +1,6 @@
-// The pilot attaches to a public request only through a verified status GET.
+// The Workspace attaches to a public request only through a verified status GET.
 // I/O and Workspace callbacks are injected so the lifecycle can be tested offline.
-import { isPublicFieldRequestId } from "../urlState.js?v=2";
+import { isPublicFieldRequestId } from "../urlState.js?v=3";
 import { fieldRequestComplete, followFieldRequest } from "./fieldRequests.js?v=2";
 
 const REQUEST_STATES = new Set(["queued", "discovering", "running", "partial", "ready", "failed", "unavailable"]);
@@ -32,23 +32,30 @@ const canReconnect = (error) => !(error instanceof InvalidStatus || error instan
 
 export function createSkyZoneRequestFlow({
   requestField, getStatus, retryField, writeUrl, reset, checking, attached, update, complete, failed,
-  retryStarted, retryFailed, retrySettled, sleep,
+  accepted, unsupported, retryStarted, retryFailed, retrySettled, sleep,
 }) {
   let current = null;
   const isCurrent = (scope) => scope === current && !scope.signal.aborted;
 
-  function begin(query) {
+  function cancel() {
     current?.controller.abort();
+    current = null;
+  }
+
+  function begin(query, origin) {
+    cancel();
     const controller = new AbortController();
     const token = reset(query);
-    return current = { query, token, controller, signal: controller.signal, requestId: null, retryable: false, retrying: false };
+    return current = {
+      query, token, controller, signal: controller.signal, origin, requestId: null,
+      ackPending: origin !== "restore", notifyOnAttach: origin === "zone", retryable: false, retrying: false,
+    };
   }
 
   function fail(scope, message) {
     if (!isCurrent(scope)) return;
-    scope.controller.abort();
-    current = null;
-    failed(`${message} Select Request this zone to submit explicitly.`);
+    cancel();
+    failed(message, scope);
   }
 
   async function attach(scope) {
@@ -62,6 +69,11 @@ export function createSkyZoneRequestFlow({
       let status = await verifiedGet(requestId, { signal });
       if (!isCurrent(scope)) return;
       attached(scope);
+      if (!isCurrent(scope)) return;
+      if (scope.notifyOnAttach) {
+        scope.notifyOnAttach = false;
+        if (!["failed", "unavailable"].includes(status.status)) accepted?.(scope);
+      }
       await update(status, scope);
       if (!isCurrent(scope)) return;
       if (!fieldRequestComplete(status)) {
@@ -83,13 +95,23 @@ export function createSkyZoneRequestFlow({
   }
 
   return {
-    async submit(query) {
-      const scope = begin(query);
-      writeUrl({ ...query, dateFrom: null, dateTo: null, request_id: null });
+    cancel,
+    async submit(query, { origin = "zone", dateFrom = null, dateTo = null } = {}) {
+      if (current?.ackPending && current.origin === origin) return;
+      const scope = begin(query, origin);
+      writeUrl({ ...query, dateFrom, dateTo, request_id: null });
       try {
-        const result = await requestField(query, { signal: scope.signal });
+        const result = await requestField({ ...query, dateFrom, dateTo }, { signal: scope.signal });
         if (!isCurrent(scope)) return;
-        if (result === null) throw new Error("Zone requests are unavailable from this data service.");
+        scope.ackPending = false;
+        if (result === null) {
+          if (unsupported) {
+            cancel(); // This explicit load had no acknowledged ID.
+            unsupported(query, { dateFrom, dateTo }, origin);
+            return;
+          }
+          throw new Error("Zone requests are unavailable from this data service.");
+        }
         if (!isPublicFieldRequestId(result?.requestId)) {
           throw new Error("The data service did not acknowledge the zone request with a valid ID.");
         }
@@ -105,7 +127,7 @@ export function createSkyZoneRequestFlow({
     },
     restore(target) {
       if (!target) return;
-      const scope = begin(target.query);
+      const scope = begin(target.query, "restore");
       scope.requestId = target.requestId;
       checking(scope);
       return attach(scope);
