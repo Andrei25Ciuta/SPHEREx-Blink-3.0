@@ -6,7 +6,7 @@
   <title>Field of the Day · SPHEREx Blink</title>
   <link rel="stylesheet" href="css/styles.css?v=20261115">
   <link rel="stylesheet" href="css/instrument.css?v=20261115">
-  <link rel="stylesheet" href="css/daily.css?v=result-card">
+  <link rel="stylesheet" href="css/daily.css?v=streak">
 </head>
 <body class="daily-page">
   <canvas id="daily-background" aria-hidden="true"></canvas>
@@ -17,8 +17,22 @@
   </header>
   <script type="module" src="js/siteHeader.js?v=4"></script>
   <main id="daily" tabindex="-1">
-    <h1>Field of the Day</h1>
-    <p id="daily-date">Synthetic challenge</p>
+    <div class="daily-heading">
+      <div>
+        <h1>Field of the Day</h1>
+        <p id="daily-date">Synthetic challenge</p>
+      </div>
+      <div class="daily-streak">
+        <span class="daily-streak-bubble">
+          <span aria-hidden="true">⭐</span>
+          <strong id="daily-streak-count">0</strong>
+        </span>
+        <div>
+          <strong>Day streak</strong>
+          <small id="daily-streak-freeze">1 freeze available</small>
+        </div>
+      </div>
+    </div>
     <p id="daily-instructions">Find the object that moved. Mark it in both frames, then submit your guess. The frames are one simulated year apart. You have three attempts. With the image focused, use the arrow keys to move the marker.</p>
     <div class="daily-layout">
       <div class="daily-game">
@@ -62,7 +76,6 @@
           </div>
         </section>
         <p id="daily-measurement" aria-live="polite"></p>
-        <p id="daily-streak"></p>
         <div id="daily-result-actions" class="pb-popup-actions" hidden>
           <button type="button" class="btn btn-small" id="daily-replay">Play again</button>
           <button type="button" class="btn btn-small" id="daily-share">Copy result</button>
@@ -73,7 +86,8 @@
     </div>
   </main>
   <div id="daily-celebration" aria-hidden="true"></div>
+  <p id="daily-toast" role="status"></p>
   <script type="module" src="js/dailyBackground.js"></script>
-  <script type="module" src="js/daily.js?v=result-card"></script>
+  <script type="module" src="js/daily.js?v=streak"></script>
 </body>
 </html>

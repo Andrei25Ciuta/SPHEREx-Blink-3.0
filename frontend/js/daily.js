@@ -57,7 +57,17 @@ function drawPreview() {
   $("daily-preview-caption").textContent = `Frame ${frame === 0 ? "A" : "B"} · Synthetic source`;
 }
 
-function celebrate() {
+let toastTimer;
+
+function clearToast() {
+  clearTimeout(toastTimer);
+  $("daily-toast").textContent = "";
+}
+
+function celebrate(streak) {
+  clearToast();
+  $("daily-toast").textContent = `Well done! Object found. ${streak}-day streak.`;
+  toastTimer = setTimeout(clearToast, 5500);
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const overlay = $("daily-celebration");
   const meteors = Array.from({ length: 12 }, (_, index) => {
@@ -123,10 +133,16 @@ function updateResult() {
   $("daily-position-a").textContent = hit ? formatPosition(targets[0]) : "";
   $("daily-position-b").textContent = hit ? formatPosition(targets[1]) : "";
   $("daily-result-actions").hidden = !finished;
+}
+
+function updateStreak() {
   const lastDay = saved.lastPlayed ?? saved.lastSolved;
   const gap = day - lastDay;
   const streak = gap <= 1 || (gap === 2 && !saved.freezeUsed) ? saved.streak ?? 0 : 0;
-  $("daily-streak").textContent = `Streak: ${streak} day${streak === 1 ? "" : "s"} · ${streak && (saved.freezeUsed || gap === 2) ? "Freeze used" : "1 freeze available"}`;
+  $("daily-streak-count").textContent = String(streak);
+  $("daily-streak-freeze").textContent = streak && (saved.freezeUsed || gap === 2)
+    ? "Freeze used" : "1 freeze available";
+  return streak;
 }
 
 function recordPlay() {
@@ -172,7 +188,10 @@ $("daily-submit").addEventListener("click", () => {
   markers.fill(null);
   updateResult();
   draw();
-  if (hit) celebrate();
+  if (done()) {
+    const streak = updateStreak();
+    if (hit) celebrate(streak);
+  }
 });
 $("daily-share").addEventListener("click", async () => {
   const squares = attempts.map(({ hit }) => hit ? "🟩" : "🟥").join("");
@@ -190,6 +209,7 @@ $("daily-share").addEventListener("click", async () => {
 });
 $("daily-replay").addEventListener("click", () => {
   $("daily-celebration").replaceChildren();
+  clearToast();
   attempts = [];
   frame = 0;
   markers.fill(null);
@@ -200,4 +220,5 @@ $("daily-replay").addEventListener("click", () => {
   $("frame-a").focus();
 });
 updateResult();
+updateStreak();
 draw();

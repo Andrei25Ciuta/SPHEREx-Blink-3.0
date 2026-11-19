@@ -5,6 +5,7 @@ import { mulberry32 } from "../frontend/js/data/mockSource.js";
 const overview = await readFile(new URL("../frontend/overview.html", import.meta.url), "utf8");
 assert.match(overview, /href="daily\.html"[^>]*><span>Play today’s field/);
 const daily = await readFile(new URL("../frontend/daily.html", import.meta.url), "utf8");
+assert.match(daily, /<div class="daily-heading">[\s\S]*id="daily-streak-count"[\s\S]*class="daily-layout"/);
 assert.match(daily, /<aside id="daily-results"[\s\S]*id="daily-share"[\s\S]*<\/aside>/);
 let day = 20776;
 Date.now = () => day * 86400000;
@@ -45,6 +46,11 @@ Object.defineProperty(globalThis, "localStorage", { value: {
   setItem: (key, value) => storage.set(key, value),
 } });
 await import("../frontend/js/daily.js");
+function assertStreak(count, freeze = "1 freeze available") {
+  assert.equal(nodes.get("daily-streak-count").textContent, String(count));
+  assert.equal(nodes.get("daily-streak-freeze").textContent, freeze);
+}
+assertStreak(0);
 const image = nodes.get("daily-image");
 const submit = nodes.get("daily-submit");
 const guess = (x, y) => image.click({ clientX: x * 4, clientY: y * 4 });
@@ -79,16 +85,18 @@ assert.equal(nodes.get("daily-position-a").textContent, `X ${x.toFixed(1)} · Y 
 assert.equal(nodes.get("daily-position-b").textContent, `X ${targetX.toFixed(1)} · Y ${targetY.toFixed(1)} px`);
 assert.match(nodes.get("daily-preview-caption").textContent, /Frame B/);
 assert.equal(nodes.get("daily-celebration").children.length, 12);
+assert.equal(nodes.get("daily-toast").textContent, "Well done! Object found. 1-day streak.");
 nodes.get("frame-a").click();
 assert.match(nodes.get("daily-preview-caption").textContent, /Frame A/);
 assert.equal(nodes.get("daily-result-actions").hidden, false);
-assert.equal(nodes.get("daily-streak").textContent, "Streak: 1 day · 1 freeze available");
+assertStreak(1);
 nodes.get("daily-replay").click();
 assert.equal(nodes.get("daily-found").hidden, true);
 assert.equal(nodes.get("daily-results").classList.has("is-open"), false);
 assert.equal(nodes.get("daily-speed").hidden, true);
 assert.equal(nodes.get("daily-direction").hidden, true);
 assert.equal(nodes.get("daily-celebration").children.length, 0);
+assert.equal(nodes.get("daily-toast").textContent, "");
 reducedMotion = true;
 assert.equal(nodes.get("daily-status").textContent, "3 attempts left.");
 assert.equal(submit.disabled, true);
@@ -99,13 +107,15 @@ guess(x, y);
 nodes.get("frame-b").click();
 guess(targetX, targetY);
 submit.click();
-assert.equal(nodes.get("daily-streak").textContent, "Streak: 1 day · 1 freeze available");
+assertStreak(1);
 assert.equal(nodes.get("daily-found").hidden, false);
 assert.equal(nodes.get("daily-celebration").children.length, 0);
+assert.equal(nodes.get("daily-toast").textContent, "Well done! Object found. 1-day streak.");
+nodes.get("daily-replay").click();
 await import("../frontend/js/daily.js?reload");
 assert.equal(nodes.get("daily-status").textContent, "3 attempts left.");
 assert.equal(submit.disabled, true);
-assert.equal(nodes.get("daily-streak").textContent, "Streak: 1 day · 1 freeze available");
+assertStreak(1);
 // Three misses complete a day and count as play.
 function loseRound() {
   for (let i = 0; i < 3; i++) {
@@ -125,11 +135,11 @@ function loseRound() {
 day += 2;
 await import("../frontend/js/daily.js?skip-one");
 loseRound();
-assert.equal(nodes.get("daily-streak").textContent, "Streak: 2 days · Freeze used");
+assertStreak(2, "Freeze used");
 day += 2;
 await import("../frontend/js/daily.js?skip-again");
 loseRound();
-assert.equal(nodes.get("daily-streak").textContent, "Streak: 1 day · 1 freeze available");
+assertStreak(1);
 globalThis.location = { href: "https://example.org/daily.html" };
 let shared;
 Object.defineProperty(globalThis, "navigator", { configurable: true, value: {
@@ -138,4 +148,4 @@ Object.defineProperty(globalThis, "navigator", { configurable: true, value: {
 await nodes.get("daily-share").click();
 assert.match(shared, /\n🟥🟥🟥 · 0\/100\nhttps:/);
 assert.doesNotMatch(shared, /px\/year|Simulated motion/);
-console.log("PASS daily scoring, motion, sharing, replay, streak freeze, source preview and celebration");
+console.log("PASS daily scoring, motion, sharing, replay, streak freeze, source preview, celebration and streak notification");

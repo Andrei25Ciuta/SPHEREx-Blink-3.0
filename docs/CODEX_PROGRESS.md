@@ -1,3 +1,9 @@
+## 2026-11-19 — Field of the Day streak badge
+
+The streak count and freeze status now appear beside the heading. A correct guess shows a temporary congratulatory message with the current streak as the shooting-star animation starts. The message also appears with reduced motion enabled.
+
+Validation: all `scratch/test_*.mjs` scripts and `git diff --check` passed. The daily test checks the badge, freeze and celebration states with a fixed UTC seed and mocked canvas and browser storage. The rendered appearance was not verified in the sandbox browser. Backend pytest was unavailable because pytest is not installed.
+
 ## 2026-11-19 — Field of the Day result card
 
 The right-hand result panel uses the Pin Board card styles. It shows the score, simulated motion, streak, and replay and sharing actions. A successful round also shows the source crop and both positions in image pixels.
