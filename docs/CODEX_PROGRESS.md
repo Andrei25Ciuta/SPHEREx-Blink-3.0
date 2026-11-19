@@ -1,3 +1,9 @@
+## 2026-11-19 — Field of the Day blink playback and comparison
+
+The viewer can alternate the two frames, and marking a position pauses playback. After a correct guess, the result card shows side-by-side crops of the same image region with the source position highlighted in each frame. The score is prominent and the exact positions are available under Position details.
+
+Validation: all `scratch/test_*.mjs` scripts and `git diff --check` passed. The daily test uses a fixed synthetic seed, a mocked canvas and a simulated playback timer. The rendered layout was not verified in a browser. Backend pytest was unavailable because pytest is not installed.
+
 ## 2026-11-19 — Field of the Day streak badge
 
 The streak count and freeze status now appear beside the heading. A correct guess shows a temporary congratulatory message with the current streak as the shooting-star animation starts. The message also appears with reduced motion enabled.

@@ -21,7 +21,8 @@ globalThis.document = {
   getElementById(id) {
     if (!nodes.has(id)) nodes.set(id, {
       addEventListener(type, callback) { this[type] = callback; },
-      setAttribute() {},
+      attributes: new Map(),
+      setAttribute(name, value) { this.attributes.set(name, value); },
       classList: {
         items: new Set(),
         has(token) { return this.items.has(token); },
@@ -32,9 +33,16 @@ globalThis.document = {
       },
       focus() {},
       replaceChildren(...children) { this.children = children; },
-      width: 256,
+      width: id.startsWith("daily-preview-") ? 26 : 256,
       height: 256,
-      getContext: () => context,
+      getContext() {
+        this.context ??= {
+          ...context,
+          putImageData(image) { this.image = image; },
+          arc(x, y) { this.marker = { x, y }; },
+        };
+        return this.context;
+      },
       getBoundingClientRect: () => ({ left: 0, top: 0, width: 256, height: 256 }),
     });
     return nodes.get(id);
@@ -55,7 +63,27 @@ const image = nodes.get("daily-image");
 const submit = nodes.get("daily-submit");
 const guess = (x, y) => image.click({ clientX: x * 4, clientY: y * 4 });
 
+// Advance playback without waiting for a real timer.
+const realSetInterval = globalThis.setInterval;
+const realClearInterval = globalThis.clearInterval;
+let tick;
+globalThis.setInterval = (callback) => { tick = callback; return 1; };
+globalThis.clearInterval = () => { tick = undefined; };
+const blink = nodes.get("daily-blink");
+blink.click();
+assert.equal(blink.attributes.get("aria-pressed"), "true");
+assert.equal(nodes.get("frame-b").attributes.get("aria-pressed"), "true");
+tick();
+assert.equal(nodes.get("frame-a").attributes.get("aria-pressed"), "true");
+blink.click();
+assert.equal(tick, undefined);
+blink.click();
+tick();
 guess(0, 0);
+assert.equal(blink.attributes.get("aria-pressed"), "false");
+assert.equal(tick, undefined);
+globalThis.setInterval = realSetInterval;
+globalThis.clearInterval = realClearInterval;
 assert.equal(submit.disabled, true);
 nodes.get("frame-b").click();
 guess(0, 0);
@@ -73,7 +101,7 @@ guess(x, y);
 nodes.get("frame-b").click();
 guess(targetX, targetY);
 submit.click();
-assert.equal(nodes.get("daily-status").textContent, "Found in 2/3 · 90/100 points.");
+assert.equal(nodes.get("daily-status").textContent, "Found in 2 of 3 attempts.");
 assert.match(nodes.get("daily-measurement").textContent, /Your estimate: .*px\/year/);
 assert.equal(nodes.get("daily-found").hidden, false);
 assert.equal(nodes.get("daily-results-title").textContent, "Object found");
@@ -83,11 +111,17 @@ assert.equal(nodes.get("daily-speed").textContent, `${Math.hypot(vx, vy).toFixed
 assert.match(nodes.get("daily-direction").textContent, /^Toward /);
 assert.equal(nodes.get("daily-position-a").textContent, `X ${x.toFixed(1)} · Y ${y.toFixed(1)} px`);
 assert.equal(nodes.get("daily-position-b").textContent, `X ${targetX.toFixed(1)} · Y ${targetY.toFixed(1)} px`);
-assert.match(nodes.get("daily-preview-caption").textContent, /Frame B/);
+assert.equal(nodes.get("daily-score").textContent, "90 / 100");
+const previewA = nodes.get("daily-preview-a").context;
+const previewB = nodes.get("daily-preview-b").context;
+assert.equal(previewA.image.data.length, 26 * 26 * 4);
+assert.notDeepEqual(previewA.image.data, previewB.image.data);
+assert.ok(Math.abs((previewB.marker.x - previewA.marker.x) - (targetX - x)) < 1e-9);
+assert.ok(Math.abs((previewB.marker.y - previewA.marker.y) - (targetY - y)) < 1e-9);
 assert.equal(nodes.get("daily-celebration").children.length, 12);
 assert.equal(nodes.get("daily-toast").textContent, "Well done! Object found. 1-day streak.");
 nodes.get("frame-a").click();
-assert.match(nodes.get("daily-preview-caption").textContent, /Frame A/);
+
 assert.equal(nodes.get("daily-result-actions").hidden, false);
 assertStreak(1);
 nodes.get("daily-replay").click();
@@ -125,7 +159,7 @@ function loseRound() {
     guess(0, 0);
     submit.click();
   }
-  assert.equal(nodes.get("daily-status").textContent, "Out of attempts · 0/100 points.");
+  assert.equal(nodes.get("daily-status").textContent, "Out of attempts.");
   assert.equal(nodes.get("daily-results-title").textContent, "Round complete");
   assert.equal(nodes.get("daily-found").hidden, true);
   assert.equal(nodes.get("daily-speed").hidden, false);

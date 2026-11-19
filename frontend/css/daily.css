@@ -48,8 +48,6 @@
   width: 100%;
   height: auto;
   background: #05070b;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
   image-rendering: pixelated;
   cursor: crosshair;
 }
@@ -95,18 +93,21 @@
 #daily-found h3 { margin: 0 0 .65rem; font-size: .9rem; }
 .daily-source {
   display: grid;
-  grid-template-columns: minmax(0, 5rem) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   gap: .75rem;
-  align-items: start;
+  align-items: center;
 }
 
+.daily-source-arrow { color: var(--accent-text); font-size: 1.25rem; }
 #daily-found figure { margin: 0; }
 #daily-found figcaption { margin-top: .3rem; }
-.daily-positions { margin: 0; }
+.daily-positions { margin: .4rem 0 0; }
+#daily-position-details { margin-top: .65rem; font-size: .82rem; }
+#daily-position-details summary { cursor: pointer; color: var(--text-muted); }
 .daily-positions dt, #daily-found figcaption { font-size: .78rem; color: var(--text-muted); }
 .daily-positions dd { margin: 0 0 .35rem; font: 600 .85rem/1.4 var(--font-mono); }
 
-#daily-preview {
+.daily-source canvas {
   display: block;
   width: 100%;
   height: auto;
@@ -115,16 +116,27 @@
 }
 
 #daily-status { margin: .15rem 0 0; }
+#daily-score { margin-inline-start: auto; color: var(--accent-text); font-size: clamp(1rem, 2.25vw, 1.5rem); white-space: nowrap; }
 #daily-measurement { margin: .65rem 0 0; }
 #daily-copy-status { margin: .45rem 0 0; }
 #daily-copy-status:empty, #daily-measurement:empty { margin: 0; }
 
-.daily-image-stage {
-  position: relative;
+.daily-viewer {
   width: min(100%, 29rem);
-  overflow: hidden;
+  margin-top: .75rem;
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
+  background: var(--surface);
 }
+
+.daily-toolbar {
+  margin: 0;
+  padding: .5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+#daily-blink { margin-inline-start: auto; }
+#daily-image:focus-visible { outline-offset: -3px; }
 
 #daily-celebration {
   position: fixed;

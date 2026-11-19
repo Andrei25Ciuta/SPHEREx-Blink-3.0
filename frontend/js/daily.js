@@ -45,16 +45,31 @@ const images = frames.map((grey) => {
   return pixels;
 });
 
-function drawPreview() {
-  const preview = $("daily-preview");
-  const previewContext = preview.getContext("2d");
-  const { x, y } = targets[frame];
-  const half = 5 * scale;
-  previewContext.clearRect(0, 0, preview.width, preview.height);
-  previewContext.imageSmoothingEnabled = false;
-  previewContext.drawImage(canvas, x * scale - half, y * scale - half,
-    half * 2, half * 2, 0, 0, preview.width, preview.height);
-  $("daily-preview-caption").textContent = `Frame ${frame === 0 ? "A" : "B"} · Synthetic source`;
+function drawPreviews() {
+  const cropSize = $("daily-preview-a").width;
+  const cropStart = (first, second) =>
+    Math.max(0, Math.min(size - cropSize, Math.floor((first + second - cropSize) / 2)));
+  const left = cropStart(targets[0].x, targets[1].x);
+  const top = cropStart(targets[0].y, targets[1].y);
+
+  for (const [epoch, id] of ["daily-preview-a", "daily-preview-b"].entries()) {
+    const previewContext = $(id).getContext("2d");
+    const crop = previewContext.createImageData(cropSize, cropSize);
+    for (let row = 0; row < cropSize; row++) {
+      for (let column = 0; column < cropSize; column++) {
+        const grey = frames[epoch][(top + row) * size + left + column];
+        const offset = (row * cropSize + column) * 4;
+        crop.data[offset] = crop.data[offset + 1] = crop.data[offset + 2] = grey;
+        crop.data[offset + 3] = 255;
+      }
+    }
+    previewContext.putImageData(crop, 0, 0);
+    previewContext.beginPath();
+    previewContext.arc(targets[epoch].x - left, targets[epoch].y - top, 2.5, 0, 2 * Math.PI);
+    previewContext.strokeStyle = "#77e9ff";
+    previewContext.lineWidth = .45;
+    previewContext.stroke();
+  }
 }
 
 let toastTimer;
@@ -83,7 +98,6 @@ function celebrate(streak) {
 
 function draw() {
   context.putImageData(images[frame], 0, 0);
-  if (latest()?.hit) drawPreview();
   const point = done() ? targets[frame] : markers[frame];
   if (point) {
     context.beginPath();
@@ -121,8 +135,10 @@ function updateResult() {
   $("daily-results-icon").textContent = hit ? "✓" : "✦";
   $("daily-results-title").textContent = hit ? "Object found" : finished ? "Round complete" : "Results";
   $("daily-status").textContent = hit
-    ? `Found in ${attempts.length}/${limit} · ${result.score}/100 points.`
-    : remaining ? `${remaining} attempt${remaining === 1 ? "" : "s"} left.` : "Out of attempts · 0/100 points.";
+    ? `Found in ${attempts.length} of ${limit} attempts.`
+    : remaining ? `${remaining} attempt${remaining === 1 ? "" : "s"} left.` : "Out of attempts.";
+  $("daily-score").hidden = !finished;
+  $("daily-score").textContent = finished ? `${result.score} / 100` : "";
   $("daily-measurement").textContent = result
     ? `Your estimate: ${result.motion.speed} · ${result.motion.direction}` : "";
   $("daily-speed").hidden = !finished;
@@ -159,10 +175,37 @@ function recordPlay() {
   try { localStorage.setItem(storageKey, JSON.stringify(saved)); } catch { /* keep streak in memory */ }
 }
 
-$("frame-a").addEventListener("click", () => { frame = 0; draw(); });
-$("frame-b").addEventListener("click", () => { frame = 1; draw(); });
+const blinkButton = $("daily-blink");
+let blinkTimer;
+
+function stopBlink() {
+  clearInterval(blinkTimer);
+  blinkTimer = undefined;
+  blinkButton.setAttribute("aria-pressed", "false");
+  blinkButton.textContent = "Blink";
+}
+
+function showFrame(index) {
+  frame = index;
+  draw();
+}
+
+blinkButton.addEventListener("click", () => {
+  if (blinkTimer !== undefined) {
+    stopBlink();
+    return;
+  }
+  blinkButton.setAttribute("aria-pressed", "true");
+  blinkButton.textContent = "Pause";
+  showFrame(1 - frame);
+  blinkTimer = setInterval(() => showFrame(1 - frame), 550);
+});
+
+$("frame-a").addEventListener("click", () => { stopBlink(); showFrame(0); });
+$("frame-b").addEventListener("click", () => { stopBlink(); showFrame(1); });
 canvas.addEventListener("click", (event) => {
   if (done()) return;
+  stopBlink();
   const rect = canvas.getBoundingClientRect();
   markers[frame] = { x: (event.clientX - rect.left) / rect.width * size, y: (event.clientY - rect.top) / rect.height * size };
   draw();
@@ -171,6 +214,7 @@ canvas.addEventListener("keydown", (event) => {
   const move = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[event.key];
   if (!move || done()) return;
   event.preventDefault();
+  stopBlink();
   const marker = markers[frame] ??= { x: size / 2, y: size / 2 };
   marker.x = Math.max(0, Math.min(size, marker.x + move[0]));
   marker.y = Math.max(0, Math.min(size, marker.y + move[1]));
@@ -178,6 +222,7 @@ canvas.addEventListener("keydown", (event) => {
 });
 $("daily-submit").addEventListener("click", () => {
   if (!markers.every(Boolean) || done()) return;
+  stopBlink();
   const error = Math.max(...markers.map((point, index) =>
     Math.hypot(point.x - targets[index].x, point.y - targets[index].y)));
   const hit = error <= tolerance;
@@ -190,7 +235,10 @@ $("daily-submit").addEventListener("click", () => {
   draw();
   if (done()) {
     const streak = updateStreak();
-    if (hit) celebrate(streak);
+    if (hit) {
+      drawPreviews();
+      celebrate(streak);
+    }
   }
 });
 $("daily-share").addEventListener("click", async () => {
@@ -208,6 +256,8 @@ $("daily-share").addEventListener("click", async () => {
   }
 });
 $("daily-replay").addEventListener("click", () => {
+  stopBlink();
+  $("daily-position-details").open = false;
   $("daily-celebration").replaceChildren();
   clearToast();
   attempts = [];

@@ -6,7 +6,7 @@
   <title>Field of the Day · SPHEREx Blink</title>
   <link rel="stylesheet" href="css/styles.css?v=20261115">
   <link rel="stylesheet" href="css/instrument.css?v=20261115">
-  <link rel="stylesheet" href="css/daily.css?v=streak">
+  <link rel="stylesheet" href="css/daily.css?v=blink-pair">
 </head>
 <body class="daily-page">
   <canvas id="daily-background" aria-hidden="true"></canvas>
@@ -33,14 +33,15 @@
         </div>
       </div>
     </div>
-    <p id="daily-instructions">Find the object that moved. Mark it in both frames, then submit your guess. The frames are one simulated year apart. You have three attempts. With the image focused, use the arrow keys to move the marker.</p>
+    <p id="daily-instructions">Use Blink to spot the moving object. Pause and mark it in both frames, then submit your guess. The frames are one simulated year apart. You have three attempts. With the image focused, use the arrow keys to move the marker.</p>
     <div class="daily-layout">
       <div class="daily-game">
-        <div class="daily-controls" role="group" aria-label="Choose a frame">
-          <button type="button" class="btn" id="frame-a" aria-pressed="true">Frame A · Year 0</button>
-          <button type="button" class="btn" id="frame-b" aria-pressed="false">Frame B · Year 1</button>
-        </div>
-        <div class="daily-image-stage">
+        <div class="daily-viewer">
+          <div class="daily-controls daily-toolbar" role="group" aria-label="Frame playback">
+            <button type="button" class="btn" id="frame-a" aria-pressed="true">Frame A · Year 0</button>
+            <button type="button" class="btn" id="frame-b" aria-pressed="false">Frame B · Year 1</button>
+            <button type="button" class="btn" id="daily-blink" aria-pressed="false">Blink</button>
+          </div>
           <canvas id="daily-image" width="256" height="256" tabindex="0" aria-label="Synthetic star field" aria-describedby="daily-instructions"></canvas>
         </div>
         <div class="daily-controls">
@@ -54,6 +55,7 @@
             <h2 id="daily-results-title">Results</h2>
             <p id="daily-status" class="pb-when" role="status">3 attempts left.</p>
           </div>
+          <strong id="daily-score" hidden></strong>
         </div>
         <div class="pb-chips" role="group" aria-label="Simulated motion">
           <span class="pb-chip">Synthetic demo</span>
@@ -61,19 +63,27 @@
           <span id="daily-direction" class="pb-chip" hidden></span>
         </div>
         <section id="daily-found" aria-labelledby="daily-found-title" hidden>
-          <h3 id="daily-found-title">Source positions</h3>
+          <h3 id="daily-found-title">Source motion</h3>
           <div class="daily-source">
             <figure>
-              <canvas id="daily-preview" width="120" height="120" role="img" aria-label="Zoomed view of the recovered synthetic source"></canvas>
-              <figcaption id="daily-preview-caption"></figcaption>
+              <canvas id="daily-preview-a" width="26" height="26" role="img" aria-label="Source position in Frame A"></canvas>
+              <figcaption>Frame A · Year 0</figcaption>
             </figure>
+            <span class="daily-source-arrow" aria-hidden="true">→</span>
+            <figure>
+              <canvas id="daily-preview-b" width="26" height="26" role="img" aria-label="Source position in Frame B"></canvas>
+              <figcaption>Frame B · Year 1</figcaption>
+            </figure>
+          </div>
+          <details id="daily-position-details">
+            <summary>Position details</summary>
             <dl class="daily-positions">
               <dt>Frame A</dt>
               <dd id="daily-position-a"></dd>
               <dt>Frame B</dt>
               <dd id="daily-position-b"></dd>
             </dl>
-          </div>
+          </details>
         </section>
         <p id="daily-measurement" aria-live="polite"></p>
         <div id="daily-result-actions" class="pb-popup-actions" hidden>
@@ -88,6 +98,6 @@
   <div id="daily-celebration" aria-hidden="true"></div>
   <p id="daily-toast" role="status"></p>
   <script type="module" src="js/dailyBackground.js"></script>
-  <script type="module" src="js/daily.js?v=streak"></script>
+  <script type="module" src="js/daily.js?v=blink-pair"></script>
 </body>
 </html>
