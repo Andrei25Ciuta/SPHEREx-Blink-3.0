@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Oswald:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 
   <script>if (/[?&]embed=1(&|$)/.test(location.search)) document.documentElement.classList.add("embed");</script>   <!-- ?embed=1: workspace only, for an <iframe> -->
-  <link rel="stylesheet" href="css/styles.css?v=20261119-sky-browse-1">
+  <link rel="stylesheet" href="css/styles.css?v=20261119-sky-browse-2">
   <link rel="stylesheet" href="css/instrument.css?v=20261115">
   <link rel="stylesheet" href="css/lab-track.css">
   <link rel="stylesheet" href="css/contact-sheet.css?v=20261115-2">
@@ -502,6 +502,27 @@
           <button type="button" class="btn btn-small" id="sky-back-to-field" aria-controls="aladin-box" hidden>Back to field</button>
           <button type="button" class="btn btn-small" id="sky-full-btn" hidden>Full screen</button>
         </div>
+        <section class="sky-zone-controls" id="sky-zone-controls" aria-labelledby="sky-zone-title" hidden>
+          <div class="sky-zone-heading">
+            <h3 id="sky-zone-title">Choose a zone</h3>
+            <p>Map clicks can fill a draft centre. Review the coordinates and field size, then request explicitly to load SPHEREx observations.</p>
+          </div>
+          <div class="sky-zone-fields">
+            <label for="sky-zone-ra">Right Ascension (RA)
+              <input id="sky-zone-ra" type="text" inputmode="decimal" autocomplete="off" aria-describedby="sky-zone-help sky-zone-error" placeholder="Degrees or h m s">
+            </label>
+            <label for="sky-zone-dec">Declination (Dec)
+              <input id="sky-zone-dec" type="text" inputmode="decimal" autocomplete="off" aria-describedby="sky-zone-help sky-zone-error" placeholder="Degrees or d m s">
+            </label>
+            <label for="sky-zone-fov">Field of view (arcmin)
+              <input id="sky-zone-fov" type="number" min="1" max="10" step="any" value="5">
+            </label>
+            <button type="button" class="btn btn-primary" id="sky-zone-request">Request this zone</button>
+          </div>
+          <p class="sky-zone-help" id="sky-zone-help">Enter decimal coordinates or sexagesimal coordinates. A draft does not load data; only the request button starts processing.</p>
+          <p class="sky-zone-message sky-zone-error" id="sky-zone-error" role="alert" aria-live="assertive"></p>
+          <p class="sky-zone-message" id="sky-zone-status" role="status" aria-live="polite"></p>
+        </section>
         <div class="sky-map-surface" id="sky-map-surface" hidden>
           <div id="aladin-box" class="skymap" hidden></div>
           <button type="button" class="btn btn-small" id="sky-reset-light" aria-controls="aladin-box" aria-label="Reset light settings" title="Reset light settings" hidden><span aria-hidden="true">↺</span></button>

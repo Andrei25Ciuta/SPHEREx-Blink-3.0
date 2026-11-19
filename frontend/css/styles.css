@@ -825,6 +825,44 @@ html.sky-browse #aladin-btn {
 }
 html.sky-browse #sky-back-to-field { display: none !important; }
 html.sky-browse .sky-map-surface { margin-top: .75rem; }
+/* P2 zone controls are inert and absent until the later interaction wiring reveals the group. */
+.sky-zone-controls:not([hidden]) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: .7rem;
+  margin: .75rem 0;
+  padding: 1rem;
+  border: 1px solid rgb(var(--accent-rgb) / .35);
+  border-radius: var(--radius);
+  background: linear-gradient(115deg, rgb(var(--accent-rgb) / .09), rgb(var(--surface-rgb) / .72));
+}
+.sky-zone-heading h3 { margin: 0; font-size: 1rem; }
+.sky-zone-heading p { max-width: 70ch; margin: .25rem 0 0; color: var(--text-muted); font-size: .84rem; line-height: 1.5; }
+.sky-zone-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(8rem, .7fr) auto;
+  align-items: end;
+  gap: .65rem;
+}
+.sky-zone-fields label { display: grid; gap: .35rem; color: var(--text-muted); font-size: .82rem; font-weight: 600; }
+.sky-zone-fields input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: .65rem .75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--raised);
+  color: var(--text);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+}
+.sky-zone-fields input:focus-visible,
+.sky-zone-fields button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.sky-zone-fields button { min-height: 46px; white-space: nowrap; }
+.sky-zone-help, .sky-zone-message { margin: 0; color: var(--text-muted); font-size: .8rem; line-height: 1.45; }
+.sky-zone-error:not(:empty) { color: var(--danger); }
 html.sky-browse .skymap {
   height: clamp(520px, 70vh, 900px);
   min-height: 520px;
@@ -881,6 +919,8 @@ html.fs-locked { overflow: hidden; }
   html.sky-browse #aladin-btn { flex: 1 1 100%; min-height: 48px; }
   html.sky-browse #sky-full-btn { min-height: 44px; }
   html.sky-browse .skymap { height: 66svh; min-height: 440px; max-height: 760px; }
+  .sky-zone-fields { grid-template-columns: 1fr 1fr; }
+  .sky-zone-fields button { grid-column: 1 / -1; width: 100%; min-height: 48px; }
 }
 
 /* Predicted-track info line (green = same colour as the overlay ticks) */
