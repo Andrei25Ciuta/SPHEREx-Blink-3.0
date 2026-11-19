@@ -1,11 +1,11 @@
 #daily {
-  max-width: 42rem;
+  max-width: 53rem;
   margin: 2rem auto;
   padding: 0 1rem 2rem;
 }
 #daily-image {
   display: block;
-  width: min(100%, 29rem);
+  width: 100%;
   height: auto;
   background: #05070b;
   border: 1px solid var(--border);
@@ -24,3 +24,88 @@
   color: var(--accent-text);
 }
 #daily-share-text { width: 100%; }
+
+
+.daily-layout {
+  display: grid;
+  grid-template-columns: minmax(9rem, 13rem) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.daily-game { grid-column: 2; }
+
+.daily-found {
+  margin-top: .75rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.daily-found h2 { margin: 0 0 .75rem; font-size: 1rem; }
+.daily-found figure { margin: 0; }
+.daily-found figcaption { margin-top: .5rem; font-size: .85rem; }
+
+#daily-preview {
+  display: block;
+  width: 100%;
+  max-width: 9rem;
+  height: auto;
+  image-rendering: pixelated;
+}
+
+.daily-image-stage {
+  position: relative;
+  width: min(100%, 29rem);
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+}
+
+#daily-celebration {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+#daily-celebration span {
+  position: absolute;
+  left: var(--start);
+  top: var(--height);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  color: #adeeff;
+  background: currentColor;
+  box-shadow: 0 0 10px currentColor;
+  opacity: 0;
+  animation: daily-meteor 940ms ease-out var(--delay) both;
+}
+
+#daily-celebration span:nth-child(3n) { color: #ffd68e; }
+
+#daily-celebration span::after {
+  content: "";
+  position: absolute;
+  right: 50%;
+  top: 50%;
+  width: 38px;
+  height: 2px;
+  background: linear-gradient(to right, transparent, currentColor);
+  transform-origin: right center;
+  transform: rotate(53deg);
+}
+
+@keyframes daily-meteor {
+  0% { opacity: 0; transform: translate(-12px, -20px); }
+  18% { opacity: 1; }
+  100% { opacity: 0; transform: translate(130px, 175px); }
+}
+
+@media (max-width: 40rem) {
+  .daily-layout { grid-template-columns: minmax(0, 1fr); gap: .75rem; }
+  .daily-game { grid-column: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #daily-celebration { display: none; }
+}

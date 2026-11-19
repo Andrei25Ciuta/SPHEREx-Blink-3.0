@@ -45,8 +45,35 @@ const images = frames.map((grey) => {
   return pixels;
 });
 
+function drawPreview() {
+  const preview = $("daily-preview");
+  const previewContext = preview.getContext("2d");
+  const { x, y } = targets[frame];
+  const half = 5 * scale;
+  previewContext.clearRect(0, 0, preview.width, preview.height);
+  previewContext.imageSmoothingEnabled = false;
+  previewContext.drawImage(canvas, x * scale - half, y * scale - half,
+    half * 2, half * 2, 0, 0, preview.width, preview.height);
+  $("daily-preview-caption").textContent = `Frame ${frame === 0 ? "A" : "B"} · Synthetic source`;
+}
+
+function celebrate() {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const overlay = $("daily-celebration");
+  const meteors = Array.from({ length: 12 }, (_, index) => {
+    const star = document.createElement("span");
+    star.style.setProperty("--start", `${8 + (index * 43) % 85}%`);
+    star.style.setProperty("--height", `${(index * 13) % 32}%`);
+    star.style.setProperty("--delay", `${index * 38}ms`);
+    star.addEventListener("animationend", () => star.remove(), { once: true });
+    return star;
+  });
+  overlay.replaceChildren(...meteors);
+}
+
 function draw() {
   context.putImageData(images[frame], 0, 0);
+  if (latest()?.hit) drawPreview();
   const point = done() ? targets[frame] : markers[frame];
   if (point) {
     context.beginPath();
@@ -78,6 +105,7 @@ function updateResult() {
     : remaining ? `${remaining} attempt${remaining === 1 ? "" : "s"} left.` : "Out of attempts · 0/100 points.";
   $("daily-measurement").textContent = result
     ? `Your estimate: ${result.motion}${done() ? ` | Simulated motion: ${describeMotion(targets)}` : ""}` : "";
+  $("daily-found").hidden = !result?.hit;
   $("daily-share").hidden = !done();
   $("daily-replay").hidden = !done();
   const lastDay = saved.lastPlayed ?? saved.lastSolved;
@@ -129,6 +157,7 @@ $("daily-submit").addEventListener("click", () => {
   markers.fill(null);
   updateResult();
   draw();
+  if (hit) celebrate();
 });
 $("daily-share").addEventListener("click", async () => {
   const squares = attempts.map(({ hit }) => hit ? "🟩" : "🟥").join("");
@@ -145,6 +174,7 @@ $("daily-share").addEventListener("click", async () => {
   }
 });
 $("daily-replay").addEventListener("click", () => {
+  $("daily-celebration").replaceChildren();
   attempts = [];
   frame = 0;
   markers.fill(null);

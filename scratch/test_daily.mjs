@@ -9,14 +9,18 @@ Date.now = () => day * 86400000;
 const nodes = new Map();
 const context = {
   createImageData: (width, height) => ({ data: new Uint8ClampedArray(width * height * 4) }),
-  putImageData() {}, beginPath() {}, arc() {}, stroke() {},
+  putImageData() {}, beginPath() {}, arc() {}, stroke() {}, clearRect() {}, drawImage() {},
 };
+let reducedMotion = false;
+globalThis.window = { matchMedia: () => ({ matches: reducedMotion }) };
 globalThis.document = {
+  createElement: () => ({ style: { setProperty() {} }, addEventListener() {} }),
   getElementById(id) {
     if (!nodes.has(id)) nodes.set(id, {
       addEventListener(type, callback) { this[type] = callback; },
       setAttribute() {},
       focus() {},
+      replaceChildren(...children) { this.children = children; },
       width: 256,
       height: 256,
       getContext: () => context,
@@ -55,10 +59,18 @@ guess(targetX, targetY);
 submit.click();
 assert.equal(nodes.get("daily-status").textContent, "Found in 2/3 · 90/100 points.");
 assert.match(nodes.get("daily-measurement").textContent, /Your estimate: .*px\/year.*Simulated motion:/);
+assert.equal(nodes.get("daily-found").hidden, false);
+assert.match(nodes.get("daily-preview-caption").textContent, /Frame B/);
+assert.equal(nodes.get("daily-celebration").children.length, 12);
+nodes.get("frame-a").click();
+assert.match(nodes.get("daily-preview-caption").textContent, /Frame A/);
 assert.equal(nodes.get("daily-share").hidden, false);
 assert.equal(nodes.get("daily-streak").textContent, "Streak: 1 day · 1 freeze available");
 assert.equal(nodes.get("daily-replay").hidden, false);
 nodes.get("daily-replay").click();
+assert.equal(nodes.get("daily-found").hidden, true);
+assert.equal(nodes.get("daily-celebration").children.length, 0);
+reducedMotion = true;
 assert.equal(nodes.get("daily-status").textContent, "3 attempts left.");
 assert.equal(submit.disabled, true);
 assert.equal(nodes.get("daily-share").hidden, true);
@@ -69,6 +81,8 @@ nodes.get("frame-b").click();
 guess(targetX, targetY);
 submit.click();
 assert.equal(nodes.get("daily-streak").textContent, "Streak: 1 day · 1 freeze available");
+assert.equal(nodes.get("daily-found").hidden, false);
+assert.equal(nodes.get("daily-celebration").children.length, 0);
 await import("../frontend/js/daily.js?reload");
 assert.equal(nodes.get("daily-status").textContent, "3 attempts left.");
 assert.equal(submit.disabled, true);
@@ -101,4 +115,4 @@ Object.defineProperty(globalThis, "navigator", { configurable: true, value: {
 await nodes.get("daily-share").click();
 assert.match(shared, /\n🟥🟥🟥 · 0\/100\nhttps:/);
 assert.doesNotMatch(shared, /px\/year|Simulated motion/);
-console.log("PASS daily scoring, motion, sharing, replay and streak freeze");
+console.log("PASS daily scoring, motion, sharing, replay, streak freeze, source preview and celebration");
