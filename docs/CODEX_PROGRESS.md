@@ -1,3 +1,9 @@
+## Science Workspace — Synthetic field selector layout fix
+
+Checkpoint `477aa5e` fixes the screenshot regression: the moved 1–30′ range no longer inherits text-input styling, its label/value/unit stay inline, and the four controls fit one row on wide screens while wrapping on smaller ones. No request, source, science, or backend behavior changed.
+
+With the loopback static frontend on port 8765, `NODE_PATH=/tmp/opencode/blink-p1/node_modules CHROME_PATH=/usr/bin/chromium BLINK_URL=http://127.0.0.1:8765/ node scratch/browser_workspace_synthetic_zone.cjs` passed on desktop and emulated phone, including the layout assertion and existing offline generation. With the same browser environment, `BLINK_WORKSPACE_SKY_ONLY=1 node scratch/browser_sky_browse.cjs` passed against intercepted API fixtures. No live acquisition was tested.
+
 ## Science Workspace — Offline synthetic zone showcase
 
 On `sky-browse-pilot`, continued from `1a308d8`. UI checkpoint `a1019ca` and local synthetic wiring `da6d89c` moved the original **1–30′** slider from the old form to the normal zone panel. **Request this zone** calls the original in-browser cutout generator, shares the normalized coordinates and width without a request ID, and scrolls once to the original player when frames are ready. Edits are draft-only. Legacy synthetic loads, including the 30′ Planet X preset, synchronize the zone; embedded mode keeps the legacy slider position. The optional map uses labelled real survey imagery for context only, and the synthetic showcase works offline, including when that map is unavailable. The API mode retains its 1–10′ limit and an explicit `data=api` boundary for submission.

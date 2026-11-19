@@ -50,6 +50,28 @@ async function check(browser, mobile) {
     assert.equal(await page.locator("#workspace-sky-surface").isVisible(), false);
     assert.deepEqual(external, [], "synthetic startup must not fetch a survey");
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+    const geometry = await zone.evaluate(panel => {
+      const label = panel.querySelector('label[for="fov-input"]');
+      const slider = panel.querySelector("#fov-input");
+      const parts = Array.from(label.childNodes).filter(node =>
+        node.nodeType === Node.ELEMENT_NODE || node.textContent.trim());
+      const labelLines = parts.map(node => {
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        return range.getBoundingClientRect().bottom;
+      });
+      const bounds = id => panel.querySelector(id).getBoundingClientRect().toJSON();
+      return { labelLines, sliderBorder: parseFloat(getComputedStyle(slider).borderTopWidth),
+        ra: bounds("#workspace-sky-zone-ra"), dec: bounds("#workspace-sky-zone-dec"),
+        width: bounds("#workspace-sky-synthetic-fov"), button: bounds("#workspace-sky-zone-request") };
+    });
+    assert.ok(Math.max(...geometry.labelLines) - Math.min(...geometry.labelLines) < 5,
+      "FOV label, value and unit must read on one line");
+    assert.equal(geometry.sliderBorder, 0, "the range must not inherit a text-input box");
+    if (!mobile) {
+      assert.ok(geometry.ra.right < geometry.dec.left && geometry.dec.right < geometry.width.left &&
+        geometry.width.right < geometry.button.left, "wide layout must keep all four controls in one row");
+    }
 
     await slider.press("End");
     assert.equal(await slider.inputValue(), "30");
