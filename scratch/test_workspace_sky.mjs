@@ -23,11 +23,11 @@ class Control extends EventTarget {
 const api = { dataSource: "api", legacyReadOnly: false, canUseBackend: true, explicitBackend: true };
 assert.equal(skyRequestAvailability(api), "", "explicit loopback fixture can stand in for cloud");
 assert.equal(skyRequestAvailability({ ...api, explicitBackend: false, remoteBackend: true }), "", "canonical remote service is eligible");
-assert.match(skyRequestAvailability({ ...api, legacyReadOnly: true }), /read-only/);
+const readOnly = skyRequestAvailability({ ...api, legacyReadOnly: true });
+assert.match(readOnly, /read-only/);
 assert.match(skyRequestAvailability({ ...api, canUseBackend: false }), /No eligible.*read-only/);
 assert.match(skyRequestAvailability({ ...api, explicitBackend: false }), /FITS/);
-const synthetic = skyRequestAvailability({ ...api, dataSource: "mock" });
-assert.match(synthetic, /read-only.*Synthetic/);
+assert.match(skyRequestAvailability({ ...api, dataSource: "mock" }), /Observed SPHEREx requests.*unavailable.*Synthetic/);
 
 const preview = (opts) => {
   const ids = ["", "map", "surface", "status", "scale", "reset", "zone-controls", "zone-ra", "zone-dec", "zone-fov",
@@ -62,18 +62,18 @@ const preview = (opts) => {
 
 const settle = () => new Promise(setImmediate);
 {
-  const w = preview({ unavailable: synthetic, autoOpen: false });
+  const w = preview({ unavailable: readOnly, autoOpen: false });
   w.controls.start();
   await settle();
   assert.equal(w.els[""].hidden, false);
-  assert.equal(w.opens, 0, "ordinary synthetic boot does not open the renderer or probe survey tiles");
+  assert.equal(w.opens, 0, "before opening an optional map, no renderer startup or tile probes");
   assert.equal(w.els.reset.textContent, "Show sky map");
   assert.match(w.els.status.textContent, /read-only/);
   w.els.reset.click();
   await settle();
   assert.equal(w.opens, 1);
   assert.equal(w.els["zone-request"].disabled, true);
-  assert.match(w.els["zone-status"].textContent, /Synthetic/);
+  assert.match(w.els["zone-status"].textContent, /read-only/);
   w.els["zone-request"].click();
   assert.deepEqual(w.submits, []);
 }

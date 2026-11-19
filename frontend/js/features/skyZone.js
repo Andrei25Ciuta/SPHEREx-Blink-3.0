@@ -1,9 +1,8 @@
 // Draft controls for the sky map. The map and inputs never submit a request.
 import { parseRA, parseDec } from "../coords.js";
-import { MIN_FOV_ARCMIN, REAL_DATA_MAX_FOV_ARCMIN } from "./fieldLimits.js";
+import { MIN_FOV_ARCMIN, maxFovForDataSource } from "./fieldLimits.js";
 import { BROWSE_START } from "./skyBrowse.js";
 
-const FOV_ERROR = `Field of view must be between ${MIN_FOV_ARCMIN} and ${REAL_DATA_MAX_FOV_ARCMIN} arcmin.`;
 const rounded = (value, digits) => Number(value.toFixed(digits)) || 0;
 const COLON_NUMBER = /^(?:\d+(?:[.,]\d*)?|[.,]\d+)(?:e[+−-]?\d+)?$/i;
 
@@ -30,13 +29,16 @@ export function normalizeZoneCentre(ra, dec) {
   return { ra: lon === 360 ? 0 : lon, dec: rounded(dec, 8) };
 }
 
-export function parseSkyZone({ ra, dec, fov }) {
+export function parseSkyZone({ ra, dec, fov }, { dataSource = "api" } = {}) {
   const r = parseZoneCoordinate(ra, parseRA), d = parseZoneCoordinate(dec, parseDec);
   const width = Number(fov);
+  const maxFov = maxFovForDataSource(dataSource);
   const errors = {
     ra: r.ok ? "" : `RA: ${r.error}`,
     dec: d.ok ? "" : `Dec: ${d.error}`,
-    fov: Number.isFinite(width) && width >= MIN_FOV_ARCMIN && width <= REAL_DATA_MAX_FOV_ARCMIN ? "" : FOV_ERROR,
+    fov: !Number.isFinite(width) || width < MIN_FOV_ARCMIN || width > maxFov
+      ? `Field of view must be between ${MIN_FOV_ARCMIN} and ${maxFov} arcmin.`
+      : dataSource !== "api" && !Number.isInteger(width) ? "Use a whole number of arcminutes." : "",
   };
   const centre = r.ok && d.ok ? normalizeZoneCentre(r.deg, d.deg) : null;
   const size = errors.fov ? null : rounded(width, 4);
@@ -45,7 +47,7 @@ export function parseSkyZone({ ra, dec, fov }) {
 
 const sameCentre = (a, b) => a?.ra === b?.ra && a?.dec === b?.dec;
 
-export function setupSkyZone({ els, map, submit, unavailable = "" }) {
+export function setupSkyZone({ els, map, submit, unavailable = "", dataSource = "api" }) {
   const { root, ra, dec, fov, button, error, status } = els;
   if (![root, ra, dec, fov, button, error, status].every(Boolean)) return null;
   const inputs = { ra, dec, fov };
@@ -54,11 +56,12 @@ export function setupSkyZone({ els, map, submit, unavailable = "" }) {
   let centre = null;
   let editingCentre = false; // retain the pair while either coordinate has an unapplied edit
   let active = false;
+  let mapReady = false;
   let pending = false;
   status.textContent = unavailable;
   button.disabled = true;
 
-  const readDraft = () => parseSkyZone({ ra: ra.value, dec: dec.value, fov: fov.value });
+  const readDraft = () => parseSkyZone({ ra: ra.value, dec: dec.value, fov: fov.value }, { dataSource });
   function showErrors(updates) {
     Object.assign(errors, updates);
     for (const key of fields) {
@@ -69,11 +72,12 @@ export function setupSkyZone({ els, map, submit, unavailable = "" }) {
     if (error.textContent !== message) error.textContent = message;
   }
   function drawOutline() {
+    if (!mapReady) return;
     const { size } = readDraft();
     map.setBrowseZone(centre && size !== null ? { ...centre, fov: size } : null);
   }
   function syncCentre(position) {
-    if (!active || editingCentre || ra.matches(":focus") || dec.matches(":focus")) return;
+    if (!mapReady || editingCentre || ra.matches(":focus") || dec.matches(":focus")) return;
     const next = position && normalizeZoneCentre(position.ra, position.dec);
     if (!next || sameCentre(centre, next)) return;
     centre = next;
@@ -81,15 +85,34 @@ export function setupSkyZone({ els, map, submit, unavailable = "" }) {
     dec.value = String(centre.dec);
     drawOutline();
   }
+  function centreMap() {
+    if (!mapReady || !centre) return;
+    // Aladin can notify synchronously as well as asynchronously. Neither
+    // notification should replace typed text on a programmatic recenter.
+    const wasEditing = editingCentre;
+    editingCentre = true;
+    try { map.centreBrowseAt(centre); }
+    finally { editingCentre = wasEditing; }
+  }
+  function setDraft(query) {
+    const next = normalizeZoneCentre(query.ra, query.dec);
+    if (!next) return;
+    centre = next;
+    ra.value = String(query.ra);
+    dec.value = String(query.dec);
+    fov.value = String(query.fov);
+    editingCentre = false;
+    showErrors({ ra: "", dec: "", fov: "" });
+    centreMap();
+    fov.dispatchEvent(new Event("input")); // update the shared slider label and outline
+  }
   function applyCoordinates() {
     if (!editingCentre) return;
     const draft = readDraft();
     showErrors({ ra: draft.errors.ra, dec: draft.errors.dec });
     if (!draft.centre) return;
     centre = draft.centre;
-    // Keep the edit guard up through gotoRaDec: Aladin can notify synchronously
-    // as well as asynchronously. Neither notification should replace typed text.
-    map.centreBrowseAt(centre);
+    centreMap();
     drawOutline();
     editingCentre = false;
   }
@@ -100,7 +123,7 @@ export function setupSkyZone({ els, map, submit, unavailable = "" }) {
       showErrors({ [input === ra ? "ra" : "dec"]: "" });
     });
     input.addEventListener("change", applyCoordinates);
-    input.addEventListener("blur", () => syncCentre(map.getBrowseCentre()));
+    input.addEventListener("blur", () => { if (mapReady) syncCentre(map.getBrowseCentre()); });
   }
   fov.addEventListener("input", () => {
     showErrors({ fov: "" });
@@ -137,7 +160,7 @@ export function setupSkyZone({ els, map, submit, unavailable = "" }) {
 
     pending = true;
     button.disabled = true;
-    status.textContent = "Sending SPHEREx zone request…";
+    status.textContent = dataSource === "api" ? "Sending SPHEREx zone request…" : "Opening synthetic demo images…";
     try {
       applyCoordinates();
       await submit(query);
@@ -148,10 +171,15 @@ export function setupSkyZone({ els, map, submit, unavailable = "" }) {
   });
 
   return {
-    open(initialQuery) {
+    open(initialQuery, { offline = false } = {}) {
       active = true;
-      button.disabled = Boolean(unavailable);
+      button.disabled = pending || Boolean(unavailable);
       root.hidden = false;
+      if (offline) {
+        setDraft(initialQuery);
+        return;
+      }
+      mapReady = true;
       const position = map.getBrowseCentre();
       // Seed a linked zone only at initial map opening, not when any request or
       // detector updates. Don't undo a pan made while the survey was loading.
@@ -161,6 +189,15 @@ export function setupSkyZone({ els, map, submit, unavailable = "" }) {
       }
       syncCentre(map.getBrowseCentre());
     },
+    connectMap() {
+      mapReady = true;
+      // Use the live draft (including edits made while the optional map was
+      // loading), not the startup URL or Aladin's default position.
+      centre = readDraft().centre ?? centre;
+      centreMap();
+      drawOutline();
+    },
+    setDraft,
     setStatus(message) { status.textContent = message; },
     setUnavailable(message) {
       unavailable = message;

@@ -43,8 +43,8 @@ import { setupTimeline } from "./features/timelineView.js";
 import { FLAGGED_LIMIT } from "./features/timeline.js";
 import { SkyContext } from "./features/skyContext.js?v=15";
 import { BROWSE_SURVEYS } from "./features/skyBrowse.js";
-import { normalizeZoneCentre, parseSkyZone, setupSkyZone } from "./features/skyZone.js?v=3";
-import { explicitLoadActivation, moveToPhotoViewer, setupWorkspaceSky, skyRequestAvailability } from "./features/workspaceSky.js";
+import { normalizeZoneCentre, parseSkyZone, setupSkyZone } from "./features/skyZone.js?v=4";
+import { explicitLoadActivation, moveToPhotoViewer, openSyntheticZone, setupWorkspaceSky, skyRequestAvailability } from "./features/workspaceSky.js?v=2";
 import { setupFullscreen } from "./features/fullscreen.js";
 import { detectSources, describeMover, matchKnownObject, moverPositionAtMjd, passIndices, trackSupport, blendWarning, VERSION as MOVERS_VERSION, DEFAULTS as MOVER_DEFAULTS, ERROR_MODEL } from "./features/movers.js";
 import { blindCheckCandidate, VERSION as BLIND_CHECK_VERSION } from "./features/blindCheck.js";
@@ -139,10 +139,10 @@ speedInput.addEventListener("input", () => {
   player.setFps(speedInput.value);
 });
 
-// "change" fires when the user RELEASES the slider (not on every pixel of movement),
-// so we don't rewrite the URL dozens of times per second.
+// The legacy slider commits on release; in the synthetic zone it only changes
+// the draft, and Request this zone is what commits the field.
 fovInput.addEventListener("change", () => {
-  if (SKY_BROWSE || new URLSearchParams(location.search).has("request_id")) return;
+  if (workspaceSky?.synthetic || SKY_BROWSE || new URLSearchParams(location.search).has("request_id")) return;
   if (allFrames.length || DATA_SOURCE === "api") loadPreparedForm();
   else writeUrlState({ fov: fovInput.value });
 });
@@ -306,7 +306,7 @@ function retryLastRequest() {
 }
 retryBtn.addEventListener("click", retryLastRequest);
 fieldRequestRetry.addEventListener("click", (event) => {
-  if (event.isTrusted && !zoneRequestUnavailable && !fieldRequestRetry.hidden &&
+  if (DATA_SOURCE === "api" && event.isTrusted && !zoneRequestUnavailable && !fieldRequestRetry.hidden &&
       !fieldRequestRetry.disabled && event.detail <= 1) void skyZoneRequests.retry();
 });
 fieldRequestRetry.addEventListener("keydown", (event) => {
@@ -864,25 +864,42 @@ let zoneRequestUnavailable = skyRequestAvailability({
   remoteBackend: IS_REMOTE_BACKEND, explicitBackend: Boolean(pageParams.get("api")),
 });
 let skyBrowseInitialDraft = null;
+function submitObservedZone(query) {
+  if (DATA_SOURCE === "api") return skyZoneRequests.submit(query);
+}
 const pilotZone = SKY_BROWSE ? setupSkyZone({
   els: {
     root: $("sky-zone-controls"), ra: $("sky-zone-ra"), dec: $("sky-zone-dec"),
     fov: $("sky-zone-fov"), button: $("sky-zone-request"), error: $("sky-zone-error"), status: $("sky-zone-status"),
   },
   map: sky,
-  submit: (query) => skyZoneRequests.submit(query),
+  submit: submitObservedZone,
   unavailable: zoneRequestUnavailable,
 }) : null;
 const workspaceSky = !SKY_BROWSE && !isEmbed ? setupWorkspaceSky({
   getElement: $,
   createMap: (container, status, surface, scale) => new SkyContext(container, status, null, { surface, scale }),
   setupZone: setupSkyZone,
-  submit: (query) => skyZoneRequests.submit(query),
-  unavailable: zoneRequestUnavailable,
+  submit: DATA_SOURCE === "api" ? submitObservedZone : (query) => openSyntheticZone(query, {
+    writeUrl: writeUrlState,
+    load: (field) => {
+      raInput.value = String(field.ra);
+      decInput.value = String(field.dec);
+      // Keep the legacy field form and its quick-pick state usable too.
+      for (const input of [raInput, decInput]) input.dispatchEvent(new Event("input"));
+      return loadData(field, {}, { fromSyntheticZone: true });
+    },
+    report: (message) => workspaceSky.setStatus(message),
+    handoff: () => moveToPhotoViewer($("workspace-photo-viewer"), prefersReducedMotion),
+  }),
+  unavailable: DATA_SOURCE === "api" ? zoneRequestUnavailable : "",
   autoOpen: DATA_SOURCE === "api",
+  dataSource: DATA_SOURCE,
 }) : null;
+if (workspaceSky?.synthetic) document.documentElement.classList.add("workspace-synthetic-zone");
 const browseFeedback = pilotZone ?? workspaceSky;
-const submitHint = browseFeedback ? "Choose a zone and select Request this zone to submit explicitly." : "Select Load images to open a field.";
+const submitHint = workspaceSky?.synthetic ? "Select Request this zone to generate synthetic demo images."
+  : browseFeedback ? "Choose a zone and select Request this zone to submit explicitly." : "Select Load images to open a field.";
 const skyZoneRequests = createSkyZoneRequestFlow({
   requestField: requestFieldApi,
   getStatus: getFieldRequestApi,
@@ -992,7 +1009,7 @@ $("survey-select").addEventListener("change", (e) => {
   if (!SKY_BROWSE) sky.setSurvey(e.target.value);
 });
 fovInput.addEventListener("change", () => {
-  if (SKY_BROWSE) return;
+  if (SKY_BROWSE || workspaceSky?.synthetic) return;
   if (sky.isOpen && !allFrames.length) {
     const query = readForm();
     if (query) sky.update(query);
@@ -2048,11 +2065,16 @@ function resetFieldLoad(query, { associated = false } = {}) {
   return token;
 }
 
-/** Read prepared/local or synthetic frames, never create or retry a request. */
-async function loadData(query, dates = readArchiveDates()) {
+/** Read prepared/local or synthetic frames. Return whether playback attached, or undefined if superseded. */
+async function loadData(query, dates = readArchiveDates(), { fromSyntheticZone = false } = {}) {
   if (SKY_BROWSE) return; // The pilot submits only from its zone button, never via the legacy loader.
-  skyZoneRequests.cancel();
-  if (!zoneRequestUnavailable) browseFeedback?.setStatus("");
+  if (DATA_SOURCE === "api") {
+    skyZoneRequests.cancel();
+    if (!zoneRequestUnavailable) browseFeedback?.setStatus("");
+  } else if (workspaceSky?.synthetic && !fromSyntheticZone) {
+    workspaceSky.syncSyntheticField(query);
+    workspaceSky.setStatus("");
+  }
   const token = resetFieldLoad(query);
   try {
     const frames = await getCutouts({ ra: query.ra, dec: query.dec, fovArcmin: query.fov, detector: "all" });
@@ -2062,6 +2084,7 @@ async function loadData(query, dates = readArchiveDates()) {
       setStatus("This read-only load did not apply the archive dates." +
         (zoneRequestUnavailable ? "" : " Select Load images to request the date range."));
     }
+    if (token === loadToken) return player.length > 0;
   } catch (err) {
     if (token !== loadToken || err?.name === "AbortError") return;
     console.error(err);
@@ -2070,6 +2093,7 @@ async function loadData(query, dates = readArchiveDates()) {
     detSelect.disabled = true;
     if (DATA_SOURCE === "api") setStatus(err.message || "The data request failed.");
     showOverlay("Could not load images", err.message || "Unknown error.", { error: true });
+    return false;
   } finally {
     if (token === loadToken) setLoading(false);
   }
@@ -2122,7 +2146,8 @@ async function applyFrames(frames, query, token) {
   if (!frames.length) {
     detSelect.innerHTML = '<option value="">No data</option>';
     detSelect.disabled = true;
-    showOverlay("No SPHEREx images found here", "Try another position or a test object.");
+    showOverlay(DATA_SOURCE === "api" ? "No SPHEREx images found here" : "No synthetic demo images available",
+      "Try another position or a test object.");
     return;
   }
   const detector = populateDetectors(frames);
@@ -2292,7 +2317,7 @@ form.addEventListener("submit", (event) => {
   event.preventDefault();            // a <form> would otherwise reload the page
   if (SKY_BROWSE) return;
   const explicit = explicitLegacyLoad && event.submitter === loadButton;
-  if (explicit && !zoneRequestUnavailable) {
+  if (DATA_SOURCE === "api" && explicit && !zoneRequestUnavailable) {
     // Keep the legacy coordinates and dates; canonicalize to the precision of
     // the service so the acknowledged link can be verified on reload.
     const { query, errors } = parseSkyZone({ ra: raInput.value, dec: decInput.value, fov: fovInput.value });
@@ -2326,7 +2351,7 @@ function applyUrlState() {
   if (state.fov !== undefined) {
     const fov = Number(state.fov);
     if (Number.isFinite(fov)) {
-      fovInput.value = String(Math.min(FOV_MAX, Math.max(FOV_MIN, Math.round(fov))));
+      fovInput.value = String(clampFov(fov, DATA_SOURCE));
       $("fov-value").textContent = fovInput.value;
     }
   }
@@ -2347,7 +2372,7 @@ function applyUrlState() {
     } else {
       const message = route.target ? "No eligible SPHEREx data service is configured to read this request."
         : "No valid saved zone request to restore.";
-      const text = `${message} ${zoneRequestUnavailable || submitHint}`;
+      const text = `${message} ${workspaceSky?.synthetic ? submitHint : zoneRequestUnavailable || submitHint}`;
       browseFeedback?.setStatus(text);
       if (!SKY_BROWSE) {
         setStatus(text);
@@ -2371,6 +2396,7 @@ function initialSkyDraft({ ra, dec, fov }) {
   const parsedRa = parseRA(ra), parsedDec = parseDec(dec);
   const centre = parsedRa.ok && parsedDec.ok && normalizeZoneCentre(parsedRa.deg, parsedDec.deg);
   const width = Number(fov);
+  if (DATA_SOURCE !== "api") return centre ? { ...centre, fov: Number(fovInput.value) } : null;
   return centre ? { ...centre, fov: Math.min(REAL_DATA_MAX_FOV_ARCMIN, Math.max(FOV_MIN,
     Number.isFinite(width) ? width : Number(fovInput.value))) } : null;
 }
