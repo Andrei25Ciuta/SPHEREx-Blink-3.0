@@ -62,8 +62,7 @@ function updateMarks() {
 function updateResultFrames() {
   const list = $("real-results-frames");
   list.replaceChildren();
-  list.hidden = !submitted;
-  if (!submitted) return;
+  list.hidden = marks.size === 0;
   for (const [frameIndex, mark] of [...marks].sort(([a], [b]) => a - b)) {
     const frame = frames[frameIndex];
     const item = document.createElement("li");
@@ -139,7 +138,6 @@ $("real-submit").addEventListener("click", () => {
   stop();
   submitted = true;
   updateMarks();
-  updateResultFrames();
 });
 $("real-clear").addEventListener("click", () => {
   marks.clear();
@@ -180,10 +178,8 @@ image.addEventListener("keydown", (event) => {
 
 function saveMark(x, y) {
   const clamp = (value) => Math.max(0, Math.min(1, value));
-  if (submitted) {
-    submitted = false;
-    updateResultFrames();
-  }
+  submitted = false;
   marks.set(index, { x: clamp(x), y: clamp(y), width: image.naturalWidth, height: image.naturalHeight });
   updateMarks();
+  updateResultFrames();
 }
