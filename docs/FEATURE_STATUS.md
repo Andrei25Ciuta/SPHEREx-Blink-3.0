@@ -8,6 +8,10 @@ The live Firestore policy and Cloud Run orchestrator permit up to 20 concurrent 
 
 The deployed Cloud API provides `/api/catalogue`, using the bounded server-side TAP relay for 2MASS, AllWISE and Gaia DR3. A small Gaia DR3 live probe exceeded its 35-second client timeout, so the route is deployed but successful live catalogue data remains unverified. `/api/survey`, `/api/footprints` and `/api/hips/*` remain unavailable in cloud mode. The cloud `/api/photometry` endpoint returned HTTP 503 in a read-only check on 15 Nov 2026; recheck it before relying on image-click measurements with cloud data. Local backend mode continues to expose its existing research endpoints.
 
+## SPHEREx DR1 sky browse pilot
+
+`index.html?data=api&sky_browse=1#workspace` opens the public IRSA DR1 0.753 µm display mosaic at a 12° view centred on Barnard’s Star. If the DR1 layer fails to load, the map labels the 2MASS color fallback from ESA as a different survey. This opt-in pilot can pan and zoom but does not load cutouts, submit a field, or restore a request. The regular Sky Context, Science Workspace, and synthetic Learn Mode remain separate.
+
 ## New in 4.0: Research + Education
 
 | Feature | Implementation | Status / limits |

@@ -13,7 +13,7 @@ import { readUrlState, writeUrlState } from "./urlState.js?v=1";
 import { getCutouts, listDetectors } from "./data/getCutouts.js?v=1";
 import { requestFieldApi, getFieldRequestApi, retryFieldRequestApi } from "./data/apiSource.js?v=1";
 import { followFieldRequest, fieldRequestComplete } from "./data/fieldRequests.js";
-import { DATA_SOURCE, API_BASE, CAN_USE_BACKEND, IS_REMOTE_BACKEND, LEGACY_API_READ_ONLY } from "./config.js?v=1";
+import { DATA_SOURCE, API_BASE, CAN_USE_BACKEND, IS_REMOTE_BACKEND, LEGACY_API_READ_ONLY, SKY_BROWSE } from "./config.js?v=2";
 import { BlinkPlayer, MODES, loadImage, meanImageData } from "./player.js?v=8";
 import { canvasToSky, measureAndPlot, clearMeasurement, setSpectrumStyle, APERTURE_RADIUS_PX } from "./features/measure.js";
 import { setupViewer } from "./features/viewerControls.js";
@@ -40,7 +40,8 @@ import { applyIcons } from "./features/ui.js";
 import { openDialog, shortcutsHtml } from "./features/dialog.js";
 import { setupTimeline } from "./features/timelineView.js";
 import { FLAGGED_LIMIT } from "./features/timeline.js";
-import { SkyContext } from "./features/skyContext.js?v=13";
+import { SkyContext } from "./features/skyContext.js?v=14";
+import { BROWSE_SURVEYS } from "./features/skyBrowse.js";
 import { setupFullscreen } from "./features/fullscreen.js";
 import { detectSources, describeMover, matchKnownObject, moverPositionAtMjd, passIndices, trackSupport, blendWarning, VERSION as MOVERS_VERSION, DEFAULTS as MOVER_DEFAULTS, ERROR_MODEL } from "./features/movers.js";
 import { blindCheckCandidate, VERSION as BLIND_CHECK_VERSION } from "./features/blindCheck.js";
@@ -61,6 +62,8 @@ import { clampFov, maxFovForDataSource, REAL_DATA_MAX_FOV_ARCMIN } from "./featu
 
 // Small helper: document.getElementById is long, so we alias it.
 const $ = (id) => document.getElementById(id);
+
+if (SKY_BROWSE) document.documentElement.classList.add("sky-browse");
 
 // Links to a panel inside the collapsible analysis group should reveal it first.
 document.querySelectorAll('#workspace a[href^="#"]').forEach((link) => {
@@ -133,6 +136,7 @@ speedInput.addEventListener("input", () => {
 // "change" fires when the user RELEASES the slider (not on every pixel of movement),
 // so we don't rewrite the URL dozens of times per second.
 fovInput.addEventListener("change", () => {
+  if (SKY_BROWSE) return;
   writeUrlState({ fov: fovInput.value });
   if (allFrames.length || DATA_SOURCE === "api") form.requestSubmit(); // load cloud data when the field size changes
 });
@@ -140,6 +144,7 @@ detSelect.addEventListener("change", () => selectDetector(detSelect.value));
 
 /** Switch detector without a new search. Images can still fail to load -> catch. */
 function selectDetector(det) {
+  if (SKY_BROWSE) return;
   requestedDetector = det;
   detSelect.value = det;
   writeUrlState({ det });
@@ -216,6 +221,7 @@ function renderQuickPicks() {
 
 /** Fill RA/Dec with the target's position at the SPHEREx epoch, then submit. */
 function selectTarget(target) {
+  if (SKY_BROWSE) return;
   const { ra, dec } = positionAtEpoch(target);
   raInput.value = ra.toFixed(5);
   decInput.value = dec.toFixed(5);
@@ -285,6 +291,7 @@ const hideOverlay = () => {
   overlay.setAttribute("aria-hidden", "true");
 };
 async function retryLastRequest() {
+  if (SKY_BROWSE) return;
   if (!lastQuery) return;
   if (activeFieldRequestId && DATA_SOURCE === "api" && !LEGACY_API_READ_ONLY) {
     try {
@@ -830,6 +837,7 @@ const sky = new SkyContext($("aladin-box"), $("aladin-status"), $("sky-geo-note"
 setupFullscreen($("sky-frame"), $("sky-full-btn"));   // map + its controls fill the screen
 /** Open (or re-centre) the sky map on a position { ra, dec, fov }. */
 async function openSkyMap(q) {
+  if (SKY_BROWSE) return;
   const button = $("aladin-btn");
   if (button.disabled) return;
   button.disabled = true;
@@ -842,6 +850,26 @@ async function openSkyMap(q) {
   }
 }
 
+/** Open the pilot or restore its wide Barnard view without touching the field form. */
+async function openSkyBrowse() {
+  const button = $("aladin-btn");
+  if (button.disabled) return;
+  if (sky.browseSurvey) { sky.centreBrowse(); return; }
+  button.disabled = true;
+  const select = $("survey-select");
+  select.disabled = true;
+  select.selectedIndex = -1;
+  try {
+    const survey = await sky.openBrowse();
+    if (survey === "dr1") select.add(new Option(BROWSE_SURVEYS.dr1.name, survey));
+    if (survey) select.value = survey;
+  } finally {
+    button.disabled = false;
+    button.textContent = sky.browseSurvey ? "Re-centre sky map" : "Retry sky map";
+    $("sky-full-btn").hidden = !sky.browseSurvey;
+  }
+}
+
 $("viewer-sky-map-btn").addEventListener("click", async () => {
   if (!currentQuery || !player.length) return;
   const title = $("context-title");
@@ -851,12 +879,16 @@ $("viewer-sky-map-btn").addEventListener("click", async () => {
 });
 
 $("aladin-btn").addEventListener("click", async () => {
+  if (SKY_BROWSE) { await openSkyBrowse(); return; }
   const q = readForm();
   if (!q) { $("aladin-status").textContent = "Enter coordinates first."; return; }
   await openSkyMap(q);
 });
-$("survey-select").addEventListener("change", (e) => sky.setSurvey(e.target.value));
+$("survey-select").addEventListener("change", (e) => {
+  if (!SKY_BROWSE) sky.setSurvey(e.target.value);
+});
 fovInput.addEventListener("change", () => {
+  if (SKY_BROWSE) return;
   if (sky.isOpen && !allFrames.length) {
     const query = readForm();
     if (query) sky.update(query);
@@ -989,12 +1021,12 @@ const MIN_PASSES = 3;                      // same rule as in movers.js: a third
 let textAnalysis = null;                   // the text analysis (section 9), set up below; its candidate table is refreshed when the list changes
 let movers = [];                           // candidates for the detector on screen, best first
 let selectedMover = -1;
-startMissionRunner({ getCandidate: () => (selectedMover >= 0 ? movers[selectedMover] ?? null : null), getCount: () => movers.length });
+if (!SKY_BROWSE) startMissionRunner({ getCandidate: () => (selectedMover >= 0 ? movers[selectedMover] ?? null : null), getCount: () => movers.length });
 const predict = setupPredict({
   getCandidate: () => (selectedMover >= 0 ? movers[selectedMover] ?? null : null),
   getContext: () => (currentQuery && currentFrames?.length ? { scaleArcsec: currentFrames[0].pixelScaleArcsec ?? (currentQuery.fov * 60) / player.naturalSize, field: { ra: currentQuery.ra, dec: currentQuery.dec, fov: currentQuery.fov } } : null),
 });
-const pinBoard = setupPinBoard({
+const pinBoard = SKY_BROWSE ? null : setupPinBoard({
   getCandidate: () => (selectedMover >= 0 ? movers[selectedMover] ?? null : null),
   getContext: () => ({ realData: DATA_SOURCE === "api", field: currentQuery ? { ra: currentQuery.ra, dec: currentQuery.dec, fov: currentQuery.fov, det: currentQuery.det } : null }),
 });
@@ -1408,7 +1440,8 @@ function dataProvenance() {
 
 function updateSourceLabels() {
   const source = dataProvenance();
-  const label = DATA_SOURCE === "api" && !allFrames.length ? "Real data service selected · no field loaded" : source === false ? "Synthetic demo data" : source === "synthetic"
+  const label = SKY_BROWSE ? "Sky browse pilot · no cutouts loaded" :
+    DATA_SOURCE === "api" && !allFrames.length ? "Real data service selected · no field loaded" : source === false ? "Synthetic demo data" : source === "synthetic"
     ? "Synthetic FITS test data" : source === "spherex_header"
       ? "SPHEREx-format FITS" : "FITS provenance unverified";
   badge.textContent = label;
@@ -1566,6 +1599,7 @@ function asteroidSentence(m) {
 // The simulated Planet X: a field that contains the body of js/data/mockSource.js (synthetic data only).
 $("planetx-block").hidden = DATA_SOURCE === "api";
 $("planetx-demo-btn").addEventListener("click", () => {
+  if (SKY_BROWSE) return;
   raInput.value = PLANET_X_DEMO.ra.toFixed(5);
   decInput.value = PLANET_X_DEMO.dec.toFixed(5);
   fovInput.value = "30";
@@ -1784,7 +1818,7 @@ planetLab = setupPlanetLab({
 // ---------------------------------------------------------------
 // Sky explorer (features/skyExplorer.js, skyExplorerView.js; the backend's /api/footprints): where the image files are on the sky
 // ---------------------------------------------------------------
-setupSkyExplorer({
+if (!SKY_BROWSE) setupSkyExplorer({
   els: { refreshBtn: $("sky-refresh-btn"), status: $("sky-status"), mapWrap: $("sky-map-wrap"), map: $("sky-map"), list: $("sky-list"), detail: $("sky-detail") },
   fetchFootprints: async () => {
     if (DATA_SOURCE !== "api") throw new Error("these images are synthetic: there are no files, so no footprints.");
@@ -1828,7 +1862,7 @@ setupBundle({
 });
 
 // Which survey images cover a place (features/surveyCoverage.js, surveyView.js; the backend's /api/survey = a live query of IRSA's table spherex.plane)
-setupSurveySearch({
+if (!SKY_BROWSE) setupSurveySearch({
   els: { form: $("survey-form"), ra: $("survey-ra"), dec: $("survey-dec"), radius: $("survey-radius"), det: $("survey-det"), limit: $("survey-limit"), button: $("survey-btn"), fieldBtn: $("survey-field-btn"),
     error: $("survey-error"), status: $("survey-status"), result: $("survey-result"), summary: $("survey-summary"), plot: $("survey-plot"), table: $("survey-table"), openBtn: $("survey-open-btn") },
   hasBackend: DATA_SOURCE === "api",
@@ -1866,6 +1900,7 @@ assistant = setupAssistant({
 // ---------------------------------------------------------------
 /** Fetch frames for a query and show them. */
 async function loadData(query) {
+  if (SKY_BROWSE) return; // Browse gestures and legacy controls must never start acquisition or read its state.
   const token = ++loadToken;
   requestPollController?.abort();
   requestPollController = null;
@@ -2130,6 +2165,7 @@ function finishFieldRequest(status) {
 // ---------------------------------------------------------------
 form.addEventListener("submit", (event) => {
   event.preventDefault();            // a <form> would otherwise reload the page
+  if (SKY_BROWSE) return;
   const query = readForm();
   if (!query) return;
 
@@ -2190,6 +2226,9 @@ $("show-asteroids").closest("label").title = DATA_SOURCE === "api"
   : "Only with real data: the synthetic demo sky is invented, real asteroids would not match it.";
 
 if (!canRecord()) $("record-btn").title = "Your browser cannot record canvas video.";
-renderQuickPicks();
-applyUrlState();
+if (SKY_BROWSE) openSkyBrowse();
+else {
+  renderQuickPicks();
+  applyUrlState();
+}
 console.log("SPHEREx Blink: loaded OK");

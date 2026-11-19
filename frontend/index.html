@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Oswald:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 
   <script>if (/[?&]embed=1(&|$)/.test(location.search)) document.documentElement.classList.add("embed");</script>   <!-- ?embed=1: workspace only, for an <iframe> -->
-  <link rel="stylesheet" href="css/styles.css?v=20261115-2">
+  <link rel="stylesheet" href="css/styles.css?v=20261119-sky-browse-1">
   <link rel="stylesheet" href="css/instrument.css?v=20261115">
   <link rel="stylesheet" href="css/lab-track.css">
   <link rel="stylesheet" href="css/contact-sheet.css?v=20261115-2">
@@ -484,7 +484,8 @@
     </section>
     <!-- ============ 4. Sky context (Aladin Lite) ============ -->
     <section class="panel context" aria-labelledby="context-title">
-      <h2 id="context-title" tabindex="-1">Sky context</h2>
+      <h2 id="context-title" tabindex="-1"><span class="sky-context-title">Sky context</span><span class="sky-browse-title">Browse the sky</span></h2>
+      <p class="sky-browse-note">Pan and zoom to explore the sky. Browsing does not load SPHEREx cutouts or start processing jobs.</p>
       <p class="muted">Other surveys at the same spot, with catalogued objects from SIMBAD.
         The map opens at the selected field width. The dashed square marks that field. The box in the corner gives the sky coordinates under the cursor
         and, in brackets, the country that spot of the sky is straight above right now.
@@ -507,7 +508,7 @@
           <span class="sky-map-scale" id="sky-map-scale" aria-label="Approximate angular scale" hidden></span>
         </div>
         <p class="muted small" id="sky-reset-status" role="status"></p>
-        <p class="muted small" id="aladin-status" aria-live="polite"></p>
+        <p class="muted small" id="aladin-status" aria-live="polite"><span class="sky-browse-status-initial">Survey layer status appears here. If a layer is unavailable, the map may use a fallback survey.</span></p>
         <p class="muted small" id="sky-geo-note" hidden></p>
         <p class="muted small" id="sky-candidate-status" role="status" hidden></p>
       </div>
@@ -741,7 +742,7 @@
     <div class="dlg-head"><h2 id="simulation-note-title">About the simulation</h2><form method="dialog"><button class="btn btn-small">Close</button></form></div>
     <p class="dlg-body">The Planet X preset uses a simulated body 600 AU away. Its position is invented for testing the distant-body search.</p>
   </dialog>
-  <script type="module" src="js/main.js?v=28"></script>
+  <script type="module" src="js/main.js?v=29"></script>
   <script type="module" src="js/scienceExplain.js"></script>
   <script type="module" src="js/features/highContrast.js"></script>
 </body>

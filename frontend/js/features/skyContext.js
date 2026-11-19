@@ -11,6 +11,7 @@ import { fieldCorners } from "./explorerGeometry.js";
 import { aladinSkyAt, selectionText } from "./skyContextClick.js";
 
 import { outsideWorkspaceField, skyMapScale } from "./skyMapGuide.js?v=3";
+import { BROWSE_START, BROWSE_SURVEYS, probeBrowseSurvey } from "./skyBrowse.js";
 
 const ALADIN_URL = "https://cdn.jsdelivr.net/npm/aladin-lite@3.6.5/dist/aladin.js";
 const SIMBAD_TAP = "https://simbad.harvard.edu/simbad/sim-tap/sync";
@@ -81,6 +82,17 @@ function loadAladin() {
                                             : "Could not load Aladin Lite (offline?).");
     });
   return loadPromise;
+}
+
+function addBrowseLayer(A, aladin, { root, name, format }) {
+  return new Promise((resolve, reject) => {
+    const layer = A.imageHiPS(root, {
+      name, imgFormat: format, successCallback: resolve, errorCallback: reject,
+    });
+    // Aladin 3.6.5 starts a cube on slice 0. Its tile and Allsky URL builders
+    // leave that slice unsuffixed, which is how IRSA serves the PNG preview.
+    aladin.setBaseImageLayer(layer);
+  });
 }
 
 const READOUT_HELP = "The country in brackets is the one this spot of the sky is straight above at this moment (worked out from the coordinates and the Earth's rotation). It is not where SPHEREx is.";
@@ -229,6 +241,89 @@ export class SkyContext {
 
   get isOpen() { return !!this.aladin; }
 
+  createMap(survey, options = {}) {
+    this.aladin = this.A.aladin(this.container, {
+      survey,
+      cooFrame: "ICRS",
+      showReticle: true,
+      showCooGridControl: true,
+      showProjectionControl: false,
+      showFullscreenControl: false,   // we have our own "Full screen" button (fullscreen.js)
+      showLayersControl: true,
+      showFrame: true,
+      log: false,            // Aladin's default usage ping to CDS: off (it fails on networks that block CDS)
+      ...options,
+    });
+    // Coordinates box in the corner (pointer = cursor position, otherwise the map centre). It does not catch the mouse.
+    this.readout = document.createElement("div");
+    this.readout.className = "sky-readout";
+    this.readout.title = READOUT_HELP;
+    this.container.appendChild(this.readout);
+    // A compact mouse-following label is separate from Aladin's centre/country readout.
+    this.coordinateHint = document.createElement("div");
+    this.coordinateHint.className = "sky-cursor-coordinates";
+    this.coordinateHint.hidden = true;
+    this.container.appendChild(this.coordinateHint);
+    this.aladin.on("mouseMove", (e) => this.onHover(e));
+    this.installScaleUpdates();
+    if (this.resetLight) this.aladin.on("layerChanged", () => this.refreshLightControl());
+    this.aladin.on("positionChanged", () => {
+      if (!this.hovering) this.showCentre();
+      this.refreshMapControls();
+    });
+    this.container.addEventListener("pointerleave", () => { this.hidePointerCoordinates(); this.showCentre(); });
+  }
+
+  centreBrowse() {
+    const { ra, dec, fovDeg } = BROWSE_START;
+    this.aladin.gotoRaDec(ra, dec);
+    this.aladin.setFoV(fovDeg);
+    this.showCentre();
+    this.refreshMapControls();
+  }
+
+  /** Browse mode has no field square, catalogue queries or connection to the cutout form. */
+  async openBrowse({ loadViewer = loadAladin, probe = probeBrowseSurvey } = {}) {
+    this.container.hidden = false;
+    if (this.surface) this.surface.hidden = false;
+    this.statusEl.textContent = "Loading sky map…";
+    if (!this.aladin) {
+      try {
+        this.A = await loadViewer();
+        // An empty survey list prevents Aladin's default DSS layer from loading.
+        // Only the pilot changes the layer, so its visible attribution stays in sync.
+        this.createMap([], { fov: BROWSE_START.fovDeg, showLayersControl: false });
+        this.centreBrowse();
+      } catch (err) {
+        this.container.hidden = true;
+        if (this.surface) this.surface.hidden = true;
+        const reason = String(err?.message || err);
+        this.statusEl.textContent = `Sky map unavailable. Aladin Lite could not start.${reason.includes("WebGL") ? " This map requires WebGL2." : ""}`;
+        return null;
+      }
+    }
+
+    for (const survey of ["dr1", "2mass"]) {
+      try {
+        await probe(survey);
+        await addBrowseLayer(this.A, this.aladin, BROWSE_SURVEYS[survey]);
+        this.browseSurvey = survey;
+        this.statusEl.textContent = survey === "dr1"
+          ? `${BROWSE_SURVEYS.dr1.name} mosaic · IRSA.`
+          : "SPHEREx DR1 map unavailable. Showing 2MASS color (ESA mirror) as a fallback; not SPHEREx data.";
+        return survey;
+      } catch {
+        if (survey === "dr1") {
+          this.statusEl.textContent = "SPHEREx DR1 map unavailable. Loading 2MASS fallback…";
+        }
+      }
+    }
+    this.statusEl.textContent = "Sky images unavailable. Neither SPHEREx DR1 nor the 2MASS fallback could load.";
+    this.container.hidden = true;
+    if (this.surface) this.surface.hidden = true;
+    return null;
+  }
+
   async open(query, survey) {
     const key = survey || this.survey;
     this.survey = key;
@@ -247,37 +342,7 @@ export class SkyContext {
     }
     if (request !== this.surveyRequest) return;
     const ref = surveyRef(key, pictureSource);
-    if (!this.aladin) {
-      this.aladin = this.A.aladin(this.container, {
-        survey: ref,
-        cooFrame: "ICRS",
-        showReticle: true,
-        showCooGridControl: true,
-        showProjectionControl: false,
-        showFullscreenControl: false,   // we have our own "Full screen" button (fullscreen.js)
-        showLayersControl: true,
-        showFrame: true,
-        log: false,            // Aladin's default usage ping to CDS: off (it fails on networks that block CDS)
-      });
-      // Coordinates box in the corner (pointer = cursor position, otherwise the map centre). It does not catch the mouse.
-      this.readout = document.createElement("div");
-      this.readout.className = "sky-readout";
-      this.readout.title = READOUT_HELP;
-      this.container.appendChild(this.readout);
-      // A compact mouse-following label is separate from Aladin's centre/country readout.
-      this.coordinateHint = document.createElement("div");
-      this.coordinateHint.className = "sky-cursor-coordinates";
-      this.coordinateHint.hidden = true;
-      this.container.appendChild(this.coordinateHint);
-      this.aladin.on("mouseMove", (e) => this.onHover(e));
-      this.installScaleUpdates();
-      if (this.resetLight) this.aladin.on("layerChanged", () => this.refreshLightControl());
-      this.aladin.on("positionChanged", () => {
-        if (!this.hovering) this.showCentre();
-        this.refreshMapControls();
-      });
-      this.container.addEventListener("pointerleave", () => { this.hidePointerCoordinates(); this.showCentre(); });
-    }
+    if (!this.aladin) this.createMap(ref);
     else if (this.surveyUrl !== ref) this.aladin.setBaseImageLayer(ref);
     this.surveyUrl = ref;
     this.refreshLightControl();

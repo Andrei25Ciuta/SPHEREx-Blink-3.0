@@ -765,6 +765,87 @@ output { font-weight: 600; color: var(--accent); }
 }
 .sky-cursor-coordinates[hidden] { display: none; }
 
+/* Browse-only landing: enabled only by the explicit sky_browse URL flag. */
+html.sky-browse #workspace {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 1560px;
+  gap: 1rem;
+}
+html.sky-browse #workspace > :not(.desk-heading):not(.context) { display: none !important; }
+html.sky-browse #workspace > .desk-heading {
+  grid-column: 1;
+  padding: clamp(.6rem, 2vw, 1.25rem) .25rem 0;
+}
+html.sky-browse #player-title {
+  font-family: var(--display);
+  font-size: clamp(1.8rem, 4vw, 3.2rem);
+  letter-spacing: -.035em;
+}
+html.sky-browse .desk-actions .badge { border-color: rgb(var(--accent-rgb) / .4); }
+html.sky-browse #workspace > .context {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: start;
+  padding: clamp(1rem, 3vw, 2rem);
+  border-color: rgb(var(--accent-rgb) / .35);
+  background:
+    radial-gradient(ellipse at 92% 0%, rgb(var(--accent-rgb) / .14), transparent 43%),
+    var(--surface);
+  box-shadow: var(--shadow);
+}
+html.sky-browse .context h2 { margin-bottom: .25rem; font-size: clamp(1.35rem, 2.7vw, 2rem); }
+html.sky-browse .sky-context-title { display: none; }
+html.sky-browse .sky-browse-title { display: inline; }
+html.sky-browse .sky-browse-note {
+  max-width: 70ch;
+  margin: .5rem 0 1rem;
+  color: var(--text-muted);
+  font-size: .96rem;
+  line-height: 1.55;
+}
+html:not(.sky-browse) .sky-browse-status-initial { display: none; }
+html:not(.sky-browse) .sky-browse-title,
+html:not(.sky-browse) .sky-browse-note { display: none; }
+html.sky-browse .context > .muted:not(.small) { display: none; }
+html.sky-browse .sky-browse-status-initial:not([hidden]) { display: inline; }
+html.sky-browse .sky-browse-note { display: block; }
+html.sky-browse .context-controls {
+  gap: .65rem;
+  margin: 1rem 0 .75rem;
+}
+html.sky-browse .context-controls label { color: var(--text-muted); font-weight: 600; }
+html.sky-browse .context-controls select { min-height: 46px; }
+html.sky-browse .context-controls label[for="survey-select"],
+html.sky-browse #survey-select { display: none !important; }
+html.sky-browse #aladin-btn {
+  min-height: 46px;
+  padding-inline: 1.2rem;
+  font-weight: 700;
+  box-shadow: 0 8px 24px rgb(var(--accent-rgb) / .2);
+}
+html.sky-browse #sky-back-to-field { display: none !important; }
+html.sky-browse .sky-map-surface { margin-top: .75rem; }
+html.sky-browse .skymap {
+  height: clamp(520px, 70vh, 900px);
+  min-height: 520px;
+  border-radius: var(--radius);
+  border-color: rgb(var(--accent-rgb) / .32);
+  box-shadow: var(--shadow);
+}
+html.sky-browse #aladin-status {
+  min-height: 2.8rem;
+  margin: .85rem 0 0;
+  padding: .65rem .85rem;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: rgb(var(--bg-rgb) / .48);
+  color: var(--text);
+  font-size: .84rem;
+  line-height: 1.5;
+}
+html.sky-browse #sky-reset-status:empty { display: none; }
+
 
 
 /* Full-screen map: the frame (controls + map + status line) fills the screen.
@@ -789,6 +870,17 @@ html.fs-locked { overflow: hidden; }
 @media (max-width: 480px) {
   .mode-switch span { font-size: .78rem; padding: .4rem .2rem; }
   .context-controls select { min-width: 0; width: 100%; }
+}
+@media (max-width: 600px) {
+  html.sky-browse #workspace { padding: .5rem .65rem 1.5rem; gap: .6rem; }
+  html.sky-browse #workspace > .desk-heading { align-items: flex-start; }
+  html.sky-browse #workspace > .context { padding: 1rem .75rem; }
+  html.sky-browse .context-controls { align-items: stretch; }
+  html.sky-browse .context-controls label { width: 100%; }
+  html.sky-browse .context-controls select { width: 100%; min-height: 48px; }
+  html.sky-browse #aladin-btn { flex: 1 1 100%; min-height: 48px; }
+  html.sky-browse #sky-full-btn { min-height: 44px; }
+  html.sky-browse .skymap { height: 66svh; min-height: 440px; max-height: 760px; }
 }
 
 /* Predicted-track info line (green = same colour as the overlay ticks) */
