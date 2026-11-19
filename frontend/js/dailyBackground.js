@@ -1,59 +1,54 @@
-const canvas = document.getElementById("daily-background");
-const context = canvas.getContext("2d");
-if (context) {
-  document.body.classList.add("has-animated-stars");
+(() => {
+  const { THREE, createOverviewStarfield } = window;
+  if (!THREE || !createOverviewStarfield) return;
+
+  const canvas = document.getElementById("daily-background");
+  let renderer;
+  try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true }); }
+  catch { return; }
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x0b0f19, 0.0006);
+  const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 4000);
+  camera.position.z = 820;
+  const stars = createOverviewStarfield(THREE);
+  scene.add(stars);
+
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-  const observer = new ResizeObserver(resize);
-  const colours = ["239 178 79", "128 179 255", "220 231 249"];
-  const stars = Array.from({ length: 240 }, (_, index) => ({
-    x: Math.random(),
-    y: Math.random(),
-    depth: 0.25 + Math.random() * 0.75,
-    colour: colours[index % 9 < 2 ? index % 9 : 2],
-  }));
-  let width = 0;
-  let height = 0;
-  let request = 0;
-  let previous;
-  let elapsed = 0;
+  let scrollProgress = 0;
+  let request;
 
   function draw() {
-    context.clearRect(0, 0, width, height);
-    for (const star of stars) {
-      const x = (star.x * width + elapsed * star.depth * 4) % width;
-      const y = (star.y * height + elapsed * star.depth * 1.4) % height;
-      const size = 0.65 + star.depth * 1.5;
-      context.fillStyle = `rgb(${star.colour} / ${0.15 + star.depth * 0.47})`;
-      context.fillRect(x, y, size, size);
-    }
+    const height = document.body.scrollHeight - window.innerHeight;
+    const target = height > 0 ? Math.min(1, Math.max(0, window.scrollY / height)) : 0;
+    scrollProgress += (target - scrollProgress) * 0.055;
+    camera.position.z = 820 - scrollProgress * 360;
+    stars.rotation.y += 0.0002;
+    stars.rotation.z = scrollProgress * 0.5;
+    renderer.render(scene, camera);
+    request = requestAnimationFrame(draw);
   }
 
   function resize() {
-    width = canvas.clientWidth;
-    height = canvas.clientHeight;
-    const ratio = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.round(width * ratio);
-    canvas.height = Math.round(height * ratio);
-    context.setTransform(ratio, 0, 0, ratio, 0, 0);
-    if (width && height) draw();
-  }
-
-  function frame(time) {
-    elapsed += previous === undefined ? 0 : Math.min((time - previous) / 1000, 0.05);
-    previous = time;
-    if (width && height) draw();
-    request = requestAnimationFrame(frame);
+    const { innerWidth, innerHeight } = window;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(innerWidth, innerHeight, false);
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.render(scene, camera);
   }
 
   function updateMotion() {
     cancelAnimationFrame(request);
-    previous = undefined;
-    if (!reducedMotion.matches && !document.hidden) request = requestAnimationFrame(frame);
+    if (!reducedMotion.matches && !document.hidden) request = requestAnimationFrame(draw);
   }
 
-  observer.observe(canvas);
-  reducedMotion.addEventListener("change", updateMotion);
+  window.addEventListener("resize", resize);
   document.addEventListener("visibilitychange", updateMotion);
+  reducedMotion.addEventListener("change", updateMotion);
   resize();
+  document.body.classList.add("has-animated-stars");
   updateMotion();
-}
+})();
