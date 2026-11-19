@@ -1,5 +1,5 @@
 #daily {
-  max-width: 53rem;
+  max-width: 64rem;
   margin: 2rem auto;
   padding: 0 1rem 2rem;
 }
@@ -28,23 +28,21 @@
 
 .daily-layout {
   display: grid;
-  grid-template-columns: minmax(9rem, 13rem) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 29rem) minmax(0, 1fr);
   gap: 1.5rem;
   align-items: start;
 }
 
-.daily-game { grid-column: 2; }
-
-.daily-found {
+.daily-results {
   margin-top: .75rem;
   padding: 1rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--accent);
   border-radius: var(--radius-sm);
 }
 
-.daily-found h2 { margin: 0 0 .75rem; font-size: 1rem; }
-.daily-found figure { margin: 0; }
-.daily-found figcaption { margin-top: .5rem; font-size: .85rem; }
+.daily-results h2 { margin: 0 0 .75rem; font-size: 1rem; }
+#daily-found figure { margin: 0; }
+#daily-found figcaption { margin-top: .5rem; font-size: .85rem; }
 
 #daily-preview {
   display: block;
@@ -62,8 +60,10 @@
 }
 
 #daily-celebration {
-  position: absolute;
+  position: fixed;
   inset: 0;
+  z-index: 1000;
+  overflow: hidden;
   pointer-events: none;
 }
 
@@ -71,14 +71,14 @@
   position: absolute;
   left: var(--start);
   top: var(--height);
-  width: 5px;
-  height: 5px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   color: #adeeff;
   background: currentColor;
-  box-shadow: 0 0 10px currentColor;
+  box-shadow: 0 0 22px currentColor;
   opacity: 0;
-  animation: daily-meteor 940ms ease-out var(--delay) both;
+  animation: daily-meteor 2800ms linear var(--delay) both;
 }
 
 #daily-celebration span:nth-child(3n) { color: #ffd68e; }
@@ -88,24 +88,34 @@
   position: absolute;
   right: 50%;
   top: 50%;
-  width: 38px;
-  height: 2px;
+  width: clamp(75px, 11vw, 160px);
+  height: 4px;
   background: linear-gradient(to right, transparent, currentColor);
   transform-origin: right center;
-  transform: rotate(53deg);
+  transform: rotate(52deg);
 }
 
 @keyframes daily-meteor {
-  0% { opacity: 0; transform: translate(-12px, -20px); }
-  18% { opacity: 1; }
-  100% { opacity: 0; transform: translate(130px, 175px); }
+  0% { opacity: 0; transform: translate(0, 0); }
+  15%, 75% { opacity: 1; }
+  100% { opacity: 0; transform: translate(50vmin, 64vmin); }
 }
 
 @media (max-width: 40rem) {
   .daily-layout { grid-template-columns: minmax(0, 1fr); gap: .75rem; }
-  .daily-game { grid-column: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   #daily-celebration { display: none; }
 }
+
+#daily-found-title {
+  display: inline-block;
+  padding: .3rem .65rem;
+  border: 1px solid var(--accent);
+  border-radius: 2rem;
+  color: var(--accent-text);
+}
+
+.daily-results p { margin: .7rem 0 0; overflow-wrap: anywhere; }
+#daily-solution { font-weight: 700; }

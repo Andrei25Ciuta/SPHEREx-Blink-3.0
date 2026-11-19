@@ -6,7 +6,7 @@
   <title>Field of the Day · SPHEREx Blink</title>
   <link rel="stylesheet" href="css/styles.css?v=20261115">
   <link rel="stylesheet" href="css/instrument.css?v=20261115">
-  <link rel="stylesheet" href="css/daily.css?v=found">
+  <link rel="stylesheet" href="css/daily.css?v=results">
 </head>
 <body>
   <a class="skip-link" href="#daily">Skip to the challenge</a>
@@ -20,13 +20,6 @@
     <p id="daily-date">Synthetic challenge</p>
     <p id="daily-instructions">Find the object that moved. Mark it in both frames, then submit your guess. The frames are one simulated year apart. You have three attempts. With the image focused, use the arrow keys to move the marker.</p>
     <div class="daily-layout">
-      <aside id="daily-found" class="daily-found" aria-labelledby="daily-found-title" hidden>
-        <h2 id="daily-found-title">Object found</h2>
-        <figure>
-          <canvas id="daily-preview" width="120" height="120" role="img" aria-label="Zoomed view of the recovered synthetic source"></canvas>
-          <figcaption id="daily-preview-caption"></figcaption>
-        </figure>
-      </aside>
       <div class="daily-game">
         <div class="daily-controls" role="group" aria-label="Choose a frame">
           <button type="button" class="btn" id="frame-a" aria-pressed="true">Frame A · Year 0</button>
@@ -34,21 +27,32 @@
         </div>
         <div class="daily-image-stage">
           <canvas id="daily-image" width="256" height="256" tabindex="0" aria-label="Synthetic star field" aria-describedby="daily-instructions"></canvas>
-          <div id="daily-celebration" aria-hidden="true"></div>
         </div>
         <div class="daily-controls">
           <button type="button" class="btn" id="daily-submit" disabled>Submit guess</button>
           <button type="button" class="btn" id="daily-replay" hidden>Play again</button>
           <button type="button" class="btn" id="daily-share" hidden>Copy result</button>
         </div>
-        <p id="daily-status" role="status">3 attempts left.</p>
-        <p id="daily-measurement" aria-live="polite"></p>
-        <p id="daily-streak"></p>
         <p id="daily-copy-status" role="status"></p>
         <textarea id="daily-share-text" aria-label="Shareable result" readonly hidden></textarea>
       </div>
+      <aside class="daily-results" aria-labelledby="daily-results-title">
+        <h2 id="daily-results-title">Results</h2>
+        <div id="daily-found" hidden>
+          <h2 id="daily-found-title">Object found</h2>
+          <figure>
+            <canvas id="daily-preview" width="120" height="120" role="img" aria-label="Zoomed view of the recovered synthetic source"></canvas>
+            <figcaption id="daily-preview-caption"></figcaption>
+          </figure>
+        </div>
+        <p id="daily-status" role="status">3 attempts left.</p>
+        <p id="daily-measurement" aria-live="polite"></p>
+        <p id="daily-solution" hidden></p>
+        <p id="daily-streak"></p>
+      </aside>
     </div>
   </main>
-  <script type="module" src="js/daily.js?v=found"></script>
+  <div id="daily-celebration" aria-hidden="true"></div>
+  <script type="module" src="js/daily.js?v=results"></script>
 </body>
 </html>

@@ -62,9 +62,9 @@ function celebrate() {
   const overlay = $("daily-celebration");
   const meteors = Array.from({ length: 12 }, (_, index) => {
     const star = document.createElement("span");
-    star.style.setProperty("--start", `${8 + (index * 43) % 85}%`);
-    star.style.setProperty("--height", `${(index * 13) % 32}%`);
-    star.style.setProperty("--delay", `${index * 38}ms`);
+    star.style.setProperty("--start", `${-9 + (index * 43) % 101}%`);
+    star.style.setProperty("--height", `${-15 + (index * 23) % 96}%`);
+    star.style.setProperty("--delay", `${index * 105}ms`);
     star.addEventListener("animationend", () => star.remove(), { once: true });
     return star;
   });
@@ -104,7 +104,9 @@ function updateResult() {
     ? `Found in ${attempts.length}/${limit} · ${result.score}/100 points.`
     : remaining ? `${remaining} attempt${remaining === 1 ? "" : "s"} left.` : "Out of attempts · 0/100 points.";
   $("daily-measurement").textContent = result
-    ? `Your estimate: ${result.motion}${done() ? ` | Simulated motion: ${describeMotion(targets)}` : ""}` : "";
+    ? `Your estimate: ${result.motion}` : "";
+  $("daily-solution").hidden = !done();
+  $("daily-solution").textContent = done() ? `Simulated motion: ${describeMotion(targets)}` : "";
   $("daily-found").hidden = !result?.hit;
   $("daily-share").hidden = !done();
   $("daily-replay").hidden = !done();
