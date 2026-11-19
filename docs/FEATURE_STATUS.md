@@ -1,5 +1,9 @@
 # SPHEREx Blink 4.0 · feature inventory
 
+## Field of the Day
+
+The overview links to a daily synthetic blink challenge. Players compare two frames, mark the moved source and get up to three guesses. The field changes at midnight UTC. The browser stores the current result and streak locally, and players can copy a spoiler-free score.
+
 ## Cloud data service
 
 Science Mode can select the HTTPS SPHEREx DR1 service. The existing field form submits a durable request and loads each ready detector as its frames are published. The Workspace keeps its standard six detector overview buttons visible while a request is pending, with overall progress and per-detector phase text directly below; only backend-reported progress is shown. Real-data fields remain limited to 1–10 arcmin, while synthetic fields support up to 30 arcmin. Deployed processing version 3 selects one image per available UTC month, independently for each detector, with chronological candidate fallback and a 12-month per-detector cap. Optional archive date fields and shareable `dateFrom` / `dateTo` URL parameters let Science Mode target older periods; blank dates request the newest available months. The enabled owner policy is v4. Find movers and distant-body search still need at least three actual survey passes; monthly samples do not guarantee three distinct passes. Firestore tracks request state and the manifest index; Google Cloud Storage keeps image products private behind the API. No credentials or image pixels are shipped in the frontend or Git. Current API contract and operational boundaries: [BACKEND_CONTRACT.md](BACKEND_CONTRACT.md) and [CLOUD_DEPLOYMENT.md](CLOUD_DEPLOYMENT.md).

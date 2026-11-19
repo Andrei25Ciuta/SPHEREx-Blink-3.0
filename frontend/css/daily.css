@@ -1,0 +1,26 @@
+#daily {
+  max-width: 42rem;
+  margin: 2rem auto;
+  padding: 0 1rem 2rem;
+}
+#daily-image {
+  display: block;
+  width: min(100%, 29rem);
+  height: auto;
+  background: #05070b;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  image-rendering: pixelated;
+  cursor: crosshair;
+}
+.daily-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin: .75rem 0;
+}
+.daily-controls [aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+#daily-share-text { width: 100%; }

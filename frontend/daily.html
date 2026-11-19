@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en" data-theme="midnight">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Field of the Day · SPHEREx Blink</title>
+  <link rel="stylesheet" href="css/styles.css?v=20261115">
+  <link rel="stylesheet" href="css/instrument.css?v=20261115">
+  <link rel="stylesheet" href="css/daily.css">
+</head>
+<body>
+  <a class="skip-link" href="#daily">Skip to the challenge</a>
+  <header class="site-header" data-page="daily">
+    <a class="site-brand" href="overview.html">SPHEREx Blink</a>
+    <select id="theme-select" data-default-theme="midnight" aria-label="Colour theme"></select>
+  </header>
+  <script type="module" src="js/siteHeader.js?v=4"></script>
+  <main id="daily" tabindex="-1">
+    <h1>Field of the Day</h1>
+    <p id="daily-date">Synthetic challenge</p>
+    <p id="daily-instructions">Flip between the two frames. In frame B, mark the object that moved, then submit your guess. You have three attempts. With the image focused, use the arrow keys to move the marker.</p>
+    <div class="daily-controls" role="group" aria-label="Choose a frame">
+      <button type="button" class="btn" id="frame-a" aria-pressed="true">Frame A</button>
+      <button type="button" class="btn" id="frame-b" aria-pressed="false">Frame B</button>
+    </div>
+    <canvas id="daily-image" width="256" height="256" tabindex="0" aria-label="Synthetic star field" aria-describedby="daily-instructions"></canvas>
+    <div class="daily-controls">
+      <button type="button" class="btn" id="daily-submit" disabled>Submit guess</button>
+      <button type="button" class="btn" id="daily-share" hidden>Copy result</button>
+    </div>
+    <p id="daily-status" role="status">3 attempts left.</p>
+    <p id="daily-streak"></p>
+    <p id="daily-copy-status" role="status"></p>
+    <textarea id="daily-share-text" aria-label="Shareable result" readonly hidden></textarea>
+  </main>
+  <script type="module" src="js/daily.js"></script>
+</body>
+</html>

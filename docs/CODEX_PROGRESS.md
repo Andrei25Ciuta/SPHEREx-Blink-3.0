@@ -1,3 +1,9 @@
+## 2026-11-19 — Field of the Day
+
+The overview links to a daily two-frame blink challenge generated from the existing synthetic renderer. The puzzle changes at midnight UTC. Results and streaks use browser storage.
+
+Validation: the Node suites passed, including `node scratch/test_daily.mjs` with a fixed UTC seed and mocked canvas and storage. `node scratch/test_astrometry.mjs` passed when rerun without the suite timeout. `git diff --check` passed. Backend pytest was unavailable. Browser navigation and rendering could not be verified because the bundled Chromium was missing and system Chromium could not launch under the sandbox. No real images or live services were used.
+
 ## 2026-11-15 — Monthly SPHEREx archive sampling
 
 Source-only change: new processing version `blink3-cloud-3` now selects up to 12 newest available UTC months independently for each detector. For each month, the archive plan keeps chronologically ordered candidates in a balanced plan of at most 24 entries per detector; the preparation job downloads candidates until it finds a FITS file that passes the existing provenance checks and produces a usable cutout for the requested field. The job records selected and unavailable months, reports real month/file/byte progress, and preserves successful selected cutouts in private staging for retries. The 32 MiB per-file and 128 MiB total transfer limits remain enforced, including candidate retries.
