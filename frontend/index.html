@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Oswald:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 
   <script>if (/[?&]embed=1(&|$)/.test(location.search)) document.documentElement.classList.add("embed");</script>   <!-- ?embed=1: workspace only, for an <iframe> -->
-  <link rel="stylesheet" href="css/styles.css?v=20261119-sky-browse-4">
+  <link rel="stylesheet" href="css/styles.css?v=20261119-sky-browse-5">
   <link rel="stylesheet" href="css/instrument.css?v=20261115">
   <link rel="stylesheet" href="css/lab-track.css">
   <link rel="stylesheet" href="css/contact-sheet.css?v=20261115-2">
@@ -49,7 +49,8 @@
         </div>
         <span class="workspace-sky-mark">Survey map</span>
       </div>
-      <p class="workspace-sky-note">The map uses SPHEREx DR1 imagery when available and labels any fallback. The photo viewer below identifies its own data source.</p>
+      <p class="workspace-sky-note workspace-sky-api-copy">The map uses SPHEREx DR1 imagery when available and labels any fallback. The photo viewer below identifies its own data source.</p>
+      <p class="workspace-sky-note workspace-sky-synthetic-copy">Generate synthetic demo frames locally. The optional sky map shows real survey imagery for context only.</p>
       <div class="workspace-sky-surface" id="workspace-sky-surface" hidden>
         <div id="workspace-sky-map" class="skymap" role="region" aria-label="Observed sky map"></div>
         <span class="workspace-sky-scale" id="workspace-sky-scale" aria-label="Approximate angular scale" hidden></span>
@@ -59,7 +60,8 @@
       <section class="sky-zone-controls workspace-sky-zone-controls" id="workspace-sky-zone-controls" aria-labelledby="workspace-sky-zone-title" hidden>
         <div class="sky-zone-heading">
           <h3 id="workspace-sky-zone-title">Choose a zone</h3>
-          <p>Pan to place the centre reticle, or enter coordinates. The requested zone stays the same size as you zoom the map.</p>
+          <p class="workspace-sky-api-copy">Pan to place the centre reticle, or enter coordinates. The requested zone stays the same size as you zoom the map.</p>
+          <p class="workspace-sky-synthetic-copy">Pan to choose a demo field or enter coordinates. The field size stays the same as you zoom the map.</p>
         </div>
         <div class="sky-zone-fields">
           <label for="workspace-sky-zone-ra">Right Ascension (RA)
@@ -68,13 +70,15 @@
           <label for="workspace-sky-zone-dec">Declination (Dec)
             <input id="workspace-sky-zone-dec" type="text" autocomplete="off" aria-describedby="workspace-sky-zone-error" placeholder="Degrees or d m s">
           </label>
-          <label for="workspace-sky-zone-fov">Field of view (arcmin)
+          <label id="workspace-sky-api-fov" for="workspace-sky-zone-fov">Field of view (arcmin)
             <input id="workspace-sky-zone-fov" type="number" min="1" max="10" step="any" value="5" aria-describedby="workspace-sky-zone-error">
           </label>
+          <div id="workspace-sky-synthetic-fov" hidden></div>
           <button type="button" class="btn btn-primary" id="workspace-sky-zone-request" disabled>Request this zone</button>
         </div>
         <p class="workspace-sky-zone-error" id="workspace-sky-zone-error" role="alert" aria-live="assertive"></p>
-        <p class="workspace-sky-zone-status" id="workspace-sky-zone-status" role="status" aria-live="polite">You can browse the map without a cloud connection. Connect to the SPHEREx data service to request observed cutouts.</p>
+        <p class="workspace-sky-zone-status workspace-sky-api-copy" id="workspace-sky-zone-status" role="status" aria-live="polite">You can browse the map without a cloud connection. Connect to the SPHEREx data service to request observed cutouts.</p>
+        <p class="workspace-sky-zone-status workspace-sky-synthetic-copy" role="status">The demo field is generated on this device. No cloud request is made.</p>
       </section>
     </section>
     <!-- Field controls can be collapsed with the button or the [ key. -->
@@ -101,7 +105,7 @@
             <small id="dec-error" class="error-text" role="alert"></small>
           </div>
 
-          <div class="field">
+          <div class="field" id="workspace-legacy-fov">
             <label for="fov-input">Field of view: <output id="fov-value" for="fov-input">5</output> arcmin</label>
             <input id="fov-input" name="fov" type="range" min="1" max="30" step="1" value="5">
             <div class="range-scale" aria-hidden="true"><span>1′</span><span>30′</span></div>
@@ -801,7 +805,7 @@
     <div class="dlg-head"><h2 id="simulation-note-title">About the simulation</h2><form method="dialog"><button class="btn btn-small">Close</button></form></div>
     <p class="dlg-body">The Planet X preset uses a simulated body 600 AU away. Its position is invented for testing the distant-body search.</p>
   </dialog>
-  <script type="module" src="js/main.js?v=32"></script>
+  <script type="module" src="js/main.js?v=33"></script>
   <script type="module" src="js/scienceExplain.js"></script>
   <script type="module" src="js/features/highContrast.js"></script>
 </body>

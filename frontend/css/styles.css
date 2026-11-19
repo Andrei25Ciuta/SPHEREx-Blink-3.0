@@ -913,6 +913,42 @@ html.sky-browse #aladin-btn {
 }
 html.sky-browse #sky-back-to-field { display: none !important; }
 html.sky-browse .sky-map-surface { margin-top: .75rem; }
+/* The normal Workspace keeps its API width control; synthetic mode moves the
+   existing 1–30′ range field into the sky-zone form without duplicating it. */
+.workspace-sky-synthetic-copy { display: none; }
+html.workspace-synthetic-zone .workspace-sky-api-copy { display: none !important; }
+html.workspace-synthetic-zone .workspace-sky-synthetic-copy { display: block; }
+html.workspace-synthetic-zone #workspace-sky-api-fov { display: none; }
+#workspace-sky-synthetic-fov:not([hidden]) {
+  display: block;
+  min-width: 0;
+  grid-column: span 2;
+}
+#workspace-sky-synthetic-fov > .field {
+  min-width: 0;
+  margin: 0;
+  padding: .35rem .55rem .2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: rgb(var(--bg-rgb) / .35);
+}
+#workspace-sky-synthetic-fov .field label {
+  color: var(--text);
+  font-size: .84rem;
+  font-weight: 650;
+}
+#workspace-sky-synthetic-fov input[type="range"] {
+  min-width: 0;
+  margin: .2rem 0;
+}
+#workspace-sky-synthetic-fov .range-scale {
+  padding-bottom: .25rem;
+}
+#workspace-sky-synthetic-fov input[type="range"]:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 999px;
+}
 /* P2 zone controls are inert and absent until the later interaction wiring reveals the group. */
 .sky-zone-controls:not([hidden]) {
   display: grid;
@@ -1114,6 +1150,7 @@ html.fs-locked { overflow: hidden; }
   html.sky-browse #sky-full-btn { min-height: 44px; }
   html.sky-browse .skymap { height: 66svh; min-height: 440px; max-height: 760px; }
   .sky-zone-fields { grid-template-columns: 1fr 1fr; }
+  #workspace-sky-synthetic-fov:not([hidden]) { grid-column: 1 / -1; }
   .sky-zone-fields button { grid-column: 1 / -1; width: 100%; min-height: 48px; }
   html.sky-browse.sky-request-active .observing-row > .player { padding: .75rem; }
   html.sky-browse.sky-request-active .overview { padding: .55rem; }
