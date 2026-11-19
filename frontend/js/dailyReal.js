@@ -59,6 +59,37 @@ function updateMarks() {
   $("real-motion").textContent = `Apparent motion between first and last marks: ${rate}${speed > 0 ? ` · ${direction}` : ""}.`;
 }
 
+function updateResultFrames() {
+  const list = $("real-results-frames");
+  list.replaceChildren();
+  list.hidden = !submitted;
+  if (!submitted) return;
+  for (const [frameIndex, mark] of [...marks].sort(([a], [b]) => a - b)) {
+    const frame = frames[frameIndex];
+    const item = document.createElement("li");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "daily-marked-frame";
+    const preview = document.createElement("img");
+    preview.src = frame.imageUrl;
+    preview.alt = "";
+    preview.loading = "lazy";
+    const marker = document.createElement("span");
+    marker.className = "daily-marked-dot";
+    marker.style.left = `${mark.x * 100}%`;
+    marker.style.top = `${mark.y * 100}%`;
+    marker.setAttribute("aria-hidden", "true");
+    const label = document.createElement("span");
+    label.textContent = `Frame ${frameIndex + 1} · ${frame.dateISO.slice(0, 10)}`;
+    const thumbnail = document.createElement("span");
+    thumbnail.append(preview, marker);
+    button.append(thumbnail, label);
+    button.addEventListener("click", () => { stop(); show(frameIndex); });
+    item.append(button);
+    list.append(item);
+  }
+}
+
 async function loadFrames() {
   if (loading || frames.length) return;
   loading = true;
@@ -108,11 +139,13 @@ $("real-submit").addEventListener("click", () => {
   stop();
   submitted = true;
   updateMarks();
+  updateResultFrames();
 });
 $("real-clear").addEventListener("click", () => {
   marks.clear();
   submitted = false;
   updateMarks();
+  updateResultFrames();
 });
 epoch.addEventListener("change", () => { stop(); show(Number(epoch.value)); });
 $("real-blink").addEventListener("click", () => {
@@ -147,7 +180,10 @@ image.addEventListener("keydown", (event) => {
 
 function saveMark(x, y) {
   const clamp = (value) => Math.max(0, Math.min(1, value));
-  submitted = false;
+  if (submitted) {
+    submitted = false;
+    updateResultFrames();
+  }
   marks.set(index, { x: clamp(x), y: clamp(y), width: image.naturalWidth, height: image.naturalHeight });
   updateMarks();
 }

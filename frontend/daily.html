@@ -6,7 +6,7 @@
   <title>Field of the Day · SPHEREx Blink</title>
   <link rel="stylesheet" href="css/styles.css?v=20261115">
   <link rel="stylesheet" href="css/instrument.css?v=20261115">
-  <link rel="stylesheet" href="css/daily.css?v=real-results">
+  <link rel="stylesheet" href="css/daily.css?v=marked-results">
 </head>
 <body class="daily-page">
   <canvas id="daily-background" aria-hidden="true"></canvas>
@@ -128,13 +128,20 @@
             <p id="daily-real-help">Mark the same source across observations. Use the arrow keys to move a mark when the image is focused.</p>
           </div>
           <aside class="pin-item daily-results" aria-labelledby="daily-real-results-title">
-            <h3 id="daily-real-results-title">Results</h3>
-            <p id="daily-real-marks" class="pb-when" role="status"></p>
-            <div class="pb-popup-actions">
-            <button type="button" class="btn btn-primary" id="daily-real-submit" disabled>Submit guess</button>
-            <button type="button" class="btn" id="daily-real-clear">Clear marks</button>
+            <div class="pb-card-head">
+              <span class="pb-avatar" aria-hidden="true">✦</span>
+              <div>
+                <h2 id="daily-real-results-title">Results</h2>
+                <p id="daily-real-marks" class="pb-when" role="status"></p>
+              </div>
             </div>
+            <div class="daily-guess-controls">
+              <button type="button" class="btn btn-primary" id="daily-real-submit" disabled>Submit guess</button>
+              <button type="button" class="btn" id="daily-real-clear">Clear marks</button>
+            </div>
+            <div class="pb-chips"><span class="pb-chip">Real SPHEREx · D2</span></div>
             <p id="daily-real-motion" role="status"></p>
+            <ul id="daily-real-results-frames" aria-label="Marked observations" hidden></ul>
           </aside>
         </div>
       </div>
@@ -145,7 +152,7 @@
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script defer src="js/overviewStarfield.js"></script>
   <script defer src="js/dailyBackground.js?v=overview"></script>
-  <script type="module" src="js/dailyReal.js?v=real-results"></script>
+  <script type="module" src="js/dailyReal.js?v=marked-results"></script>
   <script type="module" src="js/daily.js?v=game-progress"></script>
 </body>
 </html>

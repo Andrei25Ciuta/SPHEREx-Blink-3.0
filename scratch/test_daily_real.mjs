@@ -8,11 +8,14 @@ function node(id) {
     getAttribute(name) { return this.attributes.get(name); },
     addEventListener(name, fn) { this[name] = fn; },
     add() {},
+    append(...children) { (this.children ??= []).push(...children); },
+    replaceChildren() { this.children = []; },
     getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100 }),
   });
   return nodes.get(id);
 }
-globalThis.document = { getElementById: node };
+let nextElement = 0;
+globalThis.document = { getElementById: node, createElement: () => node(`element-${nextElement++}`) };
 globalThis.Option = class {};
 let calls = 0;
 globalThis.fetch = async (url) => {
@@ -45,6 +48,10 @@ node("daily-real-epoch").change();
 assert.equal(node("daily-real-submit").disabled, false);
 node("daily-real-submit").click();
 assert.match(node("daily-real-motion").textContent, /60.0 arcsec\/year · right/);
+const thumbnails = node("daily-real-results-frames");
+assert.equal(thumbnails.hidden, false);
+assert.deepEqual(thumbnails.children.map((item) => item.children[0].children[0].children[0].src),
+  ["https://example.test/60000.png", "https://example.test/60365.25.png"]);
 assert.equal(node("daily-real-path").getAttribute("points"), "40,50 60,50");
 node("daily-synthetic-mode").click();
 assert.equal(node("daily-synthetic").hidden, false);
