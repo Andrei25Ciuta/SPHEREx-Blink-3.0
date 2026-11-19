@@ -1,13 +1,16 @@
-// P2 offline checks: actual draft wiring, URL and API client with fake DOM, Aladin and HTTP.
+// Offline checks: actual draft wiring, URL and API client with fake DOM, Aladin and HTTP.
 import assert from "node:assert/strict";
 import { fieldCorners } from "../frontend/js/features/explorerGeometry.js";
 import { parseSkyZone, setupSkyZone } from "../frontend/js/features/skyZone.js";
 import { readUrlState, writeUrlState } from "../frontend/js/urlState.js";
+import { createSkyZoneRequestFlow } from "../frontend/js/data/skyZoneRequest.js";
 
+const requestId = `fr-${"a".repeat(32)}`;
+const staleId = `fr-${"b".repeat(32)}`;
 const initialUrl = new URL("http://127.0.0.1:8765/index.html?data=api&sky_browse=1&api=http://127.0.0.1:8765&"
-  + "ra=155&dec=10&fov=8&dateFrom=2025-01-01&dateTo=2025-02-01#workspace");
+  + `ra=155&dec=10&fov=8&request_id=${staleId}&dateFrom=2025-01-01&dateTo=2025-02-01#workspace`);
 globalThis.location = initialUrl;
-const { requestFieldApi } = await import("../frontend/js/data/apiSource.js");
+const { requestFieldApi, getFieldRequestApi } = await import("../frontend/js/data/apiSource.js");
 const { SkyContext } = await import("../frontend/js/features/skyContext.js");
 
 const draft = (ra, dec, fov = "5") => parseSkyZone({ ra, dec, fov });
@@ -39,11 +42,19 @@ for (const [field, values] of Object.entries({
 const writes = [], requests = [], seen = [];
 let reply;
 globalThis.fetch = async (url, options) => {
-  seen.push({ url, method: options?.method ?? "GET" });
-  assert.equal(url, "http://127.0.0.1:8765/api/field-requests", "no reads, retries, or other endpoints");
-  assert.equal(options.method, "POST");
-  requests.push(JSON.parse(options.body));
-  return reply();
+  const method = options?.method ?? "GET";
+  seen.push({ url, method });
+  if (method === "POST") {
+    assert.equal(url, "http://127.0.0.1:8765/api/field-requests");
+    assert.equal(window.location.searchParams.get("request_id"), null, "clear the previous ID before sending");
+    requests.push(JSON.parse(options.body));
+    return reply();
+  }
+  assert.equal(url, `http://127.0.0.1:8765/api/field-requests/${requestId}`);
+  const { ra, dec, fov } = requests.at(-1);
+  return Response.json({ requestId, query: { ra, dec, fov }, status: "unavailable",
+    detectors: Object.fromEntries([1, 2, 3, 4, 5, 6].map(n => [`D${n}`, { status: "unavailable" }])),
+  });
 };
 function emit(el, name, properties = {}) {
   return !el.dispatchEvent(Object.assign(new Event(name, { cancelable: true }), properties));
@@ -62,7 +73,7 @@ class Control extends EventTarget {
   appendChild() {}
 }
 
-async function setup({ unavailable = "", markup = true, url = initialUrl } = {}) {
+async function setup({ unavailable = "", markup = true, url = initialUrl, initialDraft } = {}) {
   const els = Object.fromEntries(["root", "ra", "dec", "fov", "button", "error", "status"].map(id => [id, new Control()]));
   els.fov.value = "5";
   els.button.form = new Control(); // current markup has no form; an optional wrapper must not implicitly submit.
@@ -102,12 +113,19 @@ async function setup({ unavailable = "", markup = true, url = initialUrl } = {})
       show() { this.hidden = false; },
     }),
   };
-  const zone = setupSkyZone({ els: markup ? els : { ...els, root: null }, map, requestField: requestFieldApi, writeUrl: writeUrlState, unavailable });
+  const flow = createSkyZoneRequestFlow({
+    requestField: requestFieldApi, getStatus: getFieldRequestApi, writeUrl: writeUrlState,
+    reset: () => {}, checking: () => zone.setStatus("Checking"),
+    attached: () => zone.setStatus("Attached"), update: () => {},
+    complete: (status) => zone.setStatus(`Verified: ${status.status}`),
+    failed: (message) => zone.setStatus(message),
+  });
+  const zone = setupSkyZone({ els: markup ? els : { ...els, root: null }, map, submit: flow.submit, unavailable });
   assert.equal(els.root.hidden, true, "only open controls after a usable survey has loaded");
   assert.equal(await map.openBrowse({
     loadViewer: async () => A, probe: async () => {}, onCentre: zone?.syncCentre,
   }), "dr1");
-  zone?.open();
+  zone?.open(initialDraft);
   return { els, map, zone, outlines, get zoom() { return zoom; }, get centre() { return centre; } };
 }
 
@@ -225,16 +243,19 @@ assert.deepEqual(requests, [{
 assert.deepEqual(readUrlState(), { ra: "120", dec: "-7.25", fov: "7.25" });
 assert.equal(window.location.hash, "#workspace");
 assert.equal(window.location.searchParams.get("sky_browse"), "1");
-respond(Response.json({ status: "queued", requestId: "fixture-id" }));
+assert.equal(window.location.searchParams.get("request_id"), null);
+respond(Response.json({ status: "queued", requestId }));
 await settle();
-assert.match(status.textContent, /queued/);
+assert.match(status.textContent, /Verified: unavailable/, "the verified GET, not the acknowledgment, determines status");
+assert.equal(window.location.searchParams.get("request_id"), requestId);
+assert.deepEqual(seen.map(call => call.method), ["POST", "GET"]);
 assert.equal(button.disabled, false);
 emit(button, "click", { detail: 2 }); // second click when the first response was very fast
 assert.equal(requests.length, 1);
 
 for (const [response, message] of [
-  [() => Response.json({ status: "ready", requestId: "fixture-id" }), /already prepared/],
-  [() => Response.json({ status: "failed", requestId: "fixture-id" }), /request failed/],
+  [() => Response.json({ status: "ready", requestId }), /Verified: unavailable/],
+  [() => Response.json({ status: "queued", requestId: "fixture-id" }), /did not acknowledge/],
   [() => Response.json({}, { status: 404 }), /unavailable/],
   [() => Response.json({}, { status: 405 }), /unavailable/],
   [() => Response.json({ detail: "Fixture busy." }, { status: 503 }), /Fixture busy/],
@@ -251,10 +272,14 @@ for (const [response, message] of [
 }
 
 const count = requests.length;
+const effectsBeforeOpen = [writes.length, seen.length];
 const reloaded = await setup({ url: window.location });
 await settle();
-assert.deepEqual(reloaded.centre, [269.4462, 4.769], "P2 reload still uses the wide Barnard start");
+assert.deepEqual(reloaded.centre, [269.4462, 4.769], "opening without a validated saved request uses Barnard's Star");
+const seeded = await setup({ initialDraft: { ra: 120, dec: -7.25, fov: 7.25 } });
+assert.deepEqual(seeded.centre, [120, -7.25]);
+assert.equal(seeded.els.fov.value, "7.25");
+assert.equal(seeded.zoom, 12, "seeding an outline does not set the map zoom");
 assert.equal(requests.length, count);
-assert.equal(writes.length, count);
-assert.equal(seen.length, count, "no unexpected HTTP methods or reads");
+assert.deepEqual([writes.length, seen.length], effectsBeforeOpen, "opening controls never writes or requests data");
 console.log("PASS sky zone: malformed coordinates blocked before URL/POST, valid formats and bounds, edit races, footprint, submission and repeat guard");

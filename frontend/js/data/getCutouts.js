@@ -34,7 +34,7 @@
 
 import { DATA_SOURCE } from "../config.js?v=1";
 import { getCutoutsMock, getPhotometryMock } from "./mockSource.js";
-import { getCutoutsApi, getPhotometryApi } from "./apiSource.js?v=1";
+import { getCutoutsApi, getPhotometryApi } from "./apiSource.js?v=2";
 
 export async function getCutouts(query) {
   const source = DATA_SOURCE === "api" ? getCutoutsApi : getCutoutsMock;

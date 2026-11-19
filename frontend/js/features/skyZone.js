@@ -1,6 +1,7 @@
 // Draft controls for the opt-in sky pilot. The map and inputs never submit a request.
 import { parseRA, parseDec } from "../coords.js";
 import { MIN_FOV_ARCMIN, REAL_DATA_MAX_FOV_ARCMIN } from "./fieldLimits.js";
+import { BROWSE_START } from "./skyBrowse.js";
 
 const FOV_ERROR = `Field of view must be between ${MIN_FOV_ARCMIN} and ${REAL_DATA_MAX_FOV_ARCMIN} arcmin.`;
 const rounded = (value, digits) => Number(value.toFixed(digits)) || 0;
@@ -44,7 +45,7 @@ export function parseSkyZone({ ra, dec, fov }) {
 
 const sameCentre = (a, b) => a?.ra === b?.ra && a?.dec === b?.dec;
 
-export function setupSkyZone({ els, map, requestField, writeUrl, unavailable = "" }) {
+export function setupSkyZone({ els, map, submit, unavailable = "" }) {
   const { root, ra, dec, fov, button, error, status } = els;
   if (![root, ra, dec, fov, button, error, status].every(Boolean)) return null;
   const inputs = { ra, dec, fov };
@@ -54,6 +55,7 @@ export function setupSkyZone({ els, map, requestField, writeUrl, unavailable = "
   let editingCentre = false; // retain the pair while either coordinate has an unapplied edit
   let active = false;
   let pending = false;
+  status.textContent = unavailable;
 
   const readDraft = () => parseSkyZone({ ra: ra.value, dec: dec.value, fov: fov.value });
   function showErrors(updates) {
@@ -137,17 +139,7 @@ export function setupSkyZone({ els, map, requestField, writeUrl, unavailable = "
     status.textContent = "Sending SPHEREx zone request…";
     try {
       applyCoordinates();
-      writeUrl({ ...query, dateFrom: null, dateTo: null });
-      const result = await requestField(query);
-      if (result === null) status.textContent = "Zone requests are unavailable from this data service.";
-      else if (!result?.requestId) status.textContent = "The data service did not acknowledge the zone request.";
-      else if (result.status === "ready") status.textContent = "Zone request accepted. SPHEREx data are already prepared.";
-      else if (result.status === "queued") status.textContent = "SPHEREx zone request queued.";
-      else if (result.status === "failed") status.textContent = "The SPHEREx zone request failed.";
-      else if (result.status === "unavailable") status.textContent = "SPHEREx data are unavailable for the requested zone.";
-      else status.textContent = "SPHEREx zone request accepted.";
-    } catch (err) {
-      status.textContent = `Could not confirm the SPHEREx zone request: ${err?.message || "the service did not respond."}`;
+      await submit(query);
     } finally {
       pending = false;
       button.disabled = false;
@@ -155,13 +147,20 @@ export function setupSkyZone({ els, map, requestField, writeUrl, unavailable = "
   });
 
   return {
-    open() {
+    open(initialQuery) {
       active = true;
       button.disabled = Boolean(unavailable);
-      status.textContent = unavailable;
       root.hidden = false;
+      const position = map.getBrowseCentre();
+      // Seed a linked zone only at initial map opening, not when any request or
+      // detector updates. Don't undo a pan made while the survey was loading.
+      if (initialQuery && position && sameCentre(normalizeZoneCentre(position.ra, position.dec), BROWSE_START)) {
+        fov.value = String(initialQuery.fov);
+        map.centreBrowseAt(initialQuery);
+      }
       syncCentre(map.getBrowseCentre());
     },
+    setStatus(message) { status.textContent = message; },
     syncCentre,
   };
 }

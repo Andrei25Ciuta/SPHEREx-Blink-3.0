@@ -166,6 +166,6 @@ assert.match(main, /if \(SKY_BROWSE\) document\.documentElement\.classList\.add\
 assert.match(main, /async function loadData\(query\) \{\s*if \(SKY_BROWSE\) return;/);
 assert.match(main, /async function retryLastRequest\(\) \{\s*if \(SKY_BROWSE\) return;/);
 assert.match(main, /form\.addEventListener\("submit", \(event\) => \{\s*event\.preventDefault\(\);[^\n]*\n\s*if \(SKY_BROWSE\) return;/);
-assert.match(main, /if \(SKY_BROWSE\) openSkyBrowse\(\);\s*else \{\s*renderQuickPicks\(\);\s*applyUrlState\(\);/);
+assert.match(main, /if \(SKY_BROWSE\) \{\s*applyUrlState\(\);[^\n]*\n\s*void openSkyBrowse\(\);\s*\} else \{\s*renderQuickPicks\(\);\s*applyUrlState\(\);/);
 
 console.log("PASS sky browse opt-in, acquisition guards, PNG readiness and 2MASS fallback");
