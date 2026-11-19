@@ -47,21 +47,33 @@ async function mapHasSky(page, map) {
   }, png);
 }
 
-async function run(browser, { mobile = false, fail = "", compatibility = false } = {}) {
+async function run(browser, { mobile = false, fail = "", compatibility = false, submit = false } = {}) {
   const context = await browser.newContext({
     ...(mobile ? devices["Pixel 7"] : { viewport: { width: 1440, height: 900 } }),
     serviceWorkers: "block",
   });
   const posts = [], apiReads = [], errors = [], dr1Images = [], fallbackImages = [];
+  const payloads = [];
+  const mapFailures = [];
   let blocked = 0;
-  // Register the guard BEFORE a page exists. No real POST or retry can leave this context,
-  // regardless of hostname. Allow only local files and the public map's read-only resources.
+  // Register BEFORE a page exists. Only the local test fixture can fulfill a field POST;
+  // no acquisition or retry is ever forwarded, regardless of hostname.
   await context.route("**/*", async route => {
     const request = route.request();
     const url = new URL(request.url());
     const method = request.method();
     if (!["GET", "HEAD"].includes(method)) {
       if (/\/api\/field-requests(?:\/|$)/.test(url.pathname)) posts.push(`${method} ${url.pathname}`);
+      if (submit && method === "POST" && url.origin === base.origin && url.pathname === "/api/field-requests") {
+        const payload = request.postDataJSON();
+        payloads.push(payload);
+        await wait(400); // keep the first request pending during repeated activation
+        return route.fulfill({ json: {
+          requestId: "fr-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", status: "queued", cached: false,
+          statusUrl: "/api/field-requests/fr-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          query: { ra: payload.ra, dec: payload.dec, fov: payload.fov }, detectors: {},
+        } });
+      }
       return route.abort("blockedbyclient");
     }
     if (/\/api\/(?:field-requests|cutouts)(?:\/|$)/.test(url.pathname)) apiReads.push(url.pathname);
@@ -81,10 +93,15 @@ async function run(browser, { mobile = false, fail = "", compatibility = false }
   page.on("pageerror", error => errors.push(error.message));
   page.on("response", response => {
     const url = new URL(response.url());
+    if (!response.ok() && (isDr1(url) || isFallback(url))) mapFailures.push(`${response.status()} ${url.pathname}`);
     if (response.ok() && isDr1Png(url)) dr1Images.push(url.pathname);
     if (response.ok() && isMapHost(url) && isFallback(url) && /(?:Allsky|Npix\d+)\.(?:jpe?g|png)$/i.test(url.pathname)) {
       fallbackImages.push(url.pathname);
     }
+  });
+  page.on("requestfailed", request => {
+    const url = new URL(request.url());
+    if (isDr1(url) || isFallback(url)) mapFailures.push(`${request.failure()?.errorText} ${url.pathname}`);
   });
   try {
     if (compatibility) {
@@ -102,6 +119,7 @@ async function run(browser, { mobile = false, fail = "", compatibility = false }
     const status = page.locator("#aladin-status");
     const map = page.locator("#aladin-box");
     const url = new URL(pilot);
+    if (submit) url.searchParams.set("api", base.origin);
     // Stale coordinates used to trigger legacy form submission on startup.
     if (mobile || fail) {
       url.searchParams.set("ra", "155");
@@ -122,6 +140,15 @@ async function run(browser, { mobile = false, fail = "", compatibility = false }
 
     const readout = map.locator(".sky-readout");
     await eventually(async () => /269\.44\d.*4\.769/.test(await readout.textContent()), "did not start at Barnard's Star");
+    const ra = page.locator("#sky-zone-ra"), dec = page.locator("#sky-zone-dec");
+    const fov = page.locator("#sky-zone-fov"), button = page.getByRole("button", { name: "Request this zone" });
+    let beforeDraftRa;
+    if (submit) {
+      await button.waitFor();
+      assert.equal(await fov.inputValue(), "5", "default zone width is 5 arcmin");
+      beforeDraftRa = Number(await ra.inputValue());
+      assert.ok(Math.abs(beforeDraftRa - 269.4462) < 0.001);
+    }
     const beforePan = await readout.textContent();
     const box = await map.boundingBox();
     const x = Math.round(box.x + box.width / 2);
@@ -143,6 +170,8 @@ async function run(browser, { mobile = false, fail = "", compatibility = false }
       const value = await readout.textContent();
       return value.startsWith("Centre:") && value !== beforePan;
     }, "pan did not change the map centre");
+    if (submit) await eventually(async () => Math.abs(Number(await ra.inputValue()) - beforeDraftRa) > 0.01,
+      "pan did not update the draft coordinates");
     const scale = page.locator("#sky-map-scale");
     await scale.waitFor();
     const beforeZoom = await scale.evaluate(el => `${el.textContent}:${el.style.getPropertyValue("--scale-width")}`);
@@ -159,13 +188,64 @@ async function run(browser, { mobile = false, fail = "", compatibility = false }
     }
     await eventually(async () => (await scale.evaluate(el => `${el.textContent}:${el.style.getPropertyValue("--scale-width")}`)) !== beforeZoom,
       "zoom did not change the angular scale");
+    if (submit) {
+      assert.equal(await fov.inputValue(), "5", "zoom does not change submitted zone width");
+      await ra.fill("08:");
+      if (await button.isEnabled()) await button.click();
+      assert.match(await page.locator("#sky-zone-error").textContent(), /RA:/);
+      assert.deepEqual(posts, [], "incomplete RA cannot submit a different sky centre");
+      await ra.fill("08:00:00");
+      await ra.press("Enter");
+      await dec.fill("--7.25");
+      if (await button.isEnabled()) await button.click();
+      assert.match(await page.locator("#sky-zone-error").textContent(), /Dec:/);
+      assert.deepEqual(posts, [], "a repeated sign cannot switch hemispheres");
+      await dec.fill("-07:15:00");
+      await dec.press("Enter");
+      await fov.fill("0");
+      await fov.press("Tab");
+      if (await button.isEnabled()) await button.click();
+      assert.deepEqual(posts, [], "invalid size cannot submit");
+      await fov.fill("11");
+      await fov.press("Tab");
+      if (await button.isEnabled()) await button.click();
+      assert.deepEqual(posts, [], "out-of-range size cannot submit");
+      await fov.fill("7.25");
+      await fov.press("Enter");
+      assert.deepEqual(posts, [], "draft edits and Enter in an input do not submit");
+      assert.equal(new URL(page.url()).searchParams.has("ra"), false, "the URL contains no uncommitted draft");
+      await button.press("Enter");
+      await button.evaluate(el => { el.click(); el.click(); });
+      await eventually(() => payloads.length === 1, "no mocked field request received");
+      const payload = payloads[0];
+      assert.deepEqual(payload, {
+        ra: 120, dec: -7.25, fov: 7.25, dateFrom: null, dateTo: null,
+        detectors: ["D1", "D2", "D3", "D4", "D5", "D6"], collection: "spherex_dr1",
+      });
+      await eventually(() => {
+        const params = new URL(page.url()).searchParams;
+        return ["ra", "dec", "fov"].every(key => params.has(key) && Number(params.get(key)) === payload[key]);
+      }, "committed URL differs from the submitted coordinates");
+      await eventually(async () => /\b(?:sent|submitted|received|accepted|queued)\b/i.test(await page.locator("#sky-zone-status").textContent()),
+        "mock request acknowledgment was not announced");
+      assert.deepEqual(posts, ["POST /api/field-requests"], "one explicit action may send only one POST");
+    }
     await page.reload({ waitUntil: "domcontentloaded" });
     await eventually(async () => label.test(await status.textContent()), "wrong survey status after reload");
     if (fail) assert.ok(blocked > 0, "failure fixture never ran");
+    if (submit) assert.deepEqual(posts, ["POST /api/field-requests"], "reload submitted again");
     console.log(`PASS ${mobile ? "phone (touch pan/pinch)" : "desktop (drag/wheel)"} ${fail ? `2MASS fallback after DR1 ${fail} failure` : "DR1 0.753 µm"}: rendered sky, interaction, reload`);
+    if (submit) console.log("PASS P2 zone validation, keyboard submission, canonical payload and URL, repeat guard, reload without a POST");
+  } catch (error) {
+    console.error("Pilot failure details:", {
+      mobile, fail, submit, status: await page.locator("#aladin-status").textContent({ timeout: 1000 }).catch(() => null),
+      mapFailures: [...new Set(mapFailures)].slice(-12), posts,
+    });
+    throw error;
   } finally {
     await context.close();
-    assert.deepEqual(posts, [], "acquisition or retry requests were attempted");
+    assert.ok(submit ? posts.length <= 1 && posts.every(post => post === "POST /api/field-requests") : !posts.length,
+      `unexpected acquisition or retry attempts: ${posts.join(", ")}`);
     assert.deepEqual(apiReads, [], "browse, synthetic and Learn must not read cloud field/cutout endpoints");
     assert.deepEqual(errors, [], "uncaught browser errors");
   }
@@ -182,6 +262,7 @@ async function run(browser, { mobile = false, fail = "", compatibility = false }
     await run(browser, { fail: "tiles" });
     await run(browser, { mobile: true, fail: "metadata" });
     await run(browser, { compatibility: true });
+    await run(browser, { submit: true });
   } finally {
     await browser.close();
   }

@@ -505,21 +505,21 @@
         <section class="sky-zone-controls" id="sky-zone-controls" aria-labelledby="sky-zone-title" hidden>
           <div class="sky-zone-heading">
             <h3 id="sky-zone-title">Choose a zone</h3>
-            <p>Map clicks can fill a draft centre. Review the coordinates and field size, then request explicitly to load SPHEREx observations.</p>
+            <p>Pan to place the centre reticle, or enter coordinates. Review the draft before requesting SPHEREx cutouts.</p>
           </div>
           <div class="sky-zone-fields">
             <label for="sky-zone-ra">Right Ascension (RA)
-              <input id="sky-zone-ra" type="text" inputmode="decimal" autocomplete="off" aria-describedby="sky-zone-help sky-zone-error" placeholder="Degrees or h m s">
+              <input id="sky-zone-ra" type="text" autocomplete="off" aria-describedby="sky-zone-help sky-zone-error" placeholder="Degrees or h m s">
             </label>
             <label for="sky-zone-dec">Declination (Dec)
-              <input id="sky-zone-dec" type="text" inputmode="decimal" autocomplete="off" aria-describedby="sky-zone-help sky-zone-error" placeholder="Degrees or d m s">
+              <input id="sky-zone-dec" type="text" autocomplete="off" aria-describedby="sky-zone-help sky-zone-error" placeholder="Degrees or d m s">
             </label>
             <label for="sky-zone-fov">Field of view (arcmin)
-              <input id="sky-zone-fov" type="number" min="1" max="10" step="any" value="5">
+              <input id="sky-zone-fov" type="number" min="1" max="10" step="any" value="5" aria-describedby="sky-zone-help sky-zone-error">
             </label>
             <button type="button" class="btn btn-primary" id="sky-zone-request">Request this zone</button>
           </div>
-          <p class="sky-zone-help" id="sky-zone-help">Enter decimal coordinates or sexagesimal coordinates. A draft does not load data; only the request button starts processing.</p>
+          <p class="sky-zone-help" id="sky-zone-help">Use decimal degrees or sexagesimal coordinates. The zone width is independent of map zoom. Only Request this zone submits the draft.</p>
           <p class="sky-zone-message sky-zone-error" id="sky-zone-error" role="alert" aria-live="assertive"></p>
           <p class="sky-zone-message" id="sky-zone-status" role="status" aria-live="polite"></p>
         </section>

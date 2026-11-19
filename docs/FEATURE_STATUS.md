@@ -10,7 +10,7 @@ The deployed Cloud API provides `/api/catalogue`, using the bounded server-side 
 
 ## SPHEREx DR1 sky browse pilot
 
-`index.html?data=api&sky_browse=1#workspace` opens the public IRSA DR1 0.753 µm display mosaic at a 12° view centred on Barnard’s Star. If the DR1 layer fails to load, the map labels the 2MASS color fallback from ESA as a different survey. This opt-in pilot can pan and zoom but does not load cutouts, submit a field, or restore a request. The regular Sky Context, Science Workspace, and synthetic Learn Mode remain separate.
+`index.html?data=api&sky_browse=1#workspace` opens the public IRSA DR1 0.753 µm display mosaic at a 12° view centred on Barnard’s Star. If the DR1 layer fails to load, the map labels the 2MASS color fallback from ESA as a different survey. The reticle and editable ICRS coordinates define a 1–10′ draft zone, default 5′, independent of map zoom. **Request this zone** is the only submission action; opening, browsing, editing, and reloading do not submit. The pilot does not poll, load cutouts, or restore requests. The regular Sky Context, Science Workspace, and synthetic Learn Mode remain separate.
 
 ## New in 4.0: Research + Education
 
