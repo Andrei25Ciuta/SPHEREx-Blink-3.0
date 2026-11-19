@@ -721,6 +721,94 @@ output { font-weight: 600; color: var(--accent); }
 .context-controls label { font-size: .9rem; }
 .context-controls select { width: auto; min-width: 220px; }
 .skymap { position: relative; width: 100%; height: 440px; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border); }
+.workspace-sky {
+  grid-column: 1 / -1;
+  min-width: 0;
+  padding: clamp(.85rem, 1.8vw, 1.25rem);
+  border-color: rgb(var(--accent-rgb) / .32);
+  background:
+    radial-gradient(ellipse at 95% 0%, rgb(var(--accent-rgb) / .12), transparent 38%),
+    var(--surface);
+  scroll-margin-top: 6rem;
+}
+.workspace-sky[hidden],
+.workspace-sky-surface[hidden] { display: none !important; }
+.workspace-sky-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: .45rem;
+}
+.workspace-sky-heading h2 { margin: 0; font-family: var(--display); font-size: clamp(1.15rem, 2vw, 1.55rem); }
+.workspace-sky-kicker {
+  margin: 0 0 .2rem;
+  color: var(--accent-text);
+  font: 600 .68rem/1.4 var(--font-mono);
+  letter-spacing: .09em;
+  text-transform: uppercase;
+}
+.workspace-sky-mark {
+  flex: 0 0 auto;
+  padding: .28rem .55rem;
+  border: 1px solid rgb(var(--accent-rgb) / .42);
+  border-radius: 999px;
+  background: rgb(var(--accent-rgb) / .09);
+  color: var(--text);
+  font: 600 .72rem/1.3 var(--font-mono);
+  letter-spacing: .04em;
+}
+.workspace-sky-note {
+  max-width: 78ch;
+  margin: 0 0 .8rem;
+  color: var(--text-muted);
+  font-size: .84rem;
+  line-height: 1.5;
+}
+.workspace-sky-surface { position: relative; min-width: 0; }
+.workspace-sky-surface .skymap {
+  height: clamp(250px, 32vw, 360px);
+  border-color: rgb(var(--accent-rgb) / .3);
+  border-radius: var(--radius);
+  background: var(--chart-bg);
+}
+.workspace-sky-scale {
+  position: absolute;
+  right: .5rem;
+  bottom: .7rem;
+  z-index: 6;
+  padding: .3rem .5rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgb(var(--bg-rgb) / .92);
+  color: var(--text);
+  font: .75rem/1.35 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  pointer-events: none;
+}
+.workspace-sky-scale::after {
+  content: "";
+  display: block;
+  width: var(--scale-width);
+  height: .35rem;
+  margin: 0 auto;
+  border: 1px solid currentColor;
+  border-top: 0;
+}
+.workspace-sky-reset { margin-top: .55rem; }
+.workspace-sky-status,
+.workspace-sky-zone-error,
+.workspace-sky-zone-status {
+  margin: .55rem 0 0;
+  color: var(--text-muted);
+  font-size: .8rem;
+  line-height: 1.45;
+}
+.workspace-sky-zone-error:not(:empty) { color: var(--danger); }
+#workspace-photo-viewer { scroll-margin-top: 6rem; }
+#workspace-photo-viewer:focus { outline: none; }
+#workspace-photo-viewer:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
 /* Coordinates of the cursor (or of the map centre) with, in brackets, the country that sky point is straight above (skyGeo.js) */
 .sky-readout {
   position: absolute; left: .5rem; bottom: 2.6rem; z-index: 5; max-width: calc(100% - 1rem); pointer-events: none;   /* above Aladin's own zoom / field-of-view control (bottom left) */
@@ -1011,6 +1099,11 @@ html.fs-locked { overflow: hidden; }
   .context-controls select { min-width: 0; width: 100%; }
 }
 @media (max-width: 600px) {
+  .workspace-sky { padding: .8rem; }
+  .workspace-sky-surface .skymap { height: 280px; }
+  .workspace-sky-heading { align-items: flex-start; }
+  .workspace-sky-mark { margin-top: .1rem; }
+  #workspace-photo-viewer { scroll-margin-top: 4.5rem; }
   html.sky-browse #workspace { padding: .5rem .65rem 1.5rem; gap: .6rem; }
   html.sky-browse #workspace > .desk-heading { align-items: flex-start; }
   html.sky-browse #workspace > .context { padding: 1rem .75rem; }
