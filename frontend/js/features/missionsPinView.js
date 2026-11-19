@@ -144,7 +144,7 @@ const pinColour = (() => {
   };
 })();
 
-export function setupPinBoard({ getCandidate, getContext }) {
+export function setupPinBoard({ getCandidate, getContext, loadField = () => $("search-form").requestSubmit() }) {
   if (!$("pin-board")) return null;
   const SVG = "http://www.w3.org/2000/svg";
   const W = 720, H = 360;
@@ -387,13 +387,13 @@ export function setupPinBoard({ getCandidate, getContext }) {
   function openMapPosition(sky) {
     if (!sky) return;
     // The Pin Board is on the same page as Blink: use its existing field loader.
-    const ra = $("ra-input"), dec = $("dec-input"), form = $("search-form");
+    const ra = $("ra-input"), dec = $("dec-input");
     ra.value = (Number(sky.ra.toFixed(5)) % 360).toFixed(5);
     dec.value = sky.dec.toFixed(5);
     ra.dispatchEvent(new Event("input", { bubbles: true }));
     dec.dispatchEvent(new Event("input", { bubbles: true }));
     if ($("controls-body")?.hidden) $("panel-left-btn")?.click();
-    form.requestSubmit();
+    loadField();
     openId = null;
     popup.hidden = true;
     hideCursorHint();

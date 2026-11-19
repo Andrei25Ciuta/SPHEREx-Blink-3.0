@@ -8,6 +8,8 @@
 import { backendAddress } from "./data/backendAddress.js";
 const params = new URLSearchParams(typeof location === "undefined" ? "" : location.search);   // Node tests have no location
 export const DATA_SOURCE = params.get("data") === "api" ? "api" : "mock";
+// Opt-in, browse-only pilot. No dependency on a configured Blink acquisition API.
+export const SKY_BROWSE = DATA_SOURCE === "api" && params.get("sky_browse") === "1";
 // Set only on links to a prepared legacy API that cannot receive the new POST acquisition trigger.
 export const LEGACY_API_READ_ONLY = params.get("legacy_api") === "1";
 

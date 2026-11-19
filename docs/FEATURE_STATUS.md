@@ -8,6 +8,14 @@ The live Firestore policy and Cloud Run orchestrator permit up to 20 concurrent 
 
 The deployed Cloud API provides `/api/catalogue`, using the bounded server-side TAP relay for 2MASS, AllWISE and Gaia DR3. A small Gaia DR3 live probe exceeded its 35-second client timeout, so the route is deployed but successful live catalogue data remains unverified. `/api/survey`, `/api/footprints` and `/api/hips/*` remain unavailable in cloud mode. The cloud `/api/photometry` endpoint returned HTTP 503 in a read-only check on 15 Nov 2026; recheck it before relying on image-click measurements with cloud data. Local backend mode continues to expose its existing research endpoints.
 
+## SPHEREx DR1 sky browse pilot
+
+The regular Science Workspace shows a sky map and zone panel above the original photo viewer. With Synthetic demo selected, **Request this zone** generates frames locally using the original synthetic generator; it does not contact an API. The existing **1–30′ slider** is in the zone panel instead of the old field form. Edits change only the draft until submission. The optional public sky map is real imagery for context, not the source of the synthetic frames, and the showcase works without loading it.
+
+With an API source selected, the map opens the IRSA DR1 0.753 µm mosaic at a 12° view centred on Barnard’s Star or at the linked field. A DR1 load failure shows a labelled ESA 2MASS fallback. Observed requests keep the separate 1–10′ field limit. Map zoom does not change either mode’s draft width. A successful synthetic load or a verified API request scrolls once to the original viewer; the API flow shows detector progress and plays cutouts as they become ready.
+
+Saved `request_id` links verify the ID and field through a status GET and then load only matching cutouts. Opening, editing, or reloading does not submit. Old coordinate links without a request ID read prepared or local cutouts; starting new work from the legacy form still requires activating **Load images** explicitly. **Retry failed detectors** retries the same request. Click photometry is unavailable for request-scoped images because the existing photometry API cannot restrict measurements to that request. Older `sky_browse=1` pilot links, the lower Sky Context, embeds, and synthetic Learn Mode remain available.
+
 ## New in 4.0: Research + Education
 
 | Feature | Implementation | Status / limits |

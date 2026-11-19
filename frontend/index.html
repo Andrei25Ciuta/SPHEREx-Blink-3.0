@@ -16,7 +16,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Oswald:wght@500;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 
   <script>if (/[?&]embed=1(&|$)/.test(location.search)) document.documentElement.classList.add("embed");</script>   <!-- ?embed=1: workspace only, for an <iframe> -->
-  <link rel="stylesheet" href="css/styles.css?v=20261115-2">
+  <link rel="stylesheet" href="css/styles.css?v=20261119-sky-zone-layout-1">
   <link rel="stylesheet" href="css/instrument.css?v=20261115">
   <link rel="stylesheet" href="css/lab-track.css">
   <link rel="stylesheet" href="css/contact-sheet.css?v=20261115-2">
@@ -41,6 +41,46 @@
       <div class="desk-actions"><button type="button" class="btn btn-small" id="tour-btn">Take the 1-minute tour</button>
       <span class="badge" id="data-source-badge" title="Which data source is active">Synthetic demo data</span></div>
     </div>
+    <section class="panel workspace-sky" id="workspace-sky" aria-labelledby="workspace-sky-title" hidden>
+      <div class="workspace-sky-heading">
+        <div>
+          <p class="workspace-sky-kicker">Observed sky</p>
+          <h2 id="workspace-sky-title">Browse the sky</h2>
+        </div>
+        <span class="workspace-sky-mark">Survey map</span>
+      </div>
+      <p class="workspace-sky-note workspace-sky-api-copy">The map uses SPHEREx DR1 imagery when available and labels any fallback. The photo viewer below identifies its own data source.</p>
+      <p class="workspace-sky-note workspace-sky-synthetic-copy">Generate synthetic demo frames locally. The optional sky map shows real survey imagery for context only.</p>
+      <div class="workspace-sky-surface" id="workspace-sky-surface" hidden>
+        <div id="workspace-sky-map" class="skymap" role="region" aria-label="Observed sky map"></div>
+        <span class="workspace-sky-scale" id="workspace-sky-scale" aria-label="Approximate angular scale" hidden></span>
+      </div>
+      <button type="button" class="btn btn-small workspace-sky-reset" id="workspace-sky-reset" aria-controls="workspace-sky-map">Open survey map</button>
+      <p class="workspace-sky-status" id="workspace-sky-status" role="status" aria-live="polite">Opening the map does not request cutouts.</p>
+      <section class="sky-zone-controls workspace-sky-zone-controls" id="workspace-sky-zone-controls" aria-labelledby="workspace-sky-zone-title" hidden>
+        <div class="sky-zone-heading">
+          <h3 id="workspace-sky-zone-title">Choose a zone</h3>
+          <p class="workspace-sky-api-copy">Pan to place the centre reticle, or enter coordinates. The requested zone stays the same size as you zoom the map.</p>
+          <p class="workspace-sky-synthetic-copy">Pan to choose a demo field or enter coordinates. The field size stays the same as you zoom the map.</p>
+        </div>
+        <div class="sky-zone-fields">
+          <label for="workspace-sky-zone-ra">Right Ascension (RA)
+            <input id="workspace-sky-zone-ra" type="text" autocomplete="off" aria-describedby="workspace-sky-zone-error" placeholder="Degrees or h m s">
+          </label>
+          <label for="workspace-sky-zone-dec">Declination (Dec)
+            <input id="workspace-sky-zone-dec" type="text" autocomplete="off" aria-describedby="workspace-sky-zone-error" placeholder="Degrees or d m s">
+          </label>
+          <label id="workspace-sky-api-fov" for="workspace-sky-zone-fov">Field of view (arcmin)
+            <input id="workspace-sky-zone-fov" type="number" min="1" max="10" step="any" value="5" aria-describedby="workspace-sky-zone-error">
+          </label>
+          <div id="workspace-sky-synthetic-fov" hidden></div>
+          <button type="button" class="btn btn-primary" id="workspace-sky-zone-request" disabled>Request this zone</button>
+        </div>
+        <p class="workspace-sky-zone-error" id="workspace-sky-zone-error" role="alert" aria-live="assertive"></p>
+        <p class="workspace-sky-zone-status workspace-sky-synthetic-copy">Demo frames are generated on this device. No cloud request is made.</p>
+        <p class="workspace-sky-zone-status" id="workspace-sky-zone-status" role="status" aria-live="polite"></p>
+      </section>
+    </section>
     <!-- Field controls can be collapsed with the button or the [ key. -->
     <section class="panel controls" id="controls-panel" aria-labelledby="controls-title">
       <div class="panel-head">
@@ -65,7 +105,7 @@
             <small id="dec-error" class="error-text" role="alert"></small>
           </div>
 
-          <div class="field">
+          <div class="field" id="workspace-legacy-fov">
             <label for="fov-input">Field of view: <output id="fov-value" for="fov-input">5</output> arcmin</label>
             <input id="fov-input" name="fov" type="range" min="1" max="30" step="1" value="5">
             <div class="range-scale" aria-hidden="true"><span>1′</span><span>30′</span></div>
@@ -112,7 +152,8 @@
     </section>
 
     <div class="observing-row">
-      <section class="panel player" aria-labelledby="player-title">
+      <section class="panel player" id="workspace-photo-viewer" tabindex="-1" aria-labelledby="player-title">
+        <h2 class="sky-request-heading" id="sky-request-results" tabindex="-1">SPHEREx request results</h2>
         <!-- View modes. Native radio buttons = free keyboard support (arrow keys). -->
         <div class="view-toolbar">
           <fieldset class="mode-switch" id="mode-switch">
@@ -484,7 +525,8 @@
     </section>
     <!-- ============ 4. Sky context (Aladin Lite) ============ -->
     <section class="panel context" aria-labelledby="context-title">
-      <h2 id="context-title" tabindex="-1">Sky context</h2>
+      <h2 id="context-title" tabindex="-1"><span class="sky-context-title">Sky context</span><span class="sky-browse-title">Browse the sky</span></h2>
+      <p class="sky-browse-note">Pan and zoom to explore the sky. Browsing does not load SPHEREx cutouts or start processing jobs.</p>
       <p class="muted">Other surveys at the same spot, with catalogued objects from SIMBAD.
         The map opens at the selected field width. The dashed square marks that field. The box in the corner gives the sky coordinates under the cursor
         and, in brackets, the country that spot of the sky is straight above right now.
@@ -501,13 +543,35 @@
           <button type="button" class="btn btn-small" id="sky-back-to-field" aria-controls="aladin-box" hidden>Back to field</button>
           <button type="button" class="btn btn-small" id="sky-full-btn" hidden>Full screen</button>
         </div>
+        <section class="sky-zone-controls" id="sky-zone-controls" aria-labelledby="sky-zone-title" hidden>
+          <div class="sky-zone-heading">
+            <h3 id="sky-zone-title">Choose a zone</h3>
+            <p>Pan to place the centre reticle, or enter coordinates. Review the draft before requesting SPHEREx cutouts.</p>
+          </div>
+          <div class="sky-zone-fields">
+            <label for="sky-zone-ra">Right Ascension (RA)
+              <input id="sky-zone-ra" type="text" autocomplete="off" aria-describedby="sky-zone-help sky-zone-error" placeholder="Degrees or h m s">
+            </label>
+            <label for="sky-zone-dec">Declination (Dec)
+              <input id="sky-zone-dec" type="text" autocomplete="off" aria-describedby="sky-zone-help sky-zone-error" placeholder="Degrees or d m s">
+            </label>
+            <label for="sky-zone-fov">Field of view (arcmin)
+              <input id="sky-zone-fov" type="number" min="1" max="10" step="any" value="5" aria-describedby="sky-zone-help sky-zone-error">
+            </label>
+            <button type="button" class="btn btn-primary" id="sky-zone-request">Request this zone</button>
+          </div>
+          <p class="sky-zone-help" id="sky-zone-help">Use decimal degrees or sexagesimal coordinates. The zone width is independent of map zoom. Only Request this zone submits the draft.</p>
+          <p class="sky-zone-message sky-zone-error" id="sky-zone-error" role="alert" aria-live="assertive"></p>
+          <p class="sky-zone-message" id="sky-zone-status" role="status" aria-live="polite"></p>
+        </section>
         <div class="sky-map-surface" id="sky-map-surface" hidden>
           <div id="aladin-box" class="skymap" hidden></div>
           <button type="button" class="btn btn-small" id="sky-reset-light" aria-controls="aladin-box" aria-label="Reset light settings" title="Reset light settings" hidden><span aria-hidden="true">↺</span></button>
           <span class="sky-map-scale" id="sky-map-scale" aria-label="Approximate angular scale" hidden></span>
         </div>
         <p class="muted small" id="sky-reset-status" role="status"></p>
-        <p class="muted small" id="aladin-status" aria-live="polite"></p>
+        <p class="muted small" id="aladin-status" aria-live="polite"><span class="sky-browse-status-initial">Survey layer status appears here. If a layer is unavailable, the map may use a fallback survey.</span></p>
+        <a class="sky-request-results-link" href="#sky-request-results">Jump to request results</a>
         <p class="muted small" id="sky-geo-note" hidden></p>
         <p class="muted small" id="sky-candidate-status" role="status" hidden></p>
       </div>
@@ -741,7 +805,7 @@
     <div class="dlg-head"><h2 id="simulation-note-title">About the simulation</h2><form method="dialog"><button class="btn btn-small">Close</button></form></div>
     <p class="dlg-body">The Planet X preset uses a simulated body 600 AU away. Its position is invented for testing the distant-body search.</p>
   </dialog>
-  <script type="module" src="js/main.js?v=28"></script>
+  <script type="module" src="js/main.js?v=34"></script>
   <script type="module" src="js/scienceExplain.js"></script>
   <script type="module" src="js/features/highContrast.js"></script>
 </body>
