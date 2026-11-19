@@ -76,17 +76,25 @@ async function mapHasSky(page, map) {
   }, png);
 }
 
-async function run(browser, { mobile = false, fail = "", compatibility = false, submit = false } = {}) {
+async function run(browser, { mobile = false, fail = "", compatibility = false, submit = false, workspace = false, legacy = false } = {}) {
   const context = await browser.newContext({
     ...(mobile ? devices["Pixel 7"] : { viewport: { width: 1440, height: 900 } }),
     serviceWorkers: "block",
     ...(submit ? { reducedMotion: "reduce" } : {}),
   });
   const posts = [], apiReads = [], errors = [], dr1Images = [], fallbackImages = [];
-  const payloads = [], cutoutReads = [];
+  const payloads = [], cutoutReads = [], photometryReads = [];
   let phase = "queued";
   const mapFailures = [];
   let blocked = 0;
+  if (workspace) await context.addInitScript(() => {
+    window.viewerScrolls = [];
+    const scroll = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (...args) {
+      if (this.id === "workspace-photo-viewer") window.viewerScrolls.push(args[0]);
+      return scroll.apply(this, args);
+    };
+  });
   // Register BEFORE a page exists. Only the local test fixture can fulfill a field POST;
   // no acquisition or retry is ever forwarded, regardless of hostname.
   await context.route("**/*", async route => {
@@ -112,6 +120,11 @@ async function run(browser, { mobile = false, fail = "", compatibility = false, 
       return route.abort("blockedbyclient");
     }
     if (/\/api\/(?:field-requests|cutouts)(?:\/|$)/.test(url.pathname)) apiReads.push(url.pathname);
+    if (url.pathname === "/api/photometry") photometryReads.push(url.href);
+    if (legacy && url.origin === base.origin && url.pathname === "/api/cutouts") {
+      assert.equal(url.searchParams.has("request_id"), false, "a legacy prepared link has no acquisition request ID");
+      return route.fulfill({ json: { frames: fixtureFrames(base.origin, "partial") } });
+    }
     if (submit && url.origin === base.origin) {
       const query = payloads[0] && Object.fromEntries(["ra", "dec", "fov"].map(key => [key, payloads[0][key]]));
       if (url.pathname === `/api/field-requests/${REQUEST_ID}` && query) {
@@ -131,20 +144,20 @@ async function run(browser, { mobile = false, fail = "", compatibility = false, 
         }
         return route.fulfill({ json: { frames: ["partial", "failed", "ready"].includes(phase) ? fixtureFrames(base.origin, phase) : [] } });
       }
-      const frame = /^\/fixture\/D[25]-blink-([01])\.svg$/.exec(url.pathname);
-      if (frame) {
-        return route.fulfill({ contentType: "image/svg+xml", body:
-          `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"><rect width="96" height="96" fill="#121b28"/><circle cx="${frame[1] === "0" ? 32 : 60}" cy="42" r="7" fill="#fff"/></svg>` });
-      }
+    }
+    const frame = (submit || legacy) && url.origin === base.origin && /^\/fixture\/D[25]-blink-([01])\.svg$/.exec(url.pathname);
+    if (frame) {
+      return route.fulfill({ contentType: "image/svg+xml", body:
+        `<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"><rect width="96" height="96" fill="#121b28"/><circle cx="${frame[1] === "0" ? 32 : 60}" cy="42" r="7" fill="#fff"/></svg>` });
     }
     if (isDr1(url) && (fail === "tiles" && /\.png$/i.test(url.pathname) ||
                        fail === "metadata" && url.pathname.endsWith("/properties"))) {
       blocked++;
       return route.fulfill({ status: 503, headers: { "access-control-allow-origin": "*" } });
     }
-    if (url.origin === base.origin ||
+    if (url.origin === base.origin || !legacy && (
         (url.hostname === "cdn.jsdelivr.net" && url.pathname.startsWith("/npm/aladin-lite@3.6.5/")) ||
-        (isMapHost(url) && (isDr1(url) || isFallback(url)) && !/\.fits(?:\.gz)?$/i.test(url.pathname))) {
+        (isMapHost(url) && (isDr1(url) || isFallback(url)) && !/\.fits(?:\.gz)?$/i.test(url.pathname)))) {
       return route.continue();
     }
     return route.abort("blockedbyclient");
@@ -164,11 +177,21 @@ async function run(browser, { mobile = false, fail = "", compatibility = false, 
     if (isDr1(url) || isFallback(url)) mapFailures.push(`${request.failure()?.errorText} ${url.pathname}`);
   });
   try {
+    if (legacy) {
+      const link = new URL("index.html?data=api&ra=269.4462&dec=4.769&fov=5&det=D2#workspace", base);
+      link.searchParams.set("api", base.origin);
+      await page.goto(link.href, { waitUntil: "domcontentloaded" });
+      await eventually(() => page.locator("#play-btn").isEnabled(), "legacy coordinate link did not play prepared frames");
+      assert.deepEqual(apiReads, ["/api/cutouts"]);
+      console.log("PASS ordinary API coordinate link loads prepared frames by GET without submitting acquisition");
+      return;
+    }
     if (compatibility) {
       await page.goto(new URL("index.html?ra=269.4462&dec=4.769&fov=5&det=D2&embed=1#workspace", base).href);
       await page.locator("#stage-overlay.hidden").waitFor();
       assert.match(await page.locator("#data-source-badge").textContent(), /synthetic/i);
       assert.equal(await page.locator("html").evaluate(el => el.classList.contains("sky-browse")), false);
+      assert.equal(await page.locator("#workspace-sky").isVisible(), false, "embed keeps its existing layout");
       assert.equal(await page.locator("#context-title").innerText(), "Sky context");
       await page.goto(new URL("learn.html", base).href);
       assert.match(await page.title(), /learn/i);
@@ -176,20 +199,28 @@ async function run(browser, { mobile = false, fail = "", compatibility = false, 
       console.log("PASS legacy synthetic Workspace deep link, embed and Learn Mode");
       return;
     }
-    const status = page.locator("#aladin-status");
-    const map = page.locator("#aladin-box");
+    const status = page.locator(workspace ? "#workspace-sky-status" : "#aladin-status");
+    const map = page.locator(workspace ? "#workspace-sky-map" : "#aladin-box");
     const url = new URL(pilot);
-    if (submit) url.searchParams.set("api", base.origin);
+    if (submit || workspace) url.searchParams.set("api", base.origin);
+    if (workspace) url.searchParams.delete("sky_browse");
     // Stale coordinates used to trigger legacy form submission on startup.
-    if (mobile || fail) {
+    if (!workspace && (mobile || fail)) {
       url.searchParams.set("ra", "155");
       url.searchParams.set("dec", "10");
       url.searchParams.set("fov", "8");
     }
     await page.goto(url.href, { waitUntil: "domcontentloaded" });
     await map.waitFor({ state: "visible", timeout: 30000 });
-    assert.equal(await page.locator("#context-title").innerText(), "Browse the sky");
-    assert.equal(await page.locator("#search-form").isVisible(), false);
+    assert.equal(await page.locator("#context-title").innerText(), workspace ? "Sky context" : "Browse the sky");
+    assert.equal(await page.locator("#search-form").isVisible(), workspace);
+    if (workspace) {
+      assert.ok(await page.locator("#workspace-sky").evaluate(el =>
+        (el.compareDocumentPosition(document.getElementById("workspace-photo-viewer")) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0),
+      "new map must precede the old photo viewer in document order");
+      assert.ok(await page.locator("#workspace-photo-viewer").isVisible(), "ordinary photo viewer should remain visible");
+      assert.deepEqual(await page.evaluate(() => window.viewerScrolls), [], "opening the map must not jump to playback");
+    }
     const label = fail ? /2MASS/i : /0\.753\s*µm/;
     await eventually(async () => label.test(await status.textContent()), `wrong survey status (${fail || "DR1"})`);
     if (fail) assert.match(await status.textContent(), /unavailable|could not|fallback/i);
@@ -200,8 +231,9 @@ async function run(browser, { mobile = false, fail = "", compatibility = false, 
 
     const readout = map.locator(".sky-readout");
     await eventually(async () => /269\.44\d.*4\.769/.test(await readout.textContent()), "did not start at Barnard's Star");
-    const ra = page.locator("#sky-zone-ra"), dec = page.locator("#sky-zone-dec");
-    const fov = page.locator("#sky-zone-fov"), button = page.getByRole("button", { name: "Request this zone" });
+    const id = name => `#${workspace ? "workspace-" : ""}sky-zone-${name}`;
+    const ra = page.locator(id("ra")), dec = page.locator(id("dec"));
+    const fov = page.locator(id("fov")), button = page.locator(id("request"));
     let beforeDraftRa;
     if (submit) {
       await button.waitFor();
@@ -232,7 +264,7 @@ async function run(browser, { mobile = false, fail = "", compatibility = false, 
     }, "pan did not change the map centre");
     if (submit) await eventually(async () => Math.abs(Number(await ra.inputValue()) - beforeDraftRa) > 0.01,
       "pan did not update the draft coordinates");
-    const scale = page.locator("#sky-map-scale");
+    const scale = page.locator(workspace ? "#workspace-sky-scale" : "#sky-map-scale");
     await scale.waitFor();
     const beforeZoom = await scale.evaluate(el => `${el.textContent}:${el.style.getPropertyValue("--scale-width")}`);
     if (mobile) {
@@ -252,13 +284,13 @@ async function run(browser, { mobile = false, fail = "", compatibility = false, 
       assert.equal(await fov.inputValue(), "5", "zoom does not change submitted zone width");
       await ra.fill("08:");
       if (await button.isEnabled()) await button.click();
-      assert.match(await page.locator("#sky-zone-error").textContent(), /RA:/);
+      assert.match(await page.locator(id("error")).textContent(), /RA:/);
       assert.deepEqual(posts, [], "incomplete RA cannot submit a different sky centre");
       await ra.fill("08:00:00");
       await ra.press("Enter");
       await dec.fill("--7.25");
       if (await button.isEnabled()) await button.click();
-      assert.match(await page.locator("#sky-zone-error").textContent(), /Dec:/);
+      assert.match(await page.locator(id("error")).textContent(), /Dec:/);
       assert.deepEqual(posts, [], "a repeated sign cannot switch hemispheres");
       await dec.fill("-07:15:00");
       await dec.press("Enter");
@@ -274,6 +306,7 @@ async function run(browser, { mobile = false, fail = "", compatibility = false, 
       await fov.press("Enter");
       assert.deepEqual(posts, [], "draft edits and Enter in an input do not submit");
       assert.equal(new URL(page.url()).searchParams.has("ra"), false, "the URL contains no uncommitted draft");
+      if (workspace) assert.deepEqual(await page.evaluate(() => window.viewerScrolls), [], "draft interactions must not scroll to the viewer");
       await button.press("Enter");
       await button.evaluate(el => { el.click(); el.click(); });
       await eventually(() => payloads.length === 1, "no mocked field request received");
@@ -292,6 +325,15 @@ async function run(browser, { mobile = false, fail = "", compatibility = false, 
       const player = page.locator("#play-btn");
       const summary = page.locator("#field-request-summary");
       await eventually(async () => /0\/6 detectors ready/.test(await summary.textContent()), "queued status was not rendered");
+      if (workspace) {
+        await eventually(() => page.evaluate(() => window.viewerScrolls.length === 1), "accepted request did not scroll to the existing viewer");
+        assert.equal(await page.evaluate(() => document.activeElement?.id), "workspace-photo-viewer");
+        assert.notEqual(await page.evaluate(() => window.viewerScrolls[0]?.behavior), "smooth", "reduced motion must not animate the handoff");
+        assert.ok(await page.locator("#workspace-photo-viewer").evaluate(el => {
+          const top = el.getBoundingClientRect().top;
+          return top >= -1 && top < innerHeight && scrollY > 0;
+        }), "the photo viewer did not land inside the viewport");
+      }
       assert.equal(await player.isEnabled(), false);
       assert.equal(await ra.isVisible(), true, "active progress hid the draft controls");
       const mapBefore = await readout.textContent();
@@ -306,6 +348,11 @@ async function run(browser, { mobile = false, fail = "", compatibility = false, 
       await player.click();
       await eventually(async () => (await counter.textContent()) !== previousFrame, "Blink did not advance a frame");
       await player.click();
+      if (workspace) {
+        await page.locator("#blink-canvas").click();
+        assert.match(await page.locator("#measure-pos").textContent(), /click measurements are unavailable/i);
+        assert.deepEqual(photometryReads, [], "request-scoped photos must not use unscoped server photometry");
+      }
       phase = "failed";
       const retry = page.locator("#field-request-retry");
       await retry.waitFor({ timeout: 20000 });
@@ -314,6 +361,7 @@ async function run(browser, { mobile = false, fail = "", compatibility = false, 
       await eventually(async () => /2\/6 detectors ready.*4 frames loaded/i.test(await summary.textContent()),
         "retry did not rejoin status and load the recovered detector");
       assert.ok(apiReads.slice(readsBeforeRetry).includes(`/api/field-requests/${REQUEST_ID}`));
+      if (workspace) assert.equal(await page.evaluate(() => window.viewerScrolls.length), 1, "retry or polling scrolled again");
       assert.deepEqual(posts, ["POST /api/field-requests", `POST /api/field-requests/${REQUEST_ID}/retry`],
         "retry must not create a new request");
 
@@ -322,12 +370,13 @@ async function run(browser, { mobile = false, fail = "", compatibility = false, 
       await page.reload({ waitUntil: "domcontentloaded" });
       await eventually(async () => await player.isVisible() && await player.isEnabled(), "saved request did not restore playable frames");
       assert.ok(apiReads.slice(readsBeforeReload).includes(`/api/field-requests/${REQUEST_ID}`), "restore did not read status");
+      if (workspace) assert.deepEqual(await page.evaluate(() => window.viewerScrolls), [], "restoring a request must not scroll");
 
       const mismatch = new URL(restored);
       mismatch.searchParams.set("ra", String(payload.ra + 1));
       const beforeMismatch = cutoutReads.length;
       await page.goto(mismatch.href, { waitUntil: "domcontentloaded" });
-      await eventually(async () => /different|match|does not belong/i.test(await page.locator("#sky-zone-status").textContent()),
+      await eventually(async () => /different|match|does not belong/i.test(await page.locator(id("status")).textContent()),
         "mismatched request not explained");
       assert.equal(cutoutReads.length, beforeMismatch, "mismatched request loaded unrelated cutouts");
 
@@ -340,12 +389,13 @@ async function run(browser, { mobile = false, fail = "", compatibility = false, 
 
       empty.searchParams.set("request_id", UNKNOWN_ID);
       await page.goto(empty.href, { waitUntil: "domcontentloaded" });
-      await eventually(async () => /not found|could not|no field request|unavailable/i.test(await page.locator("#sky-zone-status").textContent()),
+      await eventually(async () => /not found|could not|no field request|unavailable/i.test(await page.locator(id("status")).textContent()),
         "unknown saved request not explained");
       assert.equal(cutoutReads.length, beforeMismatch, "unknown request must not request cutouts");
       assert.deepEqual(posts, ["POST /api/field-requests", `POST /api/field-requests/${REQUEST_ID}/retry`],
         "opening or restoring a saved link sent a POST");
-      console.log("PASS P2+P3 explicit submit, partial playback, retry, GET-only restore, missing coverage and invalid restore");
+      if (workspace) assert.deepEqual(await page.evaluate(() => window.viewerScrolls), [], "invalid restore must not scroll");
+      console.log(`PASS ${workspace ? `original Workspace (${mobile ? "phone" : "desktop"}): map above viewer, one scroll on request, ` : "P2+P3: "}explicit submit, partial playback, retry, GET-only restore, no coverage and invalid restore`);
       return;
     }
     await page.reload({ waitUntil: "domcontentloaded" });
@@ -354,9 +404,9 @@ async function run(browser, { mobile = false, fail = "", compatibility = false, 
     console.log(`PASS ${mobile ? "phone (touch pan/pinch)" : "desktop (drag/wheel)"} ${fail ? `2MASS fallback after DR1 ${fail} failure` : "DR1 0.753 µm"}: rendered sky, interaction, reload`);
   } catch (error) {
     console.error("Pilot failure details:", {
-      mobile, fail, submit, status: await page.locator("#aladin-status").textContent({ timeout: 1000 }).catch(() => null),
+      mobile, fail, submit, workspace, status: await page.locator(workspace ? "#workspace-sky-status" : "#aladin-status").textContent({ timeout: 1000 }).catch(() => null),
       panel: await page.locator("#field-request-summary").textContent({ timeout: 1000 }).catch(() => null),
-      zone: await page.locator("#sky-zone-status").textContent({ timeout: 1000 }).catch(() => null),
+      zone: await page.locator(`#${workspace ? "workspace-" : ""}sky-zone-status`).textContent({ timeout: 1000 }).catch(() => null),
       mapFailures: [...new Set(mapFailures)].slice(-12), posts,
     });
     throw error;
@@ -365,7 +415,7 @@ async function run(browser, { mobile = false, fail = "", compatibility = false, 
     assert.ok(submit ? posts.length <= 2 && posts.every(post =>
       ["POST /api/field-requests", `POST /api/field-requests/${REQUEST_ID}/retry`].includes(post)) : !posts.length,
       `unexpected acquisition or retry attempts: ${posts.join(", ")}`);
-    if (!submit) assert.deepEqual(apiReads, [], "browse, synthetic and Learn must not read cloud field/cutout endpoints");
+    if (!submit && !legacy) assert.deepEqual(apiReads, [], "browse, synthetic and Learn must not read cloud field/cutout endpoints");
     assert.deepEqual(errors, [], "uncaught browser errors");
   }
 }
@@ -376,14 +426,26 @@ async function run(browser, { mobile = false, fail = "", compatibility = false, 
     args: ["--enable-unsafe-swiftshader"],
   } : { channel: process.env.BLINK_BROWSER || undefined });
   try {
+    if (process.env.BLINK_WORKSPACE_SKY_ONLY === "phone") {
+      await run(browser, { submit: true, workspace: true, mobile: true });
+      return;
+    }
+    if (process.env.BLINK_WORKSPACE_SKY_ONLY === "1") {
+      await run(browser, { legacy: true });
+      await run(browser, { submit: true, workspace: true });
+      return;
+    }
     if (process.env.BLINK_SKY_LIFECYCLE_ONLY !== "1") {
       await run(browser);
       await run(browser, { mobile: true });
       await run(browser, { fail: "tiles" });
       await run(browser, { mobile: true, fail: "metadata" });
       await run(browser, { compatibility: true });
+      await run(browser, { legacy: true });
+      await run(browser, { mobile: true, workspace: true });
     }
     await run(browser, { submit: true });
+    if (process.env.BLINK_SKY_LIFECYCLE_ONLY !== "1") await run(browser, { submit: true, workspace: true });
   } finally {
     await browser.close();
   }

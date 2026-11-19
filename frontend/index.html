@@ -44,18 +44,18 @@
     <section class="panel workspace-sky" id="workspace-sky" aria-labelledby="workspace-sky-title" hidden>
       <div class="workspace-sky-heading">
         <div>
-          <p class="workspace-sky-kicker">Observed sky · SPHEREx DR1</p>
-          <h2 id="workspace-sky-title">Browse the observed sky</h2>
+          <p class="workspace-sky-kicker">Observed sky</p>
+          <h2 id="workspace-sky-title">Browse the sky</h2>
         </div>
-        <span class="workspace-sky-mark" aria-label="Observed SPHEREx survey map">DR1 map</span>
+        <span class="workspace-sky-mark">Survey map</span>
       </div>
-      <p class="workspace-sky-note">This map shows observed SPHEREx survey imagery. The viewer below may show synthetic demo data; check its data label before interpreting it.</p>
+      <p class="workspace-sky-note">The map uses SPHEREx DR1 imagery when available and labels any fallback. The photo viewer below identifies its own data source.</p>
       <div class="workspace-sky-surface" id="workspace-sky-surface" hidden>
-        <div id="workspace-sky-map" class="skymap" role="region" aria-label="Observed SPHEREx DR1 sky map"></div>
+        <div id="workspace-sky-map" class="skymap" role="region" aria-label="Observed sky map"></div>
         <span class="workspace-sky-scale" id="workspace-sky-scale" aria-label="Approximate angular scale" hidden></span>
       </div>
-      <button type="button" class="btn btn-small workspace-sky-reset" id="workspace-sky-reset" aria-controls="workspace-sky-map">Reopen / recenter map</button>
-      <p class="workspace-sky-status" id="workspace-sky-status" role="status" aria-live="polite">Browse the observed map freely. To load a new field, enter its centre and size below, then request it explicitly.</p>
+      <button type="button" class="btn btn-small workspace-sky-reset" id="workspace-sky-reset" aria-controls="workspace-sky-map">Show sky map</button>
+      <p class="workspace-sky-status" id="workspace-sky-status" role="status" aria-live="polite">Opening the map does not request cutouts.</p>
       <section class="sky-zone-controls workspace-sky-zone-controls" id="workspace-sky-zone-controls" aria-labelledby="workspace-sky-zone-title" hidden>
         <div class="sky-zone-heading">
           <h3 id="workspace-sky-zone-title">Choose a zone</h3>
@@ -63,10 +63,10 @@
         </div>
         <div class="sky-zone-fields">
           <label for="workspace-sky-zone-ra">Right Ascension (RA)
-            <input id="workspace-sky-zone-ra" type="text" inputmode="decimal" autocomplete="off" aria-describedby="workspace-sky-zone-error" placeholder="Degrees or h m s">
+            <input id="workspace-sky-zone-ra" type="text" autocomplete="off" aria-describedby="workspace-sky-zone-error" placeholder="Degrees or h m s">
           </label>
           <label for="workspace-sky-zone-dec">Declination (Dec)
-            <input id="workspace-sky-zone-dec" type="text" inputmode="decimal" autocomplete="off" aria-describedby="workspace-sky-zone-error" placeholder="Degrees or d m s">
+            <input id="workspace-sky-zone-dec" type="text" autocomplete="off" aria-describedby="workspace-sky-zone-error" placeholder="Degrees or d m s">
           </label>
           <label for="workspace-sky-zone-fov">Field of view (arcmin)
             <input id="workspace-sky-zone-fov" type="number" min="1" max="10" step="any" value="5" aria-describedby="workspace-sky-zone-error">

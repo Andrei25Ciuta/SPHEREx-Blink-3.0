@@ -11,6 +11,8 @@ Read [AGENTS.md](../AGENTS.md), [the task ledger](IMPLEMENTATION_PLAN.md), [the 
 
 ## What the pilot does
 
+The feature was subsequently integrated into the **normal Science Workspace**. To try the current local mock setup, use `index.html?data=api&api=http%3A%2F%2F127.0.0.1%3A8765#workspace` without `sky_browse=1`. The map opens above the existing player; an explicitly requested and verified zone scrolls to that player once. The older pilot link remains supported. See the latest [progress entry](CODEX_PROGRESS.md) for the integration checkpoint and evidence.
+
 | Task | Main files | Behavior and evidence |
 |---|---|---|
 | P1 | `frontend/js/features/skyBrowse.js`, `skyContext.js`, `frontend/index.html` | Opens IRSA’s real DR1 **0.753 µm** display layer (first, unsuffixed PNG plane) at 12° around Barnard’s Star using the existing Aladin Lite 3.6.5 pin. Labels the 2MASS color fallback from ESA. Rendered pan, zoom, and fallback verified in desktop and phone-emulated Chromium. |
