@@ -820,9 +820,14 @@ $("reset-view").addEventListener("click", () => {
   adjustDisplay();
 });
 canvas.addEventListener("click", async (e) => {
-  if (SKY_BROWSE || !player.length || !currentQuery) return; // Pilot playback does not use unscoped photometry.
+  if (SKY_BROWSE || !player.length || !currentQuery) return;
   const { fx, fy } = player.pointToFrac(e.clientX, e.clientY);       // image fractions, whatever the zoom and pan
   if (fx < 0 || fx >= 1 || fy < 0 || fy >= 1) return;
+  if (activeFieldRequestId) {
+    // The photometry endpoint combines prepared images by position, not by request.
+    measureEls.pos.textContent = "Click measurements are unavailable for these images. The data service cannot limit measurements to the images in this request.";
+    return;
+  }
   const n = player.naturalSize;
   const scaleArcsec = currentFrames[0].pixelScaleArcsec ?? (currentQuery.fov * 60) / n;
   const sky = inspectionPosition(fx, fy, { ra: currentQuery.ra, dec: currentQuery.dec, n, scaleArcsec });
