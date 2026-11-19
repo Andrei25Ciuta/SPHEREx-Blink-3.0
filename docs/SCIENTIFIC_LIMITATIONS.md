@@ -2,7 +2,7 @@
 
 ## Field of the Day
 
-The challenge uses a seeded synthetic field and accepts guesses within three simulated pixels of the source in frame B. The score measures success in the game. The frames and score do not represent SPHEREx observations or measure real source motion.
+The challenge uses a seeded synthetic field and accepts guesses within three simulated pixels of the source in each frame. The displayed speed uses the displacement over one simulated year, and the direction refers to the image axes. The score measures success in the game. The frames and score do not represent SPHEREx observations or measure real source motion.
 
 ## Learn Mode and Astra
 

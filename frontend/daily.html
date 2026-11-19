@@ -18,10 +18,10 @@
   <main id="daily" tabindex="-1">
     <h1>Field of the Day</h1>
     <p id="daily-date">Synthetic challenge</p>
-    <p id="daily-instructions">Flip between the two frames. In frame B, mark the object that moved, then submit your guess. You have three attempts. With the image focused, use the arrow keys to move the marker.</p>
+    <p id="daily-instructions">Find the object that moved. Mark it in both frames, then submit your guess. The frames are one simulated year apart. You have three attempts. With the image focused, use the arrow keys to move the marker.</p>
     <div class="daily-controls" role="group" aria-label="Choose a frame">
-      <button type="button" class="btn" id="frame-a" aria-pressed="true">Frame A</button>
-      <button type="button" class="btn" id="frame-b" aria-pressed="false">Frame B</button>
+      <button type="button" class="btn" id="frame-a" aria-pressed="true">Frame A · Year 0</button>
+      <button type="button" class="btn" id="frame-b" aria-pressed="false">Frame B · Year 1</button>
     </div>
     <canvas id="daily-image" width="256" height="256" tabindex="0" aria-label="Synthetic star field" aria-describedby="daily-instructions"></canvas>
     <div class="daily-controls">
@@ -30,10 +30,11 @@
       <button type="button" class="btn" id="daily-share" hidden>Copy result</button>
     </div>
     <p id="daily-status" role="status">3 attempts left.</p>
+    <p id="daily-measurement" aria-live="polite"></p>
     <p id="daily-streak"></p>
     <p id="daily-copy-status" role="status"></p>
     <textarea id="daily-share-text" aria-label="Shareable result" readonly hidden></textarea>
   </main>
-  <script type="module" src="js/daily.js"></script>
+  <script type="module" src="js/daily.js?v=motion"></script>
 </body>
 </html>

@@ -4,7 +4,7 @@ import { mulberry32 } from "../frontend/js/data/mockSource.js";
 
 const overview = await readFile(new URL("../frontend/overview.html", import.meta.url), "utf8");
 assert.match(overview, /href="daily\.html"[^>]*><span>Play today’s field/);
-const day = 20776;
+let day = 20776;
 Date.now = () => day * 86400000;
 const nodes = new Map();
 const context = {
@@ -48,22 +48,57 @@ const vx = 5 + rng() * 5;
 const vy = 3 + rng() * 5;
 const targetX = x + vx * (rng() < .5 ? -1 : 1);
 const targetY = y + vy * (rng() < .5 ? -1 : 1);
+nodes.get("frame-a").click();
+guess(x, y);
+nodes.get("frame-b").click();
 guess(targetX, targetY);
 submit.click();
-assert.equal(nodes.get("daily-status").textContent, "Found in 2/3 attempts.");
+assert.equal(nodes.get("daily-status").textContent, "Found in 2/3 · 90/100 points.");
+assert.match(nodes.get("daily-measurement").textContent, /Your estimate: .*px\/year.*Simulated motion:/);
 assert.equal(nodes.get("daily-share").hidden, false);
-assert.equal(nodes.get("daily-streak").textContent, "Streak: 1 day");
+assert.equal(nodes.get("daily-streak").textContent, "Streak: 1 day · 1 freeze available");
 assert.equal(nodes.get("daily-replay").hidden, false);
 nodes.get("daily-replay").click();
 assert.equal(nodes.get("daily-status").textContent, "3 attempts left.");
 assert.equal(submit.disabled, true);
 assert.equal(nodes.get("daily-share").hidden, true);
 nodes.get("frame-b").click();
+nodes.get("frame-a").click();
+guess(x, y);
+nodes.get("frame-b").click();
 guess(targetX, targetY);
 submit.click();
-assert.equal(nodes.get("daily-streak").textContent, "Streak: 1 day");
+assert.equal(nodes.get("daily-streak").textContent, "Streak: 1 day · 1 freeze available");
 await import("../frontend/js/daily.js?reload");
 assert.equal(nodes.get("daily-status").textContent, "3 attempts left.");
 assert.equal(submit.disabled, true);
-assert.equal(nodes.get("daily-streak").textContent, "Streak: 1 day");
-console.log("PASS daily link, guesses, replay, streak and reload");
+assert.equal(nodes.get("daily-streak").textContent, "Streak: 1 day · 1 freeze available");
+// Three misses complete a day and count as play.
+function loseRound() {
+  for (let i = 0; i < 3; i++) {
+    nodes.get("frame-a").click();
+    guess(0, 0);
+    nodes.get("frame-b").click();
+    guess(0, 0);
+    submit.click();
+  }
+  assert.equal(nodes.get("daily-status").textContent, "Out of attempts · 0/100 points.");
+}
+
+day += 2;
+await import("../frontend/js/daily.js?skip-one");
+loseRound();
+assert.equal(nodes.get("daily-streak").textContent, "Streak: 2 days · Freeze used");
+day += 2;
+await import("../frontend/js/daily.js?skip-again");
+loseRound();
+assert.equal(nodes.get("daily-streak").textContent, "Streak: 1 day · 1 freeze available");
+globalThis.location = { href: "https://example.org/daily.html" };
+let shared;
+Object.defineProperty(globalThis, "navigator", { configurable: true, value: {
+  clipboard: { writeText: async (text) => { shared = text; } },
+} });
+await nodes.get("daily-share").click();
+assert.match(shared, /\n🟥🟥🟥 · 0\/100\nhttps:/);
+assert.doesNotMatch(shared, /px\/year|Simulated motion/);
+console.log("PASS daily scoring, motion, sharing, replay and streak freeze");
