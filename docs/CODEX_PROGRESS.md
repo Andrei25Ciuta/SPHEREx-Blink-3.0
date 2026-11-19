@@ -1,3 +1,7 @@
+## H1 — OpenCode handoff
+
+Marked P1–P3 complete locally in the original pilot ledger and added [the OpenCode handoff](OPENCODE_HANDOFF.md). It records the fork, branch and base, tested implementation checkpoint `f8deecf`, local fixture setup, failures, remaining gaps, and the next independent review. This checkpoint changes documentation only; it does not rerun or expand P3’s implementation tests. The loopback preview was left running. No push, deployment, or cloud operation.
+
 ## P3 — Detector progress, partial playback, and request restoration
 
 On `sky-browse-pilot`, continued from `6fbd35d`. UI checkpoints: `949e18a` and `b8e9c84`; frontend request lifecycle: `39a686d`. The pilot saves the acknowledged `request_id`, verifies the exact URL ID and numeric centre/width against every status GET, and loads only cutouts scoped to that request. The existing overview and Blink player become available as detectors publish. The map and draft remain usable. Unknown and mismatched links, invalid status, and no coverage do not trigger a new request. Retrying failed detectors uses one explicit retry POST followed by GET; replacing a request cancels or ignores its old status, cutouts, playback, and retry results.
