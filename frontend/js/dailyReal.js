@@ -12,6 +12,7 @@ let index = 0;
 let timer;
 let loading = false;
 let imageReady = false;
+let submitted = false;
 
 function stop() {
   clearInterval(timer);
@@ -26,6 +27,7 @@ function show(frameIndex) {
   imageReady = false;
   $("real-track").style.visibility = "hidden";
   image.src = frames[index].imageUrl;
+  if (image.complete && image.naturalWidth > 0) showLoadedImage();
   updateMarks();
 }
 
@@ -39,19 +41,22 @@ function updateMarks() {
     $("real-marker").setAttribute("cy", mark.y * 100);
   }
   const summary = `${points.length} marked frame${points.length === 1 ? "" : "s"}.`;
-  $("real-motion").textContent = summary;
-  if (points.length < 2 || !imageReady) return;
-  const [[first, a], [last, b]] = [points[0], points.at(-1)];
-  const years = (frames[last].mjd - frames[first].mjd) / 365.25;
-  if (!(years > 0)) return;
-  const dx = (b.x - a.x) * image.naturalWidth;
-  const dy = (b.y - a.y) * image.naturalHeight;
-  const scale = frames[index].pixelScaleArcsec;
+  $("real-marks").textContent = summary;
+  const span = points.length < 2 ? 0 : frames[points.at(-1)[0]].mjd - frames[points[0][0]].mjd;
+  $("real-submit").disabled = !(span > 0);
+  $("real-motion").textContent = "";
+  if (!submitted || !(span > 0)) return;
+  const [, a] = points[0];
+  const [, b] = points.at(-1);
+  const years = span / 365.25;
+  const dx = (b.x - a.x) * a.width;
+  const dy = (b.y - a.y) * a.height;
+  const scale = frames[points[0][0]].pixelScaleArcsec;
   const speed = Math.hypot(dx, dy) / years;
   const angle = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
   const direction = ["right", "down-right", "down", "down-left", "left", "up-left", "up", "up-right"][Math.round(angle / 45) % 8];
   const rate = scale > 0 ? `${(speed * scale).toFixed(1)} arcsec/year` : `${speed.toFixed(1)} px/year`;
-  $("real-motion").textContent = `${summary} Apparent motion between first and last marks: ${rate}${speed > 0 ? ` · ${direction}` : ""}.`;
+  $("real-motion").textContent = `Apparent motion between first and last marks: ${rate}${speed > 0 ? ` · ${direction}` : ""}.`;
 }
 
 async function loadFrames() {
@@ -98,7 +103,17 @@ function switchMode(real) {
 $("real-mode").addEventListener("click", () => switchMode(true));
 $("synthetic-mode").addEventListener("click", () => switchMode(false));
 $("real-retry").addEventListener("click", loadFrames);
-$("real-clear").addEventListener("click", () => { marks.clear(); updateMarks(); });
+$("real-submit").addEventListener("click", () => {
+  if ($("real-submit").disabled) return;
+  stop();
+  submitted = true;
+  updateMarks();
+});
+$("real-clear").addEventListener("click", () => {
+  marks.clear();
+  submitted = false;
+  updateMarks();
+});
 epoch.addEventListener("change", () => { stop(); show(Number(epoch.value)); });
 $("real-blink").addEventListener("click", () => {
   if (timer !== undefined) return stop();
@@ -107,19 +122,19 @@ $("real-blink").addEventListener("click", () => {
   $("real-blink").setAttribute("aria-pressed", "true");
   timer = setInterval(() => show((index + 1) % frames.length), 750);
 });
-image.addEventListener("load", () => {
+function showLoadedImage() {
   imageReady = true;
   $("real-track").style.visibility = "";
   $("real-status").textContent = `${frames.length} real observations`;
   updateMarks();
-});
+}
+image.addEventListener("load", showLoadedImage);
 image.addEventListener("error", () => { stop(); $("real-status").textContent = "This observation could not be displayed. Try another frame."; });
 image.addEventListener("click", (event) => {
   if (!imageReady) return;
   stop();
   const rect = image.getBoundingClientRect();
-  marks.set(index, { x: (event.clientX - rect.left) / rect.width, y: (event.clientY - rect.top) / rect.height });
-  updateMarks();
+  saveMark((event.clientX - rect.left) / rect.width, (event.clientY - rect.top) / rect.height);
 });
 image.addEventListener("keydown", (event) => {
   const move = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[event.key];
@@ -127,7 +142,12 @@ image.addEventListener("keydown", (event) => {
   event.preventDefault();
   stop();
   const mark = marks.get(index) ?? { x: .5, y: .5 };
-  const clamp = (value) => Math.max(0, Math.min(1, value));
-  marks.set(index, { x: clamp(mark.x + move[0] / image.naturalWidth), y: clamp(mark.y + move[1] / image.naturalHeight) });
-  updateMarks();
+  saveMark(mark.x + move[0] / image.naturalWidth, mark.y + move[1] / image.naturalHeight);
 });
+
+function saveMark(x, y) {
+  const clamp = (value) => Math.max(0, Math.min(1, value));
+  submitted = false;
+  marks.set(index, { x: clamp(x), y: clamp(y), width: image.naturalWidth, height: image.naturalHeight });
+  updateMarks();
+}

@@ -6,7 +6,7 @@
   <title>Field of the Day · SPHEREx Blink</title>
   <link rel="stylesheet" href="css/styles.css?v=20261115">
   <link rel="stylesheet" href="css/instrument.css?v=20261115">
-  <link rel="stylesheet" href="css/daily.css?v=real-mode">
+  <link rel="stylesheet" href="css/daily.css?v=real-results">
 </head>
 <body class="daily-page">
   <canvas id="daily-background" aria-hidden="true"></canvas>
@@ -112,20 +112,31 @@
       <p id="daily-real-status" role="status"></p>
       <button type="button" class="btn" id="daily-real-retry" hidden>Retry</button>
       <div id="daily-real-viewer" hidden>
-        <div class="daily-controls">
-          <label>Observation <select id="daily-real-epoch"></select></label>
-          <button type="button" class="btn" id="daily-real-blink" aria-pressed="false">Blink</button>
-          <button type="button" class="btn" id="daily-real-clear">Clear marks</button>
+        <div class="daily-layout">
+          <div>
+            <div class="daily-controls">
+              <label>Observation <select id="daily-real-epoch"></select></label>
+              <button type="button" class="btn" id="daily-real-blink" aria-pressed="false">Blink</button>
+            </div>
+            <div class="daily-real-field">
+              <img id="daily-real-image" alt="Aligned SPHEREx image of the Barnard’s Star field" tabindex="0" aria-describedby="daily-real-help">
+              <svg id="daily-real-track" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                <polyline id="daily-real-path"/>
+                <circle id="daily-real-marker" r="2" visibility="hidden"/>
+              </svg>
+            </div>
+            <p id="daily-real-help">Mark the same source across observations. Use the arrow keys to move a mark when the image is focused.</p>
+          </div>
+          <aside class="pin-item daily-results" aria-labelledby="daily-real-results-title">
+            <h3 id="daily-real-results-title">Results</h3>
+            <p id="daily-real-marks" class="pb-when" role="status"></p>
+            <div class="pb-popup-actions">
+            <button type="button" class="btn btn-primary" id="daily-real-submit" disabled>Submit guess</button>
+            <button type="button" class="btn" id="daily-real-clear">Clear marks</button>
+            </div>
+            <p id="daily-real-motion" role="status"></p>
+          </aside>
         </div>
-        <div class="daily-real-field">
-          <img id="daily-real-image" alt="Aligned SPHEREx image of the Barnard’s Star field" tabindex="0" aria-describedby="daily-real-help">
-          <svg id="daily-real-track" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-            <polyline id="daily-real-path"/>
-            <circle id="daily-real-marker" r="2" visibility="hidden"/>
-          </svg>
-        </div>
-        <p id="daily-real-help">Mark the same source across observations. Use the arrow keys to move a mark when the image is focused.</p>
-        <p id="daily-real-motion" role="status"></p>
       </div>
     </section>
   </main>
@@ -134,7 +145,7 @@
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script defer src="js/overviewStarfield.js"></script>
   <script defer src="js/dailyBackground.js?v=overview"></script>
-  <script type="module" src="js/dailyReal.js"></script>
+  <script type="module" src="js/dailyReal.js?v=real-results></script>
   <script type="module" src="js/daily.js?v=game-progress"></script>
 </body>
 </html>
