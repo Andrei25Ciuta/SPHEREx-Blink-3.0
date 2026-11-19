@@ -55,7 +55,7 @@
         <div id="workspace-sky-map" class="skymap" role="region" aria-label="Observed sky map"></div>
         <span class="workspace-sky-scale" id="workspace-sky-scale" aria-label="Approximate angular scale" hidden></span>
       </div>
-      <button type="button" class="btn btn-small workspace-sky-reset" id="workspace-sky-reset" aria-controls="workspace-sky-map">Show sky map</button>
+      <button type="button" class="btn btn-small workspace-sky-reset" id="workspace-sky-reset" aria-controls="workspace-sky-map">Open survey map</button>
       <p class="workspace-sky-status" id="workspace-sky-status" role="status" aria-live="polite">Opening the map does not request cutouts.</p>
       <section class="sky-zone-controls workspace-sky-zone-controls" id="workspace-sky-zone-controls" aria-labelledby="workspace-sky-zone-title" hidden>
         <div class="sky-zone-heading">
@@ -77,8 +77,8 @@
           <button type="button" class="btn btn-primary" id="workspace-sky-zone-request" disabled>Request this zone</button>
         </div>
         <p class="workspace-sky-zone-error" id="workspace-sky-zone-error" role="alert" aria-live="assertive"></p>
-        <p class="workspace-sky-zone-status workspace-sky-api-copy" id="workspace-sky-zone-status" role="status" aria-live="polite">You can browse the map without a cloud connection. Connect to the SPHEREx data service to request observed cutouts.</p>
-        <p class="workspace-sky-zone-status workspace-sky-synthetic-copy" role="status">The demo field is generated on this device. No cloud request is made.</p>
+        <p class="workspace-sky-zone-status workspace-sky-synthetic-copy">Demo frames are generated on this device. No cloud request is made.</p>
+        <p class="workspace-sky-zone-status" id="workspace-sky-zone-status" role="status" aria-live="polite"></p>
       </section>
     </section>
     <!-- Field controls can be collapsed with the button or the [ key. -->
@@ -805,7 +805,7 @@
     <div class="dlg-head"><h2 id="simulation-note-title">About the simulation</h2><form method="dialog"><button class="btn btn-small">Close</button></form></div>
     <p class="dlg-body">The Planet X preset uses a simulated body 600 AU away. Its position is invented for testing the distant-body search.</p>
   </dialog>
-  <script type="module" src="js/main.js?v=33"></script>
+  <script type="module" src="js/main.js?v=34"></script>
   <script type="module" src="js/scienceExplain.js"></script>
   <script type="module" src="js/features/highContrast.js"></script>
 </body>

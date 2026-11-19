@@ -60,7 +60,7 @@ export function setupWorkspaceSky({ getElement, createMap, setupZone, submit, un
     } finally {
       opening = false;
       button.disabled = false;
-      labelButton(map.browseSurvey ? "Re-centre sky map" : "Retry sky map");
+      labelButton(map.browseSurvey ? "Re-centre survey map" : "Retry survey map");
     }
   }
   button.addEventListener("click", () => void open());
@@ -70,10 +70,10 @@ export function setupWorkspaceSky({ getElement, createMap, setupZone, submit, un
       initialDraft = draft;
       root.hidden = false;
       button.hidden = false;
-      labelButton("Show sky map");
+      labelButton("Open survey map");
       if (synthetic) zone?.open(draft ?? { ...BROWSE_START, fov: Number(fov.value) }, { offline: true });
       if (!synthetic && autoOpen) void open();
-      else status.textContent = ["Sky map not loaded. Select Show sky map to browse public survey images.", unavailable].filter(Boolean).join(" ");
+      else status.textContent = ["Survey imagery is optional. Select Open survey map to browse it.", unavailable].filter(Boolean).join(" ");
     },
     syncSyntheticField(query) {
       if (synthetic) zone?.setDraft(query);

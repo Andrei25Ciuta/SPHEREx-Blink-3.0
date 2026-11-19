@@ -44,7 +44,7 @@ import { FLAGGED_LIMIT } from "./features/timeline.js";
 import { SkyContext } from "./features/skyContext.js?v=15";
 import { BROWSE_SURVEYS } from "./features/skyBrowse.js";
 import { normalizeZoneCentre, parseSkyZone, setupSkyZone } from "./features/skyZone.js?v=4";
-import { explicitLoadActivation, moveToPhotoViewer, openSyntheticZone, setupWorkspaceSky, skyRequestAvailability } from "./features/workspaceSky.js?v=2";
+import { explicitLoadActivation, moveToPhotoViewer, openSyntheticZone, setupWorkspaceSky, skyRequestAvailability } from "./features/workspaceSky.js?v=3";
 import { setupFullscreen } from "./features/fullscreen.js";
 import { detectSources, describeMover, matchKnownObject, moverPositionAtMjd, passIndices, trackSupport, blendWarning, VERSION as MOVERS_VERSION, DEFAULTS as MOVER_DEFAULTS, ERROR_MODEL } from "./features/movers.js";
 import { blindCheckCandidate, VERSION as BLIND_CHECK_VERSION } from "./features/blindCheck.js";
