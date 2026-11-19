@@ -884,6 +884,108 @@ html.sky-browse #aladin-status {
 }
 html.sky-browse #sky-reset-status:empty { display: none; }
 
+/* Once the pilot has an attached request, keep the map in place and bring the
+   existing detector overview/player forward as its results area. */
+.sky-request-heading,
+.sky-request-results-link { display: none; }
+html.sky-browse.sky-request-active #workspace > .observing-row {
+  display: block !important;
+  grid-column: 1;
+  grid-row: 3;
+  min-width: 0;
+}
+html.sky-browse.sky-request-active .observing-row > .player {
+  display: block;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  padding: clamp(.8rem, 2.4vw, 1.5rem);
+  border-color: rgb(var(--accent-rgb) / .38);
+  background:
+    radial-gradient(ellipse at 100% 0%, rgb(var(--accent-rgb) / .1), transparent 42%),
+    var(--surface);
+  box-shadow: var(--shadow);
+}
+html.sky-browse.sky-request-active .observing-row > :not(.player) { display: none !important; }
+html.sky-browse.sky-request-active .sky-request-heading {
+  display: block;
+  margin: 0 0 .8rem;
+  font-family: var(--display);
+  font-size: clamp(1.25rem, 2.5vw, 1.8rem);
+  letter-spacing: -.025em;
+}
+html.sky-browse.sky-request-active .sky-request-heading:focus { outline: none; }
+html.sky-browse.sky-request-active .sky-request-heading:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+html.sky-browse.sky-request-active .view-toolbar,
+html.sky-browse.sky-request-active .compare-controls,
+html.sky-browse.sky-request-active .viewer-tools,
+html.sky-browse.sky-request-active .observation-select,
+html.sky-browse.sky-request-active .speed,
+html.sky-browse.sky-request-active #stage-tools,
+html.sky-browse.sky-request-active #retry-btn,
+html.sky-browse.sky-request-active .workspace-jumps,
+html.sky-browse.sky-request-active .sky-zone-controls { display: none !important; }
+html.sky-browse.sky-request-active .playback-strip {
+  justify-content: flex-start;
+  margin: 0 0 .75rem;
+}
+html.sky-browse.sky-request-active .player-controls {
+  width: 100%;
+  max-width: 42rem;
+  margin-inline: auto;
+}
+html.sky-browse.sky-request-active .player-controls #play-btn {
+  flex: 0 0 44px;
+  min-width: 44px;
+  min-height: 44px;
+}
+html.sky-browse.sky-request-active .overview {
+  width: 100%;
+  max-width: none;
+  margin: .8rem 0 0;
+  padding: .75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: rgb(var(--bg-rgb) / .38);
+}
+html.sky-browse.sky-request-active .overview h3 { margin: 0 0 .65rem; }
+html.sky-browse.sky-request-active .overview-grid { min-width: 0; }
+html.sky-browse.sky-request-active .field-request-panel {
+  width: 100%;
+  max-width: none;
+  margin: .8rem 0 0;
+  padding: clamp(.75rem, 2vw, 1rem);
+  border-color: rgb(var(--accent-rgb) / .38);
+  background: rgb(var(--bg-rgb) / .5);
+}
+html.sky-browse.sky-request-active .field-request-panel.has-failures { border-color: var(--danger); }
+html.sky-browse.sky-request-active .field-request-overall { height: 8px; }
+html.sky-browse.sky-request-active .field-request-phases {
+  color: var(--text);
+  font-size: .84rem;
+  line-height: 1.55;
+}
+html.sky-browse.sky-request-active .field-request-summary { color: var(--text); }
+html.sky-browse.sky-request-active .sky-request-results-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: .7rem;
+  color: var(--accent-text);
+  font-weight: 700;
+  text-decoration-thickness: .08em;
+  text-underline-offset: .18em;
+}
+html.sky-browse.sky-request-active .sky-request-results-link:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+html.sky-browse.sky-request-active .sky-request-results-link:hover { color: var(--text); }
 
 
 /* Full-screen map: the frame (controls + map + status line) fills the screen.
@@ -921,6 +1023,10 @@ html.fs-locked { overflow: hidden; }
   html.sky-browse .skymap { height: 66svh; min-height: 440px; max-height: 760px; }
   .sky-zone-fields { grid-template-columns: 1fr 1fr; }
   .sky-zone-fields button { grid-column: 1 / -1; width: 100%; min-height: 48px; }
+  html.sky-browse.sky-request-active .observing-row > .player { padding: .75rem; }
+  html.sky-browse.sky-request-active .overview { padding: .55rem; }
+  html.sky-browse.sky-request-active .field-request-head { gap: .5rem; }
+  html.sky-browse.sky-request-active .field-request-summary { text-align: left; }
 }
 
 /* Predicted-track info line (green = same colour as the overlay ticks) */
