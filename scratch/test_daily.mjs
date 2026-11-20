@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { mulberry32 } from "../frontend/js/data/mockSource.js";
 
 const overview = await readFile(new URL("../frontend/overview.html", import.meta.url), "utf8");
-assert.match(overview, /class="home-daily-invite"[\s\S]*href="daily\.html">Play synthetic/);
+assert.match(overview, /class="home-daily-invite"[\s\S]*href="daily\.html">Open Training/);
 const daily = await readFile(new URL("../frontend/daily.html", import.meta.url), "utf8");
 assert.match(daily, /<div class="daily-heading">[\s\S]*id="daily-streak-count"[\s\S]*class="daily-layout"/);
 assert.match(daily, /<aside id="daily-results"[\s\S]*id="daily-share"[\s\S]*<\/aside>/);
@@ -17,13 +17,14 @@ const context = {
 let reducedMotion = false;
 globalThis.window = { matchMedia: () => ({ matches: reducedMotion }) };
 globalThis.document = {
-  createElement: () => ({ style: { setProperty() {} }, addEventListener() {} }),
+  createElement: () => ({ style: { setProperty() {} }, addEventListener() {}, setAttribute() {} }),
   getElementById(id) {
     if (!nodes.has(id)) nodes.set(id, {
       addEventListener(type, callback) { this[type] = callback; },
       style: {},
       attributes: new Map(),
       setAttribute(name, value) { this.attributes.set(name, value); },
+      getAttribute(name) { return this.attributes.get(name); },
       classList: {
         items: new Set(),
         has(token) { return this.items.has(token); },
@@ -75,13 +76,16 @@ globalThis.clearInterval = () => { tick = undefined; };
 const blink = nodes.get("daily-blink");
 blink.click();
 assert.equal(blink.attributes.get("aria-pressed"), "true");
-assert.equal(nodes.get("frame-b").attributes.get("aria-pressed"), "true");
+assert.equal(nodes.get("daily-training-frame").value, "2");
 tick();
-assert.equal(nodes.get("frame-a").attributes.get("aria-pressed"), "true");
+assert.equal(nodes.get("daily-training-frame").value, "3");
+tick();
+assert.equal(nodes.get("daily-training-frame").value, "4");
+tick();
+assert.equal(nodes.get("frame-b").attributes.get("aria-pressed"), "true");
 blink.click();
 assert.equal(tick, undefined);
 blink.click();
-tick();
 guess(0, 0);
 assert.equal(blink.attributes.get("aria-pressed"), "false");
 assert.equal(tick, undefined);
@@ -205,3 +209,26 @@ await nodes.get("daily-share").click();
 assert.match(shared, /\n🟥🟥🟥 · 0\/100\nhttps:/);
 assert.doesNotMatch(shared, /px\/year|Simulated motion/);
 console.log("PASS daily scoring, motion, sharing, replay, streak freeze, source preview, celebration, streak notification and guess progress");
+
+
+day = Date.UTC(2026, 10, 29) / 86400000;
+location.search = "?challenge=real";
+await import("../frontend/js/daily.js?sunday-test");
+assert.equal(nodes.get("daily-title").textContent, "Sunday Simulation Lab");
+assert.equal(nodes.get("daily-real-streak").hidden, false);
+assert.equal(nodes.get("daily-weekly-list").children.length, 7);
+assert.equal(nodes.get("daily-training-exercise").value, "planet-x");
+nodes.get("frame-a").click();
+guess(0, 0);
+nodes.get("frame-b").click();
+guess(0, 0);
+assert.equal(submit.disabled, true);
+nodes.get("daily-blink").click();
+nodes.get("daily-blink").click();
+nodes.get("daily-training-contrast").click();
+nodes.get("daily-training-difference").click();
+assert.equal(submit.disabled, false);
+nodes.get("daily-replay").click();
+const { clearDailyToast } = await import("../frontend/js/dailyCelebration.js?v=shared-feedback");
+clearDailyToast();
+console.log("PASS Sunday simulation uses a separate training field and requires all three tools");

@@ -1,3 +1,9 @@
+## 2026-11-20 — Weekly challenges and synthetic training
+
+Home separates Training from Daily Challenge. From Monday to Saturday, the daily link uses prepared real observations of the Barnard, Epsilon Indi B, and WISE 0855 fields. Missions progressively require Blink, display Difference or Contrast, additional marked epochs, and a model comparison on Saturday. Catalogue predictions provide an approximate two-pixel acceptance window for manual marks. Sunday is explicitly synthetic and uses the Planet X training exercise. Training provides five frames per exercise and retains its separate practice streak. The daily streak covers one missed UTC day per active streak.
+
+Validation: all Node test scripts and 264 backend tests passed locally. Daily tests use mocked canvas, browser state, and prepared API responses for the real-game flow. The four prepared sequence endpoints were checked read-only for frame availability, dates, matching field metadata, and catalogue positions inside the fields. Browser navigation was blocked because Playwright’s bundled Chromium was absent and system Chromium could not open a socket in the sandbox. No new archive acquisition was submitted.
+
 ## Science Workspace — Synthetic field selector layout fix
 
 Checkpoint `477aa5e` fixes the screenshot regression: the moved 1–30′ range no longer inherits text-input styling, its label/value/unit stay inline, and the four controls fit one row on wide screens while wrapping on smaller ones. No request, source, science, or backend behavior changed.

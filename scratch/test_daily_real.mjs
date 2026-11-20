@@ -17,9 +17,22 @@ function node(id) {
 let nextElement = 0;
 globalThis.document = { getElementById: node, createElement: () => node(`element-${nextElement++}`) };
 globalThis.Option = class {};
-globalThis.window = { matchMedia: () => ({ matches: true }), location: { search: "?challenge=real" } };
+globalThis.window = { matchMedia: () => ({ matches: true }), location: { search: "" } };
 let calls = 0;
+let weekly = false;
 globalThis.fetch = async (url) => {
+  if (weekly) {
+    assert.match(url, /\/api\/sequences\/barnard-d2$/);
+    return Response.json({
+      dataKind: "real",
+      query: { ra: 269.4462, dec: 4.769, fov: 5, det: "D2" },
+      frames: [60908.981929, 61121.228205].map((mjd) => ({
+        mjd, detector: "D2", dateISO: "2025-08-21T00:00:00Z",
+        wavelengthMinUm: 1.1, wavelengthMaxUm: 1.2, pixelScaleArcsec: 6.1386,
+        imageUrl: `https://example.test/${mjd}.png`,
+      })),
+    });
+  }
   assert.match(url, /\/api\/cutouts\?/);
   calls++;
   return Response.json({ frames: [60000, 60365.25, 60730.5].map((mjd) => ({
@@ -29,6 +42,7 @@ globalThis.fetch = async (url) => {
   })) });
 };
 await import("../frontend/js/dailyReal.js");
+node("daily-real-mode").click();
 await new Promise((resolve) => setImmediate(resolve));
 assert.equal(node("daily-synthetic").hidden, true);
 assert.equal(node("daily-real-streak").hidden, false);
@@ -59,8 +73,8 @@ node("daily-real-epoch").change();
 assert.equal(node("daily-real-submit").disabled, false);
 node("daily-real-submit").click();
 assert.equal(tick, undefined);
-assert.equal(node("real-game-streak-count").textContent, "1");
-assert.equal(node("daily-toast").textContent, "Well done! Challenge completed. 1-day streak.");
+assert.equal(node("real-game-streak-count").textContent, "0");
+assert.equal(node("daily-toast").textContent, "Well done! Motion analysis completed.");
 assert.match(node("daily-real-motion").textContent, /60.0 arcsec\/year · right/);
 assert.equal(node("daily-real-details").hidden, false);
 assert.match(node("daily-real-rating").textContent, /needs 3/);
@@ -99,3 +113,23 @@ assert.equal(thumbnails.children.length, 0);
 const { clearDailyToast } = await import("../frontend/js/dailyCelebration.js?v=shared-feedback");
 clearDailyToast();
 console.log("PASS real mode, prepared frames, marks and motion");
+
+weekly = true;
+window.location.search = "?challenge=real";
+Date.now = () => Date.UTC(2026, 10, 23);
+await import("../frontend/js/dailyReal.js?weekly-fixture");
+await new Promise((resolve) => setImmediate(resolve));
+assert.equal(node("daily-real-title").textContent, "Barnard’s Star");
+image.load();
+image.click({ clientX: 49.8, clientY: 52.2 });
+node("daily-real-epoch").value = "1";
+node("daily-real-epoch").change();
+image.load();
+image.click({ clientX: 50, clientY: 50.2 });
+assert.equal(node("daily-real-submit").disabled, true);
+node("daily-real-blink").click();
+assert.equal(node("daily-real-submit").disabled, false);
+node("daily-real-submit").click();
+assert.match(node("daily-toast").textContent, /^Well done! Challenge completed/);
+clearDailyToast();
+console.log("PASS Monday challenge requires Blink and checks catalogue marks");

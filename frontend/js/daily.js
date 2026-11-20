@@ -1,3 +1,5 @@
+import { missionForDate, realChallengeRequested, showWeeklySchedule } from "./dailySchedule.js";
+import { recordRealCompletion, updateRealStreak } from "./dailyRealStreak.js";
 import { clearDailyToast, showChallengeCompletion, showShootingStars } from "./dailyCelebration.js?v=shared-feedback";
 import { mulberry32, renderPixels, stretchAsinh } from "./data/mockSource.js";
 
@@ -10,15 +12,45 @@ const rng = mulberry32(day);
 const source = { x0: 14 + rng() * 36, y0: 14 + rng() * 36, vx: 5 + rng() * 5, vy: 3 + rng() * 5, flux: 220 };
 if (rng() < .5) source.vx *= -1;
 if (rng() < .5) source.vy *= -1;
-const targets = [{ x: source.x0, y: source.y0 }, { x: source.x0 + source.vx, y: source.y0 + source.vy }];
+const mission = missionForDate(new Date(Date.now()));
+const params = new URLSearchParams(typeof location === "undefined" ? "" : location.search);
+const dailyRequested = realChallengeRequested(params);
+const sundayLab = dailyRequested && mission.simulation;
+const requestedExercise = params.get("training");
+const exercise = sundayLab || requestedExercise === "planet-x" ? "planet-x"
+  : requestedExercise === "faint" ? "faint" : "";
+const toolsUsed = new Set();
+let difference = false;
+const trainingEpochs = [0, 1, .25, .5, .75];
+if (exercise === "planet-x") {
+  source.vx = 2;
+  source.vy = 1.5;
+  source.flux = 82;
+  source.wobble = (mjd) => {
+    const phase = (mjd - 61000) * Math.PI / 365.25;
+    return { x: 3 * Math.sin(phase), y: 2 * Math.cos(phase) };
+  };
+} else if (exercise === "faint") {
+  source.flux = 95;
+}
+const targets = trainingEpochs.slice(0, 2).map((epoch) => {
+  const { x, y } = source.wobble?.(61000 + epoch * 365.25) ?? { x: 0, y: 0 };
+  return { x: source.x0 + source.vx * epoch + x, y: source.y0 + source.vy * epoch + y };
+});
 const tolerance = 3;
 const field = {
   stars: Array.from({ length: 32 }, () => ({ x: rng() * size, y: rng() * size, flux: 30 + rng() * 125 })),
   variable: { x: 0, y: 0, flux: 0, periodDays: 1 },
   mover: source,
 };
-const frames = [0, 1].map((epoch) =>
-  stretchAsinh(renderPixels(field, size, 61000 + epoch * 365.25, epoch, 4, mulberry32(day))));
+const frames = trainingEpochs.map((epoch) => {
+  const pixels = renderPixels(field, size, 61000 + epoch * 365.25, epoch, 4, mulberry32(day));
+  if (exercise) {
+    const artefacts = mulberry32(day + 1 + Math.round(epoch * 100));
+    for (let i = 0; i < 7; i++) pixels[Math.floor(artefacts() * pixels.length)] += 50;
+  }
+  return stretchAsinh(pixels);
+});
 const storageKey = "spherex-daily-v1";
 let saved = {};
 try { saved = JSON.parse(localStorage.getItem(storageKey)) ?? {}; } catch { /* play without storage */ }
@@ -31,20 +63,30 @@ let frame = 0;
 const markers = [null, null];
 const latest = () => attempts.at(-1);
 const done = () => latest()?.hit || attempts.length >= limit;
-$("daily-date").textContent = `${date} UTC · Synthetic challenge`;
+$("daily-date").textContent = sundayLab ? `${date} UTC · Synthetic simulation` : "Synthetic training";
+$("daily-training-exercise").value = exercise;
+$("daily-training-exercise").disabled = sundayLab;
+if (dailyRequested) showWeeklySchedule($("daily-weekly"), $("daily-weekly-list"), mission);
+if (sundayLab) {
+  $("daily-title").textContent = "Sunday Simulation Lab";
+  $("daily-synthetic-streak").hidden = true;
+  $("daily-real-streak").hidden = false;
+  updateRealStreak();
+}
 
-const images = frames.map((grey) => {
+const images = frames.flatMap((grey) => [false, true].map((subtract) => {
   const pixels = context.createImageData(canvas.width, canvas.height);
   for (let y = 0; y < canvas.height; y++) {
     for (let x = 0; x < canvas.width; x++) {
-      const intensity = grey[Math.floor(y / scale) * size + Math.floor(x / scale)];
+      const index = Math.floor(y / scale) * size + Math.floor(x / scale);
+      const intensity = subtract ? Math.abs(grey[index] - frames[0][index]) : grey[index];
       const offset = (y * canvas.width + x) * 4;
       pixels.data[offset] = pixels.data[offset + 1] = pixels.data[offset + 2] = intensity;
       pixels.data[offset + 3] = 255;
     }
   }
   return pixels;
-});
+}));
 
 function drawPreviews() {
   const cropSize = $("daily-preview-a").width;
@@ -75,7 +117,8 @@ function drawPreviews() {
 
 
 function draw() {
-  context.putImageData(images[frame], 0, 0);
+  context.putImageData(images[frame * 2 + Number(difference)], 0, 0);
+  $("daily-training-frame").value = String(frame);
   const point = done() ? targets[frame] : markers[frame];
   if (point) {
     context.beginPath();
@@ -86,7 +129,11 @@ function draw() {
   }
   $("frame-a").setAttribute("aria-pressed", String(frame === 0));
   $("frame-b").setAttribute("aria-pressed", String(frame === 1));
-  $("daily-submit").disabled = !markers.every(Boolean) || done();
+  const missing = sundayLab ? mission.tools.filter((tool) => !toolsUsed.has(tool)) : [];
+  $("daily-training-tools").textContent = sundayLab
+    ? `${mission.level} · ${mission.hint}${missing.length ? ` Tools to try: ${missing.join(", ")}.` : ""}`
+    : "Explore five frames. Place your answer in Frame A and Frame B.";
+  $("daily-submit").disabled = !markers.every(Boolean) || done() || missing.length > 0;
   for (const [index, letter] of ["a", "b"].entries()) {
     const marked = Boolean(markers[index]);
     const step = $(`daily-step-${letter}`);
@@ -195,14 +242,17 @@ blinkButton.addEventListener("click", () => {
   }
   blinkButton.setAttribute("aria-pressed", "true");
   blinkButton.textContent = "Pause";
-  showFrame(1 - frame);
-  blinkTimer = setInterval(() => showFrame(1 - frame), 550);
+  toolsUsed.add("Blink");
+  const order = [0, 2, 3, 4, 1];
+  const next = () => showFrame(order[(order.indexOf(frame) + 1) % order.length]);
+  next();
+  blinkTimer = setInterval(next, 550);
 });
 
 $("frame-a").addEventListener("click", () => { stopBlink(); showFrame(0); });
 $("frame-b").addEventListener("click", () => { stopBlink(); showFrame(1); });
 canvas.addEventListener("click", (event) => {
-  if (done()) return;
+  if (done() || frame > 1) return;
   stopBlink();
   const rect = canvas.getBoundingClientRect();
   markers[frame] = { x: (event.clientX - rect.left) / rect.width * size, y: (event.clientY - rect.top) / rect.height * size };
@@ -210,7 +260,7 @@ canvas.addEventListener("click", (event) => {
 });
 canvas.addEventListener("keydown", (event) => {
   const move = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[event.key];
-  if (!move || done()) return;
+  if (!move || done() || frame > 1) return;
   event.preventDefault();
   stopBlink();
   const marker = markers[frame] ??= { x: size / 2, y: size / 2 };
@@ -219,7 +269,7 @@ canvas.addEventListener("keydown", (event) => {
   draw();
 });
 $("daily-submit").addEventListener("click", () => {
-  if (!markers.every(Boolean) || done()) return;
+  if ($("daily-submit").disabled) return;
   stopBlink();
   const error = Math.max(...markers.map((point, index) =>
     Math.hypot(point.x - targets[index].x, point.y - targets[index].y)));
@@ -227,12 +277,12 @@ $("daily-submit").addEventListener("click", () => {
   const accuracy = Math.max(0, 1 - error / tolerance);
   const score = hit ? Math.round(50 + 30 * accuracy + 10 * (limit - 1 - attempts.length)) : 0;
   attempts.push({ hit, score, motion: measureMotion(markers) });
-  if (done()) recordPlay();
+  if (done() && !sundayLab) recordPlay();
   markers.fill(null);
   updateResult();
   draw();
   if (done()) {
-    const streak = updateStreak(true);
+    const streak = sundayLab ? recordRealCompletion() : updateStreak(true);
     if (hit) {
       drawPreviews();
       showShootingStars();
@@ -268,6 +318,28 @@ $("daily-replay").addEventListener("click", () => {
   draw();
   $("frame-a").focus();
 });
+$("daily-training-frame").addEventListener("change", (event) => {
+  stopBlink();
+  showFrame(Number(event.target.value));
+});
+$("daily-training-exercise").addEventListener("change", (event) => {
+  const url = new URL(location.href);
+  url.searchParams.delete("challenge");
+  if (event.target.value) url.searchParams.set("training", event.target.value);
+  else url.searchParams.delete("training");
+  location.assign(url);
+});
+for (const tool of ["Contrast", "Difference"]) {
+  const button = $(`daily-training-${tool.toLowerCase()}`);
+  button.addEventListener("click", () => {
+    const active = button.getAttribute("aria-pressed") !== "true";
+    button.setAttribute("aria-pressed", String(active));
+    if (active) toolsUsed.add(tool);
+    if (tool === "Contrast") canvas.classList.toggle("is-contrast", active);
+    else difference = active;
+    draw();
+  });
+}
 updateResult();
-updateStreak();
+if (!sundayLab) updateStreak();
 draw();

@@ -341,3 +341,30 @@ html[data-contrast="high"] #daily-background {
   transform: translate(-50%, -50%);
   pointer-events: none;
 }
+
+#daily-weekly-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem;
+  padding: 0;
+  list-style: none;
+}
+
+#daily-weekly-list [aria-current] {
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+.daily-real-field { isolation: isolate; }
+
+#daily-real-reference {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+#daily-real-image { position: relative; }
+#daily-real-image.is-difference { mix-blend-mode: difference; }
+#daily-real-image.is-contrast, #daily-image.is-contrast { filter: brightness(1.45) contrast(1.2); }

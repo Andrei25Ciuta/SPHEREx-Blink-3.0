@@ -1,11 +1,18 @@
+import { TARGETS, positionAtEpoch } from "./targets.js";
+import { missionForDate, realChallengeRequested } from "./dailySchedule.js";
 import { modelComparison, observationsOf } from "./features/planetLab.js";
 import { renderComparison } from "./features/planetLabView.js";
-import { showChallengeCompletion, showShootingStars } from "./dailyCelebration.js?v=shared-feedback";
+import { showChallengeCompletion, showDailyToast, showShootingStars } from "./dailyCelebration.js?v=shared-feedback";
 import { updateRealStreak, recordRealCompletion } from "./dailyRealStreak.js";
-import { getCutoutsApi } from "./data/apiSource.js?v=1";
+import { getCutoutsApi, getPreparedSequenceApi } from "./data/apiSource.js?v=real-challenge";
 import { IS_REMOTE_BACKEND } from "./config.js?v=1";
 
-const field = { ra: 269.4462, dec: 4.769, fovArcmin: 5, detector: "D2" };
+const realChallengeLink = realChallengeRequested(window.location?.search);
+const scheduled = realChallengeLink ? missionForDate(new Date(Date.now())) : null;
+const mission = scheduled && !scheduled.simulation ? scheduled : null;
+const usedTools = new Set();
+const target = TARGETS.find(({ id }) => id === mission?.target);
+const field = mission?.field ?? { ra: 269.4462, dec: 4.769, fovArcmin: 5, detector: "D2" };
 const requestId = "fr-9fe8d9f503e9ccca9f2964e5a9bba0ad";
 const $ = (id) => document.getElementById(`daily-${id}`);
 const image = $("real-image");
@@ -17,7 +24,7 @@ let timer;
 let loading = false;
 let imageReady = false;
 let submitted = false;
-const realChallengeLink = new URLSearchParams(window.location?.search).get("challenge") === "real";
+
 
 function stop() {
   clearInterval(timer);
@@ -48,7 +55,14 @@ function updateMarks() {
   const summary = `${points.length} marked frame${points.length === 1 ? "" : "s"}.`;
   $("real-marks").textContent = summary;
   const span = points.length < 2 ? 0 : frames[points.at(-1)[0]].mjd - frames[points[0][0]].mjd;
-  $("real-submit").disabled = !(span > 0);
+  const distinct = new Set(points.map(([i]) => frames[i].mjd)).size;
+  const missing = mission?.tools.filter((tool) => !usedTools.has(tool)) ?? [];
+  const requiredMarks = mission?.marks ?? 2;
+  $("real-submit").disabled = !(span > 0) || distinct < requiredMarks || missing.length > 0;
+  if (mission) {
+    $("real-mission").textContent = `${mission.day} · ${mission.level} · ${mission.hint} Mark ${requiredMarks} distinct observations.` +
+      (missing.length ? ` Tools to try: ${missing.join(", ")}.` : "");
+  }
   $("real-motion").textContent = "";
   $("real-details").hidden = !submitted;
   $("real-rating").hidden = !submitted;
@@ -135,11 +149,26 @@ async function loadFrames() {
   $("real-retry").hidden = true;
   $("real-status").textContent = "Loading prepared SPHEREx observations…";
   try {
-    let available = IS_REMOTE_BACKEND ? await getCutoutsApi({ ...field, requestId }) : [];
-    if (!available.length) available = await getCutoutsApi(field);
+    let available;
+    if (mission?.sequence) {
+      const prepared = await getPreparedSequenceApi(mission.sequence);
+      const query = prepared.query;
+      if (prepared.dataKind !== "real" || query?.ra !== field.ra || query?.dec !== field.dec ||
+          query?.fov !== field.fovArcmin || query?.det !== field.detector || !Array.isArray(prepared.frames)) {
+        throw new Error("The prepared observations do not match today’s field.");
+      }
+      available = prepared.frames;
+    } else {
+      available = IS_REMOTE_BACKEND ? await getCutoutsApi({ ...field, requestId }) : [];
+      if (!available.length) available = await getCutoutsApi(field);
+    }
     frames = available.filter((frame) => frame.detector === field.detector &&
       Number.isFinite(frame.mjd) && frame.imageUrl).sort((a, b) => a.mjd - b.mjd);
-    if (!frames.length) throw new Error("No prepared observations were returned for this field.");
+    if (new Set(frames.map(({ mjd }) => mjd)).size < (mission?.marks ?? 1)) {
+      throw new Error("Not enough prepared observations for this field.");
+    }
+    $("real-reference").src = frames[0].imageUrl;
+    $("real-difference").disabled = frames.length < 2;
     frames.forEach((frame, i) => {
       const date = frame.dateISO.replace("T", " ").slice(0, 16);
       const band = [frame.wavelengthMinUm, frame.wavelengthMaxUm].map((value) => value.toFixed(2)).join("–");
@@ -167,10 +196,19 @@ function switchMode(real) {
   $("real").hidden = !real;
   $("synthetic-mode").setAttribute("aria-pressed", String(!real));
   $("real-mode").setAttribute("aria-pressed", String(real));
-  $("synthetic-streak").hidden = real;
-  $("real-streak").hidden = !real;
+  const showDailyStreak = real || Boolean(scheduled?.simulation);
+  $("synthetic-streak").hidden = showDailyStreak;
+  $("real-streak").hidden = !showDailyStreak;
   $("date").hidden = real;
-  if (realChallengeLink) $("title").textContent = real ? "Real Daily Challenge" : "Field of the Day";
+  if (real) {
+    $("real-title").textContent = mission && !mission.simulation ? mission.name : "Barnard’s Star field";
+    $("real-field-label").textContent = `Real SPHEREx observations · ${field.detector} · ${field.fovArcmin}′ field`;
+    $("real-detector-chip").textContent = `Real SPHEREx · ${field.detector}`;
+    image.alt = `Aligned SPHEREx image · ${$("real-title").textContent}`;
+  }
+  $("title").textContent = real
+    ? (mission ? "Real Daily Challenge" : "Real SPHEREx")
+    : (scheduled?.simulation ? "Sunday Simulation Lab" : "Training");
   if (real) {
     updateRealStreak();
     loadFrames();
@@ -180,13 +218,32 @@ function switchMode(real) {
 $("real-mode").addEventListener("click", () => switchMode(true));
 $("synthetic-mode").addEventListener("click", () => switchMode(false));
 $("real-retry").addEventListener("click", loadFrames);
+function catalogueOffset(mark, observedFrame) {
+  const scale = observedFrame.pixelScaleArcsec;
+  if (!(scale > 0)) return Infinity;
+  const reference = positionAtEpoch(target, 2000 + (observedFrame.mjd - 51544.5) / 365.25);
+  const east = (reference.ra - field.ra) * 3600 * Math.cos(field.dec * Math.PI / 180);
+  const north = (reference.dec - field.dec) * 3600;
+  return Math.hypot((mark.x - .5) * mark.width + east / scale, (mark.y - .5) * mark.height + north / scale);
+}
+
 $("real-submit").addEventListener("click", () => {
   if ($("real-submit").disabled) return;
   stop();
+  if (target && [...marks].some(([i, mark]) => catalogueOffset(mark, frames[i]) > 2)) {
+    $("real-motion").textContent = "Some marks are more than two pixels from the catalogue prediction. Move them and try again.";
+    return;
+  }
   submitted = true;
   updateMarks();
-  showChallengeCompletion(recordRealCompletion());
-  showShootingStars();
+  if (!mission?.compare) {
+    if (mission) showChallengeCompletion(recordRealCompletion());
+    else showDailyToast("Well done! Motion analysis completed.");
+    showShootingStars();
+  } else {
+    $("real-details").open = true;
+    $("real-models").textContent = "Compare the motion models to finish today’s challenge.";
+  }
 });
 $("real-compare").addEventListener("click", () => {
   const out = $("real-models");
@@ -210,6 +267,10 @@ $("real-compare").addEventListener("click", () => {
     ({ frame: index, x: (x - .5) * width, y: (y - .5) * height }));
   const comparison = modelComparison(observationsOf(points, mjds, scale, { sigmaPx }), field);
   renderComparison(out, comparison, { sigmaPx, manualMarks: true });
+  if (mission?.compare && comparison.usable) {
+    showChallengeCompletion(recordRealCompletion());
+    showShootingStars();
+  }
 });
 
 $("real-clear").addEventListener("click", () => {
@@ -223,6 +284,8 @@ epoch.addEventListener("change", () => show(Number(epoch.value)));
 $("real-blink").addEventListener("click", () => {
   if (timer !== undefined) return stop();
   if (frames.length < 2) return;
+  usedTools.add("Blink");
+  updateMarks();
   $("real-blink").textContent = "Pause";
   $("real-blink").setAttribute("aria-pressed", "true");
   timer = setInterval(() => {
@@ -260,4 +323,17 @@ function saveMark(x, y) {
 }
 
 
-if (realChallengeLink) switchMode(true);
+for (const tool of ["Contrast", "Difference"]) {
+  const name = tool.toLowerCase();
+  const button = $(`real-${name}`);
+  button.addEventListener("click", () => {
+    const active = button.getAttribute("aria-pressed") !== "true";
+    button.setAttribute("aria-pressed", String(active));
+    image.classList.toggle(`is-${name}`, active);
+    if (tool === "Difference") $("real-reference").hidden = !active;
+    if (active) usedTools.add(tool);
+    updateMarks();
+  });
+}
+
+if (mission) switchMode(true);

@@ -6,7 +6,7 @@
   <title>Field of the Day · SPHEREx Blink</title>
   <link rel="stylesheet" href="css/styles.css?v=20261115">
   <link rel="stylesheet" href="css/instrument.css?v=20261115">
-  <link rel="stylesheet" href="css/daily.css?v=shared-feedback">
+  <link rel="stylesheet" href="css/daily.css?v=weekly">
 </head>
 <body class="daily-page">
   <canvas id="daily-background" aria-hidden="true"></canvas>
@@ -19,7 +19,7 @@
   <main id="daily" tabindex="-1">
     <div class="daily-heading">
       <div>
-        <h1 id="daily-title">Field of the Day</h1>
+        <h1 id="daily-title">Training</h1>
         <p id="daily-date">Synthetic challenge</p>
       </div>
       <div id="daily-synthetic-streak" class="daily-streak">
@@ -28,7 +28,7 @@
           <strong id="daily-streak-count">0</strong>
         </span>
         <div>
-          <strong>Day streak</strong>
+          <strong>Training streak</strong>
           <small id="daily-streak-freeze">1 freeze available</small>
         </div>
       </div>
@@ -37,14 +37,27 @@
           <span aria-hidden="true">⭐</span>
           <strong id="real-game-streak-count">0</strong>
         </span>
-        <strong id="real-game-streak">Day streak</strong>
+        <div><strong id="real-game-streak">Day streak</strong><small id="daily-real-freeze">1 freeze available</small></div>
       </div>
     </div>
     <div id="daily-mode-controls" class="daily-controls" role="group" aria-label="Data source">
-      <button type="button" class="btn" id="daily-synthetic-mode" aria-pressed="true">Synthetic</button>
+      <button type="button" class="btn" id="daily-synthetic-mode" aria-pressed="true">Training</button>
       <button type="button" class="btn" id="daily-real-mode" aria-pressed="false">Real SPHEREx</button>
     </div>
-    <section id="daily-synthetic">
+    <section id="daily-weekly" hidden aria-labelledby="daily-weekly-title">
+      <h2 id="daily-weekly-title">Weekly challenges</h2>
+      <ol id="daily-weekly-list"></ol>
+    </section>
+    <section id="daily-synthetic" aria-label="Synthetic training">
+      <p class="pb-chip">Synthetic training data</p>
+      <label>Exercise
+        <select id="daily-training-exercise">
+          <option value="">Spot a mover</option>
+          <option value="faint">Faint source and artefacts</option>
+          <option value="planet-x">Simulated Planet X</option>
+        </select>
+      </label>
+      <p id="daily-training-tools" role="status"></p>
       <p id="daily-instructions">Use Blink to spot the moving object, then mark it in both frames.</p>
       <div class="daily-layout">
         <div class="daily-game">
@@ -52,6 +65,17 @@
             <div class="daily-controls daily-toolbar" role="group" aria-label="Frame playback">
               <button type="button" class="btn" id="frame-a" aria-pressed="true">Frame A · Year 0</button>
               <button type="button" class="btn" id="frame-b" aria-pressed="false">Frame B · Year 1</button>
+              <label>Extra frames
+                <select id="daily-training-frame">
+                  <option value="0">Frame A</option>
+                  <option value="2">25% of the interval</option>
+                  <option value="3">50% of the interval</option>
+                  <option value="4">75% of the interval</option>
+                  <option value="1">Frame B</option>
+                </select>
+              </label>
+              <button type="button" class="btn" id="daily-training-contrast" aria-pressed="false">Contrast</button>
+              <button type="button" class="btn" id="daily-training-difference" aria-pressed="false">Difference</button>
               <button type="button" class="btn" id="daily-blink" aria-pressed="false">Blink</button>
             </div>
             <canvas id="daily-image" width="256" height="256" tabindex="0" aria-label="Synthetic star field" aria-describedby="daily-instructions daily-keyboard"></canvas>
@@ -115,7 +139,8 @@
     </section>
     <section id="daily-real" aria-labelledby="daily-real-title" hidden>
       <h2 id="daily-real-title">Barnard’s Star field</h2>
-      <p>Real SPHEREx observations · D2 · 5′ field</p>
+      <p id="daily-real-field-label">Real SPHEREx observations · D2 · 5′ field</p>
+      <p id="daily-real-mission" role="status"></p>
       <p id="daily-real-status" role="status"></p>
       <button type="button" class="btn" id="daily-real-retry" hidden>Retry</button>
       <div id="daily-real-viewer" hidden>
@@ -124,8 +149,11 @@
             <div class="daily-controls">
               <label>Observation <select id="daily-real-epoch"></select></label>
               <button type="button" class="btn" id="daily-real-blink" aria-pressed="false">Blink</button>
+              <button type="button" class="btn" id="daily-real-contrast" aria-pressed="false">Contrast</button>
+              <button type="button" class="btn" id="daily-real-difference" aria-pressed="false">Difference</button>
             </div>
             <div class="daily-real-field">
+              <img id="daily-real-reference" alt="" hidden>
               <img id="daily-real-image" alt="Aligned SPHEREx image of the Barnard’s Star field" tabindex="0" aria-describedby="daily-real-help">
               <svg id="daily-real-track" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
                 <polyline id="daily-real-path"/>
@@ -146,7 +174,7 @@
               <button type="button" class="btn btn-primary" id="daily-real-submit" disabled>Submit guess</button>
               <button type="button" class="btn" id="daily-real-clear">Clear marks</button>
             </div>
-            <div class="pb-chips"><span class="pb-chip">Real SPHEREx · D2</span></div>
+            <div class="pb-chips"><span id="daily-real-detector-chip" class="pb-chip">Real SPHEREx · D2</span></div>
             <p id="daily-real-motion" role="status"></p>
             <p id="daily-real-rating" class="pb-chip" hidden></p>
             <details id="daily-real-details" hidden>
@@ -200,7 +228,7 @@
   <script defer src="js/overviewStarfield.js"></script>
   <script defer src="js/dailyBackground.js?v=overview"></script>
   <script type="module" src="js/dailyRealGame.js?v=real-viewer"></script>
-  <script type="module" src="js/dailyReal.js?v=real-viewer"></script>
-  <script type="module" src="js/daily.js?v=shared-feedback"></script>
+  <script type="module" src="js/dailyReal.js?v=weekly"></script>
+  <script type="module" src="js/daily.js?v=weekly"></script>
 </body>
 </html>
