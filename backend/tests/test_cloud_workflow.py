@@ -614,7 +614,8 @@ def test_metadata_retry_limit_fails_terminally_and_explicit_retry_starts_a_fresh
     state, tasks = FakeState(request, policy), FakeTasks()
     error = HTTPError("https://irsa.ipac.caltech.edu/SIA", 503, "Unavailable", {}, BytesIO())
     workflow = CloudWorkflow(state=state, tasks=tasks, launcher=object(), store=FakeStore([]),
-                             archive_fetch=lambda _url: (_ for _ in ()).throw(error))
+                             archive_fetch=lambda _url: (_ for _ in ()).throw(error),
+                             tap_archive_fetch=lambda _request: (_ for _ in ()).throw(TimeoutError("TAP unavailable")))
 
     assert workflow.discover(request["requestId"], "discover-final") == "failed"
     assert request["metadataAttemptCount"] == 100
