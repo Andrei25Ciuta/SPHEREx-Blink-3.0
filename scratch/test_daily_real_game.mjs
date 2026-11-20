@@ -1,4 +1,10 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+
+const overview = await readFile(new URL("../frontend/overview.html", import.meta.url), "utf8");
+assert.match(overview, /href="daily\.html\?challenge=real"/);
+const daily = await readFile(new URL("../frontend/daily.html", import.meta.url), "utf8");
+assert.ok(daily.indexOf('id="daily-real-game"') > daily.indexOf('id="daily-real-results-frames"'));
 
 const day = 20778;
 Date.now = () => day * 86400000;
@@ -13,7 +19,7 @@ function element(id) {
   return nodes.get(id);
 }
 globalThis.document = { getElementById: element };
-globalThis.window = { matchMedia: () => ({ matches: true }) };
+globalThis.window = { matchMedia: () => ({ matches: true }), location: { search: "?challenge=real" } };
 const epochA = 60908.981929;
 const epochB = 61121.228205;
 globalThis.fetch = async (url) => {
@@ -28,7 +34,9 @@ globalThis.fetch = async (url) => {
   });
 };
 await import("../frontend/js/dailyRealGame.js");
-await element("daily-real-game-start").click();
+assert.equal(element("daily-real-game").hidden, false);
+assert.equal(element("daily-mode-controls").hidden, true);
+assert.equal(element("daily-real").hidden, true);
 const image = element("real-game-image");
 assert.match(image.src, /60908/);
 let tick;

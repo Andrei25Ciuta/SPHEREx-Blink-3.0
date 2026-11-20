@@ -19,10 +19,10 @@
   <main id="daily" tabindex="-1">
     <div class="daily-heading">
       <div>
-        <h1>Field of the Day</h1>
+        <h1 id="daily-title">Field of the Day</h1>
         <p id="daily-date">Synthetic challenge</p>
       </div>
-      <div class="daily-streak">
+      <div id="daily-synthetic-streak" class="daily-streak">
         <span id="daily-streak-bubble" class="daily-streak-bubble">
           <span aria-hidden="true">⭐</span>
           <strong id="daily-streak-count">0</strong>
@@ -33,7 +33,7 @@
         </div>
       </div>
     </div>
-    <div class="daily-controls" role="group" aria-label="Data source">
+    <div id="daily-mode-controls" class="daily-controls" role="group" aria-label="Data source">
       <button type="button" class="btn" id="daily-synthetic-mode" aria-pressed="true">Synthetic</button>
       <button type="button" class="btn" id="daily-real-mode" aria-pressed="false">Real SPHEREx</button>
     </div>
@@ -107,26 +107,7 @@
       </div>
     </section>
     <section id="daily-real" aria-labelledby="daily-real-title" hidden>
-      <h2 id="daily-real-title">Real SPHEREx</h2>
-      <button type="button" class="btn btn-primary" id="daily-real-game-start" aria-expanded="false" aria-controls="daily-real-game">Play real daily challenge</button>
-      <section id="daily-real-game" hidden aria-label="Real daily challenge">
-        <p>Find the moving source in two aligned observations. Mark it in both frames. You have three guesses.</p>
-        <div class="daily-controls">
-          <button type="button" class="btn" id="real-game-a" aria-pressed="true">Frame A</button>
-          <button type="button" class="btn" id="real-game-b" aria-pressed="false">Frame B</button>
-          <button type="button" class="btn" id="real-game-blink" aria-pressed="false">Blink</button>
-          <button type="button" class="btn btn-primary" id="real-game-submit" disabled>Submit guess</button>
-        </div>
-        <div class="daily-real-field">
-          <img id="real-game-image" alt="Real daily challenge observation" tabindex="0" hidden>
-          <svg id="daily-real-track-game" viewBox="0 0 100 100" aria-hidden="true"><circle id="real-game-marker" r="1.4" visibility="hidden"/></svg>
-        </div>
-        <p id="real-game-status" role="status"></p>
-        <p id="real-game-streak"></p>
-        <button type="button" class="btn" id="real-game-share" hidden>Copy result</button>
-        <textarea id="real-game-share-text" readonly aria-label="Shareable result" hidden></textarea>
-      </section>
-      <h3>Barnard’s Star field explorer</h3>
+      <h2 id="daily-real-title">Barnard’s Star field</h2>
       <p>Real SPHEREx observations · D2 · 5′ field</p>
       <p id="daily-real-status" role="status"></p>
       <button type="button" class="btn" id="daily-real-retry" hidden>Retry</button>
@@ -187,13 +168,32 @@
         </div>
       </div>
     </section>
+    <section id="daily-real-game" hidden aria-label="Real daily challenge">
+      <p>Find the moving source in two aligned observations. Mark it in both frames. You have three guesses.</p>
+      <div class="daily-controls">
+        <button type="button" class="btn" id="real-game-a" aria-pressed="true">Frame A</button>
+        <button type="button" class="btn" id="real-game-b" aria-pressed="false">Frame B</button>
+        <button type="button" class="btn" id="real-game-blink" aria-pressed="false">Blink</button>
+        <button type="button" class="btn btn-primary" id="real-game-submit" disabled>Submit guess</button>
+      </div>
+      <div class="daily-real-field">
+        <img id="real-game-image" alt="Real daily challenge observation" tabindex="0" hidden>
+        <svg id="daily-real-track-game" viewBox="0 0 100 100" aria-hidden="true"><circle id="real-game-marker" r="1.4" visibility="hidden"/></svg>
+      </div>
+      <p id="real-game-status" role="status"></p>
+      <button type="button" class="btn" id="real-game-retry" hidden>Retry</button>
+      <p id="real-game-streak"></p>
+      <button type="button" class="btn" id="real-game-share" hidden>Copy result</button>
+      <textarea id="real-game-share-text" readonly aria-label="Shareable result" hidden></textarea>
+      <p><a href="daily.html">Back to Field of the Day</a></p>
+    </section>
   </main>
   <div id="daily-celebration" aria-hidden="true"></div>
   <p id="daily-toast" role="status"></p>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script defer src="js/overviewStarfield.js"></script>
   <script defer src="js/dailyBackground.js?v=overview"></script>
-  <script type="module" src="js/dailyRealGame.js?v=continuous-blink"></script>
+  <script type="module" src="js/dailyRealGame.js?v=home-challenge"></script>
   <script type="module" src="js/dailyReal.js?v=continuous-blink"></script>
   <script type="module" src="js/daily.js?v=shared-celebration"></script>
 </body>

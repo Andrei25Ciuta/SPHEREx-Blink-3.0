@@ -3,7 +3,7 @@ import { TARGETS, positionAtEpoch } from "./targets.js";
 import { showShootingStars } from "./dailyCelebration.js";
 
 const byId = (id) => document.getElementById(id);
-const start = byId("daily-real-game-start");
+const retry = byId("real-game-retry");
 const panel = byId("daily-real-game");
 const image = byId("real-game-image");
 const status = byId("real-game-status");
@@ -73,12 +73,8 @@ function updateStreak() {
   byId("real-game-streak").textContent = `Real challenge streak: ${streak} day${streak === 1 ? "" : "s"}`;
 }
 
-start.addEventListener("click", async () => {
-  panel.hidden = !panel.hidden;
-  start.setAttribute("aria-expanded", String(!panel.hidden));
-  if (panel.hidden) return stopBlink();
-  if (frames.length) return;
-  start.disabled = true;
+async function loadChallenge() {
+  retry.hidden = true;
   status.textContent = "Loading prepared observations…";
   try {
     const sequence = await getPreparedSequenceApi("barnard-d2");
@@ -97,11 +93,11 @@ start.addEventListener("click", async () => {
     updateStreak();
     show(0);
   } catch (error) {
-    status.textContent = `${error.message} Close and reopen the challenge to retry.`;
-  } finally {
-    start.disabled = false;
+    status.textContent = error.message;
+    retry.hidden = false;
   }
-});
+}
+retry.addEventListener("click", loadChallenge);
 
 frameButtons.forEach((button, i) => button.addEventListener("click", () => show(i)));
 image.addEventListener("load", () => {
@@ -171,7 +167,7 @@ submit.addEventListener("click", () => {
 
 byId("real-game-share").addEventListener("click", async () => {
   const squares = "🟥".repeat(score ? attempt - 1 : attempt) + (score ? "🟩" : "") + "⬜".repeat(3 - attempt);
-  const message = `SPHEREx Blink · Real daily challenge · ${date} UTC\n${squares} · ${score}/100\n${new URL("daily.html", location.href)}`;
+  const message = `SPHEREx Blink · Real daily challenge · ${date} UTC\n${squares} · ${score}/100\n${new URL("daily.html?challenge=real", location.href)}`;
   try { await navigator.clipboard.writeText(message); }
   catch {
     const field = byId("real-game-share-text");
@@ -180,3 +176,13 @@ byId("real-game-share").addEventListener("click", async () => {
     field.select();
   }
 });
+
+
+if (new URLSearchParams(window.location?.search).get("challenge") === "real") {
+  byId("daily-title").textContent = "Real Daily Challenge";
+  for (const id of ["daily-synthetic", "daily-synthetic-streak", "daily-date", "daily-mode-controls"]) {
+    byId(id).hidden = true;
+  }
+  panel.hidden = false;
+  await loadChallenge();
+}
