@@ -1,3 +1,9 @@
+## 2026-11-20 — Daily challenge email reminders
+
+The Home invitation provides an opt-in email form, with explicit confirmation and unsubscribe actions. The cloud API uses a dedicated Firestore collection for subscriptions, and a separate private job can send one reminder per Bucharest date at 09:00. Deployment settings are documented in [DAILY_EMAIL.md](DAILY_EMAIL.md).
+
+Validation: all Node scripts and 268 backend tests passed. The reminder tests use a recording mailer, in-memory subscription storage, fixed UTC clocks, and mocked frontend requests. The suite checks confirmation, token expiry, unsubscribing, duplicate suppression, and the summer-time boundary. Chromium navigation could not run in the sandbox. SMTP, live Firestore, and scheduling were not configured or exercised, and no real email was sent.
+
 ## 2026-11-20 — Weekly challenges and synthetic training
 
 Home separates Training from Daily Challenge. From Monday to Saturday, the daily link uses prepared real observations of the Barnard, Epsilon Indi B, and WISE 0855 fields. Missions progressively require Blink, display Difference or Contrast, additional marked epochs, and a model comparison on Saturday. Catalogue predictions provide an approximate two-pixel acceptance window for manual marks. Sunday is explicitly synthetic and uses the Planet X training exercise. Training provides five frames per exercise and retains its separate practice streak. The daily streak covers one missed UTC day per active streak.

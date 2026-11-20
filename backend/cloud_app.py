@@ -18,6 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 
 from spherex import catalogues
+from spherex.daily_email import daily_email_from_env, daily_email_router
 from spherex.storage import from_env, StoreError, download_verified
 from spherex.query import read_frame_file
 from spherex.photometry import measure
@@ -231,7 +232,7 @@ class Catalog:
 
 def create_app(
     store=None, approved=None, *, pixels=None, origins=None, public_base=None,
-    rate=None, workflow=None, registry=None
+    rate=None, workflow=None, registry=None, daily_email=None
 ):
     store = store if store is not None else from_env()
     if approved is None:
@@ -281,6 +282,8 @@ def create_app(
     app.add_middleware(Guard)
     app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["GET", "POST"])
     app.state.workflow = workflow
+    reminders = daily_email if daily_email is not None else daily_email_from_env()
+    app.include_router(daily_email_router(reminders))
 
     @app.exception_handler(StoreError)
     async def store_failure(request, exc):

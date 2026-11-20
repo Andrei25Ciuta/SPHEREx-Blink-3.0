@@ -5,3 +5,5 @@ astropy>=7.1        # first astropy line with Python 3.14 wheels
 numpy>=2.1
 pillow>=11.0
 # No pyvo: IRSA TAP, Gaia TAP and the HiPS tiles are asked with the standard library (urllib), see spherex/catalogues.py and survey.py.
+
+tzdata>=2025.2

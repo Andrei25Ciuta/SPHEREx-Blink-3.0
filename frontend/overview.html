@@ -21,7 +21,7 @@
   <!-- App Styles -->
   <link rel="stylesheet" href="css/styles.css?v=20261115">
   <link rel="stylesheet" href="css/instrument.css?v=20261115">
-  <link rel="stylesheet" href="css/overview-3d.css?v=daily-invite">
+  <link rel="stylesheet" href="css/overview-3d.css?v=email-invite">
   <link rel="stylesheet" href="css/mode-choice.css">
 <!-- Three.js CDN; the rest of the overview remains usable if it is unavailable. -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -257,6 +257,16 @@
         <a href="daily.html">Open Training →</a>
         <a href="daily.html?challenge=real">Play Daily Challenge →</a>
       </div>
+      <details class="home-daily-email">
+        <summary>Remind me daily</summary>
+        <form id="daily-email-form">
+          <label for="daily-email-address">Email address</label>
+          <input id="daily-email-address" type="email" autocomplete="email" maxlength="254" required>
+          <p>One reminder at 09:00 Bucharest time. Unsubscribe anytime.</p>
+          <button class="btn btn-primary" type="submit">Send confirmation</button>
+          <p id="daily-email-status" role="status"></p>
+        </form>
+      </details>
     </div>
   </aside>
   <script>
@@ -266,6 +276,7 @@
     });
   </script>
 
+  <script type="module" src="js/dailyEmail.js"></script>
   <script type="module" src="js/overviewDataSource.js?v=2"></script>
 
   <footer class="overview-footer">
