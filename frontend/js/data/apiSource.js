@@ -5,12 +5,14 @@
 import { API_BASE, CAN_USE_BACKEND, BACKEND_ERROR } from "../config.js?v=1";
 
 const REQUEST_TIMEOUT_MS = 60_000;
+const fieldSignal = (signal, ms) => signal
+  ? AbortSignal.any([signal, AbortSignal.timeout(ms)]) : AbortSignal.timeout(ms);
 
-export async function getCutoutsApi({ ra, dec, fovArcmin, detector, requestId }) {
+export async function getCutoutsApi({ ra, dec, fovArcmin, detector, requestId, signal }) {
   const params = new URLSearchParams({ ra, dec, fov: fovArcmin, det: detector });
   if (requestId) params.set("request_id", requestId);
   let body;
-  try { body = await getJson(`${API_BASE}/api/cutouts?${params}`); }
+  try { body = await getJson(`${API_BASE}/api/cutouts?${params}`, signal); }
   catch (error) {
     if (requestId && error.status === 422) return []; // The request exists; no detector has published yet.
     throw error;
@@ -27,14 +29,14 @@ export function getPreparedSequenceApi(sequenceId) {
 }
 
 /** Start/reuse an on-demand cloud acquisition; null means this is a legacy local API. */
-export async function requestFieldApi({ ra, dec, fov, dateFrom = null, dateTo = null }) {
+export async function requestFieldApi({ ra, dec, fov, dateFrom = null, dateTo = null }, { signal } = {}) {
   assertBackendAvailable();
   const response = await fetch(`${API_BASE}/api/field-requests`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ra, dec, fov, dateFrom, dateTo,
       detectors: ["D1", "D2", "D3", "D4", "D5", "D6"], collection: "spherex_dr1" }),
-    signal: AbortSignal.timeout(20_000),
+    signal: fieldSignal(signal, 20_000),
   });
   if (response.status === 404 || response.status === 405) return null;
   if (!response.ok) throw await responseError(response);
@@ -44,16 +46,16 @@ export async function requestFieldApi({ ra, dec, fov, dateFrom = null, dateTo = 
 export async function getFieldRequestApi(requestId, { signal } = {}) {
   assertBackendAvailable();
   const response = await fetch(`${API_BASE}/api/field-requests/${encodeURIComponent(requestId)}`, {
-    signal: signal ?? AbortSignal.timeout(20_000),
+    signal: fieldSignal(signal, 20_000),
   });
   if (!response.ok) throw await responseError(response);
   return response.json();
 }
 
-export async function retryFieldRequestApi(requestId) {
+export async function retryFieldRequestApi(requestId, { signal } = {}) {
   assertBackendAvailable();
   const response = await fetch(`${API_BASE}/api/field-requests/${encodeURIComponent(requestId)}/retry`, {
-    method: "POST", signal: AbortSignal.timeout(20_000),
+    method: "POST", signal: fieldSignal(signal, 20_000),
   });
   if (!response.ok) throw await responseError(response);
   return response.json();
@@ -79,13 +81,14 @@ export async function getPhotometryApi({ ra, dec, detector = "all", radiusPx, mo
 }
 
 /** GET a JSON document from our backend with a timeout and readable errors. */
-async function getJson(url) {
+async function getJson(url, signal) {
   assertBackendAvailable();
   let response;
   try {
     // Real cutouts can be slow (archive query + FITS download), but never wait forever.
-    response = await fetch(url, { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+    response = await fetch(url, { signal: fieldSignal(signal, REQUEST_TIMEOUT_MS) });
   } catch (err) {
+    if (signal?.aborted) throw err;
     if (err.name === "TimeoutError") {
       throw new Error(`The data server took longer than ${REQUEST_TIMEOUT_MS / 1000} s to answer. Try a smaller field of view or retry.`);
     }

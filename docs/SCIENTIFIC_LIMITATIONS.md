@@ -22,6 +22,8 @@ Photometry uses a small aperture and background annulus. Flux density conversion
 
 The backend marks a frame synthetic when its header explicitly identifies a test file, SPHEREx-format when product header markers are present, and unverified otherwise. Header checks do not authenticate the download source. Mixed and unverified fields carry those labels in the workspace and exports. Cached cutout responses are rebuilt under a new cache key.
 
+The DR1 browse pilot shows the public [IRSA all-sky HiPS display mosaic](https://caltech-ipac.github.io/irsa-tutorials/spherex-hipscube/) at its first wavelength, 0.753 µm. It is a visualization layer, not an epoch-resolved cutout, a photometry input, or proof of usable detector coverage. The fallback is 2MASS color, a different survey. Startup checks the published metadata and sample display tiles; isolated missing tiles after navigation do not establish a survey-wide outage.
+
 ---
 
 <!-- Everything below comes from the branch blink-2.0 of mateibut/SPHEREx, a second line of Blink 2.0 work that was merged into this repository on 10 Nov 2026. Where the two halves describe the same thing differently, they describe two different implementations: see docs/MERGE_NOTES.md. -->

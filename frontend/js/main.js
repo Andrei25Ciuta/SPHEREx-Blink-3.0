@@ -9,11 +9,12 @@
 import { parseRA, parseDec, formatRA, formatDec } from "./coords.js";
 import { TARGETS, positionAtEpoch, SPHEREX_REF_EPOCH, targetsInField, totalProperMotion } from "./targets.js";
 import { skyToCanvas, tanCanvasToSky, mjdToYear } from "./geometry.js";
-import { readUrlState, writeUrlState } from "./urlState.js?v=1";
-import { getCutouts, listDetectors } from "./data/getCutouts.js?v=1";
-import { requestFieldApi, getFieldRequestApi, retryFieldRequestApi } from "./data/apiSource.js?v=1";
-import { followFieldRequest, fieldRequestComplete } from "./data/fieldRequests.js";
-import { DATA_SOURCE, API_BASE, CAN_USE_BACKEND, IS_REMOTE_BACKEND, LEGACY_API_READ_ONLY } from "./config.js?v=1";
+import { readUrlState, readWorkspaceStartup, writeUrlState } from "./urlState.js?v=3";
+import { getCutouts, listDetectors } from "./data/getCutouts.js?v=2";
+import { requestFieldApi, getFieldRequestApi, retryFieldRequestApi } from "./data/apiSource.js?v=2";
+import { loadFieldRequestCutouts } from "./data/fieldRequests.js?v=2";
+import { createSkyZoneRequestFlow } from "./data/skyZoneRequest.js?v=2";
+import { DATA_SOURCE, API_BASE, CAN_USE_BACKEND, IS_REMOTE_BACKEND, LEGACY_API_READ_ONLY, SKY_BROWSE } from "./config.js?v=2";
 import { BlinkPlayer, MODES, loadImage, meanImageData } from "./player.js?v=8";
 import { canvasToSky, measureAndPlot, clearMeasurement, setSpectrumStyle, APERTURE_RADIUS_PX } from "./features/measure.js";
 import { setupViewer } from "./features/viewerControls.js";
@@ -25,7 +26,7 @@ import { setupTextAnalysis } from "./features/textAnalysisView.js";
 import { setupBundle } from "./features/bundleView.js";
 import { fetchSurvey as askSurvey } from "./features/surveyCoverage.js";
 import { setupAssistant } from "./features/assistantView.js";
-import { setupPinBoard } from "./features/missionsPinView.js?v=2";
+import { setupPinBoard } from "./features/missionsPinView.js?v=3";
 import { setupPredict } from "./features/predictView.js";
 import { startMissionRunner } from "./features/missionRunner.js";
 import { runTask, isCancelled } from "./features/workerClient.js";
@@ -40,7 +41,10 @@ import { applyIcons } from "./features/ui.js";
 import { openDialog, shortcutsHtml } from "./features/dialog.js";
 import { setupTimeline } from "./features/timelineView.js";
 import { FLAGGED_LIMIT } from "./features/timeline.js";
-import { SkyContext } from "./features/skyContext.js?v=13";
+import { SkyContext } from "./features/skyContext.js?v=15";
+import { BROWSE_SURVEYS } from "./features/skyBrowse.js";
+import { normalizeZoneCentre, parseSkyZone, setupSkyZone } from "./features/skyZone.js?v=4";
+import { explicitLoadActivation, moveToPhotoViewer, openSyntheticZone, setupWorkspaceSky, skyRequestAvailability } from "./features/workspaceSky.js?v=3";
 import { setupFullscreen } from "./features/fullscreen.js";
 import { detectSources, describeMover, matchKnownObject, moverPositionAtMjd, passIndices, trackSupport, blendWarning, VERSION as MOVERS_VERSION, DEFAULTS as MOVER_DEFAULTS, ERROR_MODEL } from "./features/movers.js";
 import { blindCheckCandidate, VERSION as BLIND_CHECK_VERSION } from "./features/blindCheck.js";
@@ -61,6 +65,10 @@ import { clampFov, maxFovForDataSource, REAL_DATA_MAX_FOV_ARCMIN } from "./featu
 
 // Small helper: document.getElementById is long, so we alias it.
 const $ = (id) => document.getElementById(id);
+const pageParams = new URLSearchParams(location.search);
+const isEmbed = pageParams.get("embed") === "1";
+
+if (SKY_BROWSE) document.documentElement.classList.add("sky-browse");
 
 // Links to a panel inside the collapsible analysis group should reveal it first.
 document.querySelectorAll('#workspace a[href^="#"]').forEach((link) => {
@@ -93,6 +101,7 @@ archiveDateRange.hidden = DATA_SOURCE !== "api" || LEGACY_API_READ_ONLY;
 $("data-source").addEventListener("change", event => {
   const url = new URL(location.href);
   url.searchParams.set("data", event.target.value);
+  url.searchParams.delete("request_id"); // an explicit source switch changes the data behind the field
   location.assign(url.href);
 });
 
@@ -115,9 +124,9 @@ let currentFrames = [];   // frames of the selected detector only (time-ordered)
 let currentDetector = null;
 let currentQuery = null;  // { ra, dec, fov } of the loaded data
 let loadToken = 0;        // increases on every load; protects against out-of-order responses
-let requestPollController = null;
 let activeFieldRequestId = null;
 let lastReadySignature = "";
+let fieldFramesError = "";
 let lastQuery = null;     // remembered so "Try again" can repeat the failed request
 let discoverPanel = null; // the "Find everything" panel (set up further down)
 
@@ -130,20 +139,26 @@ speedInput.addEventListener("input", () => {
   player.setFps(speedInput.value);
 });
 
-// "change" fires when the user RELEASES the slider (not on every pixel of movement),
-// so we don't rewrite the URL dozens of times per second.
+// The legacy slider commits on release; in the synthetic zone it only changes
+// the draft, and Request this zone is what commits the field.
 fovInput.addEventListener("change", () => {
-  writeUrlState({ fov: fovInput.value });
-  if (allFrames.length || DATA_SOURCE === "api") form.requestSubmit(); // load cloud data when the field size changes
+  if (workspaceSky?.synthetic || SKY_BROWSE || new URLSearchParams(location.search).has("request_id")) return;
+  if (allFrames.length || DATA_SOURCE === "api") loadPreparedForm();
+  else writeUrlState({ fov: fovInput.value });
 });
 detSelect.addEventListener("change", () => selectDetector(detSelect.value));
 
 /** Switch detector without a new search. Images can still fail to load -> catch. */
 function selectDetector(det) {
+  if (!allFrames.some((frame) => frame.detector === det)) return;
+  const token = loadToken;
   requestedDetector = det;
   detSelect.value = det;
   writeUrlState({ det });
-  showDetector(det).catch((err) => {
+  const loading = showDetector(det);
+  const selectedFrames = currentFrames;
+  loading.catch((err) => {
+    if (token !== loadToken || selectedFrames !== currentFrames) return;
     console.error(err);
     showOverlay("Could not load images", err.message, { error: true });
   });
@@ -190,8 +205,8 @@ function readForm() {
   setFieldError(raInput, $("ra-error"), ra.ok ? "" : ra.error);
   setFieldError(decInput, $("dec-error"), dec.ok ? "" : dec.error);
 
-  if (!ra.ok) { raInput.focus(); return null; }      // move focus to the first bad field
-  if (!dec.ok) { decInput.focus(); return null; }
+  if (!ra.ok) { raInput.focus({ preventScroll: true }); return null; } // move focus to the first bad field
+  if (!dec.ok) { decInput.focus({ preventScroll: true }); return null; }
 
   return { ra: ra.deg, dec: dec.deg, fov: Number(fovInput.value) };
 }
@@ -216,6 +231,7 @@ function renderQuickPicks() {
 
 /** Fill RA/Dec with the target's position at the SPHEREx epoch, then submit. */
 function selectTarget(target) {
+  if (SKY_BROWSE) return;
   const { ra, dec } = positionAtEpoch(target);
   raInput.value = ra.toFixed(5);
   decInput.value = dec.toFixed(5);
@@ -227,8 +243,7 @@ function selectTarget(target) {
     chip.setAttribute("aria-pressed", String(chip.dataset.targetId === target.id));
   });
 
-  // requestSubmit() triggers the same "submit" handler as clicking the button.
-  form.requestSubmit();
+  loadPreparedForm();
 }
 
 // If the user edits coordinates by hand, no chip is "active" anymore.
@@ -256,6 +271,7 @@ function hideFieldRequestPanel() {
   fieldRequestPanel.hidden = true;
   fieldRequestPanel.classList.remove("has-failures");
   fieldRequestRetry.hidden = true;
+  fieldRequestRetry.disabled = false;
   fieldRequestLive.textContent = "";
   fieldRequestPhases.textContent = "";
   fieldRequestStatusId = "";
@@ -277,28 +293,25 @@ function showOverlay(title, sub = "", { error = false, progress = null } = {}) {
   retryBtn.hidden = !(error && lastQuery);
   overlay.classList.remove("hidden");
   overlay.removeAttribute("aria-hidden");
-  if (error && lastQuery) retryBtn.focus();
+  if (error && lastQuery) retryBtn.focus({ preventScroll: true });
 }
 const hideOverlay = () => {
   overlay.classList.add("hidden");
   // Invisible (opacity 0) is not enough: screen readers would still read the old text.
   overlay.setAttribute("aria-hidden", "true");
 };
-async function retryLastRequest() {
-  if (!lastQuery) return;
-  if (activeFieldRequestId && DATA_SOURCE === "api" && !LEGACY_API_READ_ONLY) {
-    try {
-      await retryFieldRequestApi(activeFieldRequestId);
-      loadData(lastQuery);
-    } catch (error) {
-      showOverlay("Could not retry data request", error.message || "Unknown error.", { error: true });
-    }
-    return;
-  }
-  loadData(lastQuery);
+function retryLastRequest() {
+  if (SKY_BROWSE) return;
+  if (lastQuery) void loadData(lastQuery);
 }
 retryBtn.addEventListener("click", retryLastRequest);
-fieldRequestRetry.addEventListener("click", retryLastRequest);
+fieldRequestRetry.addEventListener("click", (event) => {
+  if (DATA_SOURCE === "api" && event.isTrusted && !zoneRequestUnavailable && !fieldRequestRetry.hidden &&
+      !fieldRequestRetry.disabled && event.detail <= 1) void skyZoneRequests.retry();
+});
+fieldRequestRetry.addEventListener("keydown", (event) => {
+  if (event.repeat && (event.key === "Enter" || event.key === " ")) event.preventDefault();
+});
 
 const setStatus = (text) => { $("status-msg").textContent = text || ""; };
 
@@ -324,11 +337,13 @@ function populateDetectors(frames) {
 
   // Prefer the detector from the URL; otherwise the one with the most frames.
   const wanted = detectors.find((d) => d.detector === requestedDetector);
+  const existing = activeFieldRequestId ? detectors.find((d) => d.detector === currentDetector) : null;
   const best = [...detectors].sort((a, b) => b.count - a.count)[0];
-  if (requestedDetector && !wanted && best) {
-    setStatus(`Detector ${requestedDetector} has no images here – showing ${best.detector} instead.`);
+  const selected = wanted || existing || best;
+  if (requestedDetector && !wanted && selected) {
+    setStatus(`Detector ${requestedDetector} has no images here – showing ${selected.detector} instead.`);
   }
-  return (wanted || best)?.detector ?? null;
+  return selected?.detector ?? null;
 }
 
 // ---------------------------------------------------------------
@@ -682,9 +697,14 @@ async function showDetector(detector) {
   }
   const n = currentFrames.length;
   // Preload all images; the bar shows how many are ready.
-  await player.setFrames(currentFrames, (done) => {
-    if (current()) showOverlay("Preparing frames…", `${done} / ${n} ${detector} images ready`, { progress: done / n });
-  }, current);
+  try {
+    await player.setFrames(frames, (done) => {
+      if (current()) showOverlay("Preparing frames…", `${done} / ${n} ${detector} images ready`, { progress: done / n });
+    }, current);
+  } catch (error) {
+    if (current()) throw error;
+    return;
+  }
   if (!current()) return;
 
   setupCompare();
@@ -721,6 +741,7 @@ async function renderOverview(frames, token, { showMissing = false } = {}) {
   grid.innerHTML = "";
   if (!frames.length && !showMissing) { box.hidden = true; return; }
   box.hidden = false;
+  const thumbnails = [];
 
   // All six detectors side by side (features/spectral.js): the ones that have images here show their average; the others are shown as MISSING, with the band they would cover.
   for (const row of detectorCoverage(frames)) {
@@ -748,10 +769,16 @@ async function renderOverview(frames, token, { showMissing = false } = {}) {
     btn.addEventListener("click", () => selectDetector(d.detector));
     grid.appendChild(btn);
 
-    // Draw the average image (async; a failure just leaves the thumbnail black).
-    const images = await mapConcurrent(frames.filter((f) => f.detector === d.detector), PIXEL_READ_CONCURRENCY,
-      (f) => loadImage(f.imageUrl, f).catch(() => null));
-    if (token !== loadToken) return;
+    thumbnails.push({ btn, detectorFrames: frames.filter((f) => f.detector === d.detector) });
+  }
+
+  // Draw average images only after all the detector buttons are available.
+  for (const { btn, detectorFrames } of thumbnails) {
+    const isCurrent = () => token === loadToken && btn.parentElement === grid;
+    if (!isCurrent()) return;
+    const images = await mapConcurrent(detectorFrames, PIXEL_READ_CONCURRENCY,
+      (f) => isCurrent() ? loadImage(f.imageUrl, f).catch(() => null) : null);
+    if (!isCurrent()) return;
     const data = meanImageData(images.filter(Boolean));
     if (data) {
       const c = btn.querySelector("canvas");
@@ -793,9 +820,14 @@ $("reset-view").addEventListener("click", () => {
   adjustDisplay();
 });
 canvas.addEventListener("click", async (e) => {
-  if (!player.length || !currentQuery) return;
+  if (SKY_BROWSE || !player.length || !currentQuery) return;
   const { fx, fy } = player.pointToFrac(e.clientX, e.clientY);       // image fractions, whatever the zoom and pan
   if (fx < 0 || fx >= 1 || fy < 0 || fy >= 1) return;
+  if (activeFieldRequestId) {
+    // The photometry endpoint combines prepared images by position, not by request.
+    measureEls.pos.textContent = "Click measurements are unavailable for these images. The data service cannot limit measurements to the images in this request.";
+    return;
+  }
   const n = player.naturalSize;
   const scaleArcsec = currentFrames[0].pixelScaleArcsec ?? (currentQuery.fov * 60) / n;
   const sky = inspectionPosition(fx, fy, { ra: currentQuery.ra, dec: currentQuery.dec, n, scaleArcsec });
@@ -827,9 +859,102 @@ const sky = new SkyContext($("aladin-box"), $("aladin-status"), $("sky-geo-note"
   resetLight: $("sky-reset-light"),
   resetStatus: $("sky-reset-status"),
 });
+let zoneRequestUnavailable = skyRequestAvailability({
+  dataSource: DATA_SOURCE, legacyReadOnly: LEGACY_API_READ_ONLY, canUseBackend: CAN_USE_BACKEND,
+  remoteBackend: IS_REMOTE_BACKEND, explicitBackend: Boolean(pageParams.get("api")),
+});
+let skyBrowseInitialDraft = null;
+function submitObservedZone(query) {
+  if (DATA_SOURCE === "api") return skyZoneRequests.submit(query);
+}
+const pilotZone = SKY_BROWSE ? setupSkyZone({
+  els: {
+    root: $("sky-zone-controls"), ra: $("sky-zone-ra"), dec: $("sky-zone-dec"),
+    fov: $("sky-zone-fov"), button: $("sky-zone-request"), error: $("sky-zone-error"), status: $("sky-zone-status"),
+  },
+  map: sky,
+  submit: submitObservedZone,
+  unavailable: zoneRequestUnavailable,
+}) : null;
+const workspaceSky = !SKY_BROWSE && !isEmbed ? setupWorkspaceSky({
+  getElement: $,
+  createMap: (container, status, surface, scale) => new SkyContext(container, status, null, { surface, scale }),
+  setupZone: setupSkyZone,
+  submit: DATA_SOURCE === "api" ? submitObservedZone : (query) => openSyntheticZone(query, {
+    writeUrl: writeUrlState,
+    load: (field) => {
+      raInput.value = String(field.ra);
+      decInput.value = String(field.dec);
+      // Keep the legacy field form and its quick-pick state usable too.
+      for (const input of [raInput, decInput]) input.dispatchEvent(new Event("input"));
+      return loadData(field, {}, { fromSyntheticZone: true });
+    },
+    report: (message) => workspaceSky.setStatus(message),
+    handoff: () => moveToPhotoViewer($("workspace-photo-viewer"), prefersReducedMotion),
+  }),
+  unavailable: DATA_SOURCE === "api" ? zoneRequestUnavailable : "",
+  autoOpen: DATA_SOURCE === "api",
+  dataSource: DATA_SOURCE,
+}) : null;
+if (workspaceSky?.synthetic) document.documentElement.classList.add("workspace-synthetic-zone");
+const browseFeedback = pilotZone ?? workspaceSky;
+const submitHint = workspaceSky?.synthetic ? "Select Request this zone to generate synthetic demo images."
+  : browseFeedback ? "Choose a zone and select Request this zone to submit explicitly." : "Select Load images to open a field.";
+const skyZoneRequests = createSkyZoneRequestFlow({
+  requestField: requestFieldApi,
+  getStatus: getFieldRequestApi,
+  retryField: (id, options) => {
+    if (zoneRequestUnavailable) throw new Error("This data service is read-only.");
+    return retryFieldRequestApi(id, options);
+  },
+  writeUrl: writeUrlState,
+  reset: (query) => resetFieldLoad(query, { associated: true }),
+  checking() {
+    if (SKY_BROWSE) document.documentElement.classList.add("sky-request-active");
+    browseFeedback?.setStatus("Checking SPHEREx zone request…");
+  },
+  attached({ requestId, query, retrying }) {
+    activeFieldRequestId = requestId;
+    if (retrying) fieldRequestRetry.hidden = true;
+    browseFeedback?.setStatus(zoneRequestUnavailable || `Attached zone: RA ${query.ra}°, Dec ${query.dec}°, ${query.fov}′ field.`);
+  },
+  accepted() {
+    if (workspaceSky) moveToPhotoViewer($("workspace-photo-viewer"), prefersReducedMotion);
+  },
+  async update(status, { query, token, signal }) {
+    renderFieldRequestStatus(status);
+    await updateFieldRequestView(status, query, token, signal);
+  },
+  complete: finishFieldRequest,
+  failed(message, { origin }) {
+    resetFieldLoad(null, { associated: true });
+    const text = `${message} ${zoneRequestUnavailable || (origin === "legacy" ? "Select Load images to try again." : submitHint)}`;
+    browseFeedback?.setStatus(text);
+    if (!SKY_BROWSE) {
+      setStatus(text);
+      showOverlay("Could not attach SPHEREx request", text, { error: true });
+    }
+  },
+  unsupported(query, dates, origin) {
+    zoneRequestUnavailable = "This data service does not support new zone requests. Map browsing is read-only.";
+    browseFeedback?.setUnavailable(zoneRequestUnavailable);
+    if (origin === "legacy") void loadData(query, dates);
+    else if (!SKY_BROWSE) showOverlay("Zone requests are unavailable", zoneRequestUnavailable, { error: true });
+  },
+  retryStarted() {
+    fieldRequestRetry.disabled = true;
+    browseFeedback?.setStatus("Retrying failed SPHEREx detectors…");
+  },
+  retryFailed(message) {
+    browseFeedback?.setStatus(message);
+    fieldRequestSummary.textContent = message;
+  },
+  retrySettled() { fieldRequestRetry.disabled = false; },
+});
 setupFullscreen($("sky-frame"), $("sky-full-btn"));   // map + its controls fill the screen
 /** Open (or re-centre) the sky map on a position { ra, dec, fov }. */
 async function openSkyMap(q) {
+  if (SKY_BROWSE) return;
   const button = $("aladin-btn");
   if (button.disabled) return;
   button.disabled = true;
@@ -842,6 +967,30 @@ async function openSkyMap(q) {
   }
 }
 
+/** Open the pilot or restore its wide Barnard view without touching the field form. */
+async function openSkyBrowse() {
+  const button = $("aladin-btn");
+  if (button.disabled) return;
+  if (sky.browseSurvey) { sky.centreBrowse(); return; }
+  button.disabled = true;
+  const select = $("survey-select");
+  select.disabled = true;
+  select.selectedIndex = -1;
+  try {
+    const survey = await sky.openBrowse({ onCentre: pilotZone?.syncCentre });
+    if (survey === "dr1") select.add(new Option(BROWSE_SURVEYS.dr1.name, survey));
+    if (survey) {
+      select.value = survey;
+      pilotZone?.open(skyBrowseInitialDraft);
+      skyBrowseInitialDraft = null;
+    }
+  } finally {
+    button.disabled = false;
+    button.textContent = sky.browseSurvey ? "Re-centre sky map" : "Retry sky map";
+    $("sky-full-btn").hidden = !sky.browseSurvey;
+  }
+}
+
 $("viewer-sky-map-btn").addEventListener("click", async () => {
   if (!currentQuery || !player.length) return;
   const title = $("context-title");
@@ -851,12 +1000,16 @@ $("viewer-sky-map-btn").addEventListener("click", async () => {
 });
 
 $("aladin-btn").addEventListener("click", async () => {
+  if (SKY_BROWSE) { await openSkyBrowse(); return; }
   const q = readForm();
   if (!q) { $("aladin-status").textContent = "Enter coordinates first."; return; }
   await openSkyMap(q);
 });
-$("survey-select").addEventListener("change", (e) => sky.setSurvey(e.target.value));
+$("survey-select").addEventListener("change", (e) => {
+  if (!SKY_BROWSE) sky.setSurvey(e.target.value);
+});
 fovInput.addEventListener("change", () => {
+  if (SKY_BROWSE || workspaceSky?.synthetic) return;
   if (sky.isOpen && !allFrames.length) {
     const query = readForm();
     if (query) sky.update(query);
@@ -989,14 +1142,15 @@ const MIN_PASSES = 3;                      // same rule as in movers.js: a third
 let textAnalysis = null;                   // the text analysis (section 9), set up below; its candidate table is refreshed when the list changes
 let movers = [];                           // candidates for the detector on screen, best first
 let selectedMover = -1;
-startMissionRunner({ getCandidate: () => (selectedMover >= 0 ? movers[selectedMover] ?? null : null), getCount: () => movers.length });
+if (!SKY_BROWSE) startMissionRunner({ getCandidate: () => (selectedMover >= 0 ? movers[selectedMover] ?? null : null), getCount: () => movers.length });
 const predict = setupPredict({
   getCandidate: () => (selectedMover >= 0 ? movers[selectedMover] ?? null : null),
   getContext: () => (currentQuery && currentFrames?.length ? { scaleArcsec: currentFrames[0].pixelScaleArcsec ?? (currentQuery.fov * 60) / player.naturalSize, field: { ra: currentQuery.ra, dec: currentQuery.dec, fov: currentQuery.fov } } : null),
 });
-const pinBoard = setupPinBoard({
+const pinBoard = SKY_BROWSE ? null : setupPinBoard({
   getCandidate: () => (selectedMover >= 0 ? movers[selectedMover] ?? null : null),
   getContext: () => ({ realData: DATA_SOURCE === "api", field: currentQuery ? { ra: currentQuery.ra, dec: currentQuery.dec, fov: currentQuery.fov, det: currentQuery.det } : null }),
+  loadField: loadPreparedForm,
 });
 let assistant = null;                      // the explainer (features/assistantView.js), set up further down
 let planetLab = null;                      // the Planet X Lab (features/planetLabView.js), set up further down
@@ -1402,13 +1556,14 @@ function exportContext() {
 
 function dataProvenance() {
   if (DATA_SOURCE !== "api") return false;
-  const sources = new Set(allFrames.map(f => f.provenance ?? "unverified"));
+  const sources = new Set(allFrames.map(f => f.dataKind === "synthetic" ? "synthetic" : f.provenance ?? "unverified"));
   return sources.size === 1 ? [...sources][0] : "mixed";
 }
 
 function updateSourceLabels() {
   const source = dataProvenance();
-  const label = DATA_SOURCE === "api" && !allFrames.length ? "Real data service selected · no field loaded" : source === false ? "Synthetic demo data" : source === "synthetic"
+  const label = SKY_BROWSE && !allFrames.length ? "Sky browse pilot · no cutouts loaded" :
+    DATA_SOURCE === "api" && !allFrames.length ? "Real data service selected · no field loaded" : source === false ? "Synthetic demo data" : source === "synthetic"
     ? "Synthetic FITS test data" : source === "spherex_header"
       ? "SPHEREx-format FITS" : "FITS provenance unverified";
   badge.textContent = label;
@@ -1566,6 +1721,7 @@ function asteroidSentence(m) {
 // The simulated Planet X: a field that contains the body of js/data/mockSource.js (synthetic data only).
 $("planetx-block").hidden = DATA_SOURCE === "api";
 $("planetx-demo-btn").addEventListener("click", () => {
+  if (SKY_BROWSE) return;
   raInput.value = PLANET_X_DEMO.ra.toFixed(5);
   decInput.value = PLANET_X_DEMO.dec.toFixed(5);
   fovInput.value = "30";
@@ -1574,7 +1730,7 @@ $("planetx-demo-btn").addEventListener("click", () => {
   updatePreview("dec");
   document.querySelectorAll("#quick-pick-list .chip").forEach((c) => c.setAttribute("aria-pressed", "false"));
   requestedDetector = "D5";                           // the simulated body is bright at long wavelengths
-  form.requestSubmit();
+  loadPreparedForm();
 });
 
 /** Bring the picture to a candidate: zoom in on it, centred, and make sure the picture is on screen (the button may be far below it). */
@@ -1736,6 +1892,7 @@ $("copy-embed-btn").addEventListener("click", async () => {
   url.searchParams.set("embed", "1");
   url.searchParams.delete("data");               // a public page cannot reach a backend on this computer
   url.searchParams.delete("api");
+  url.searchParams.delete("request_id");         // a synthetic embed cannot restore a real request
   url.hash = "";
   const code = `<iframe src="${url.href}" title="SPHEREx Blink" width="100%" height="900" style="border:0" loading="lazy" allow="fullscreen"></iframe>`;
   const btn = $("copy-embed-btn");
@@ -1784,7 +1941,7 @@ planetLab = setupPlanetLab({
 // ---------------------------------------------------------------
 // Sky explorer (features/skyExplorer.js, skyExplorerView.js; the backend's /api/footprints): where the image files are on the sky
 // ---------------------------------------------------------------
-setupSkyExplorer({
+if (!SKY_BROWSE) setupSkyExplorer({
   els: { refreshBtn: $("sky-refresh-btn"), status: $("sky-status"), mapWrap: $("sky-map-wrap"), map: $("sky-map"), list: $("sky-list"), detail: $("sky-detail") },
   fetchFootprints: async () => {
     if (DATA_SOURCE !== "api") throw new Error("these images are synthetic: there are no files, so no footprints.");
@@ -1798,7 +1955,7 @@ setupSkyExplorer({
     $("dec-input").value = dec.toFixed(4);
     $("fov-input").value = String(fov);
     $("fov-input").dispatchEvent(new Event("input", { bubbles: true }));
-    $("search-form").requestSubmit();
+    loadPreparedForm();
     $("workspace").scrollIntoView({ block: "start", behavior: prefersReducedMotion ? "auto" : "smooth" });
   },
 });
@@ -1828,7 +1985,7 @@ setupBundle({
 });
 
 // Which survey images cover a place (features/surveyCoverage.js, surveyView.js; the backend's /api/survey = a live query of IRSA's table spherex.plane)
-setupSurveySearch({
+if (!SKY_BROWSE) setupSurveySearch({
   els: { form: $("survey-form"), ra: $("survey-ra"), dec: $("survey-dec"), radius: $("survey-radius"), det: $("survey-det"), limit: $("survey-limit"), button: $("survey-btn"), fieldBtn: $("survey-field-btn"),
     error: $("survey-error"), status: $("survey-status"), result: $("survey-result"), summary: $("survey-summary"), plot: $("survey-plot"), table: $("survey-table"), openBtn: $("survey-open-btn") },
   hasBackend: DATA_SOURCE === "api",
@@ -1839,7 +1996,7 @@ setupSurveySearch({
     $("dec-input").value = dec.toFixed(4);
     $("fov-input").value = String(fov);
     $("fov-input").dispatchEvent(new Event("input", { bubbles: true }));
-    $("search-form").requestSubmit();
+    loadPreparedForm();
     $("workspace").scrollIntoView({ block: "start", behavior: prefersReducedMotion ? "auto" : "smooth" });
   },
 });
@@ -1864,13 +2021,12 @@ assistant = setupAssistant({
 // ---------------------------------------------------------------
 // Loading data
 // ---------------------------------------------------------------
-/** Fetch frames for a query and show them. */
-async function loadData(query) {
+/** Invalidate previous progress and clear the viewer without changing the sky draft. */
+function resetFieldLoad(query, { associated = false } = {}) {
   const token = ++loadToken;
-  requestPollController?.abort();
-  requestPollController = null;
   activeFieldRequestId = null;
   lastReadySignature = "";
+  fieldFramesError = "";
   setComparisonFrames([]);
   allFrames = [];
   updateSourceLabels();
@@ -1878,12 +2034,23 @@ async function loadData(query) {
   currentDetector = null;
   currentQuery = null;
   detSelect.disabled = true;
-  lastQuery = query;
+  lastQuery = associated ? null : query;
   sky.setWorkspaceField(null);
-  if (sky.isOpen) sky.update(query);
-  setLoading(true);
+  setLoading(!associated);
   setStatus("");
-  player.pause();
+  if (SKY_BROWSE) document.documentElement.classList.remove("sky-request-active");
+  // Keyboard shortcuts must not be able to play an old sequence during a new load.
+  void player.setFrames([], undefined, () => token === loadToken && !currentFrames.length);
+  canvas.getContext("2d").clearRect(0, 0, canvas.width, canvas.height);
+  timeline.setFrames([]);
+  observations.replaceChildren();
+  detSelect.replaceChildren();
+  $("overview-grid").replaceChildren();
+  clearTimeout(announceTimer);
+  for (const id of ["frame-counter", "frame-date", "frame-announce", "meta-det", "meta-wl", "meta-mjd", "meta-flags"]) {
+    $(id).textContent = "—";
+  }
+  canvas.setAttribute("aria-label", "No cutout loaded");
   setPlayerEnabled(false);
   clearMarker();
   player.setTracks([]);
@@ -1892,35 +2059,32 @@ async function loadData(query) {
   $("track-info").textContent = "";
   if (!$("show-catalogue").checked) $("catalogue-info").textContent = "";
   $("overview").hidden = true;
-  showOverlay("Loading images…", `RA ${formatRA(query.ra)}  Dec ${formatDec(query.dec)}  ·  ${query.fov}′ field`);
+  if (query) showOverlay(associated ? "Checking SPHEREx request…" : "Loading images…",
+    `RA ${formatRA(query.ra)}  Dec ${formatDec(query.dec)}  ·  ${query.fov}′ field`);
+  hideFieldRequestPanel();
+  return token;
+}
 
+/** Read prepared/local or synthetic frames. Return whether playback attached, or undefined if superseded. */
+async function loadData(query, dates = readArchiveDates(), { fromSyntheticZone = false } = {}) {
+  if (SKY_BROWSE) return; // The pilot submits only from its zone button, never via the legacy loader.
+  if (DATA_SOURCE === "api") {
+    skyZoneRequests.cancel();
+    if (!zoneRequestUnavailable) browseFeedback?.setStatus("");
+  } else if (workspaceSky?.synthetic && !fromSyntheticZone) {
+    workspaceSky.syncSyntheticField(query);
+    workspaceSky.setStatus("");
+  }
+  const token = resetFieldLoad(query);
   try {
-    if (DATA_SOURCE === "api" && !LEGACY_API_READ_ONLY) {
-      const dateFrom = dateFromInput.value || null;
-      const dateTo = dateToInput.value || null;
-      const request = await requestFieldApi({ ra: query.ra, dec: query.dec, fov: query.fov, dateFrom, dateTo });
-      if (token !== loadToken) return;
-      if (request) {
-        activeFieldRequestId = request.requestId;
-        requestPollController = new AbortController();
-        const status = await getFieldRequestApi(request.requestId, { signal: requestPollController.signal });
-        if (token !== loadToken) return;
-        renderFieldRequestStatus(status);
-        await updateFieldRequestView(status, query, token);
-        if (fieldRequestComplete(status)) {
-          finishFieldRequest(status);
-        } else {
-          continueFieldRequest(request.requestId, query, token, requestPollController.signal);
-        }
-        return;
-      }
-      if (dateFrom || dateTo) {
-        throw new Error("This data service cannot request an archive date range. Connect to the current SPHEREx acquisition API to retrieve older observations.");
-      }
-    }
     const frames = await getCutouts({ ra: query.ra, dec: query.dec, fovArcmin: query.fov, detector: "all" });
     if (token !== loadToken) return;                   // a newer request started meanwhile – ignore this one
     await applyFrames(frames, query, token);
+    if (token === loadToken && DATA_SOURCE === "api" && (dates.dateFrom || dates.dateTo)) {
+      setStatus("This read-only load did not apply the archive dates." +
+        (zoneRequestUnavailable ? "" : " Select Load images to request the date range."));
+    }
+    if (token === loadToken) return player.length > 0;
   } catch (err) {
     if (token !== loadToken || err?.name === "AbortError") return;
     console.error(err);
@@ -1929,49 +2093,45 @@ async function loadData(query) {
     detSelect.disabled = true;
     if (DATA_SOURCE === "api") setStatus(err.message || "The data request failed.");
     showOverlay("Could not load images", err.message || "Unknown error.", { error: true });
+    return false;
   } finally {
     if (token === loadToken) setLoading(false);
   }
 }
 
-async function continueFieldRequest(requestId, query, token, signal) {
-  try {
-    const status = await followFieldRequest({
-      requestId, getStatus: getFieldRequestApi, signal,
-      onStatus: async (next) => {
-        if (token !== loadToken || activeFieldRequestId !== requestId) return;
-        renderFieldRequestStatus(next);
-        await updateFieldRequestView(next, query, token);
-      },
-    });
-    if (token === loadToken && activeFieldRequestId === requestId) finishFieldRequest(status);
-  } catch (error) {
-    if (error?.name !== "AbortError" && token === loadToken && activeFieldRequestId === requestId) {
-      const message = `Progress updates stopped: ${error.message || "retry the same field to reconnect."}`;
-      if (!fieldRequestPanel.hidden) fieldRequestSummary.textContent = message;
-      else setStatus(message);
-    }
-  }
-}
-
-async function updateFieldRequestView(status, query, token) {
-  if (token !== loadToken || status?.requestId !== activeFieldRequestId) return;
-  const signature = Object.entries(status.detectors ?? [])
-    .filter(([, item]) => item.status === "ready").map(([detector]) => detector).sort().join(",");
+async function updateFieldRequestView(status, query, token, signal) {
+  const isCurrent = () => token === loadToken && !signal?.aborted && status?.requestId === activeFieldRequestId;
+  if (!isCurrent() || status.pollError) return;
+  const ready = Object.entries(status.detectors ?? [])
+    .filter(([, item]) => item.status === "ready").map(([detector]) => detector).sort();
+  const signature = ready.join(",");
   if (!signature || signature === lastReadySignature) return;
-  let frames;
-  try {
-    frames = await getCutouts({ ra: query.ra, dec: query.dec, fovArcmin: query.fov,
-      detector: "all", requestId: status.requestId });
-  } catch (error) {
-    const message = `Observations are ready, but their images could not be loaded: ${error.message}`;
+  const showFramesError = (message) => {
+    if (!isCurrent()) return;
+    fieldFramesError = message;
     if (!fieldRequestPanel.hidden) fieldRequestSummary.textContent = message;
     else setStatus(message);
+  };
+  const result = await loadFieldRequestCutouts({
+    requestId: status.requestId, query, signal, isCurrent, getCutouts,
+    applyFrames: (frames) => applyFrames(frames, query, token),
+  });
+  if (!result || !isCurrent()) return;
+  if (result.stage) {
+    showFramesError(`Observations are ready, but their images could not be loaded: ${result.error.message}`);
+    if (result.stage === "playback" && !player.length) {
+      showOverlay("Could not load detector images", fieldFramesError, { error: true });
+    }
     return;
   }
-  if (!frames.length || token !== loadToken || activeFieldRequestId !== status.requestId) return;
-  lastReadySignature = signature;
-  await applyFrames(frames, query, token);
+  const { frames } = result;
+  if (!frames.length) {
+    showFramesError("Observations are ready, but their cutouts are not available yet.");
+    return;
+  }
+  fieldFramesError = "";
+  if (ready.every(id => frames.some(frame => frame.detector === id))) lastReadySignature = signature;
+  else showFramesError("Some ready detector cutouts are not available yet.");
   renderFieldRequestStatus(status);
 }
 
@@ -1982,20 +2142,26 @@ async function applyFrames(frames, query, token) {
   setComparisonFrames(frames);
   currentQuery = query;
   pinBoard?.refresh();
-  if (sky.isOpen) sky.update(query);
+  if (!activeFieldRequestId && sky.isOpen) sky.update(query);
   if (!frames.length) {
     detSelect.innerHTML = '<option value="">No data</option>';
     detSelect.disabled = true;
-    showOverlay("No SPHEREx images found here", "Try another position or a test object.");
+    showOverlay(DATA_SOURCE === "api" ? "No SPHEREx images found here" : "No synthetic demo images available",
+      "Try another position or a test object.");
     return;
   }
   const detector = populateDetectors(frames);
   detSelect.value = detector;
-  writeUrlState({ det: detector });
+  if (!activeFieldRequestId || !requestedDetector || requestedDetector === detector) writeUrlState({ det: detector });
+  const nextFrames = activeFieldRequestId && detector === currentDetector ? framesFor(detector).frames : null;
+  const keepsPlayer = nextFrames && player.length && currentFrames.length === nextFrames.length &&
+    nextFrames.every((frame, index) => frame.imageUrl === currentFrames[index].imageUrl &&
+      frame.mjd === currentFrames[index].mjd && frame.flagsUrl === currentFrames[index].flagsUrl);
   currentDetector = detector;
   renderOverview(frames, token, { showMissing: true });
-  await showDetector(detector);
-  if (token === loadToken) sky.setWorkspaceField(query);
+  if (!keepsPlayer) await showDetector(detector);
+  if (token !== loadToken) return;
+  if (!SKY_BROWSE) sky.setWorkspaceField(query);
   console.log(`Loaded ${frames.length} frames`, listDetectors(frames));
 }
 
@@ -2026,7 +2192,7 @@ function renderFieldRequestStatus(status) {
   const metadataRetry = status.metadataRetrying
     ? ` · archive retry ${Math.max(1, Number(status.metadataAttemptCount) || 1)}` : "";
 
-  if (DATA_SOURCE === "api" && !LEGACY_API_READ_ONLY && requestId) {
+  if (requestId) {
     if (requestId !== fieldRequestStatusId) {
       fieldRequestStatusId = requestId;
       fieldRequestLiveKey = "";
@@ -2034,7 +2200,8 @@ function renderFieldRequestStatus(status) {
     fieldRequestPanel.hidden = false;
     fieldRequestPanel.classList.toggle("has-failures", failures.length > 0);
     fieldRequestTitle.textContent = "SPHEREx data request";
-    fieldRequestSummary.textContent = `${ready}/6 detectors ready${percent === null ? "" : ` · ${percent}% overall`}${metadataRetry}${status.pollError ? " · reconnecting" : ""}`;
+    const progressSummary = `${ready}/6 detectors ready${percent === null ? "" : ` · ${percent}% overall`}${metadataRetry}${status.pollError ? " · reconnecting" : ""}`;
+    fieldRequestSummary.textContent = fieldFramesError ? `${progressSummary} · ${fieldFramesError}` : progressSummary;
     if (hasOverall) fieldRequestOverall.value = Math.max(0, Math.min(1, overall));
     else fieldRequestOverall.removeAttribute("value");
 
@@ -2056,7 +2223,7 @@ function renderFieldRequestStatus(status) {
 
     if (!overlay.classList.contains("error")) {
       if (allFrames.length) {
-        hideOverlay();
+        if (player.length) hideOverlay();
       } else {
         overlay.classList.remove("hidden");
         overlay.setAttribute("aria-hidden", "false");
@@ -2066,19 +2233,6 @@ function renderFieldRequestStatus(status) {
       }
     }
     setStatus("");
-  } else {
-    const phases = rows.filter((row) => !["ready", "failed", "unavailable"].includes(row.status))
-      .map((row) => `${row.detector}: ${requestPhaseLabel(row)}`).join(" · ");
-    setStatus(`SPHEREx archive · ${ready}/6 detectors ready · ${percent ?? "—"}%${phases ? ` · ${phases}` : ""}`);
-    if (!allFrames.length) {
-      overlay.querySelector(".overlay-title").textContent = "Preparing SPHEREx observations…";
-      overlay.querySelector(".overlay-sub").textContent = phases || `${ready} of 6 detectors ready · ${percent ?? "—"}%`;
-      overlayProgress.hidden = !hasOverall;
-      if (hasOverall) overlayProgress.value = Math.max(0, Math.min(1, overall));
-    }
-  }
-  if (status.pollError && (DATA_SOURCE !== "api" || LEGACY_API_READ_ONLY || fieldRequestPanel.hidden)) {
-    setStatus("Connection interrupted; retrying progress updates.");
   }
   return failures;
 }
@@ -2090,24 +2244,29 @@ function phasesSummary(rows) {
 
 function finishFieldRequest(status) {
   const failures = renderFieldRequestStatus(status);
-  if (activeFieldRequestId && DATA_SOURCE === "api" && !LEGACY_API_READ_ONLY && !fieldRequestPanel.hidden) {
+  if (activeFieldRequestId && !fieldRequestPanel.hidden) {
     const ready = Object.values(status.detectors ?? {}).filter((item) => item.status === "ready").length;
     const details = failures.map((row) => `${row.detector}: ${row.error || "failed"}`).join(" · ");
-    fieldRequestRetry.hidden = failures.length === 0;
-    if (failures.length) {
+    fieldRequestRetry.hidden = Boolean(zoneRequestUnavailable) || failures.length === 0;
+    if (fieldFramesError) {
+      fieldRequestTitle.textContent = allFrames.length && player.length ? "Partial SPHEREx results" : "SPHEREx cutouts could not be loaded";
+      fieldRequestSummary.textContent = [`${ready}/6 detectors ready`, fieldFramesError, details].filter(Boolean).join(" · ");
+      if (!player.length) showOverlay("SPHEREx cutouts could not be loaded", fieldFramesError, { error: true });
+    } else if (failures.length) {
       fieldRequestPanel.classList.add("has-failures");
       fieldRequestTitle.textContent = allFrames.length ? "Partial SPHEREx results" : "Some detector data could not be prepared";
       fieldRequestSummary.textContent = `${ready}/6 detectors ready · ${details}`;
-      if (allFrames.length) hideOverlay();
-      else showOverlay("Some SPHEREx observations could not be prepared", details);
+      if (allFrames.length) {
+        if (player.length) hideOverlay();
+      } else showOverlay("Some SPHEREx observations could not be prepared", details);
     } else if (!allFrames.length) {
       fieldRequestTitle.textContent = "No SPHEREx images found here";
       fieldRequestSummary.textContent = "No observations matched this position.";
-      showOverlay("No SPHEREx images found here", "Try another position or a test object.");
+      showOverlay("No SPHEREx images found here", SKY_BROWSE ? "Choose and request another zone." : "Try another position or a test object.");
     } else {
-      fieldRequestTitle.textContent = "SPHEREx observations ready";
+      fieldRequestTitle.textContent = ready < 6 ? "Partial SPHEREx results" : "SPHEREx observations ready";
       fieldRequestSummary.textContent = `${ready}/6 detectors ready · ${allFrames.length} frames loaded`;
-      hideOverlay();
+      if (player.length) hideOverlay();
     }
     setStatus("");
     return;
@@ -2128,17 +2287,50 @@ function finishFieldRequest(status) {
 // ---------------------------------------------------------------
 // Submit
 // ---------------------------------------------------------------
-form.addEventListener("submit", (event) => {
-  event.preventDefault();            // a <form> would otherwise reload the page
+const readArchiveDates = () => ({
+  dateFrom: dateFromInput.value || null, dateTo: dateToInput.value || null,
+});
+
+function loadPreparedForm() {
   const query = readForm();
   if (!query) return;
+  const dates = readArchiveDates();
+  writeUrlState({ ...query, ...dates, request_id: null });
+  void loadData(query, dates);
+}
 
-  // Save the VALID query in the URL. We always store degrees (5 decimals ≈ 0.04″),
-  // even if the user typed sexagesimal – one canonical format is easier to share/parse.
-  writeUrlState({ ra: query.ra.toFixed(5), dec: query.dec.toFixed(5), fov: query.fov,
-    dateFrom: dateFromInput.value || null, dateTo: dateToInput.value || null });
-
-  loadData(query);
+const loadButton = $("load-btn");
+let explicitLegacyLoad = false;
+loadButton.addEventListener("click", (event) => {
+  if (event.detail > 1) { event.preventDefault(); return; }
+  if (!explicitLoadActivation(event, loadButton, document.activeElement)) return;
+  event.preventDefault();
+  // Only this actual button activation authorizes the ensuing form submit.
+  explicitLegacyLoad = true;
+  try { form.requestSubmit(loadButton); }
+  finally { explicitLegacyLoad = false; }
+});
+loadButton.addEventListener("keydown", (event) => {
+  if (event.repeat && (event.key === "Enter" || event.key === " ")) event.preventDefault();
+});
+form.addEventListener("submit", (event) => {
+  event.preventDefault();            // a <form> would otherwise reload the page
+  if (SKY_BROWSE) return;
+  const explicit = explicitLegacyLoad && event.submitter === loadButton;
+  if (DATA_SOURCE === "api" && explicit && !zoneRequestUnavailable) {
+    // Keep the legacy coordinates and dates; canonicalize to the precision of
+    // the service so the acknowledged link can be verified on reload.
+    const { query, errors } = parseSkyZone({ ra: raInput.value, dec: decInput.value, fov: fovInput.value });
+    setFieldError(raInput, $("ra-error"), errors.ra);
+    setFieldError(decInput, $("dec-error"), errors.dec);
+    if (!query) {
+      (errors.ra ? raInput : errors.dec ? decInput : fovInput).focus({ preventScroll: true });
+      return;
+    }
+    void skyZoneRequests.submit(query, { origin: "legacy", ...readArchiveDates() });
+  } else if (explicit || !new URLSearchParams(location.search).has("request_id")) {
+    loadPreparedForm();
+  }
 });
 
 // ---------------------------------------------------------------
@@ -2146,18 +2338,7 @@ form.addEventListener("submit", (event) => {
 // ---------------------------------------------------------------
 function applyUrlState() {
   const state = readUrlState();
-
-  // FOV: must be a number; clamp it into the slider range.
-  if (state.fov !== undefined) {
-    const fov = Number(state.fov);
-    if (Number.isFinite(fov)) {
-      fovInput.value = String(Math.min(FOV_MAX, Math.max(FOV_MIN, Math.round(fov))));
-      $("fov-value").textContent = fovInput.value;
-    }
-  }
-
-  if (state.dateFrom !== undefined) dateFromInput.value = state.dateFrom;
-  if (state.dateTo !== undefined) dateToInput.value = state.dateTo;
+  const route = readWorkspaceStartup();
 
   if (state.det) requestedDetector = state.det;
   if (state.mode && MODES.includes(state.mode)) {
@@ -2166,11 +2347,58 @@ function applyUrlState() {
   }
   $("mode-help").innerHTML = MODE_HELP[player.mode];
 
-  // RA/Dec: put the raw text in the inputs. If both are present, load right away.
-  // If they are invalid, readForm() will show the normal error messages – no crash.
-  if (state.ra !== undefined) { raInput.value = state.ra; updatePreview("ra"); }
-  if (state.dec !== undefined) { decInput.value = state.dec; updatePreview("dec"); }
-  if (state.ra !== undefined && state.dec !== undefined) form.requestSubmit();
+  // FOV: must be a number; clamp it into the slider range.
+  if (state.fov !== undefined) {
+    const fov = Number(state.fov);
+    if (Number.isFinite(fov)) {
+      fovInput.value = String(clampFov(fov, DATA_SOURCE));
+      $("fov-value").textContent = fovInput.value;
+    }
+  }
+
+  if (state.dateFrom !== undefined) dateFromInput.value = state.dateFrom;
+  if (state.dateTo !== undefined) dateToInput.value = state.dateTo;
+
+  if (state.ra !== undefined && !SKY_BROWSE) { raInput.value = state.ra; updatePreview("ra"); }
+  if (state.dec !== undefined && !SKY_BROWSE) { decInput.value = state.dec; updatePreview("dec"); }
+
+  const draft = route.kind === "request" ? route.target?.query : initialSkyDraft(state);
+  if (SKY_BROWSE) skyBrowseInitialDraft = draft;
+  else workspaceSky?.start(draft);
+
+  if (route.kind === "request") {
+    if (route.target && CAN_USE_BACKEND) {
+      void skyZoneRequests.restore(route.target);
+    } else {
+      const message = route.target ? "No eligible SPHEREx data service is configured to read this request."
+        : "No valid saved zone request to restore.";
+      const text = `${message} ${workspaceSky?.synthetic ? submitHint : zoneRequestUnavailable || submitHint}`;
+      browseFeedback?.setStatus(text);
+      if (!SKY_BROWSE) {
+        setStatus(text);
+        showOverlay("Could not restore SPHEREx request", text, { error: true });
+      }
+    }
+    return; // Never fall back to unscoped data for a link containing a request ID.
+  }
+  if (state.ra === undefined || state.dec === undefined) return;
+  const query = readForm();
+  if (!query) return;
+  // The legacy slider uses whole arcminutes; a prepared API link can still
+  // name an exact fractional width. Synthetic links keep their old rounding.
+  const rawFov = Number(state.fov);
+  if (DATA_SOURCE === "api" && rawFov >= FOV_MIN && rawFov <= FOV_MAX) query.fov = rawFov;
+  void loadData(query);
+}
+
+function initialSkyDraft({ ra, dec, fov }) {
+  if (ra === undefined || dec === undefined) return null;
+  const parsedRa = parseRA(ra), parsedDec = parseDec(dec);
+  const centre = parsedRa.ok && parsedDec.ok && normalizeZoneCentre(parsedRa.deg, parsedDec.deg);
+  const width = Number(fov);
+  if (DATA_SOURCE !== "api") return centre ? { ...centre, fov: Number(fovInput.value) } : null;
+  return centre ? { ...centre, fov: Math.min(REAL_DATA_MAX_FOV_ARCMIN, Math.max(FOV_MIN,
+    Number.isFinite(width) ? width : Number(fovInput.value))) } : null;
 }
 
 // Show which data source is active in the header badge.
@@ -2190,6 +2418,11 @@ $("show-asteroids").closest("label").title = DATA_SOURCE === "api"
   : "Only with real data: the synthetic demo sky is invented, real asteroids would not match it.";
 
 if (!canRecord()) $("record-btn").title = "Your browser cannot record canvas video.";
-renderQuickPicks();
-applyUrlState();
+if (SKY_BROWSE) {
+  applyUrlState(); // Pilot restore is GET-only, independent of survey startup.
+  void openSkyBrowse();
+} else {
+  renderQuickPicks();
+  applyUrlState();
+}
 console.log("SPHEREx Blink: loaded OK");
