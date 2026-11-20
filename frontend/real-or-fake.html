@@ -18,11 +18,11 @@
   <main id="classification" tabindex="-1">
     <a class="classification-back" href="daily.html">← Training</a>
     <div class="classification-heading">
-      <h1 id="classification-title">Real or Fake?</h1>
+      <h1>Real or Fake?</h1>
       <span class="pb-chip">Synthetic training</span>
     </div>
     <p>Classify ten marked signals. You have ten seconds per question.</p>
-    <p id="classification-mode-help">Real means a star or asteroid. Fake means an image artefact.</p>
+    <p>Real means a star or asteroid. Fake means an image artefact.</p>
     <p id="classification-question" class="classification-progress">Question 1 of 10</p>
 
     <div class="classification-game">
@@ -50,15 +50,12 @@
         <div class="classification-answers" role="group" aria-label="Classify the candidate">
           <button type="button" class="btn" data-classification-answer="real" disabled>Real</button>
           <button type="button" class="btn" data-classification-answer="fake" disabled>Fake</button>
-          <button type="button" class="btn" data-classification-answer="star" hidden disabled>Star</button>
-          <button type="button" class="btn" data-classification-answer="asteroid" hidden disabled>Asteroid</button>
-          <button type="button" class="btn" data-classification-answer="artefact" hidden disabled>Artefact</button>
         </div>
         <div id="classification-result" class="classification-result" role="status"></div>
         <button type="button" id="classification-next" class="btn btn-primary" hidden>Next candidate</button>
       </div>
     </div>
   </main>
-  <script type="module" src="js/realOrFake.js?v=separate-games"></script>
+  <script type="module" src="js/realOrFake.js?v=binary-only"></script>
 </body>
 </html>

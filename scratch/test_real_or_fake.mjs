@@ -4,7 +4,7 @@ import { makeCandidate } from "../frontend/js/realOrFake.js";
 
 const training = await readFile(new URL("../frontend/daily.html", import.meta.url), "utf8");
 assert.match(training, /href="real-or-fake.html"/);
-assert.match(training, /href="real-or-fake\.html\?game=identify"/);
+assert.doesNotMatch(training, /Identify the object/);
 assert.doesNotMatch(training, /href="training-quiz\.html"/);
 const page = await readFile(new URL("../frontend/real-or-fake.html", import.meta.url), "utf8");
 assert.match(page, /Synthetic training/);
@@ -32,7 +32,7 @@ function element(id) {
   return elements.get(id);
 }
 const frames = [element("frame1"), element("frame2"), element("frame3")];
-const answers = ["real", "fake", "star", "asteroid", "artefact"].map((kind) => {
+const answers = ["real", "fake"].map((kind) => {
   const button = element(kind);
   button.dataset = { classificationAnswer: kind };
   return button;
@@ -55,9 +55,7 @@ element("classification-image").getContext = () => ({
   putImageData() {}, beginPath() {}, arc() {}, stroke() {},
 });
 await import("../frontend/js/realOrFake.js?ui");
-assert.equal(element("classification-title").textContent, "Real or Fake?");
-assert.equal(answers[0].hidden, false);
-assert.equal(answers[2].hidden, true);
+
 assert.equal(tick, undefined);
 element("classification-start").click();
 assert.equal(element("classification-seconds").textContent, "10");
@@ -86,12 +84,4 @@ assert.equal(element("classification-result").children.at(-1).textContent, "Fina
 assert.equal(element("classification-next").textContent, "Play again");
 element("classification-next").click();
 assert.equal(element("classification-ready").hidden, false);
-window.location.search = "?game=identify";
-await import("../frontend/js/realOrFake.js?identify");
-assert.equal(element("classification-title").textContent, "Identify the object");
-assert.equal(answers[0].hidden, true);
-assert.equal(answers[2].hidden, false);
-element("classification-start").click();
-answers[2].click();
-assert.equal(element("classification-result").children[0].textContent, "Correct · Star");
 console.log("PASS synthetic candidates, blink, answers and ten-second deadline");

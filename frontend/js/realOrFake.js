@@ -67,19 +67,6 @@ function runGame() {
   let questions = [];
   let question = 0;
   let score = 0;
-  const identify = new URLSearchParams(window.location?.search).get("game") === "identify";
-  const title = identify ? "Identify the object" : "Real or Fake?";
-  $("title").textContent = title;
-  document.title = `${title} · SPHEREx Blink`;
-  $("mode-help").textContent = identify
-    ? "Choose Star, Asteroid, or Artefact for the marked signal."
-    : "Real means a star or asteroid. Fake means an image artefact.";
-  answers.forEach((button) => {
-    const answer = button.dataset.classificationAnswer;
-    const binaryAnswer = answer === "real" || answer === "fake";
-    button.hidden = identify === binaryAnswer;
-  });
-
   function newQuiz() {
     questions = [...pool];
     for (let i = questions.length - 1; i > 0; i--) {
@@ -123,7 +110,7 @@ function runGame() {
     clearInterval(timer);
     setBlink(false);
     $("blink").disabled = true;
-    const expected = identify ? kind : (kind === "artefact" ? "fake" : "real");
+    const expected = kind === "artefact" ? "fake" : "real";
     if (answer === expected) score++;
     answers.forEach((button) => {
       button.disabled = true;
@@ -177,7 +164,7 @@ function runGame() {
     $("blink").disabled = false;
     observations.forEach((button) => { button.disabled = false; });
     answers.forEach((button) => {
-      button.disabled = button.hidden;
+      button.disabled = false;
       button.removeAttribute("data-correct");
       button.removeAttribute("data-incorrect");
     });
