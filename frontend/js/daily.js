@@ -1,6 +1,6 @@
 import { missionForDate, realChallengeRequested, showWeeklySchedule } from "./dailySchedule.js";
 import { recordRealCompletion, updateRealStreak } from "./dailyRealStreak.js";
-import { clearDailyToast, showChallengeCompletion, showShootingStars } from "./dailyCelebration.js?v=shared-feedback";
+import { clearDailyToast, showChallengeCompletion, showDailyToast, showShootingStars } from "./dailyCelebration.js?v=shared-feedback";
 import { mulberry32, renderPixels, stretchAsinh } from "./data/mockSource.js";
 
 const $ = (id) => document.getElementById(id);
@@ -287,7 +287,8 @@ $("daily-submit").addEventListener("click", () => {
       drawPreviews();
       showShootingStars();
     }
-    showChallengeCompletion(streak);
+    if (sundayLab) showChallengeCompletion(streak);
+    else if (hit) showDailyToast("Well done! Training exercise completed.");
   }
 });
 $("daily-share").addEventListener("click", async () => {

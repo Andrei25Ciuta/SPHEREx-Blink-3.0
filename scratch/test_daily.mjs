@@ -142,7 +142,7 @@ assert.notDeepEqual(previewA.image.data, previewB.image.data);
 assert.ok(Math.abs((previewB.marker.x - previewA.marker.x) - (targetX - x)) < 1e-9);
 assert.ok(Math.abs((previewB.marker.y - previewA.marker.y) - (targetY - y)) < 1e-9);
 assert.equal(nodes.get("daily-celebration").children.length, 12);
-assert.equal(nodes.get("daily-toast").textContent, "Well done! Challenge completed. 1-day streak.");
+assert.equal(nodes.get("daily-toast").textContent, "Well done! Training exercise completed.");
 nodes.get("frame-a").click();
 
 assert.equal(nodes.get("daily-result-actions").hidden, false);
@@ -170,7 +170,7 @@ assertStreak(1);
 assert.equal(nodes.get("daily-found").hidden, false);
 assert.equal(nodes.get("daily-celebration").children.length, 0);
 assert.equal(streakBadge.classList.has("is-glowing"), false);
-assert.equal(nodes.get("daily-toast").textContent, "Well done! Challenge completed. 1-day streak.");
+assert.equal(nodes.get("daily-toast").textContent, "Well done! Training exercise completed.");
 nodes.get("daily-replay").click();
 await import("../frontend/js/daily.js?reload");
 assert.equal(nodes.get("daily-status").textContent, "3 attempts left.");
