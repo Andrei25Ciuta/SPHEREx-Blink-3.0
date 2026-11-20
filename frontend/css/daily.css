@@ -341,5 +341,3 @@ html[data-contrast="high"] #daily-background {
   transform: translate(-50%, -50%);
   pointer-events: none;
 }
-
-.real-game-streak { width: fit-content; margin: .75rem 0; }

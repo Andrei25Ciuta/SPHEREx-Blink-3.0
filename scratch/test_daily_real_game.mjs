@@ -43,6 +43,7 @@ globalThis.fetch = async (url) => {
 };
 await import("../frontend/js/dailyRealGame.js");
 assert.equal(element("daily-real-game").hidden, false);
+assert.equal(element("daily-real-streak").hidden, false);
 assert.equal(element("daily-mode-controls").hidden, true);
 assert.equal(element("daily-real").hidden, true);
 const image = element("real-game-image");
@@ -67,8 +68,8 @@ assert.equal(element("real-game-streak-count").textContent, "1");
 assert.equal(streakClasses.has("is-glowing"), true);
 element("real-game-streak-bubble").animationend();
 assert.equal(streakClasses.has("is-glowing"), false);
-assert.equal(element("daily-toast").textContent, "Well done! Real challenge completed. 1-day streak.");
-const { clearDailyToast } = await import("../frontend/js/dailyCelebration.js");
+assert.equal(element("daily-toast").textContent, "Well done! Challenge completed. 1-day streak.");
+const { clearDailyToast } = await import("../frontend/js/dailyCelebration.js?v=shared-feedback");
 clearDailyToast();
 assert.equal(element("real-game-share").hidden, false);
 console.log("PASS real daily pair, catalogue scoring and streak");

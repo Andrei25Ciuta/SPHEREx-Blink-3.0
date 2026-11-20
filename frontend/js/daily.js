@@ -1,4 +1,4 @@
-import { clearDailyToast, showDailyToast, showShootingStars } from "./dailyCelebration.js";
+import { clearDailyToast, showChallengeCompletion, showShootingStars } from "./dailyCelebration.js?v=shared-feedback";
 import { mulberry32, renderPixels, stretchAsinh } from "./data/mockSource.js";
 
 const $ = (id) => document.getElementById(id);
@@ -237,7 +237,7 @@ $("daily-submit").addEventListener("click", () => {
       drawPreviews();
       showShootingStars();
     }
-    showDailyToast(`Well done! Challenge completed. ${streak}-day streak.`);
+    showChallengeCompletion(streak);
   }
 });
 $("daily-share").addEventListener("click", async () => {

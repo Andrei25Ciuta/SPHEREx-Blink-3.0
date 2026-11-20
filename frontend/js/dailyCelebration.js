@@ -24,3 +24,7 @@ export function showDailyToast(message) {
   document.getElementById("daily-toast").textContent = message;
   toastTimer = setTimeout(clearDailyToast, 5500);
 }
+
+export function showChallengeCompletion(streak) {
+  showDailyToast(`Well done! Challenge completed. ${streak}-day streak.`);
+}

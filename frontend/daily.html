@@ -6,7 +6,7 @@
   <title>Field of the Day · SPHEREx Blink</title>
   <link rel="stylesheet" href="css/styles.css?v=20261115">
   <link rel="stylesheet" href="css/instrument.css?v=20261115">
-  <link rel="stylesheet" href="css/daily.css?v=completion">
+  <link rel="stylesheet" href="css/daily.css?v=shared-feedback">
 </head>
 <body class="daily-page">
   <canvas id="daily-background" aria-hidden="true"></canvas>
@@ -31,6 +31,13 @@
           <strong>Day streak</strong>
           <small id="daily-streak-freeze">1 freeze available</small>
         </div>
+      </div>
+      <div id="daily-real-streak" class="daily-streak" hidden>
+        <span id="real-game-streak-bubble" class="daily-streak-bubble">
+          <span aria-hidden="true">⭐</span>
+          <strong id="real-game-streak-count">0</strong>
+        </span>
+        <strong id="real-game-streak">Day streak</strong>
       </div>
     </div>
     <div id="daily-mode-controls" class="daily-controls" role="group" aria-label="Data source">
@@ -182,13 +189,6 @@
       </div>
       <p id="real-game-status" role="status"></p>
       <button type="button" class="btn" id="real-game-retry" hidden>Retry</button>
-      <div class="daily-streak real-game-streak">
-        <span id="real-game-streak-bubble" class="daily-streak-bubble">
-          <span aria-hidden="true">⭐</span>
-          <strong id="real-game-streak-count">0</strong>
-        </span>
-        <strong id="real-game-streak">Real challenge streak</strong>
-      </div>
       <button type="button" class="btn" id="real-game-share" hidden>Copy result</button>
       <textarea id="real-game-share-text" readonly aria-label="Shareable result" hidden></textarea>
       <p><a href="daily.html">Back to Field of the Day</a></p>
@@ -199,8 +199,8 @@
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script defer src="js/overviewStarfield.js"></script>
   <script defer src="js/dailyBackground.js?v=overview"></script>
-  <script type="module" src="js/dailyRealGame.js?v=completion"></script>
+  <script type="module" src="js/dailyRealGame.js?v=shared-feedback"></script>
   <script type="module" src="js/dailyReal.js?v=continuous-blink"></script>
-  <script type="module" src="js/daily.js?v=completion"></script>
+  <script type="module" src="js/daily.js?v=shared-feedback"></script>
 </body>
 </html>

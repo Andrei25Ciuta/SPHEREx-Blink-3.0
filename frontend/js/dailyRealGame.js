@@ -1,6 +1,6 @@
 import { getPreparedSequenceApi } from "./data/apiSource.js?v=real-challenge";
 import { TARGETS, positionAtEpoch } from "./targets.js";
-import { showDailyToast, showShootingStars } from "./dailyCelebration.js";
+import { showChallengeCompletion, showShootingStars } from "./dailyCelebration.js?v=shared-feedback";
 
 const byId = (id) => document.getElementById(id);
 const retry = byId("real-game-retry");
@@ -164,7 +164,7 @@ submit.addEventListener("click", () => {
       try { localStorage.setItem(storageKey, JSON.stringify(progress)); } catch { /* storage is optional */ }
     }
     const streak = updateStreak(true);
-    showDailyToast(`Well done! Real challenge completed. ${streak}-day streak.`);
+    showChallengeCompletion(streak);
     byId("real-game-share").hidden = false;
     if (hit) showShootingStars();
   } else {
@@ -192,6 +192,7 @@ if (new URLSearchParams(window.location?.search).get("challenge") === "real") {
   for (const id of ["daily-synthetic", "daily-synthetic-streak", "daily-date", "daily-mode-controls"]) {
     byId(id).hidden = true;
   }
+  byId("daily-real-streak").hidden = false;
   panel.hidden = false;
   await loadChallenge();
 }
