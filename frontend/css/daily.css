@@ -278,14 +278,14 @@ html[data-contrast="high"] #daily-background {
   max-width: 29rem;
 }
 
-#daily-real-image {
+#daily-real-image, #real-game-image {
   display: block;
   width: 100%;
   image-rendering: pixelated;
   cursor: crosshair;
 }
 
-#daily-real-track {
+#daily-real-track, #daily-real-track-game {
   position: absolute;
   inset: 0;
   width: 100%;

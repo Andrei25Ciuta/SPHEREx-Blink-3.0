@@ -1,0 +1,43 @@
+import assert from "node:assert/strict";
+
+const day = 20778;
+Date.now = () => day * 86400000;
+const nodes = new Map();
+function element(id) {
+  if (!nodes.has(id)) nodes.set(id, {
+    hidden: true, naturalWidth: 49, naturalHeight: 49, complete: true,
+    setAttribute() {},
+    addEventListener(name, callback) { this[name] = callback; },
+    getBoundingClientRect: () => ({ left: 0, top: 0, width: 49, height: 49 }),
+  });
+  return nodes.get(id);
+}
+globalThis.document = { getElementById: element };
+globalThis.window = { matchMedia: () => ({ matches: true }) };
+const epochA = 60908.981929;
+const epochB = 61121.228205;
+globalThis.fetch = async (url) => {
+  assert.match(url, /\/api\/sequences\/barnard-d2$/);
+  return Response.json({
+    dataKind: "real",
+    revision: "a75a1f6eaba54cba997233319b47bd3e",
+    frames: [epochA, epochB].map((mjd) => ({
+      mjd, dateISO: "2026-01-01T00:00:00Z", imageUrl: `https://example.test/${mjd}.png`,
+      pixelScaleArcsec: 6.1386,
+    })),
+  });
+};
+await import("../frontend/js/dailyRealGame.js");
+await element("daily-real-game-start").click();
+const image = element("real-game-image");
+assert.match(image.src, /60908/);
+image.click({ clientX: 24.41, clientY: 25.58 });
+assert.equal(element("real-game-submit").disabled, true);
+element("real-game-b").click();
+assert.match(image.src, /61121/);
+image.click({ clientX: 24.49, clientY: 24.60 });
+element("real-game-submit").click();
+assert.match(element("real-game-status").textContent, /Barnard’s Star found · 100\/100/);
+assert.match(element("real-game-streak").textContent, /1 day/);
+assert.equal(element("real-game-share").hidden, false);
+console.log("PASS real daily pair, catalogue scoring and streak");
