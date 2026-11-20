@@ -40,7 +40,9 @@ blink.addEventListener("click", () => {
   if (!frames.length) return;
   blink.setAttribute("aria-pressed", "true");
   blink.textContent = "Pause";
-  timer = setInterval(() => show(1 - active), 850);
+  timer = setInterval(() => {
+    if (ready) show(1 - active);
+  }, 850);
 });
 byId("daily-synthetic-mode").addEventListener("click", stopBlink);
 
@@ -101,20 +103,20 @@ start.addEventListener("click", async () => {
   }
 });
 
-frameButtons.forEach((button, i) => button.addEventListener("click", () => { stopBlink(); show(i); }));
+frameButtons.forEach((button, i) => button.addEventListener("click", () => show(i)));
 image.addEventListener("load", () => {
   ready = true;
   image.hidden = false;
   draw();
 });
 image.addEventListener("error", () => {
+  stopBlink();
   ready = false;
   image.hidden = true;
   status.textContent = "Image unavailable. Select the frame again to retry.";
   draw();
 });
 function mark(x, y) {
-  stopBlink();
   const clamp = (value) => Math.max(0, Math.min(1, value));
   marks[active] = { x: clamp(x), y: clamp(y), width: image.naturalWidth, height: image.naturalHeight };
   draw();

@@ -121,7 +121,7 @@ function updateResultFrames() {
     const thumbnail = document.createElement("span");
     thumbnail.append(preview, marker);
     button.append(thumbnail, label);
-    button.addEventListener("click", () => { stop(); show(frameIndex); });
+    button.addEventListener("click", () => show(frameIndex));
     item.append(button);
     list.append(item);
   }
@@ -209,13 +209,15 @@ $("real-clear").addEventListener("click", () => {
   updateMarks();
   updateResultFrames();
 });
-epoch.addEventListener("change", () => { stop(); show(Number(epoch.value)); });
+epoch.addEventListener("change", () => show(Number(epoch.value)));
 $("real-blink").addEventListener("click", () => {
   if (timer !== undefined) return stop();
   if (frames.length < 2) return;
   $("real-blink").textContent = "Pause";
   $("real-blink").setAttribute("aria-pressed", "true");
-  timer = setInterval(() => show((index + 1) % frames.length), 750);
+  timer = setInterval(() => {
+    if (imageReady) show((index + 1) % frames.length);
+  }, 750);
 });
 function showLoadedImage() {
   imageReady = true;
@@ -227,7 +229,6 @@ image.addEventListener("load", showLoadedImage);
 image.addEventListener("error", () => { stop(); $("real-status").textContent = "This observation could not be displayed. Try another frame."; });
 image.addEventListener("click", (event) => {
   if (!imageReady) return;
-  stop();
   const rect = image.getBoundingClientRect();
   saveMark((event.clientX - rect.left) / rect.width, (event.clientY - rect.top) / rect.height);
 });
@@ -235,7 +236,6 @@ image.addEventListener("keydown", (event) => {
   const move = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[event.key];
   if (!move || !imageReady) return;
   event.preventDefault();
-  stop();
   const mark = marks.get(index) ?? { x: .5, y: .5 };
   saveMark(mark.x + move[0] / image.naturalWidth, mark.y + move[1] / image.naturalHeight);
 });
