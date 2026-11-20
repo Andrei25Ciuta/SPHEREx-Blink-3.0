@@ -18,15 +18,10 @@
   <main id="classification" tabindex="-1">
     <a class="classification-back" href="daily.html">← Training</a>
     <div class="classification-heading">
-      <h1>Real or fake?</h1>
+      <h1 id="classification-title">Real or Fake?</h1>
       <span class="pb-chip">Synthetic training</span>
     </div>
     <p>Classify ten marked signals. You have ten seconds per question.</p>
-    <label for="classification-mode">Quiz mode</label>
-    <select id="classification-mode">
-      <option value="binary">Real or fake</option>
-      <option value="detailed">Star, asteroid, or artefact</option>
-    </select>
     <p id="classification-mode-help">Real means a star or asteroid. Fake means an image artefact.</p>
     <p id="classification-question" class="classification-progress">Question 1 of 10</p>
 
@@ -64,6 +59,6 @@
       </div>
     </div>
   </main>
-  <script type="module" src="js/realOrFake.js?v=ten"></script>
+  <script type="module" src="js/realOrFake.js?v=separate-games"></script>
 </body>
 </html>

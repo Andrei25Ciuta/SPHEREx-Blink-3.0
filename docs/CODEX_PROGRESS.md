@@ -1,3 +1,9 @@
+## 2026-11-20 — Two separate image games in Training
+
+Training has distinct links for Identify the object and Real or Fake. They share the same synthetic image viewer and ten-question scoring, with separate titles and answer sets. The theory quiz remains linked from Learn Mode.
+
+Validation: `node scratch/test_real_or_fake.mjs` covers both URLs, their visible answer types, the timer, and scoring. Browser navigation could not launch Chromium because opening a socket was blocked in the sandbox.
+
 ## 2026-11-20 — Ten-question Training quizzes
 
 Training now links to a ten-question theory quiz drawn from the Learn Mode question bank and to a ten-candidate timed image quiz. The image quiz offers binary Real/Fake or detailed Star/Asteroid/Artefact answers. Both quizzes show a final score and can be replayed. The image quiz uses only synthetic frames.

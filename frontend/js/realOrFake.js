@@ -67,17 +67,18 @@ function runGame() {
   let questions = [];
   let question = 0;
   let score = 0;
-  const mode = $("mode");
-
-  function updateMode() {
-    const binary = mode.value === "binary";
-    $("mode-help").textContent = binary ? "Real means a star or asteroid. Fake means an image artefact."
-      : "Choose the type of source shown in the marked area.";
-    answers.forEach((button) => {
-      const answer = button.dataset.classificationAnswer;
-      button.hidden = binary !== (answer === "real" || answer === "fake");
-    });
-  }
+  const identify = new URLSearchParams(window.location?.search).get("game") === "identify";
+  const title = identify ? "Identify the object" : "Real or Fake?";
+  $("title").textContent = title;
+  document.title = `${title} · SPHEREx Blink`;
+  $("mode-help").textContent = identify
+    ? "Choose Star, Asteroid, or Artefact for the marked signal."
+    : "Real means a star or asteroid. Fake means an image artefact.";
+  answers.forEach((button) => {
+    const answer = button.dataset.classificationAnswer;
+    const binaryAnswer = answer === "real" || answer === "fake";
+    button.hidden = identify === binaryAnswer;
+  });
 
   function newQuiz() {
     questions = [...pool];
@@ -87,7 +88,6 @@ function runGame() {
     }
     question = 0;
     score = 0;
-    mode.disabled = true;
     start();
   }
 
@@ -123,7 +123,7 @@ function runGame() {
     clearInterval(timer);
     setBlink(false);
     $("blink").disabled = true;
-    const expected = mode.value === "binary" ? (kind === "artefact" ? "fake" : "real") : kind;
+    const expected = identify ? kind : (kind === "artefact" ? "fake" : "real");
     if (answer === expected) score++;
     answers.forEach((button) => {
       button.disabled = true;
@@ -193,8 +193,6 @@ function runGame() {
   }));
   answers.forEach((button) => button.addEventListener("click", () => finish(button.dataset.classificationAnswer)));
   $("blink").addEventListener("click", () => setBlink(!blinking));
-  mode.addEventListener("change", updateMode);
-  updateMode();
   $("start").addEventListener("click", newQuiz);
   $("next").addEventListener("click", () => {
     if (question + 1 < questionCount) {
@@ -209,8 +207,7 @@ function runGame() {
     $("seconds").textContent = "10";
     $("time").value = 10;
     observations.forEach((button) => { button.disabled = true; });
-    mode.disabled = false;
-    mode.focus({ preventScroll: true });
+    $("start").focus({ preventScroll: true });
   });
 }
 
