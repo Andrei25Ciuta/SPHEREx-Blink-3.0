@@ -9,17 +9,25 @@ assert.ok(daily.indexOf('id="daily-real-game"') > daily.indexOf('id="daily-real-
 const day = 20778;
 Date.now = () => day * 86400000;
 const nodes = new Map();
+const streakClasses = new Set();
 function element(id) {
   if (!nodes.has(id)) nodes.set(id, {
     hidden: true, naturalWidth: 49, naturalHeight: 49, complete: true,
+    classList: { add: (name) => streakClasses.add(name), remove: (name) => streakClasses.delete(name) },
+    style: { setProperty() {} },
     setAttribute() {},
     addEventListener(name, callback) { this[name] = callback; },
+    replaceChildren() {},
     getBoundingClientRect: () => ({ left: 0, top: 0, width: 49, height: 49 }),
   });
   return nodes.get(id);
 }
-globalThis.document = { getElementById: element };
-globalThis.window = { matchMedia: () => ({ matches: true }), location: { search: "?challenge=real" } };
+let nextElementId = 0;
+globalThis.document = {
+  getElementById: element,
+  createElement: () => element(`celebration-${nextElementId++}`),
+};
+globalThis.window = { matchMedia: () => ({ matches: false }), location: { search: "?challenge=real" } };
 const epochA = 60908.981929;
 const epochB = 61121.228205;
 globalThis.fetch = async (url) => {
@@ -55,6 +63,12 @@ assert.equal(typeof tick, "function");
 element("real-game-submit").click();
 assert.equal(tick, undefined);
 assert.match(element("real-game-status").textContent, /Barnard’s Star found · 100\/100/);
-assert.match(element("real-game-streak").textContent, /1 day/);
+assert.equal(element("real-game-streak-count").textContent, "1");
+assert.equal(streakClasses.has("is-glowing"), true);
+element("real-game-streak-bubble").animationend();
+assert.equal(streakClasses.has("is-glowing"), false);
+assert.equal(element("daily-toast").textContent, "Well done! Real challenge completed. 1-day streak.");
+const { clearDailyToast } = await import("../frontend/js/dailyCelebration.js");
+clearDailyToast();
 assert.equal(element("real-game-share").hidden, false);
 console.log("PASS real daily pair, catalogue scoring and streak");

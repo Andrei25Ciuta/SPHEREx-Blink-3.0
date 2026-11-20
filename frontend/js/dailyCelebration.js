@@ -11,3 +11,16 @@ export function showShootingStars() {
   });
   overlay.replaceChildren(...meteors);
 }
+
+let toastTimer;
+
+export function clearDailyToast() {
+  clearTimeout(toastTimer);
+  document.getElementById("daily-toast").textContent = "";
+}
+
+export function showDailyToast(message) {
+  clearDailyToast();
+  document.getElementById("daily-toast").textContent = message;
+  toastTimer = setTimeout(clearDailyToast, 5500);
+}

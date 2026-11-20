@@ -21,7 +21,7 @@
   <!-- App Styles -->
   <link rel="stylesheet" href="css/styles.css?v=20261115">
   <link rel="stylesheet" href="css/instrument.css?v=20261115">
-  <link rel="stylesheet" href="css/overview-3d.css?v=4">
+  <link rel="stylesheet" href="css/overview-3d.css?v=daily-invite">
   <link rel="stylesheet" href="css/mode-choice.css">
 <!-- Three.js CDN; the rest of the overview remains usable if it is unavailable. -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -74,8 +74,6 @@
           Blink through infrared image sequences over time. Most stars stay in place; sources that move or change brightness stand out for closer inspection.
         </p>
         <div class="hero-cta-group" id="heroActions">
-          <a class="btn-main" href="daily.html"><span>Play today’s field</span> →</a>
-          <a class="btn-ghost" href="daily.html?challenge=real"><span>Play real daily challenge</span> →</a>
           <a class="btn-main" href="index.html#workspace">
             <span>Open Blink Workspace</span> →
           </a>
@@ -249,6 +247,24 @@
     </div>
 
   </main>
+  <aside class="home-daily-invite" aria-labelledby="home-daily-title">
+    <button type="button" class="home-daily-close" aria-label="Dismiss daily challenge invitation">×</button>
+    <span class="home-daily-star" aria-hidden="true">⭐</span>
+    <div>
+      <strong id="home-daily-title">Today’s field is ready</strong>
+      <p>Can you find the moving object?</p>
+      <div class="home-daily-links">
+        <a href="daily.html">Play synthetic →</a>
+        <a href="daily.html?challenge=real">Play real →</a>
+      </div>
+    </div>
+  </aside>
+  <script>
+    document.querySelector(".home-daily-close").addEventListener("click", (event) => {
+      event.currentTarget.closest("aside").hidden = true;
+      document.querySelector("#heroActions a").focus({ preventScroll: true });
+    });
+  </script>
 
   <script type="module" src="js/overviewDataSource.js?v=2"></script>
 

@@ -1,6 +1,6 @@
 import { getPreparedSequenceApi } from "./data/apiSource.js?v=real-challenge";
 import { TARGETS, positionAtEpoch } from "./targets.js";
-import { showShootingStars } from "./dailyCelebration.js";
+import { showDailyToast, showShootingStars } from "./dailyCelebration.js";
 
 const byId = (id) => document.getElementById(id);
 const retry = byId("real-game-retry");
@@ -68,9 +68,17 @@ function show(i) {
   draw();
 }
 
-function updateStreak() {
+const streakBubble = byId("real-game-streak-bubble");
+streakBubble.addEventListener("animationend", () => streakBubble.classList.remove("is-glowing"));
+
+function updateStreak(highlight = false) {
   const streak = progress.day >= day - 1 ? progress.streak : 0;
-  byId("real-game-streak").textContent = `Real challenge streak: ${streak} day${streak === 1 ? "" : "s"}`;
+  const count = byId("real-game-streak-count");
+  if (highlight && streak > Number(count.textContent) && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    streakBubble.classList.add("is-glowing");
+  }
+  count.textContent = String(streak);
+  return streak;
 }
 
 async function loadChallenge() {
@@ -155,7 +163,8 @@ submit.addEventListener("click", () => {
       progress = { day, streak: progress.day === day - 1 ? progress.streak + 1 : 1 };
       try { localStorage.setItem(storageKey, JSON.stringify(progress)); } catch { /* storage is optional */ }
     }
-    updateStreak();
+    const streak = updateStreak(true);
+    showDailyToast(`Well done! Real challenge completed. ${streak}-day streak.`);
     byId("real-game-share").hidden = false;
     if (hit) showShootingStars();
   } else {

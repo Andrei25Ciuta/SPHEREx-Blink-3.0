@@ -266,6 +266,7 @@ html[data-contrast="high"] #daily-background {
   35% {
     background: rgb(var(--accent-rgb) / .35);
     box-shadow: 0 0 1.15rem rgb(var(--accent-rgb) / .65);
+    transform: scale(1.12);
   }
 }
 
@@ -340,3 +341,5 @@ html[data-contrast="high"] #daily-background {
   transform: translate(-50%, -50%);
   pointer-events: none;
 }
+
+.real-game-streak { width: fit-content; margin: .75rem 0; }

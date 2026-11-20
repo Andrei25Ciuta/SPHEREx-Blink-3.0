@@ -1,4 +1,4 @@
-import { showShootingStars } from "./dailyCelebration.js";
+import { clearDailyToast, showDailyToast, showShootingStars } from "./dailyCelebration.js";
 import { mulberry32, renderPixels, stretchAsinh } from "./data/mockSource.js";
 
 const $ = (id) => document.getElementById(id);
@@ -73,19 +73,6 @@ function drawPreviews() {
   }
 }
 
-let toastTimer;
-
-function clearToast() {
-  clearTimeout(toastTimer);
-  $("daily-toast").textContent = "";
-}
-
-function celebrate(streak) {
-  clearToast();
-  $("daily-toast").textContent = `Well done! Object found. ${streak}-day streak.`;
-  toastTimer = setTimeout(clearToast, 5500);
-  showShootingStars();
-}
 
 function draw() {
   context.putImageData(images[frame], 0, 0);
@@ -248,8 +235,9 @@ $("daily-submit").addEventListener("click", () => {
     const streak = updateStreak(true);
     if (hit) {
       drawPreviews();
-      celebrate(streak);
+      showShootingStars();
     }
+    showDailyToast(`Well done! Challenge completed. ${streak}-day streak.`);
   }
 });
 $("daily-share").addEventListener("click", async () => {
@@ -270,7 +258,7 @@ $("daily-replay").addEventListener("click", () => {
   stopBlink();
   $("daily-position-details").open = false;
   $("daily-celebration").replaceChildren();
-  clearToast();
+  clearDailyToast();
   attempts = [];
   frame = 0;
   markers.fill(null);
