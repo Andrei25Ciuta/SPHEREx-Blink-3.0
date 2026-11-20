@@ -1,7 +1,9 @@
 # Everything needed to run the backend tests:  pip install -r backend/requirements-dev.txt
 -r requirements.txt
 pytest>=8
-httpx==0.28.1
+# TestClient supports httpx2 starting with Starlette 1.2.
+starlette>=1.2
+httpx2==2.16.2
 
 # Cloud workflow tests import exception and auth types even with fake clients.
 google-api-core>=2,<3

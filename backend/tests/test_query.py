@@ -35,7 +35,11 @@ def test_reads_time_detector_wavelength_and_pixel_scale(write_frame):
 def test_provenance_uses_header_evidence(write_frame):
     synthetic, _ = write_frame(header_extra={"COMMENT": "SYNTHETIC TEST FILE - NOT SPHEREx DATA"})
     assert read_frame_file(synthetic).provenance == "synthetic"
-    archive, _ = write_frame(header_extra={"OBSID": "2025W34_2B_0090_4", "SPS_TARGET": "SURVEY", "EXTTYPE": "IMAGE"})
+    archive, _ = write_frame(header_extra={
+        "OBSID": "2025W34_2B_0090_4",
+        "HIERARCH SPS_TARGET": "SURVEY",
+        "EXTTYPE": "IMAGE",
+    })
     assert read_frame_file(archive).provenance == "spherex_header"
 
 

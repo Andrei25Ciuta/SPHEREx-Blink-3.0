@@ -246,7 +246,8 @@ class CloudWorkflow:
             DEFAULT_METADATA_MAX_ATTEMPTS, int(os.getenv("BLINK_METADATA_MAX_ATTEMPTS", DEFAULT_METADATA_MAX_ATTEMPTS))))
         approved_path = os.getenv("BLINK_APPROVED_FILE", os.path.join(os.path.dirname(__file__), "..", "approved_sequences.json"))
         try:
-            self.approved_sequences = json.loads(open(approved_path, encoding="utf-8").read()).get("approved", [])
+            with open(approved_path, encoding="utf-8") as approved_file:
+                self.approved_sequences = json.load(approved_file).get("approved", [])
         except (OSError, ValueError):
             self.approved_sequences = []
 
