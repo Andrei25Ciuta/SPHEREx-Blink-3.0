@@ -33,3 +33,9 @@ Checked on 14 Nov 2026: a read from the GitHub Pages origin answers 200; an inse
 Not checked: that an update or delete is refused (no test row was written, to keep the board clean).
 
 The page asks the shared board only once the pin board is on screen, and never by itself in an automated browser (`navigator.webdriver`), so the offline smoke test stays offline; the Refresh button loads it on demand.
+
+## Real or Fake leaderboard
+
+Run [classification_leaderboard.sql](../deploy/classification_leaderboard.sql) once in the same Supabase project's SQL Editor to enable the shared quiz leaderboard. It creates separate score storage and leaves the pins table intact. The trainer remains playable while the leaderboard is unavailable.
+
+The leaderboard displays today's UTC top ten, using the highest score and then the shortest total answer time. Each case-insensitive nickname has one place on the board. The quiz adds ten seconds for each timed-out answer and excludes the pauses between questions. A completed attempt can be posted under a public nickname. Anonymous visitors can read and add today's attempts. Nicknames are not accounts, and the score and timer are reported by the browser.

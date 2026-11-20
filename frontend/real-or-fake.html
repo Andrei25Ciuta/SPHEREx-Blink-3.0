@@ -6,7 +6,7 @@
   <title>Real or fake? · SPHEREx Blink</title>
   <link rel="stylesheet" href="css/styles.css?v=20261115">
   <link rel="stylesheet" href="css/instrument.css?v=20261115">
-  <link rel="stylesheet" href="css/real-or-fake.css?v=quiz">
+  <link rel="stylesheet" href="css/real-or-fake.css?v=daily-scores">
 </head>
 <body>
   <a class="skip-link" href="#classification">Skip to the game</a>
@@ -21,8 +21,7 @@
       <h1>Real or Fake?</h1>
       <span class="pb-chip">Synthetic training</span>
     </div>
-    <p>Classify ten marked signals. You have ten seconds per question.</p>
-    <p>Real means a star or asteroid. Fake means an image artefact.</p>
+    <p>Everyone gets the same ten signals each day. You have ten seconds per question.</p>
     <p id="classification-question" class="classification-progress">Question 1 of 10</p>
 
     <div class="classification-game">
@@ -35,7 +34,7 @@
           <canvas id="classification-image" width="48" height="48" role="img"
             aria-label="Simulated sky field with the candidate area marked"></canvas>
           <div id="classification-ready" class="classification-cover">
-            <button type="button" id="classification-start" class="btn btn-primary">Start round</button>
+            <button type="button" id="classification-start" class="btn btn-primary">Start quiz</button>
           </div>
         </div>
         <div class="classification-frames" role="group" aria-label="Observations">
@@ -46,16 +45,46 @@
         </div>
       </div>
 
-      <div class="classification-guess">
-        <div class="classification-answers" role="group" aria-label="Classify the candidate">
-          <button type="button" class="btn" data-classification-answer="real" disabled>Real</button>
-          <button type="button" class="btn" data-classification-answer="fake" disabled>Fake</button>
-        </div>
-        <div id="classification-result" class="classification-result" role="status"></div>
-        <button type="button" id="classification-next" class="btn btn-primary" hidden>Next candidate</button>
+      <div class="classification-side">
+        <section class="classification-guess" aria-labelledby="classification-choices">
+          <h2 id="classification-choices">What is the marked signal?</h2>
+          <div class="classification-answers" role="group" aria-labelledby="classification-choices">
+            <button type="button" class="btn" data-classification-answer="real" disabled>
+              <span aria-hidden="true" class="classification-symbol">▲</span>
+              <strong>Real</strong><small>Star or asteroid</small>
+            </button>
+            <button type="button" class="btn" data-classification-answer="fake" disabled>
+              <span aria-hidden="true" class="classification-symbol">◆</span>
+              <strong>Fake</strong><small>Image artefact</small>
+            </button>
+          </div>
+          <div id="classification-result" class="classification-result" role="status"></div>
+          <form id="classification-share-score" class="classification-share" hidden>
+            <label for="classification-nickname">Public nickname</label>
+            <div>
+              <input id="classification-nickname" type="text" maxlength="40" required autocomplete="off">
+              <button id="classification-publish-score" type="submit" class="btn">Post score</button>
+            </div>
+            <p id="classification-share-status" role="status"></p>
+          </form>
+          <button type="button" id="classification-next" class="btn btn-primary" hidden>Next question</button>
+        </section>
+
+        <section class="classification-board" aria-labelledby="classification-board-heading">
+          <div class="classification-board-heading">
+            <div>
+              <h2 id="classification-board-heading">Today’s leaderboard</h2>
+              <p id="classification-board-date"></p>
+            </div>
+            <button id="classification-refresh-board" type="button" class="btn btn-small">Refresh</button>
+          </div>
+          <p class="classification-board-rule">Most correct answers first. Fastest time breaks ties.</p>
+          <p id="classification-board-status" role="status"></p>
+          <ol id="classification-scores" aria-label="Daily rankings"></ol>
+        </section>
       </div>
     </div>
   </main>
-  <script type="module" src="js/realOrFake.js?v=binary-only"></script>
+  <script type="module" src="js/realOrFake.js?v=daily-scores"></script>
 </body>
 </html>

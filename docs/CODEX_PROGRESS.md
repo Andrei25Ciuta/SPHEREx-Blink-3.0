@@ -1,3 +1,9 @@
+## 2026-11-21 — Real or Fake daily leaderboard
+
+Real or Fake now uses large answer tiles and a shared set of ten synthetic candidates that changes at UTC midnight. The result shows the number of correct answers and total answer time. Players can post a completed result under a nickname. The board shows today's ten highest scores, with time as the tiebreaker, and highlights the leading entry. The Pin Board's Supabase project can host the scores through a separate table and read-only leaderboard view.
+
+Validation: all 74 `scratch/test_*.mjs` scripts passed. The Real or Fake test uses deterministic candidates, a mock clock and canvas, and a mocked Supabase API to exercise answer timing, day rollover, rank display, and an idempotent post retry. The offline backend suite passed 268 tests with one Astropy environment warning. The headless smoke test was blocked when Chromium exited before it reported its debugging address. The Supabase migration was prepared but has not been applied or tested on the live project.
+
 ## 2026-11-20 — Two separate image games in Training
 
 Training has distinct links for Identify the object and Real or Fake. They share the same synthetic image viewer and ten-question scoring, with separate titles and answer sets. The theory quiz remains linked from Learn Mode.

@@ -64,23 +64,97 @@
   border-color: var(--accent);
 }
 
-.classification-guess {
+.classification-side {
+  display: grid;
+  gap: 1rem;
+}
+.classification-guess, .classification-board {
   padding: .85rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface);
 }
+.classification-side h2 { font-size: 1.05rem; margin: 0 0 .65rem; }
+#classification [data-classification-answer] {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: .3rem;
+  min-height: 7rem;
+  padding: .65rem .4rem;
+  white-space: normal;
+  text-align: center;
+  color: var(--text);
+  background: color-mix(in srgb, var(--answer-color) 18%, var(--surface));
+  border-color: color-mix(in srgb, var(--answer-color) 58%, var(--border));
+}
+#classification [data-classification-answer="real"] { --answer-color: var(--accent); }
+#classification [data-classification-answer="fake"] { --answer-color: var(--accent-2); }
+#classification [data-classification-answer]:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--answer-color) 32%, var(--surface));
+  border-color: var(--answer-color);
+}
+.classification-symbol { color: var(--answer-color); font-size: 1.6rem; line-height: 1; }
+.classification-answers strong { font-size: 1.1rem; }
+.classification-answers small { font-size: .85rem; }
 .classification-result:empty { display: none; }
 .classification-result { margin: .9rem 0; }
 .classification-result strong { color: var(--accent-text); }
 .classification-result p { margin: .3rem 0 0; color: var(--text-muted); }
-#classification [data-correct] { border-color: var(--success); color: var(--success); opacity: 1; }
-#classification [data-incorrect] { border-color: var(--danger); color: var(--danger); opacity: 1; }
+#classification .classification-answers [data-correct] { --answer-color: var(--success); opacity: 1; }
+#classification .classification-answers [data-incorrect] { --answer-color: var(--danger); opacity: 1; }
+
+.classification-share { margin: .85rem 0; }
+.classification-share > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin-top: .3rem;
+}
+.classification-share input { flex: 1 1 8rem; min-width: 0; }
+.classification-share p { margin: .35rem 0 0; color: var(--text-muted); }
+
+.classification-board-heading { display: flex; align-items: start; justify-content: space-between; gap: .5rem; }
+.classification-board-heading h2 { margin-bottom: .1rem; }
+.classification-board p { margin: .35rem 0; color: var(--text-muted); font-size: .875rem; }
+.classification-board p:empty, .classification-share p:empty { display: none; }
+.classification-board ol {
+  display: grid;
+  gap: .35rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.classification-board ol:not(:empty) { margin-top: .7rem; }
+.classification-board li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: .45rem;
+  align-items: center;
+  padding: .35rem .45rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--raised);
+}
+.classification-board li:first-child { border-color: var(--accent); }
+.classification-board li strong { overflow-wrap: anywhere; }
+.classification-rank {
+  display: grid;
+  place-items: center;
+  min-width: 2rem;
+  min-height: 2rem;
+  border-radius: 50%;
+  color: var(--accent-text);
+  font-weight: 700;
+  font-size: .875rem;
+}
+.classification-board li:first-child .classification-rank { background: var(--accent); color: var(--on-accent); }
+.classification-rank-result { color: var(--text-muted); font-size: .875rem; font-variant-numeric: tabular-nums; }
 
 @media (max-width: 37rem) {
   .classification-game { grid-template-columns: minmax(0, 1fr); }
   .classification-viewer { max-height: min(48vh, 22rem); width: min(100%, 48vh, 22rem); margin: auto; }
-  .classification-guess { padding: .65rem; }
+  .classification-guess, .classification-board { padding: .65rem; }
 }
 
 .classification-progress { color: var(--text-muted); }

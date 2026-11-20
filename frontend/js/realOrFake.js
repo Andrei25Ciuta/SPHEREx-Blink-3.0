@@ -1,4 +1,6 @@
 import { mulberry32, renderPixels, stretchAsinh } from "./data/mockSource.js";
+import { classificationDay, formatClassificationTime } from "./features/classificationScores.js";
+import { mountClassificationLeaderboard } from "./classificationLeaderboard.js";
 
 const size = 48;
 const frameCount = 3;
@@ -11,6 +13,16 @@ const categories = {
   asteroid: ["Asteroid", "The point of light has a star-like shape but shifts in the same direction from one observation to the next."],
   artefact: ["Artefact", "A sharp pixel or streak appears in just one frame. Its shape differs from the soft light of nearby stars."],
 };
+
+export function dailyCandidates(day) {
+  const rng = mulberry32(Math.floor(Date.parse(day) / 86400000));
+  const kinds = [...pool];
+  for (let i = kinds.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [kinds[i], kinds[j]] = [kinds[j], kinds[i]];
+  }
+  return kinds.map((kind) => ({ kind, seed: Math.floor(rng() * 2 ** 31) }));
+}
 
 export function makeCandidate(kind, seed) {
   const rng = mulberry32(seed);
@@ -56,6 +68,7 @@ function runGame() {
   }
   const observations = [...document.querySelectorAll("[data-classification-frame]")];
   const answers = [...document.querySelectorAll("[data-classification-answer]")];
+  const leaderboard = mountClassificationLeaderboard($);
   let candidate;
   let kind;
   let frame = 0;
@@ -64,17 +77,19 @@ function runGame() {
   let timer;
   let blinking = false;
   let running = false;
+  let day;
   let questions = [];
   let question = 0;
   let score = 0;
+  let elapsedMs = 0;
+
   function newQuiz() {
-    questions = [...pool];
-    for (let i = questions.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [questions[i], questions[j]] = [questions[j], questions[i]];
-    }
+    day = classificationDay();
+    leaderboard.refreshForDay(day);
+    questions = dailyCandidates(day);
     question = 0;
     score = 0;
+    elapsedMs = 0;
     start();
   }
 
@@ -105,7 +120,9 @@ function runGame() {
 
   function finish(answer) {
     if (!running) return;
-    if (performance.now() >= deadline) answer = null;
+    const now = performance.now();
+    if (now >= deadline) answer = null;
+    elapsedMs += answer ? Math.min(roundMs, Math.max(1, Math.round(now - (deadline - roundMs)))) : roundMs;
     running = false;
     clearInterval(timer);
     setBlink(false);
@@ -130,9 +147,10 @@ function runGame() {
     $("next").textContent = "Next question";
     if (question === questionCount - 1) {
       const total = document.createElement("p");
-      total.textContent = `Final score: ${score}/${questionCount}`;
+      total.textContent = `Final score: ${score}/${questionCount} · ${formatClassificationTime(elapsedMs)}`;
       $("result").append(total);
       $("next").textContent = "Play again";
+      leaderboard.show({ day, score, elapsedMs });
     }
     $("next").hidden = false;
     $("next").focus({ preventScroll: true });
@@ -151,11 +169,10 @@ function runGame() {
 
   function start() {
     clearInterval(timer);
-    kind = questions[question];
+    const item = questions[question];
+    kind = item.kind;
     $("question").textContent = `Question ${question + 1} of ${questionCount}`;
-    candidate = makeCandidate(kind, Math.floor(Math.random() * 2 ** 31));
-    running = true;
-    deadline = performance.now() + roundMs;
+    candidate = makeCandidate(kind, item.seed);
     $("ready").hidden = true;
     $("next").hidden = true;
     $("result").replaceChildren();
@@ -170,6 +187,8 @@ function runGame() {
     });
     showFrame(0);
     setBlink(!window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    running = true;
+    deadline = performance.now() + roundMs;
     timer = setInterval(tick, 100);
     observations[0].focus({ preventScroll: true });
   }
@@ -189,6 +208,7 @@ function runGame() {
     }
     $("ready").hidden = false;
     $("next").hidden = true;
+    leaderboard.show(null);
     $("result").replaceChildren();
     $("question").textContent = `Question 1 of ${questionCount}`;
     $("seconds").textContent = "10";
