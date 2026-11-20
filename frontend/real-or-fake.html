@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en" data-theme="midnight">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Real or fake? · SPHEREx Blink</title>
+  <link rel="stylesheet" href="css/styles.css?v=20261115">
+  <link rel="stylesheet" href="css/instrument.css?v=20261115">
+  <link rel="stylesheet" href="css/real-or-fake.css">
+</head>
+<body>
+  <a class="skip-link" href="#classification">Skip to the game</a>
+  <header class="site-header" data-page="training">
+    <a class="site-brand" href="overview.html">SPHEREx Blink</a>
+    <select id="theme-select" data-default-theme="midnight" aria-label="Colour theme"></select>
+  </header>
+  <script type="module" src="js/siteHeader.js?v=4"></script>
+  <main id="classification" tabindex="-1">
+    <a class="classification-back" href="daily.html">← Training</a>
+    <div class="classification-heading">
+      <h1>Real or fake?</h1>
+      <span class="pb-chip">Synthetic training</span>
+    </div>
+    <p>Study the signal in the marked area. You have ten seconds to classify it.</p>
+
+    <div class="classification-game">
+      <div>
+        <label class="classification-clock">
+          <span aria-hidden="true"><strong id="classification-seconds">10</strong> s</span>
+          <progress id="classification-time" value="10" max="10" aria-label="Seconds remaining"></progress>
+        </label>
+        <div class="classification-viewer">
+          <canvas id="classification-image" width="48" height="48" role="img"
+            aria-label="Simulated sky field with the candidate area marked"></canvas>
+          <div id="classification-ready" class="classification-cover">
+            <button type="button" id="classification-start" class="btn btn-primary">Start round</button>
+          </div>
+        </div>
+        <div class="classification-frames" role="group" aria-label="Observations">
+          <button type="button" class="btn" data-classification-frame="0" aria-label="Frame 1" disabled>1</button>
+          <button type="button" class="btn" data-classification-frame="1" aria-label="Frame 2" disabled>2</button>
+          <button type="button" class="btn" data-classification-frame="2" aria-label="Frame 3" disabled>3</button>
+          <button type="button" class="btn" id="classification-blink" aria-pressed="false" disabled>Blink</button>
+        </div>
+      </div>
+
+      <div class="classification-guess">
+        <div class="classification-answers" role="group" aria-label="Classify the candidate">
+          <button type="button" class="btn" data-classification-answer="star" disabled>Star</button>
+          <button type="button" class="btn" data-classification-answer="asteroid" disabled>Asteroid</button>
+          <button type="button" class="btn" data-classification-answer="artefact" disabled>Artefact</button>
+        </div>
+        <div id="classification-result" class="classification-result" role="status"></div>
+        <button type="button" id="classification-next" class="btn btn-primary" hidden>Next candidate</button>
+      </div>
+    </div>
+  </main>
+  <script type="module" src="js/realOrFake.js"></script>
+</body>
+</html>

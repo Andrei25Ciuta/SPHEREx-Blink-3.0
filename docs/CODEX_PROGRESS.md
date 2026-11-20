@@ -1,3 +1,9 @@
+## 2026-11-20 — Real or fake training game
+
+Training links to a timed classification exercise. Each round uses three explicitly synthetic images and asks the player to classify a marked signal as a star, asteroid, or artefact. The examples illustrate stationary point-spread profiles, moving point-spread profiles, and one-frame detector artefacts. Frame selection is manual when reduced motion is enabled. Each answer or timeout reveals an explanation.
+
+Validation: `node scratch/test_real_or_fake.mjs` uses fixed synthetic seeds and a mocked clock, canvas and DOM to check the ten-second deadline, frame playback, manual frame selection, and answer reveal. The Node and backend suites ran locally. Browser navigation could not launch system Chromium because a socket operation was blocked in the sandbox. No real observations were used.
+
 ## 2026-11-20 — Daily challenge email reminders
 
 The Home invitation provides an opt-in email form, with explicit confirmation and unsubscribe actions. The cloud API uses a dedicated Firestore collection for subscriptions, and a separate private job can send one reminder per Bucharest date at 09:00. Deployment settings are documented in [DAILY_EMAIL.md](DAILY_EMAIL.md).
