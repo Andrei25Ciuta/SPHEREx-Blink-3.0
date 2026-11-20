@@ -23,6 +23,11 @@ export async function getCutoutsApi({ ra, dec, fovArcmin, detector, requestId, s
   return body.frames;
 }
 
+/** Read one existing prepared sequence without starting an acquisition. */
+export function getPreparedSequenceApi(sequenceId) {
+  return getJson(`${API_BASE}/api/sequences/${encodeURIComponent(sequenceId)}`);
+}
+
 /** Start/reuse an on-demand cloud acquisition; null means this is a legacy local API. */
 export async function requestFieldApi({ ra, dec, fov, dateFrom = null, dateTo = null }, { signal } = {}) {
   assertBackendAvailable();

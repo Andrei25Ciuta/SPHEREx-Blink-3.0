@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en" data-theme="midnight">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Field of the Day · SPHEREx Blink</title>
+  <link rel="stylesheet" href="css/styles.css?v=20261115">
+  <link rel="stylesheet" href="css/instrument.css?v=20261115">
+  <link rel="stylesheet" href="css/daily.css?v=shared-feedback">
+</head>
+<body class="daily-page">
+  <canvas id="daily-background" aria-hidden="true"></canvas>
+  <a class="skip-link" href="#daily">Skip to the challenge</a>
+  <header class="site-header" data-page="daily">
+    <a class="site-brand" href="overview.html">SPHEREx Blink</a>
+    <select id="theme-select" data-default-theme="midnight" aria-label="Colour theme"></select>
+  </header>
+  <script type="module" src="js/siteHeader.js?v=4"></script>
+  <main id="daily" tabindex="-1">
+    <div class="daily-heading">
+      <div>
+        <h1 id="daily-title">Field of the Day</h1>
+        <p id="daily-date">Synthetic challenge</p>
+      </div>
+      <div id="daily-synthetic-streak" class="daily-streak">
+        <span id="daily-streak-bubble" class="daily-streak-bubble">
+          <span aria-hidden="true">⭐</span>
+          <strong id="daily-streak-count">0</strong>
+        </span>
+        <div>
+          <strong>Day streak</strong>
+          <small id="daily-streak-freeze">1 freeze available</small>
+        </div>
+      </div>
+      <div id="daily-real-streak" class="daily-streak" hidden>
+        <span id="real-game-streak-bubble" class="daily-streak-bubble">
+          <span aria-hidden="true">⭐</span>
+          <strong id="real-game-streak-count">0</strong>
+        </span>
+        <strong id="real-game-streak">Day streak</strong>
+      </div>
+    </div>
+    <div id="daily-mode-controls" class="daily-controls" role="group" aria-label="Data source">
+      <button type="button" class="btn" id="daily-synthetic-mode" aria-pressed="true">Synthetic</button>
+      <button type="button" class="btn" id="daily-real-mode" aria-pressed="false">Real SPHEREx</button>
+    </div>
+    <section id="daily-synthetic">
+      <p id="daily-instructions">Use Blink to spot the moving object, then mark it in both frames.</p>
+      <div class="daily-layout">
+        <div class="daily-game">
+          <div class="daily-viewer">
+            <div class="daily-controls daily-toolbar" role="group" aria-label="Frame playback">
+              <button type="button" class="btn" id="frame-a" aria-pressed="true">Frame A · Year 0</button>
+              <button type="button" class="btn" id="frame-b" aria-pressed="false">Frame B · Year 1</button>
+              <button type="button" class="btn" id="daily-blink" aria-pressed="false">Blink</button>
+            </div>
+            <canvas id="daily-image" width="256" height="256" tabindex="0" aria-label="Synthetic star field" aria-describedby="daily-instructions daily-keyboard"></canvas>
+          </div>
+          <p id="daily-keyboard" class="daily-keyboard">Use the arrow keys when the image is focused.</p>
+        </div>
+        <aside id="daily-results" class="pin-item daily-results" aria-labelledby="daily-results-title">
+          <div class="pb-card-head">
+            <span id="daily-results-icon" class="pb-avatar" aria-hidden="true">✦</span>
+            <div>
+              <h2 id="daily-results-title">Results</h2>
+              <p id="daily-status" class="pb-when" role="status">3 attempts left.</p>
+            </div>
+            <strong id="daily-score" hidden></strong>
+          </div>
+          <div id="daily-progress">
+            <div id="daily-attempt-stars" aria-hidden="true">★★★</div>
+            <ul class="daily-checklist" aria-label="Guess progress" aria-live="polite">
+              <li id="daily-mark-a"><span id="daily-check-a" aria-hidden="true">○</span> <span id="daily-step-a">Mark in A</span></li>
+              <li id="daily-mark-b"><span id="daily-check-b" aria-hidden="true">○</span> <span id="daily-step-b">Mark in B</span></li>
+            </ul>
+            <button type="button" class="btn btn-primary" id="daily-submit" disabled>Submit guess</button>
+          </div>
+          <div class="pb-chips" role="group" aria-label="Simulated motion">
+            <span class="pb-chip">Synthetic demo</span>
+            <span id="daily-speed" class="pb-chip" hidden></span>
+            <span id="daily-direction" class="pb-chip" hidden></span>
+          </div>
+          <section id="daily-found" aria-labelledby="daily-found-title" hidden>
+            <h3 id="daily-found-title">Source motion</h3>
+            <div class="daily-source">
+              <figure>
+                <canvas id="daily-preview-a" width="26" height="26" role="img" aria-label="Source position in Frame A"></canvas>
+                <figcaption>Frame A · Year 0</figcaption>
+              </figure>
+              <span id="daily-source-arrow" class="daily-source-arrow" aria-hidden="true">→</span>
+              <figure>
+                <canvas id="daily-preview-b" width="26" height="26" role="img" aria-label="Source position in Frame B"></canvas>
+                <figcaption>Frame B · Year 1</figcaption>
+              </figure>
+            </div>
+            <details id="daily-position-details">
+              <summary>Position details</summary>
+              <dl class="daily-positions">
+                <dt>Frame A</dt>
+                <dd id="daily-position-a"></dd>
+                <dt>Frame B</dt>
+                <dd id="daily-position-b"></dd>
+              </dl>
+            </details>
+          </section>
+          <p id="daily-measurement" aria-live="polite"></p>
+          <div id="daily-result-actions" class="pb-popup-actions" hidden>
+            <button type="button" class="btn btn-small" id="daily-replay">Play again</button>
+            <button type="button" class="btn btn-small" id="daily-share">Copy result</button>
+          </div>
+          <p id="daily-copy-status" role="status"></p>
+          <textarea id="daily-share-text" aria-label="Shareable result" readonly hidden></textarea>
+        </aside>
+      </div>
+    </section>
+    <section id="daily-real" aria-labelledby="daily-real-title" hidden>
+      <h2 id="daily-real-title">Barnard’s Star field</h2>
+      <p>Real SPHEREx observations · D2 · 5′ field</p>
+      <p id="daily-real-status" role="status"></p>
+      <button type="button" class="btn" id="daily-real-retry" hidden>Retry</button>
+      <div id="daily-real-viewer" hidden>
+        <div class="daily-layout">
+          <div>
+            <div class="daily-controls">
+              <label>Observation <select id="daily-real-epoch"></select></label>
+              <button type="button" class="btn" id="daily-real-blink" aria-pressed="false">Blink</button>
+            </div>
+            <div class="daily-real-field">
+              <img id="daily-real-image" alt="Aligned SPHEREx image of the Barnard’s Star field" tabindex="0" aria-describedby="daily-real-help">
+              <svg id="daily-real-track" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                <polyline id="daily-real-path"/>
+                <circle id="daily-real-marker" r="2" visibility="hidden"/>
+              </svg>
+            </div>
+            <p id="daily-real-help">Mark the same source across observations. Use the arrow keys to move a mark when the image is focused.</p>
+          </div>
+          <aside class="pin-item daily-results" aria-labelledby="daily-real-results-title">
+            <div class="pb-card-head">
+              <span class="pb-avatar" aria-hidden="true">✦</span>
+              <div>
+                <h2 id="daily-real-results-title">Results</h2>
+                <p id="daily-real-marks" class="pb-when" role="status"></p>
+              </div>
+            </div>
+            <div class="daily-guess-controls">
+              <button type="button" class="btn btn-primary" id="daily-real-submit" disabled>Submit guess</button>
+              <button type="button" class="btn" id="daily-real-clear">Clear marks</button>
+            </div>
+            <div class="pb-chips"><span class="pb-chip">Real SPHEREx · D2</span></div>
+            <p id="daily-real-motion" role="status"></p>
+            <p id="daily-real-rating" class="pb-chip" hidden></p>
+            <details id="daily-real-details" hidden>
+              <summary>More info</summary>
+              <p id="daily-real-coverage"></p>
+              <progress id="daily-real-coverage-bar" aria-label="Marked observations"></progress>
+              <dl class="daily-positions">
+                <dt>Apparent motion on the sky</dt>
+                <dd id="daily-real-sky-motion"></dd>
+                <dt>Observation span</dt>
+                <dd id="daily-real-span"></dd>
+                <dt>Displacement between first and last marks</dt>
+                <dd id="daily-real-displacement"></dd>
+                <dt>First and last image positions (X, Y)</dt>
+                <dd id="daily-real-positions"></dd>
+                <dt>Motion consistency</dt>
+                <dd id="daily-real-fit"></dd>
+              </dl>
+              <p class="pb-when">The score describes how closely the marks follow straight-line motion at a constant speed. It cannot verify the source’s identity.</p>
+              <h3>Which motion fits?</h3>
+              <button type="button" class="btn" id="daily-real-compare">Compare motion models</button>
+              <div id="daily-real-models" aria-live="polite"></div>
+            </details>
+            <ul id="daily-real-results-frames" aria-label="Marked observations" hidden></ul>
+          </aside>
+        </div>
+      </div>
+    </section>
+    <section id="daily-real-game" hidden aria-label="Real daily challenge">
+      <p>Find the moving source in two aligned observations. Mark it in both frames. You have three guesses.</p>
+      <div class="daily-controls">
+        <button type="button" class="btn" id="real-game-a" aria-pressed="true">Frame A</button>
+        <button type="button" class="btn" id="real-game-b" aria-pressed="false">Frame B</button>
+        <button type="button" class="btn" id="real-game-blink" aria-pressed="false">Blink</button>
+        <button type="button" class="btn btn-primary" id="real-game-submit" disabled>Submit guess</button>
+      </div>
+      <div class="daily-real-field">
+        <img id="real-game-image" alt="Real daily challenge observation" tabindex="0" hidden>
+        <svg id="daily-real-track-game" viewBox="0 0 100 100" aria-hidden="true"><circle id="real-game-marker" r="1.4" visibility="hidden"/></svg>
+      </div>
+      <p id="real-game-status" role="status"></p>
+      <button type="button" class="btn" id="real-game-retry" hidden>Retry</button>
+      <button type="button" class="btn" id="real-game-share" hidden>Copy result</button>
+      <textarea id="real-game-share-text" readonly aria-label="Shareable result" hidden></textarea>
+      <p><a href="daily.html">Back to Field of the Day</a></p>
+    </section>
+  </main>
+  <div id="daily-celebration" aria-hidden="true"></div>
+  <p id="daily-toast" role="status"></p>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script defer src="js/overviewStarfield.js"></script>
+  <script defer src="js/dailyBackground.js?v=overview"></script>
+  <script type="module" src="js/dailyRealGame.js?v=real-viewer"></script>
+  <script type="module" src="js/dailyReal.js?v=real-viewer"></script>
+  <script type="module" src="js/daily.js?v=shared-feedback"></script>
+</body>
+</html>

@@ -21,10 +21,11 @@
   <!-- App Styles -->
   <link rel="stylesheet" href="css/styles.css?v=20261115">
   <link rel="stylesheet" href="css/instrument.css?v=20261115">
-  <link rel="stylesheet" href="css/overview-3d.css?v=4">
+  <link rel="stylesheet" href="css/overview-3d.css?v=daily-invite">
   <link rel="stylesheet" href="css/mode-choice.css">
 <!-- Three.js CDN; the rest of the overview remains usable if it is unavailable. -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="js/overviewStarfield.js"></script>
 </head>
 <body>
   <a class="skip-link" href="#overview-main">Skip to overview</a>
@@ -246,6 +247,24 @@
     </div>
 
   </main>
+  <aside class="home-daily-invite" aria-labelledby="home-daily-title">
+    <button type="button" class="home-daily-close" aria-label="Dismiss daily challenge invitation">×</button>
+    <span class="home-daily-star" aria-hidden="true">⭐</span>
+    <div>
+      <strong id="home-daily-title">Today’s field is ready</strong>
+      <p>Can you find the moving object?</p>
+      <div class="home-daily-links">
+        <a href="daily.html">Play synthetic →</a>
+        <a href="daily.html?challenge=real">Play real →</a>
+      </div>
+    </div>
+  </aside>
+  <script>
+    document.querySelector(".home-daily-close").addEventListener("click", (event) => {
+      event.currentTarget.closest("aside").hidden = true;
+      document.querySelector("#heroActions a").focus({ preventScroll: true });
+    });
+  </script>
 
   <script type="module" src="js/overviewDataSource.js?v=2"></script>
 
@@ -263,7 +282,7 @@
 // ── 1. SETUP WEBGL SCENE ──
     const canvas = document.getElementById('bg-canvas');
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (!window.THREE || !canvas) {
+    if (!window.THREE || !window.createOverviewStarfield || !canvas) {
       document.documentElement.classList.add('webgl-unavailable');
       document.querySelector('.spacecraft-hint')?.setAttribute('hidden', '');
       return;
@@ -301,28 +320,7 @@
     scene.add(goldGlow);
 
     // ── 3. 3D PARTICLE STARFIELD ──
-    const starCount = 6500;
-    const starGeo = new THREE.BufferGeometry();
-    const starPos = new Float32Array(starCount * 3);
-    const starCol = new Float32Array(starCount * 3);
-    for (let i = 0; i < starCount; i++) {
-      starPos[i*3] = (Math.random() - 0.5) * 2200;
-      starPos[i*3+1] = (Math.random() - 0.5) * 2200;
-      starPos[i*3+2] = (Math.random() - 0.5) * 2200;
-
-      if (Math.random() < 0.12) {
-        starCol[i*3] = 0.94; starCol[i*3+1] = 0.70; starCol[i*3+2] = 0.31; // gold
-      } else if (Math.random() < 0.08) {
-        starCol[i*3] = 0.5; starCol[i*3+1] = 0.7; starCol[i*3+2] = 1.0;   // blue-white
-      } else {
-        const b = 0.65 + Math.random() * 0.35;
-        starCol[i*3] = b; starCol[i*3+1] = b; starCol[i*3+2] = b;
-      }
-    }
-    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
-    starGeo.setAttribute('color', new THREE.BufferAttribute(starCol, 3));
-    const starMat = new THREE.PointsMaterial({ size: 1.6, vertexColors: true, transparent: true, opacity: 0.85 });
-    const stars = new THREE.Points(starGeo, starMat);
+    const stars = window.createOverviewStarfield(THREE);
     scene.add(stars);
 
     // ── 4. DETAILED PROCEDURAL SPHEREx OBSERVATORY 3D MODEL ──

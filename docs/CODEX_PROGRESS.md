@@ -65,6 +65,36 @@ Verification on Arch Linux, Node 26.13.1, Python 3.14, system Chromium 157, and 
 
 No backend, schema, science, cloud, or dependency pin changes. No new FITS downloads, deployment, commit, or push. Real handset, other browser engines, and arbitrary tile failures after startup were not tested. The original local plan and agent instructions are untouched. Next task: **P2 — Select and explicitly submit a draft zone**, only after approval.
 
+## 2026-11-19 — Field of the Day guess progress
+
+The result panel tracks each frame mark and remaining attempts, and hosts the Submit guess action. The source comparison uses a direction arrow based on the simulated image displacement. The streak badge glows when its count increases, subject to reduced-motion preferences.
+
+Validation: all `scratch/test_*.mjs` scripts and `git diff --check` passed. The daily test uses a fixed synthetic seed and mocked canvas, timing, and storage. The rendered appearance was not verified in a browser. Backend pytest was unavailable because pytest is not installed.
+
+## 2026-11-19 — Field of the Day blink playback and comparison
+
+The viewer can alternate the two frames, and marking a position pauses playback. After a correct guess, the result card shows side-by-side crops of the same image region with the source position highlighted in each frame. The score is prominent and the exact positions are available under Position details.
+
+Validation: all `scratch/test_*.mjs` scripts and `git diff --check` passed. The daily test uses a fixed synthetic seed, a mocked canvas and a simulated playback timer. The rendered layout was not verified in a browser. Backend pytest was unavailable because pytest is not installed.
+
+## 2026-11-19 — Field of the Day streak badge
+
+The streak count and freeze status now appear beside the heading. A correct guess shows a temporary congratulatory message with the current streak as the shooting-star animation starts. The message also appears with reduced motion enabled.
+
+Validation: all `scratch/test_*.mjs` scripts and `git diff --check` passed. The daily test checks the badge, freeze and celebration states with a fixed UTC seed and mocked canvas and browser storage. The rendered appearance was not verified in the sandbox browser. Backend pytest was unavailable because pytest is not installed.
+
+## 2026-11-19 — Field of the Day result card
+
+The right-hand result panel uses the Pin Board card styles. It shows the score, simulated motion, streak, and replay and sharing actions. A successful round also shows the source crop and both positions in image pixels.
+
+Validation: all `scratch/test_*.mjs` scripts and `git diff --check` passed. The daily test uses a fixed UTC seed with mocked canvas and browser storage. A rendered check was blocked when Chromium could not open a socket in the sandbox. Backend pytest was unavailable because pytest is not installed.
+
+## 2026-11-19 — Field of the Day
+
+The overview links to a daily two-frame blink challenge generated from the existing synthetic renderer. The puzzle changes at midnight UTC. Results and streaks use browser storage.
+
+Validation: the Node suites passed, including `node scratch/test_daily.mjs` with a fixed UTC seed and mocked canvas and storage. `node scratch/test_astrometry.mjs` passed when rerun without the suite timeout. `git diff --check` passed. Backend pytest was unavailable. Browser navigation and rendering could not be verified because the bundled Chromium was missing and system Chromium could not launch under the sandbox. No real images or live services were used.
+
 ## 2026-11-15 — Monthly SPHEREx archive sampling
 
 Source-only change: new processing version `blink3-cloud-3` now selects up to 12 newest available UTC months independently for each detector. For each month, the archive plan keeps chronologically ordered candidates in a balanced plan of at most 24 entries per detector; the preparation job downloads candidates until it finds a FITS file that passes the existing provenance checks and produces a usable cutout for the requested field. The job records selected and unavailable months, reports real month/file/byte progress, and preserves successful selected cutouts in private staging for retries. The 32 MiB per-file and 128 MiB total transfer limits remain enforced, including candidate retries.
