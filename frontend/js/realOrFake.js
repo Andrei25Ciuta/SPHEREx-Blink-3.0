@@ -4,6 +4,8 @@ const size = 48;
 const frameCount = 3;
 const roundMs = 10000;
 const blinkMs = 650;
+const questionCount = 10;
+const pool = ["star", "asteroid", "artefact", "star", "artefact", "asteroid", "artefact", "star", "artefact", "artefact"];
 const categories = {
   star: ["Star", "The signal has the soft shape of the other stars and stays in place across the three observations."],
   asteroid: ["Asteroid", "The point of light has a star-like shape but shifts in the same direction from one observation to the next."],
@@ -62,6 +64,32 @@ function runGame() {
   let timer;
   let blinking = false;
   let running = false;
+  let questions = [];
+  let question = 0;
+  let score = 0;
+  const mode = $("mode");
+
+  function updateMode() {
+    const binary = mode.value === "binary";
+    $("mode-help").textContent = binary ? "Real means a star or asteroid. Fake means an image artefact."
+      : "Choose the type of source shown in the marked area.";
+    answers.forEach((button) => {
+      const answer = button.dataset.classificationAnswer;
+      button.hidden = binary !== (answer === "real" || answer === "fake");
+    });
+  }
+
+  function newQuiz() {
+    questions = [...pool];
+    for (let i = questions.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [questions[i], questions[j]] = [questions[j], questions[i]];
+    }
+    question = 0;
+    score = 0;
+    mode.disabled = true;
+    start();
+  }
 
   function showFrame(index) {
     frame = index;
@@ -95,10 +123,12 @@ function runGame() {
     clearInterval(timer);
     setBlink(false);
     $("blink").disabled = true;
+    const expected = mode.value === "binary" ? (kind === "artefact" ? "fake" : "real") : kind;
+    if (answer === expected) score++;
     answers.forEach((button) => {
       button.disabled = true;
-      button.toggleAttribute("data-correct", button.dataset.classificationAnswer === kind);
-      button.toggleAttribute("data-incorrect", Boolean(answer) && answer === button.dataset.classificationAnswer && answer !== kind);
+      button.toggleAttribute("data-correct", button.dataset.classificationAnswer === expected);
+      button.toggleAttribute("data-incorrect", Boolean(answer) && answer === button.dataset.classificationAnswer && answer !== expected);
     });
     if (!answer) {
       $("time").value = 0;
@@ -106,10 +136,17 @@ function runGame() {
     }
     const title = document.createElement("strong");
     const [label, explanation] = categories[kind];
-    title.textContent = `${answer === kind ? "Correct" : answer ? "Incorrect" : "Time’s up"} · ${label}`;
+    title.textContent = `${answer === expected ? "Correct" : answer ? "Incorrect" : "Time’s up"} · ${label}`;
     const detail = document.createElement("p");
     detail.textContent = explanation;
     $("result").replaceChildren(title, detail);
+    $("next").textContent = "Next question";
+    if (question === questionCount - 1) {
+      const total = document.createElement("p");
+      total.textContent = `Final score: ${score}/${questionCount}`;
+      $("result").append(total);
+      $("next").textContent = "Play again";
+    }
     $("next").hidden = false;
     $("next").focus({ preventScroll: true });
   }
@@ -127,8 +164,8 @@ function runGame() {
 
   function start() {
     clearInterval(timer);
-    const kinds = Object.keys(categories).filter((entry) => entry !== kind);
-    kind = kinds[Math.floor(Math.random() * kinds.length)];
+    kind = questions[question];
+    $("question").textContent = `Question ${question + 1} of ${questionCount}`;
     candidate = makeCandidate(kind, Math.floor(Math.random() * 2 ** 31));
     running = true;
     deadline = performance.now() + roundMs;
@@ -140,7 +177,7 @@ function runGame() {
     $("blink").disabled = false;
     observations.forEach((button) => { button.disabled = false; });
     answers.forEach((button) => {
-      button.disabled = false;
+      button.disabled = button.hidden;
       button.removeAttribute("data-correct");
       button.removeAttribute("data-incorrect");
     });
@@ -156,8 +193,25 @@ function runGame() {
   }));
   answers.forEach((button) => button.addEventListener("click", () => finish(button.dataset.classificationAnswer)));
   $("blink").addEventListener("click", () => setBlink(!blinking));
-  $("start").addEventListener("click", start);
-  $("next").addEventListener("click", start);
+  mode.addEventListener("change", updateMode);
+  updateMode();
+  $("start").addEventListener("click", newQuiz);
+  $("next").addEventListener("click", () => {
+    if (question + 1 < questionCount) {
+      question++;
+      start();
+      return;
+    }
+    $("ready").hidden = false;
+    $("next").hidden = true;
+    $("result").replaceChildren();
+    $("question").textContent = `Question 1 of ${questionCount}`;
+    $("seconds").textContent = "10";
+    $("time").value = 10;
+    observations.forEach((button) => { button.disabled = true; });
+    mode.disabled = false;
+    mode.focus({ preventScroll: true });
+  });
 }
 
 if (typeof document !== "undefined") runGame();

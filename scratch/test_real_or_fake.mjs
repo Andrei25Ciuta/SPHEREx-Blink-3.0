@@ -23,13 +23,14 @@ function element(id) {
       toggleAttribute(name, value) { if (value) this.attributes.set(name, true); else this.attributes.delete(name); },
       addEventListener(type, handler) { this[type] = handler; },
       replaceChildren(...children) { this.children = children; },
+      append(...children) { this.children.push(...children); },
       focus() {},
     });
   }
   return elements.get(id);
 }
 const frames = [element("frame1"), element("frame2"), element("frame3")];
-const answers = ["star", "asteroid", "artefact"].map((kind) => {
+const answers = ["real", "fake", "star", "asteroid", "artefact"].map((kind) => {
   const button = element(kind);
   button.dataset = { classificationAnswer: kind };
   return button;
@@ -46,7 +47,8 @@ Object.defineProperty(globalThis, "performance", { value: { now: () => time } })
 let tick;
 globalThis.setInterval = (handler) => { tick = handler; return 1; };
 globalThis.clearInterval = () => { tick = undefined; };
-Math.random = () => 0;
+Math.random = () => .999;
+element("classification-mode").value = "binary";
 element("classification-image").getContext = () => ({
   createImageData: (w, h) => ({ data: new Uint8ClampedArray(w * h * 4) }),
   putImageData() {}, beginPath() {}, arc() {}, stroke() {},
@@ -71,4 +73,20 @@ tick();
 assert.equal(element("classification-seconds").textContent, "0");
 assert.equal(element("classification-result").children[0].textContent, "Time’s up · Asteroid");
 assert.ok(answers.every((answer) => answer.disabled));
+for (let i = 3; i <= 10; i++) {
+  element("classification-next").click();
+  assert.equal(element("classification-question").textContent, `Question ${i} of 10`);
+  answers[0].click();
+}
+assert.equal(element("classification-result").children.at(-1).textContent, "Final score: 4/10");
+assert.equal(element("classification-next").textContent, "Play again");
+element("classification-next").click();
+assert.equal(element("classification-mode").disabled, false);
+element("classification-mode").value = "detailed";
+element("classification-mode").change();
+assert.equal(answers[0].hidden, true);
+assert.equal(answers[2].hidden, false);
+element("classification-start").click();
+answers[2].click();
+assert.equal(element("classification-result").children[0].textContent, "Correct · Star");
 console.log("PASS synthetic candidates, blink, answers and ten-second deadline");

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en" data-theme="midnight">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Theory quiz · SPHEREx Blink</title>
+  <link rel="stylesheet" href="css/styles.css?v=20261115">
+  <link rel="stylesheet" href="css/instrument.css?v=20261115">
+  <link rel="stylesheet" href="css/real-or-fake.css?v=quiz">
+</head>
+<body>
+  <a class="skip-link" href="#classification">Skip to the quiz</a>
+  <header class="site-header" data-page="training">
+    <a class="site-brand" href="overview.html">SPHEREx Blink</a>
+    <select id="theme-select" data-default-theme="midnight" aria-label="Colour theme"></select>
+  </header>
+  <script type="module" src="js/siteHeader.js?v=4"></script>
+  <main id="classification" tabindex="-1">
+    <a class="classification-back" href="daily.html">← Training</a>
+    <div class="classification-heading"><h1>Theory quiz</h1></div>
+    <p>Ten questions from Learn Mode.</p>
+    <section class="classification-guess" aria-labelledby="theory-prompt">
+      <p id="theory-progress"></p>
+      <h2 id="theory-prompt" tabindex="-1">Ready to start?</h2>
+      <div id="theory-answers" class="theory-answers"></div>
+      <p id="theory-feedback" role="status"></p>
+      <button type="button" class="btn btn-primary" id="theory-next">Start quiz</button>
+    </section>
+  </main>
+  <script type="module" src="js/trainingQuiz.js"></script>
+</body>
+</html>

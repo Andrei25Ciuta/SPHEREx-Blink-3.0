@@ -6,7 +6,7 @@
   <title>Real or fake? · SPHEREx Blink</title>
   <link rel="stylesheet" href="css/styles.css?v=20261115">
   <link rel="stylesheet" href="css/instrument.css?v=20261115">
-  <link rel="stylesheet" href="css/real-or-fake.css">
+  <link rel="stylesheet" href="css/real-or-fake.css?v=quiz">
 </head>
 <body>
   <a class="skip-link" href="#classification">Skip to the game</a>
@@ -21,7 +21,14 @@
       <h1>Real or fake?</h1>
       <span class="pb-chip">Synthetic training</span>
     </div>
-    <p>Study the signal in the marked area. You have ten seconds to classify it.</p>
+    <p>Classify ten marked signals. You have ten seconds per question.</p>
+    <label for="classification-mode">Quiz mode</label>
+    <select id="classification-mode">
+      <option value="binary">Real or fake</option>
+      <option value="detailed">Star, asteroid, or artefact</option>
+    </select>
+    <p id="classification-mode-help">Real means a star or asteroid. Fake means an image artefact.</p>
+    <p id="classification-question" class="classification-progress">Question 1 of 10</p>
 
     <div class="classification-game">
       <div>
@@ -46,15 +53,17 @@
 
       <div class="classification-guess">
         <div class="classification-answers" role="group" aria-label="Classify the candidate">
-          <button type="button" class="btn" data-classification-answer="star" disabled>Star</button>
-          <button type="button" class="btn" data-classification-answer="asteroid" disabled>Asteroid</button>
-          <button type="button" class="btn" data-classification-answer="artefact" disabled>Artefact</button>
+          <button type="button" class="btn" data-classification-answer="real" disabled>Real</button>
+          <button type="button" class="btn" data-classification-answer="fake" disabled>Fake</button>
+          <button type="button" class="btn" data-classification-answer="star" hidden disabled>Star</button>
+          <button type="button" class="btn" data-classification-answer="asteroid" hidden disabled>Asteroid</button>
+          <button type="button" class="btn" data-classification-answer="artefact" hidden disabled>Artefact</button>
         </div>
         <div id="classification-result" class="classification-result" role="status"></div>
         <button type="button" id="classification-next" class="btn btn-primary" hidden>Next candidate</button>
       </div>
     </div>
   </main>
-  <script type="module" src="js/realOrFake.js"></script>
+  <script type="module" src="js/realOrFake.js?v=ten"></script>
 </body>
 </html>

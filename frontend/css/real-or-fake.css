@@ -82,3 +82,13 @@
   .classification-viewer { max-height: min(48vh, 22rem); width: min(100%, 48vh, 22rem); margin: auto; }
   .classification-guess { padding: .65rem; }
 }
+
+.classification-progress { color: var(--text-muted); }
+.theory-answers {
+  display: grid;
+  gap: .55rem;
+  margin-top: .8rem;
+}
+.theory-answers .btn { text-align: start; white-space: normal; }
+#theory-progress { color: var(--text-muted); }
+#theory-feedback:empty { display: none; }

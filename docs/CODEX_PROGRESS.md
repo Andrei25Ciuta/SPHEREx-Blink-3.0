@@ -1,3 +1,9 @@
+## 2026-11-20 — Ten-question Training quizzes
+
+Training now links to a ten-question theory quiz drawn from the Learn Mode question bank and to a ten-candidate timed image quiz. The image quiz offers binary Real/Fake or detailed Star/Asteroid/Artefact answers. Both quizzes show a final score and can be replayed. The image quiz uses only synthetic frames.
+
+Validation: `node scratch/test_training_quiz.mjs` exercises all ten theory questions, scoring and replay. `node scratch/test_real_or_fake.mjs` uses deterministic synthetic seeds and a mock clock to check the binary and detailed modes, the ten-second deadline, and final scoring. Browser regression was blocked when system Chromium could not open a socket in the sandbox.
+
 ## 2026-11-20 — Real or fake training game
 
 Training links to a timed classification exercise. Each round uses three explicitly synthetic images and asks the player to classify a marked signal as a star, asteroid, or artefact. The examples illustrate stationary point-spread profiles, moving point-spread profiles, and one-frame detector artefacts. Frame selection is manual when reduced motion is enabled. Each answer or timeout reveals an explanation.
