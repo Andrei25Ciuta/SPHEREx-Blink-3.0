@@ -1,6 +1,7 @@
 import { API_BASE, CAN_USE_BACKEND } from "./config.js?v=1";
 
 const $ = (id) => document.getElementById(id);
+const disabledMessage = "Daily email reminders are not enabled on this site yet.";
 
 async function requestEmailAction(action, payload) {
   if (!CAN_USE_BACKEND) throw new Error("Daily email reminders are not available here.");
@@ -12,6 +13,7 @@ async function requestEmailAction(action, payload) {
   });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
+    if (response.status === 404 || response.status === 405) throw new Error(disabledMessage);
     throw new Error(typeof body.detail === "string" ? body.detail
       : "The email service is unavailable. Please try again later.");
   }
@@ -19,6 +21,27 @@ async function requestEmailAction(action, payload) {
 }
 
 const form = $("daily-email-form");
+const options = $("daily-email-options");
+options?.addEventListener("toggle", async () => {
+  if (!options.open || !form.hidden) return;
+  const status = $("daily-email-status");
+  status.textContent = "Checking email availability…";
+  try {
+    if (!CAN_USE_BACKEND) throw new Error(disabledMessage);
+    const response = await fetch(`${API_BASE}/api/daily-email/status`, {
+      signal: AbortSignal.timeout(8000),
+      cache: "no-store",
+    });
+    if (response.status === 404 || response.status === 405) throw new Error(disabledMessage);
+    if (!response.ok) throw new Error("The email service is temporarily unavailable.");
+    const { enabled } = await response.json();
+    if (enabled !== true) throw new Error(disabledMessage);
+    form.hidden = false;
+    status.textContent = "";
+  } catch (error) {
+    status.textContent = error instanceof SyntaxError ? disabledMessage : error.message;
+  }
+});
 form?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const button = form.querySelector("button");

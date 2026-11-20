@@ -226,6 +226,10 @@ def daily_email_router(service):
             raise HTTPException(503, "Daily email reminders are not enabled yet.")
         return service
 
+    @router.get("/status")
+    def status():
+        return {"enabled": service is not None}
+
     @router.post("/subscribe", status_code=202)
     def subscribe(payload: EmailRequest):
         try:

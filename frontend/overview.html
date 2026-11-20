@@ -257,15 +257,15 @@
         <a href="daily.html">Open Training →</a>
         <a href="daily.html?challenge=real">Play Daily Challenge →</a>
       </div>
-      <details class="home-daily-email">
+      <details class="home-daily-email" id="daily-email-options">
         <summary>Remind me daily</summary>
-        <form id="daily-email-form">
+        <form id="daily-email-form" hidden>
           <label for="daily-email-address">Email address</label>
           <input id="daily-email-address" type="email" autocomplete="email" maxlength="254" required>
           <p>One reminder at 09:00 Bucharest time. Unsubscribe anytime.</p>
           <button class="btn btn-primary" type="submit">Send confirmation</button>
-          <p id="daily-email-status" role="status"></p>
         </form>
+        <p id="daily-email-status" role="status"></p>
       </details>
     </div>
   </aside>
@@ -276,7 +276,7 @@
     });
   </script>
 
-  <script type="module" src="js/dailyEmail.js"></script>
+  <script type="module" src="js/dailyEmail.js?v=status"></script>
   <script type="module" src="js/overviewDataSource.js?v=2"></script>
 
   <footer class="overview-footer">

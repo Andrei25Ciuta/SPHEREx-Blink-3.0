@@ -11,20 +11,30 @@ const listener = {
   addEventListener(event, callback) { this[event] = callback; },
 };
 const submitButton = {};
-const form = { ...listener, querySelector: () => submitButton };
+const form = { ...listener, hidden: true, querySelector: () => submitButton };
+const options = { ...listener, open: true };
 nodes.set("daily-email-form", form);
+nodes.set("daily-email-options", options);
 nodes.set("daily-email-address", { value: "observer@example.test" });
 nodes.set("daily-email-status", {});
 
 globalThis.location = { hostname: "localhost", search: "", hash: "", pathname: "/daily-email.html" };
 const actions = [];
+let enabled = false;
 globalThis.fetch = async (url, options) => {
+  if (url.endsWith("/status")) return Response.json({ enabled });
   actions.push({ url, method: options.method, body: JSON.parse(options.body) });
   return Response.json({ message: "Success" });
 };
 
 await import("../frontend/js/dailyEmail.js");
 assert.equal(actions.length, 0);
+await options.toggle();
+assert.equal(form.hidden, true);
+assert.match(nodes.get("daily-email-status").textContent, /not enabled/);
+enabled = true;
+await options.toggle();
+assert.equal(form.hidden, false);
 await form.submit({ preventDefault() {} });
 assert.deepEqual(actions[0], {
   url: "http://localhost:8001/api/daily-email/subscribe", method: "POST",
@@ -33,6 +43,7 @@ assert.deepEqual(actions[0], {
 assert.equal(nodes.get("daily-email-address").value, "");
 
 nodes.delete("daily-email-form");
+nodes.delete("daily-email-options");
 const button = { ...listener, hidden: true };
 nodes.set("daily-email-action", button);
 nodes.set("daily-email-message", {});

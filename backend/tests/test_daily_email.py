@@ -116,5 +116,7 @@ def test_failed_confirmation_allows_retry_and_summer_schedule():
 def test_unconfigured_service_does_not_accept_registration():
     app = FastAPI()
     app.include_router(daily_email_router(None))
-    response = TestClient(app).post("/api/daily-email/subscribe", json={"email": "observer@example.test"})
+    client = TestClient(app)
+    assert client.get("/api/daily-email/status").json() == {"enabled": False}
+    response = client.post("/api/daily-email/subscribe", json={"email": "observer@example.test"})
     assert response.status_code == 503
