@@ -1,3 +1,4 @@
+import { updateRealStreak, recordRealCompletion } from "./dailyRealStreak.js";
 import { getPreparedSequenceApi } from "./data/apiSource.js?v=real-challenge";
 import { TARGETS, positionAtEpoch } from "./targets.js";
 import { showChallengeCompletion, showShootingStars } from "./dailyCelebration.js?v=shared-feedback";
@@ -15,9 +16,6 @@ const earlier = [60908.981929, 60911.493589, 60912.717131, 60914.279255, 60916.6
 const later = [61114.03648, 61114.10404, 61116.681643, 61121.228205];
 const epochs = [earlier[day % earlier.length], later[Math.floor(day / earlier.length) % later.length]];
 const barnard = TARGETS.find(({ id }) => id === "barnard");
-const storageKey = "spherex-real-daily-v1";
-let progress = {};
-try { progress = JSON.parse(localStorage.getItem(storageKey)) ?? {}; } catch { /* storage is optional */ }
 let frames = [];
 let active = 0;
 let ready = false;
@@ -68,19 +66,6 @@ function show(i) {
   draw();
 }
 
-const streakBubble = byId("real-game-streak-bubble");
-streakBubble.addEventListener("animationend", () => streakBubble.classList.remove("is-glowing"));
-
-function updateStreak(highlight = false) {
-  const streak = progress.day >= day - 1 ? progress.streak : 0;
-  const count = byId("real-game-streak-count");
-  if (highlight && streak > Number(count.textContent) && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    streakBubble.classList.add("is-glowing");
-  }
-  count.textContent = String(streak);
-  return streak;
-}
-
 async function loadChallenge() {
   retry.hidden = true;
   status.textContent = "Loading prepared observations…";
@@ -98,7 +83,7 @@ async function loadChallenge() {
       button.textContent = `Frame ${i ? "B" : "A"} · ${frames[i].dateISO.slice(0, 10)}`;
     });
     status.textContent = `${date} UTC · 3 attempts left.`;
-    updateStreak();
+    updateRealStreak();
     show(0);
   } catch (error) {
     status.textContent = error.message;
@@ -159,12 +144,7 @@ submit.addEventListener("click", () => {
     status.textContent = hit
       ? `Barnard’s Star found · ${score}/100 · catalogue position match.`
       : "Out of attempts. The target was Barnard’s Star.";
-    if (progress.day !== day) {
-      progress = { day, streak: progress.day === day - 1 ? progress.streak + 1 : 1 };
-      try { localStorage.setItem(storageKey, JSON.stringify(progress)); } catch { /* storage is optional */ }
-    }
-    const streak = updateStreak(true);
-    showChallengeCompletion(streak);
+    showChallengeCompletion(recordRealCompletion());
     byId("real-game-share").hidden = false;
     if (hit) showShootingStars();
   } else {
@@ -176,7 +156,7 @@ submit.addEventListener("click", () => {
 
 byId("real-game-share").addEventListener("click", async () => {
   const squares = "🟥".repeat(score ? attempt - 1 : attempt) + (score ? "🟩" : "") + "⬜".repeat(3 - attempt);
-  const message = `SPHEREx Blink · Real daily challenge · ${date} UTC\n${squares} · ${score}/100\n${new URL("daily.html?challenge=real", location.href)}`;
+  const message = `SPHEREx Blink · Real daily challenge · ${date} UTC\n${squares} · ${score}/100\n${new URL("daily.html?challenge=real-pair", location.href)}`;
   try { await navigator.clipboard.writeText(message); }
   catch {
     const field = byId("real-game-share-text");
@@ -187,7 +167,7 @@ byId("real-game-share").addEventListener("click", async () => {
 });
 
 
-if (new URLSearchParams(window.location?.search).get("challenge") === "real") {
+if (new URLSearchParams(window.location?.search).get("challenge") === "real-pair") {
   byId("daily-title").textContent = "Real Daily Challenge";
   for (const id of ["daily-synthetic", "daily-synthetic-streak", "daily-date", "daily-mode-controls"]) {
     byId(id).hidden = true;

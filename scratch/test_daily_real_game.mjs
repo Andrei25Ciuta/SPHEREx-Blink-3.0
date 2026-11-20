@@ -27,7 +27,7 @@ globalThis.document = {
   getElementById: element,
   createElement: () => element(`celebration-${nextElementId++}`),
 };
-globalThis.window = { matchMedia: () => ({ matches: false }), location: { search: "?challenge=real" } };
+globalThis.window = { matchMedia: () => ({ matches: false }), location: { search: "?challenge=real-pair" } };
 const epochA = 60908.981929;
 const epochB = 61121.228205;
 globalThis.fetch = async (url) => {

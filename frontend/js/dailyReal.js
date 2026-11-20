@@ -1,6 +1,7 @@
 import { modelComparison, observationsOf } from "./features/planetLab.js";
 import { renderComparison } from "./features/planetLabView.js";
-import { showShootingStars } from "./dailyCelebration.js";
+import { showChallengeCompletion, showShootingStars } from "./dailyCelebration.js?v=shared-feedback";
+import { updateRealStreak, recordRealCompletion } from "./dailyRealStreak.js";
 import { getCutoutsApi } from "./data/apiSource.js?v=1";
 import { IS_REMOTE_BACKEND } from "./config.js?v=1";
 
@@ -16,6 +17,7 @@ let timer;
 let loading = false;
 let imageReady = false;
 let submitted = false;
+const realChallengeLink = new URLSearchParams(window.location?.search).get("challenge") === "real";
 
 function stop() {
   clearInterval(timer);
@@ -165,7 +167,14 @@ function switchMode(real) {
   $("real").hidden = !real;
   $("synthetic-mode").setAttribute("aria-pressed", String(!real));
   $("real-mode").setAttribute("aria-pressed", String(real));
-  if (real) loadFrames();
+  $("synthetic-streak").hidden = real;
+  $("real-streak").hidden = !real;
+  $("date").hidden = real;
+  if (realChallengeLink) $("title").textContent = real ? "Real Daily Challenge" : "Field of the Day";
+  if (real) {
+    updateRealStreak();
+    loadFrames();
+  }
 }
 
 $("real-mode").addEventListener("click", () => switchMode(true));
@@ -176,6 +185,7 @@ $("real-submit").addEventListener("click", () => {
   stop();
   submitted = true;
   updateMarks();
+  showChallengeCompletion(recordRealCompletion());
   showShootingStars();
 });
 $("real-compare").addEventListener("click", () => {
@@ -248,3 +258,6 @@ function saveMark(x, y) {
   updateMarks();
   updateResultFrames();
 }
+
+
+if (realChallengeLink) switchMode(true);

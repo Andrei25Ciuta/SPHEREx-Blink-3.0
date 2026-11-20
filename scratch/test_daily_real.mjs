@@ -17,7 +17,7 @@ function node(id) {
 let nextElement = 0;
 globalThis.document = { getElementById: node, createElement: () => node(`element-${nextElement++}`) };
 globalThis.Option = class {};
-globalThis.window = { matchMedia: () => ({ matches: true }) };
+globalThis.window = { matchMedia: () => ({ matches: true }), location: { search: "?challenge=real" } };
 let calls = 0;
 globalThis.fetch = async (url) => {
   assert.match(url, /\/api\/cutouts\?/);
@@ -29,9 +29,9 @@ globalThis.fetch = async (url) => {
   })) });
 };
 await import("../frontend/js/dailyReal.js");
-node("daily-real-mode").click();
 await new Promise((resolve) => setImmediate(resolve));
 assert.equal(node("daily-synthetic").hidden, true);
+assert.equal(node("daily-real-streak").hidden, false);
 assert.equal(node("daily-real-viewer").hidden, false);
 const image = node("daily-real-image");
 let tick;
@@ -59,6 +59,8 @@ node("daily-real-epoch").change();
 assert.equal(node("daily-real-submit").disabled, false);
 node("daily-real-submit").click();
 assert.equal(tick, undefined);
+assert.equal(node("real-game-streak-count").textContent, "1");
+assert.equal(node("daily-toast").textContent, "Well done! Challenge completed. 1-day streak.");
 assert.match(node("daily-real-motion").textContent, /60.0 arcsec\/year · right/);
 assert.equal(node("daily-real-details").hidden, false);
 assert.match(node("daily-real-rating").textContent, /needs 3/);
@@ -94,4 +96,6 @@ assert.equal(calls, 1);
 node("daily-real-clear").click();
 assert.equal(thumbnails.hidden, true);
 assert.equal(thumbnails.children.length, 0);
+const { clearDailyToast } = await import("../frontend/js/dailyCelebration.js?v=shared-feedback");
+clearDailyToast();
 console.log("PASS real mode, prepared frames, marks and motion");
